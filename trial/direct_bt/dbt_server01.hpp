@@ -210,14 +210,14 @@ class DBTServer01 : public DBTServerTest {
                 (void)timestamp;
             }
 
-            void deviceConnected(BTDeviceRef device, const uint16_t handle, const uint64_t timestamp) override {
-                fprintf_td(stderr, "****** Server CONNECTED: %s\n", device->toString(true).c_str());
+            void deviceConnected(BTDeviceRef device, const bool discovered, const uint64_t timestamp) override {
+                fprintf_td(stderr, "****** Server CONNECTED (discovered %d): %s\n", discovered, device->toString(true).c_str());
                 const bool available = nullptr == parent.getDevice();
                 if( available ) {
                     parent.setDevice(device);
                     BTDeviceRegistry::addToProcessingDevices(device->getAddressAndType(), device->getName());
                 }
-                (void)handle;
+                (void)discovered;
                 (void)timestamp;
             }
 

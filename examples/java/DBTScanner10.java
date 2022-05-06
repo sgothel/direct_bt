@@ -175,8 +175,8 @@ public class DBTScanner10 {
         }
 
         @Override
-        public void deviceConnected(final BTDevice device, final short handle, final long timestamp) {
-            BTUtils.println(System.err, "****** CONNECTED: "+device.toString());
+        public void deviceConnected(final BTDevice device, final boolean discovered, final long timestamp) {
+            BTUtils.println(System.err, "****** CONNECTED (discovered "+discovered+"): "+device.toString());
         }
 
         @Override
@@ -321,8 +321,8 @@ public class DBTScanner10 {
                 }
             }
             @Override
-            public void deviceConnected(final BTDevice device, final short handle, final long timestamp) {
-                BTUtils.println(System.err, "****** CONNECTED(2): "+device.toString());
+            public void deviceConnected(final BTDevice device, final boolean discovered, final long timestamp) {
+                BTUtils.println(System.err, "****** CONNECTED(2) (discovered "+discovered+"): "+device.toString());
             }
 
             @Override

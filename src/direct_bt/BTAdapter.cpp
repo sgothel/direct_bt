@@ -1906,9 +1906,9 @@ bool BTAdapter::mgmtEvDeviceConnectedHCI(const MgmtEvent& e) noexcept {
         ad_report.setAddress( event.getAddress() );
         ad_report.read_data(event.getData(), event.getDataSize());
     }
-    DBG_PRINT("BTAdapter:hci:DeviceConnected(dev_id %d): %s: %s", dev_id, e.toString().c_str(), ad_report.toString().c_str());
 
     int new_connect = 0;
+    bool device_discovered = true;
     bool slave_unpair = false;
     BTDeviceRef device = findConnectedDevice(event.getAddress(), event.getAddressType());
     if( nullptr == device ) {
@@ -1924,28 +1924,37 @@ bool BTAdapter::mgmtEvDeviceConnectedHCI(const MgmtEvent& e) noexcept {
             addDiscoveredDevice(device); // connected devices must be in shared + discovered list
             new_connect = 2;
             slave_unpair = BTRole::Slave == getRole();
+            // Re device_discovered: Even though device was not in discoveredDevices list above,
+            // it once was hence the device is in the shared device list.
+            // Note that discoveredDevices is flushed w/ startDiscovery()!
         }
     }
     if( nullptr == device ) {
         // (new_connect = 3) a whitelist auto-connect w/o previous discovery, or
         // (new_connect = 4) we are a peripheral being connected by a remote client
+        device_discovered = false;
         device = BTDevice::make_shared(*this, ad_report);
         addDiscoveredDevice(device);
         addSharedDevice(device);
         new_connect = BTRole::Master == getRole() ? 3 : 4;
         slave_unpair = BTRole::Slave == getRole();
     }
-    bool has_smp_key;
+    bool has_smp_keys;
     if( BTRole::Slave == getRole() ) {
-        has_smp_key = nullptr != findSMPKeyBin( device->getAddressAndType() ); // PERIPHERAL_ADAPTER_MANAGES_SMP_KEYS
+        has_smp_keys = nullptr != findSMPKeyBin( device->getAddressAndType() ); // PERIPHERAL_ADAPTER_MANAGES_SMP_KEYS
     } else {
-        has_smp_key = false;
+        has_smp_keys = false;
     }
+
+    DBG_PRINT("BTAdapter:hci:DeviceConnected(dev_id %d): state[role %s, new %d, discovered %d, unpair %d, has_keys %d], %s: %s",
+            dev_id, to_string(getRole()).c_str(), new_connect, device_discovered, slave_unpair, has_smp_keys,
+            e.toString().c_str(), ad_report.toString().c_str());
+
     if( slave_unpair ) {
         /**
          * Without unpair in SC mode (or key pre-pairing), the peripheral fails the DHKey Check.
          */
-        if( !has_smp_key ) {
+        if( !has_smp_keys ) {
             // No pre-pairing -> unpair
             HCIStatusCode  res = mgmt.unpairDevice(dev_id, device->getAddressAndType(), false /* disconnect */);
             if( HCIStatusCode::SUCCESS != res && HCIStatusCode::NOT_PAIRED != res ) {
@@ -1973,7 +1982,7 @@ bool BTAdapter::mgmtEvDeviceConnectedHCI(const MgmtEvent& e) noexcept {
             device->toString().c_str());
     }
 
-    if( BTRole::Slave == getRole() && !has_smp_key ) {
+    if( BTRole::Slave == getRole() && !has_smp_keys ) {
         // Skipped if has_smp_key,
         // where BTDevice::uploadKeys() -> BTDevice::setSMPKeyBin() was performed at disconnected tuning the security setup.
         device->setConnSecurity(sec_level_server, io_cap_server);
@@ -1992,7 +2001,7 @@ bool BTAdapter::mgmtEvDeviceConnectedHCI(const MgmtEvent& e) noexcept {
                     p.listener->deviceUpdated(device, updateMask, ad_report.getTimestamp());
                 }
                 if( 0 < new_connect ) {
-                    p.listener->deviceConnected(device, event.getHCIHandle(), event.getTimestamp());
+                    p.listener->deviceConnected(device, device_discovered, event.getTimestamp());
                 }
             }
         } catch (std::exception &except) {

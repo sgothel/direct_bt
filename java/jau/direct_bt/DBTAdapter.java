@@ -615,9 +615,9 @@ public class DBTAdapter extends DBTObject implements BTAdapter
         }
 
         @Override
-        public void deviceConnected(final BTDevice device, final short handle, final long timestamp) {
+        public void deviceConnected(final BTDevice device, final boolean discovered, final long timestamp) {
             if( DEBUG ) {
-                BTUtils.println(System.err, "Adapter.CONNECTED: "+device+" on "+device.getAdapter());
+                BTUtils.println(System.err, "Adapter.CONNECTED (discovered "+discovered+"): "+device+" on "+device.getAdapter());
             }
             final DBTDevice device_ = (DBTDevice)device;
             if( device_.isConnected.compareAndSet(false, true) ) {

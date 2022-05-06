@@ -174,9 +174,9 @@ class AdapterToServerStatusListener : public AdapterStatusListener {
         }
     }
 
-    void deviceConnected(BTDeviceRef device, const uint16_t handle, const uint64_t timestamp) override {
-        fprintf_td(stderr, "****** To Server: CONNECTED: %s\n", device->toString(true).c_str());
-        (void)handle;
+    void deviceConnected(BTDeviceRef device, const bool discovered, const uint64_t timestamp) override {
+        fprintf_td(stderr, "****** To Server: CONNECTED (discovered %d): %s\n", discovered, device->toString(true).c_str());
+        (void)discovered;
         (void)timestamp;
     }
 
@@ -612,10 +612,9 @@ class AdapterToClientStatusListener : public AdapterStatusListener {
         return false;
     }
 
-    void deviceConnected(BTDeviceRef device, const uint16_t handle, const uint64_t timestamp) override {
-        fprintf_td(stderr, "****** To Client: CONNECTED: %s\n", device->toString(true).c_str());
-
-        (void)handle;
+    void deviceConnected(BTDeviceRef device, const bool discovered, const uint64_t timestamp) override {
+        fprintf_td(stderr, "****** To Client: CONNECTED (discovered %d): %s\n", discovered, device->toString(true).c_str());
+        (void)discovered;
         (void)timestamp;
     }
 

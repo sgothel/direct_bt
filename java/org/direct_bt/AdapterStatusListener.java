@@ -127,11 +127,12 @@ public abstract class AdapterStatusListener {
      * If a {@link BTRole#Master} {@link BTDevice} gets connected, {@link BTDevice#unpair()} has been called already.
      *
      * @param device the remote device which has been connected, holding the new connection handle.
-     * @param handle the new connection handle, which has been assigned to the device already
+     * @param discovered `true` if discovered before connected and {@link #deviceFound(BTDevice, long)}has been sent (default), otherwise `false`.
      * @param timestamp the time in monotonic milliseconds when this event occurred. See {@link BTUtils#currentTimeMillis()}.
      * @see BTDevice#unpair()
+     * @since 2.6.6
      */
-    public void deviceConnected(final BTDevice device, final short handle, final long timestamp) { }
+    public void deviceConnected(final BTDevice device, final boolean discovered, final long timestamp) { }
 
     /**
      * An already connected remote {@link BTDevice}'s {@link SMPPairingState} has changed.

@@ -249,14 +249,14 @@ class MyAdapterStatusListener : public AdapterStatusListener {
         (void)timestamp;
     }
 
-    void deviceConnected(BTDeviceRef device, const uint16_t handle, const uint64_t timestamp) override {
-        fprintf_td(stderr, "****** CONNECTED: %s\n", device->toString(true).c_str());
+    void deviceConnected(BTDeviceRef device, const bool discovered, const uint64_t timestamp) override {
+        fprintf_td(stderr, "****** CONNECTED (discovered %d): %s\n", discovered, device->toString(true).c_str());
         const bool available = nullptr == getDevice();
         if( available ) {
             setDevice(device);
             BTDeviceRegistry::addToProcessingDevices(device->getAddressAndType(), device->getName());
         }
-        (void)handle;
+        (void)discovered;
         (void)timestamp;
     }
 

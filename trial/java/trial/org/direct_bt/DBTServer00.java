@@ -294,8 +294,8 @@ public class DBTServer00 implements DBTServerTest {
         }
 
         @Override
-        public void deviceConnected(final BTDevice device, final short handle, final long timestamp) {
-            BTUtils.println(System.err, "****** Server CONNECTED (served "+disconnectCount.get()+", left "+servingProtocolSessionsLeft.get()+"): handle 0x"+Integer.toHexString(handle)+": "+device+" on "+device.getAdapter());
+        public void deviceConnected(final BTDevice device, final boolean discovered, final long timestamp) {
+            BTUtils.println(System.err, "****** Server CONNECTED (served "+disconnectCount.get()+", left "+servingProtocolSessionsLeft.get()+"): discovered "+discovered+": "+device+" on "+device.getAdapter());
             final boolean available = null == getDevice();
             if( available ) {
                 setDevice(device);

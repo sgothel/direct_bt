@@ -131,9 +131,9 @@ class DBTClient01 : public DBTClientTest {
                 (void)timestamp;
             }
 
-            void deviceConnected(BTDeviceRef device, const uint16_t handle, const uint64_t timestamp) override {
-                fprintf_td(stderr, "****** Client CONNECTED: %s\n", device->toString(true).c_str());
-                (void)handle;
+            void deviceConnected(BTDeviceRef device, const bool discovered, const uint64_t timestamp) override {
+                fprintf_td(stderr, "****** Client CONNECTED (discovered %d): %s\n", discovered, device->toString(true).c_str());
+                (void)discovered;
                 (void)timestamp;
             }
 

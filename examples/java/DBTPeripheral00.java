@@ -272,8 +272,8 @@ public class DBTPeripheral00 {
         }
 
         @Override
-        public void deviceConnected(final BTDevice device, final short handle, final long timestamp) {
-            BTUtils.println(System.err, "****** CONNECTED: "+device.toString());
+        public void deviceConnected(final BTDevice device, final boolean discovered, final long timestamp) {
+            BTUtils.println(System.err, "****** CONNECTED (discovered "+discovered+"): "+device.toString());
             final boolean available = null == getDevice();
             if( available ) {
                 setDevice(device);

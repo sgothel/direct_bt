@@ -216,13 +216,14 @@ namespace direct_bt {
              * If a BTRole::Master BTDevice gets connected, BTDevice::unpair() has been called already.
              *
              * @param device the remote device which has been connected, holding the new connection handle.
-             * @param handle the new connection handle, which has been assigned to the device already
+             * @param discovered `true` if discovered before connected and deviceFound() has been sent (default), otherwise `false`.
              * @param timestamp the time in monotonic milliseconds when this event occurred. See BasicTypes::getCurrentMilliseconds().
              * @see BTDevice::unpair()
+             * @since 2.6.6
              */
-            virtual void deviceConnected(BTDeviceRef device, const uint16_t handle, const uint64_t timestamp) {
+            virtual void deviceConnected(BTDeviceRef device, const bool discovered, const uint64_t timestamp) {
                 (void)device;
-                (void)handle;
+                (void)discovered;
                 (void)timestamp;
             }
 

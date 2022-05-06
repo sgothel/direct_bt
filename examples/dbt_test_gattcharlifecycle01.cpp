@@ -136,9 +136,9 @@ class MyAdapterStatusListener : public AdapterStatusListener {
         (void)timestamp;
     }
 
-    void deviceConnected(std::shared_ptr<BTDevice> device, const uint16_t handle, const uint64_t timestamp) override {
-        fprintf_td(stderr, "****** CONNECTED: %s\n", device->toString(true).c_str());
-        (void)handle;
+    void deviceConnected(BTDeviceRef device, const bool discovered, const uint64_t timestamp) override {
+        fprintf_td(stderr, "****** CONNECTED (discovered %d): %s\n", discovered, device->toString(true).c_str());
+        (void)discovered;
         (void)timestamp;
     }
 
@@ -277,9 +277,9 @@ static void connectDiscoveredDevice(std::shared_ptr<BTDevice> device) {
             fprintf_td(stderr, "****** UPDATED(2): %s of %s\n", to_string(updateMask).c_str(), device->toString(true).c_str());
             (void)timestamp;
         }
-        void deviceConnected(std::shared_ptr<BTDevice> device, const uint16_t handle, const uint64_t timestamp) override {
-            fprintf_td(stderr, "****** CONNECTED(2): %s\n", device->toString(true).c_str());
-            (void)handle;
+        void deviceConnected(BTDeviceRef device, const bool discovered, const uint64_t timestamp) override {
+            fprintf_td(stderr, "****** CONNECTED(2) (discovered %d): %s\n", discovered, device->toString(true).c_str());
+            (void)discovered;
             (void)timestamp;
         }
         std::string toString() const override {

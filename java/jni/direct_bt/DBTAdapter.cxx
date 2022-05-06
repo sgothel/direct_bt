@@ -56,7 +56,7 @@ static const std::string _adapterSettingsChangedMethodArgs("(Lorg/direct_bt/BTAd
 static const std::string _discoveringChangedMethodArgs("(Lorg/direct_bt/BTAdapter;Lorg/direct_bt/ScanType;Lorg/direct_bt/ScanType;ZLorg/direct_bt/DiscoveryPolicy;J)V");
 static const std::string _deviceFoundMethodArgs("(Lorg/direct_bt/BTDevice;J)Z");
 static const std::string _deviceUpdatedMethodArgs("(Lorg/direct_bt/BTDevice;Lorg/direct_bt/EIRDataTypeSet;J)V");
-static const std::string _deviceConnectedMethodArgs("(Lorg/direct_bt/BTDevice;SJ)V");
+static const std::string _deviceConnectedMethodArgs("(Lorg/direct_bt/BTDevice;ZJ)V");
 static const std::string _devicePairingStateMethodArgs("(Lorg/direct_bt/BTDevice;Lorg/direct_bt/SMPPairingState;Lorg/direct_bt/PairingMode;J)V");
 static const std::string _deviceReadyMethodArgs("(Lorg/direct_bt/BTDevice;J)V");
 static const std::string _deviceDisconnectedMethodArgs("(Lorg/direct_bt/BTDevice;Lorg/direct_bt/HCIStatusCode;SJ)V");
@@ -328,7 +328,7 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
         env->DeleteLocalRef(eirDataTypeSet);
     }
 
-    void deviceConnected(BTDeviceRef device, const uint16_t handle, const uint64_t timestamp) override {
+    void deviceConnected(BTDeviceRef device, const bool discovered, const uint64_t timestamp) override {
         JNIEnv *env = *jau::jni_env;
 
         jobject jdevice;
@@ -339,14 +339,14 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
         } else {
             jdevice = newJavaBTDevice(env, device, timestamp);
         }
-        env->SetShortField(jdevice, deviceClazzConnectionHandleField, (jshort)handle);
+        env->SetShortField(jdevice, deviceClazzConnectionHandleField, (jshort)device->getConnectionHandle());
         jau::java_exception_check_and_throw(env, E_FILE_LINE);
         env->SetLongField(jdevice, deviceClazzTSLastDiscoveryField, (jlong)device->getLastDiscoveryTimestamp());
         jau::java_exception_check_and_throw(env, E_FILE_LINE);
         env->SetLongField(jdevice, deviceClazzTSLastUpdateField, (jlong)timestamp);
         jau::java_exception_check_and_throw(env, E_FILE_LINE);
 
-        env->CallVoidMethod(listenerObjRef.getObject(), mDeviceConnected, jdevice, (jshort)handle, (jlong)timestamp);
+        env->CallVoidMethod(listenerObjRef.getObject(), mDeviceConnected, jdevice, (jboolean)discovered, (jlong)timestamp);
         jau::java_exception_check_and_throw(env, E_FILE_LINE);
     }
     void devicePairingState(BTDeviceRef device, const SMPPairingState state, const PairingMode mode, const uint64_t timestamp) override {
