@@ -284,6 +284,8 @@ namespace direct_bt {
             BTManager(const BTManager&) = delete;
             void operator=(const BTManager&) = delete;
 
+            ~BTManager() noexcept override;
+
             std::unique_ptr<AdapterInfo> readAdapterInfo(const uint16_t dev_id) noexcept;
 
             void processAdapterAdded(std::unique_ptr<MgmtEvent> e) noexcept;
@@ -328,7 +330,6 @@ namespace direct_bt {
                 static BTManager s;
                 return s;
             }
-            ~BTManager() noexcept override { close(); }
 
             void close() noexcept;
 

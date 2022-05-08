@@ -503,6 +503,11 @@ fail:
     return;
 }
 
+BTManager::~BTManager() noexcept {
+    jau::root_environment::set_terminating();
+    close();
+}
+
 void BTManager::close() noexcept {
     // Avoid disconnect re-entry -> potential deadlock
     bool expConn = true; // C++11, exp as value since C++20
