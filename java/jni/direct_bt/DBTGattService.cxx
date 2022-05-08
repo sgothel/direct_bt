@@ -38,11 +38,25 @@
 using namespace direct_bt;
 using namespace jau;
 
+void Java_jau_direct_1bt_DBTGattService_deleteImpl(JNIEnv *env, jobject obj, jlong nativeInstance) {
+    (void)obj;
+    try {
+        jau::shared_ptr_ref<BTGattService> sref(nativeInstance, false /* throw_on_nullptr */); // hold copy until done
+        if( nullptr != sref.pointer() ) {
+            std::shared_ptr<BTGattService>* sref_ptr = jau::castInstance<BTGattService>(nativeInstance);
+            delete sref_ptr;
+        }
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+}
+
 jstring Java_jau_direct_1bt_DBTGattService_toStringImpl(JNIEnv *env, jobject obj) {
     try {
-        BTGattService *nativePtr = getJavaUplinkObject<BTGattService>(env, obj);
-        JavaGlobalObj::check(nativePtr->getJavaObject(), E_FILE_LINE);
-        return from_string_to_jstring(env, nativePtr->toString());
+        shared_ptr_ref<BTGattService> service(env, obj); // hold until done
+        jau::JavaAnonRef service_java = service->getJavaObject(); // hold until done!
+        JavaGlobalObj::check(service_java, E_FILE_LINE);
+        return from_string_to_jstring(env, service->toString());
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
@@ -50,25 +64,14 @@ jstring Java_jau_direct_1bt_DBTGattService_toStringImpl(JNIEnv *env, jobject obj
 }
 
 
-void Java_jau_direct_1bt_DBTGattService_deleteImpl(JNIEnv *env, jobject obj, jlong nativeInstance) {
-    (void)obj;
-    try {
-        BTGattService *service = castInstance<BTGattService>(nativeInstance);
-        (void)service;
-        // No delete: Service instance owned by BTDevice
-    } catch(...) {
-        rethrow_and_raise_java_exception(env);
-    }
-}
-
 static const std::string _characteristicClazzCtorArgs("(JLjau/direct_bt/DBTGattService;SLorg/direct_bt/GattCharPropertySet;Ljava/lang/String;SII)V");
 static const std::string _gattCharPropSetClassName("org/direct_bt/GattCharPropertySet");
 static const std::string _gattCharPropSetClazzCtorArgs("(B)V");
 
 jobject Java_jau_direct_1bt_DBTGattService_getCharsImpl(JNIEnv *env, jobject obj) {
     try {
-        BTGattService *service = getJavaUplinkObject<BTGattService>(env, obj);
-        std::shared_ptr<JavaAnon> service_java = service->getJavaObject(); // hold until done!
+        shared_ptr_ref<BTGattService> service(env, obj); // hold until done
+        jau::JavaAnonRef service_java = service->getJavaObject(); // hold until done!
         JavaGlobalObj::check(service_java, E_FILE_LINE);
 
         jau::darray<std::shared_ptr<BTGattChar>> & characteristics = service->characteristicList;
@@ -96,14 +99,14 @@ jobject Java_jau_direct_1bt_DBTGattService_getCharsImpl(JNIEnv *env, jobject obj
                         final int clientCharacteristicsConfigIndex,
                         final int userDescriptionIndex)
         */
-        std::function<jobject(JNIEnv*, jclass, jmethodID, BTGattChar *)> ctor_char =
-                [&gattCharPropSetClazz, &gattCharPropSetClazzCtor](JNIEnv *env_, jclass clazz, jmethodID clazz_ctor, BTGattChar *characteristic)->jobject {
+        std::function<jobject(JNIEnv*, jclass, jmethodID, const BTGattCharRef&)> ctor_char =
+                [&gattCharPropSetClazz, &gattCharPropSetClazzCtor](JNIEnv *env_, jclass clazz, jmethodID clazz_ctor, const BTGattCharRef& characteristic)->jobject {
                     // prepare adapter ctor
                     std::shared_ptr<BTGattService> _service = characteristic->getServiceUnchecked();
                     if( nullptr == _service ) {
                         throw jau::RuntimeException("Characteristic's service null: "+characteristic->toString(), E_FILE_LINE);
                     }
-                    std::shared_ptr<JavaAnon> _service_java = _service->getJavaObject(); // hold until done!
+                    jau::JavaAnonRef _service_java = _service->getJavaObject(); // hold until done!
                     JavaGlobalObj::check(_service_java, E_FILE_LINE);
 
                     jobject jservice = JavaGlobalObj::GetObject(_service_java);
@@ -116,14 +119,15 @@ jobject Java_jau_direct_1bt_DBTGattService_getCharsImpl(JNIEnv *env, jobject obj
                     const jstring uuid = from_string_to_jstring(env_, characteristic->value_type->toUUID128String());
                     java_exception_check_and_throw(env_, E_FILE_LINE);
 
-                    jobject jcharVal = env_->NewObject(clazz, clazz_ctor, (jlong)characteristic, jservice,
+                    shared_ptr_ref<BTGattChar> characteristic_sref(characteristic); // new instance to be released into new jobject
+                    jobject jcharVal = env_->NewObject(clazz, clazz_ctor, characteristic_sref.release_to_jlong(), jservice,
                             characteristic->handle, jGattCharPropSet,
                             uuid, characteristic->value_handle,
                             characteristic->clientCharConfigIndex,
                             characteristic->userDescriptionIndex);
                     java_exception_check_and_throw(env_, E_FILE_LINE);
                     JNIGlobalRef::check(jcharVal, E_FILE_LINE);
-                    std::shared_ptr<JavaAnon> jCharRef = characteristic->getJavaObject(); // GlobalRef
+                    jau::JavaAnonRef jCharRef = characteristic->getJavaObject(); // GlobalRef
                     JavaGlobalObj::check(jCharRef, E_FILE_LINE);
                     env_->DeleteLocalRef(jGattCharPropSet);
                     env_->DeleteLocalRef(jcharVal);

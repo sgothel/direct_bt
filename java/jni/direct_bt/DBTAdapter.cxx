@@ -567,8 +567,9 @@ jint Java_jau_direct_1bt_DBTAdapter_removeAllStatusListenerImpl(JNIEnv *env, job
 
 jboolean Java_jau_direct_1bt_DBTAdapter_isDeviceWhitelisted(JNIEnv *env, jobject obj, jbyteArray jaddress, jbyte jaddressType) {
     try {
-        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
-        jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
+        jau::shared_ptr_ref<BTAdapter> adapter(env, obj); // hold until done
+        jau::JavaAnonRef adapter_java = adapter->getJavaObject(); // hold until done!
+        jau::JavaGlobalObj::check(adapter_java, E_FILE_LINE);
 
         if( nullptr == jaddress ) {
             throw jau::IllegalArgumentException("address null", E_FILE_LINE);
@@ -596,8 +597,9 @@ jboolean Java_jau_direct_1bt_DBTAdapter_addDeviceToWhitelistImpl1(JNIEnv *env, j
                                                                     jshort min_interval, jshort max_interval,
                                                                     jshort latency, jshort timeout) {
     try {
-        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
-        jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
+        jau::shared_ptr_ref<BTAdapter> adapter(env, obj); // hold until done
+        jau::JavaAnonRef adapter_java = adapter->getJavaObject(); // hold until done!
+        jau::JavaGlobalObj::check(adapter_java, E_FILE_LINE);
 
         if( nullptr == jaddress ) {
             throw jau::IllegalArgumentException("address null", E_FILE_LINE);
@@ -624,8 +626,9 @@ jboolean Java_jau_direct_1bt_DBTAdapter_addDeviceToWhitelistImpl1(JNIEnv *env, j
 jboolean Java_jau_direct_1bt_DBTAdapter_addDeviceToWhitelistImpl2(JNIEnv *env, jobject obj,
                                                                     jbyteArray jaddress, jbyte jaddressType, int jctype) {
     try {
-        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
-        jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
+        jau::shared_ptr_ref<BTAdapter> adapter(env, obj); // hold until done
+        jau::JavaAnonRef adapter_java = adapter->getJavaObject(); // hold until done!
+        jau::JavaGlobalObj::check(adapter_java, E_FILE_LINE);
 
         if( nullptr == jaddress ) {
             throw jau::IllegalArgumentException("address null", E_FILE_LINE);
@@ -651,8 +654,9 @@ jboolean Java_jau_direct_1bt_DBTAdapter_addDeviceToWhitelistImpl2(JNIEnv *env, j
 }
 jboolean Java_jau_direct_1bt_DBTAdapter_removeDeviceFromWhitelistImpl(JNIEnv *env, jobject obj, jbyteArray jaddress, jbyte jaddressType) {
     try {
-        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
-        jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
+        jau::shared_ptr_ref<BTAdapter> adapter(env, obj); // hold until done
+        jau::JavaAnonRef adapter_java = adapter->getJavaObject(); // hold until done!
+        jau::JavaGlobalObj::check(adapter_java, E_FILE_LINE);
 
         if( nullptr == jaddress ) {
             throw jau::IllegalArgumentException("address null", E_FILE_LINE);
@@ -678,33 +682,24 @@ jboolean Java_jau_direct_1bt_DBTAdapter_removeDeviceFromWhitelistImpl(JNIEnv *en
 
 jstring Java_jau_direct_1bt_DBTAdapter_toStringImpl(JNIEnv *env, jobject obj) {
     try {
-        BTAdapter *nativePtr = jau::getJavaUplinkObject<BTAdapter>(env, obj);
-        jau::JavaGlobalObj::check(nativePtr->getJavaObject(), E_FILE_LINE);
-        return jau::from_string_to_jstring(env, nativePtr->toString());
+        jau::shared_ptr_ref<BTAdapter> adapter(env, obj); // hold until done
+        jau::JavaAnonRef adapter_java = adapter->getJavaObject(); // hold until done!
+        jau::JavaGlobalObj::check(adapter_java, E_FILE_LINE);
+
+        return jau::from_string_to_jstring(env, adapter->toString());
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
     return nullptr;
 }
 
-void Java_jau_direct_1bt_DBTAdapter_deleteImpl(JNIEnv *env, jobject obj, jlong nativeInstance)
-{
-    (void)obj;
-    try {
-        BTAdapter *adapter = jau::castInstance<BTAdapter>(nativeInstance);
-        DBG_PRINT("Java_jau_direct_1bt_DBTAdapter_deleteImpl (close only) %s", adapter->toString().c_str());
-        adapter->close();
-        // No delete: BTAdapter instance owned by DBTManager
-        // However, adapter->close() cleans up most..
-    } catch(...) {
-        rethrow_and_raise_java_exception(env);
-    }
-}
-
 jint Java_jau_direct_1bt_DBTAdapter_getBTMajorVersion(JNIEnv *env, jobject obj)
 {
     try {
-        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
+        jau::shared_ptr_ref<BTAdapter> adapter(env, obj); // hold until done
+        jau::JavaAnonRef adapter_java = adapter->getJavaObject(); // hold until done!
+        jau::JavaGlobalObj::check(adapter_java, E_FILE_LINE);
+
         return (jint) adapter->getBTMajorVersion();
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -715,7 +710,10 @@ jint Java_jau_direct_1bt_DBTAdapter_getBTMajorVersion(JNIEnv *env, jobject obj)
 jboolean Java_jau_direct_1bt_DBTAdapter_isPoweredImpl(JNIEnv *env, jobject obj)
 {
     try {
-        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
+        jau::shared_ptr_ref<BTAdapter> adapter(env, obj); // hold until done
+        jau::JavaAnonRef adapter_java = adapter->getJavaObject(); // hold until done!
+        jau::JavaGlobalObj::check(adapter_java, E_FILE_LINE);
+
         return adapter->isPowered();
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -726,7 +724,10 @@ jboolean Java_jau_direct_1bt_DBTAdapter_isPoweredImpl(JNIEnv *env, jobject obj)
 jboolean Java_jau_direct_1bt_DBTAdapter_isSuspendedImpl(JNIEnv *env, jobject obj)
 {
     try {
-        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
+        jau::shared_ptr_ref<BTAdapter> adapter(env, obj); // hold until done
+        jau::JavaAnonRef adapter_java = adapter->getJavaObject(); // hold until done!
+        jau::JavaGlobalObj::check(adapter_java, E_FILE_LINE);
+
         return adapter->isSuspended();
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -737,7 +738,10 @@ jboolean Java_jau_direct_1bt_DBTAdapter_isSuspendedImpl(JNIEnv *env, jobject obj
 jboolean Java_jau_direct_1bt_DBTAdapter_isValidImpl(JNIEnv *env, jobject obj)
 {
     try {
-        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
+        jau::shared_ptr_ref<BTAdapter> adapter(env, obj); // hold until done
+        jau::JavaAnonRef adapter_java = adapter->getJavaObject(); // hold until done!
+        jau::JavaGlobalObj::check(adapter_java, E_FILE_LINE);
+
         return adapter->isValid();
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -748,7 +752,10 @@ jboolean Java_jau_direct_1bt_DBTAdapter_isValidImpl(JNIEnv *env, jobject obj)
 jlong Java_jau_direct_1bt_DBTAdapter_getLEFeaturesImpl(JNIEnv *env, jobject obj)
 {
     try {
-        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
+        jau::shared_ptr_ref<BTAdapter> adapter(env, obj); // hold until done
+        jau::JavaAnonRef adapter_java = adapter->getJavaObject(); // hold until done!
+        jau::JavaGlobalObj::check(adapter_java, E_FILE_LINE);
+
         return (jlong) number( adapter->getLEFeatures() );
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -762,7 +769,10 @@ jbyte Java_jau_direct_1bt_DBTAdapter_startDiscoveryImpl(JNIEnv *env, jobject obj
                                                         jboolean filter_dup)
 {
     try {
-        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
+        jau::shared_ptr_ref<BTAdapter> adapter(env, obj); // hold until done
+        jau::JavaAnonRef adapter_java = adapter->getJavaObject(); // hold until done!
+        jau::JavaGlobalObj::check(adapter_java, E_FILE_LINE);
+
         return (jbyte) number( adapter->startDiscovery(static_cast<DiscoveryPolicy>(policy), le_scan_active, le_scan_interval, le_scan_window, filter_policy, filter_dup==JNI_TRUE) );
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -773,7 +783,10 @@ jbyte Java_jau_direct_1bt_DBTAdapter_startDiscoveryImpl(JNIEnv *env, jobject obj
 jbyte Java_jau_direct_1bt_DBTAdapter_stopDiscoveryImpl(JNIEnv *env, jobject obj)
 {
     try {
-        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
+        jau::shared_ptr_ref<BTAdapter> adapter(env, obj); // hold until done
+        jau::JavaAnonRef adapter_java = adapter->getJavaObject(); // hold until done!
+        jau::JavaGlobalObj::check(adapter_java, E_FILE_LINE);
+
         return (jbyte) number( adapter->stopDiscovery() );
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -784,7 +797,10 @@ jbyte Java_jau_direct_1bt_DBTAdapter_stopDiscoveryImpl(JNIEnv *env, jobject obj)
 jbyte Java_jau_direct_1bt_DBTAdapter_getCurrentDiscoveryPolicyImpl(JNIEnv *env, jobject obj) {
     DiscoveryPolicy current = DiscoveryPolicy::AUTO_OFF;
     try {
-        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
+        jau::shared_ptr_ref<BTAdapter> adapter(env, obj); // hold until done
+        jau::JavaAnonRef adapter_java = adapter->getJavaObject(); // hold until done!
+        jau::JavaGlobalObj::check(adapter_java, E_FILE_LINE);
+
         current = adapter->getCurrentDiscoveryPolicy();
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -794,10 +810,13 @@ jbyte Java_jau_direct_1bt_DBTAdapter_getCurrentDiscoveryPolicyImpl(JNIEnv *env, 
 
 jboolean Java_jau_direct_1bt_DBTAdapter_removeDevicePausingDiscovery(JNIEnv *env, jobject obj, jobject jdevice) {
     try {
-        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
+        jau::shared_ptr_ref<BTAdapter> adapter(env, obj); // hold until done
+        jau::JavaAnonRef adapter_java = adapter->getJavaObject(); // hold until done!
+        jau::JavaGlobalObj::check(adapter_java, E_FILE_LINE);
 
-        BTDevice *device = jau::getJavaUplinkObject<BTDevice>(env, jdevice);
-        jau::JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
+        jau::shared_ptr_ref<BTDevice> device(env, jdevice); // hold until done
+        jau::JavaAnonRef device_java = device->getJavaObject(); // hold until done!
+        jau::JavaGlobalObj::check(device_java, E_FILE_LINE);
 
         return adapter->removeDevicePausingDiscovery(*device) ? JNI_TRUE : JNI_FALSE;
     } catch(...) {
@@ -809,7 +828,10 @@ jboolean Java_jau_direct_1bt_DBTAdapter_removeDevicePausingDiscovery(JNIEnv *env
 jbyte Java_jau_direct_1bt_DBTAdapter_getRoleImpl(JNIEnv *env, jobject obj)
 {
     try {
-        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
+        jau::shared_ptr_ref<BTAdapter> adapter(env, obj); // hold until done
+        jau::JavaAnonRef adapter_java = adapter->getJavaObject(); // hold until done!
+        jau::JavaGlobalObj::check(adapter_java, E_FILE_LINE);
+
         return (jbyte) number( adapter->getRole() );
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -820,7 +842,10 @@ jbyte Java_jau_direct_1bt_DBTAdapter_getRoleImpl(JNIEnv *env, jobject obj)
 jbyte Java_jau_direct_1bt_DBTAdapter_getBTModeImpl(JNIEnv *env, jobject obj)
 {
     try {
-        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
+        jau::shared_ptr_ref<BTAdapter> adapter(env, obj); // hold until done
+        jau::JavaAnonRef adapter_java = adapter->getJavaObject(); // hold until done!
+        jau::JavaGlobalObj::check(adapter_java, E_FILE_LINE);
+
         return (jbyte) number( adapter->getBTMode() );
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -831,7 +856,10 @@ jbyte Java_jau_direct_1bt_DBTAdapter_getBTModeImpl(JNIEnv *env, jobject obj)
 jobject Java_jau_direct_1bt_DBTAdapter_getDiscoveredDevicesImpl(JNIEnv *env, jobject obj)
 {
     try {
-        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
+        jau::shared_ptr_ref<BTAdapter> adapter(env, obj); // hold until done
+        jau::JavaAnonRef adapter_java = adapter->getJavaObject(); // hold until done!
+        jau::JavaGlobalObj::check(adapter_java, E_FILE_LINE);
+
         jau::darray<BTDeviceRef> array = adapter->getDiscoveredDevices();
         return convert_vector_sharedptr_to_jarraylist(env, array);
     } catch(...) {
@@ -843,7 +871,10 @@ jobject Java_jau_direct_1bt_DBTAdapter_getDiscoveredDevicesImpl(JNIEnv *env, job
 jint Java_jau_direct_1bt_DBTAdapter_removeDiscoveredDevicesImpl1(JNIEnv *env, jobject obj)
 {
     try {
-        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
+        jau::shared_ptr_ref<BTAdapter> adapter(env, obj); // hold until done
+        jau::JavaAnonRef adapter_java = adapter->getJavaObject(); // hold until done!
+        jau::JavaGlobalObj::check(adapter_java, E_FILE_LINE);
+
         return adapter->removeDiscoveredDevices();
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -854,8 +885,9 @@ jint Java_jau_direct_1bt_DBTAdapter_removeDiscoveredDevicesImpl1(JNIEnv *env, jo
 jboolean Java_jau_direct_1bt_DBTAdapter_removeDiscoveredDeviceImpl1(JNIEnv *env, jobject obj, jbyteArray jaddress, jbyte jaddressType)
 {
     try {
-        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
-        jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
+        jau::shared_ptr_ref<BTAdapter> adapter(env, obj); // hold until done
+        jau::JavaAnonRef adapter_java = adapter->getJavaObject(); // hold until done!
+        jau::JavaGlobalObj::check(adapter_java, E_FILE_LINE);
 
         if( nullptr == jaddress ) {
             throw jau::IllegalArgumentException("address null", E_FILE_LINE);
@@ -885,8 +917,10 @@ jboolean Java_jau_direct_1bt_DBTAdapter_removeDiscoveredDeviceImpl1(JNIEnv *env,
 
 jboolean Java_jau_direct_1bt_DBTAdapter_setPowered(JNIEnv *env, jobject obj, jboolean power_on) {
     try {
-        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
-        jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
+        jau::shared_ptr_ref<BTAdapter> adapter(env, obj); // hold until done
+        jau::JavaAnonRef adapter_java = adapter->getJavaObject(); // hold until done!
+        jau::JavaGlobalObj::check(adapter_java, E_FILE_LINE);
+
         return adapter->setPowered(JNI_TRUE == power_on ? true : false) ? JNI_TRUE : JNI_FALSE;
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -896,8 +930,10 @@ jboolean Java_jau_direct_1bt_DBTAdapter_setPowered(JNIEnv *env, jobject obj, jbo
 
 jboolean Java_jau_direct_1bt_DBTAdapter_getSecureConnectionsEnabled(JNIEnv *env, jobject obj) {
     try {
-        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
-        jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
+        jau::shared_ptr_ref<BTAdapter> adapter(env, obj); // hold until done
+        jau::JavaAnonRef adapter_java = adapter->getJavaObject(); // hold until done!
+        jau::JavaGlobalObj::check(adapter_java, E_FILE_LINE);
+
         return adapter->getSecureConnectionsEnabled() ? JNI_TRUE : JNI_FALSE;
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -907,8 +943,10 @@ jboolean Java_jau_direct_1bt_DBTAdapter_getSecureConnectionsEnabled(JNIEnv *env,
 
 jbyte Java_jau_direct_1bt_DBTAdapter_setSecureConnectionsImpl(JNIEnv *env, jobject obj, jboolean enable) {
     try {
-        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
-        jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
+        jau::shared_ptr_ref<BTAdapter> adapter(env, obj); // hold until done
+        jau::JavaAnonRef adapter_java = adapter->getJavaObject(); // hold until done!
+        jau::JavaGlobalObj::check(adapter_java, E_FILE_LINE);
+
         HCIStatusCode res = adapter->setSecureConnections(JNI_TRUE == enable ? true : false);
         return (jbyte) number(res);
     } catch(...) {
@@ -921,8 +959,10 @@ jbyte Java_jau_direct_1bt_DBTAdapter_setDefaultConnParamImpl(JNIEnv *env, jobjec
                                                              jshort conn_interval_min, jshort conn_interval_max,
                                                              jshort conn_latency, jshort supervision_timeout) {
     try {
-        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
-        jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
+        jau::shared_ptr_ref<BTAdapter> adapter(env, obj); // hold until done
+        jau::JavaAnonRef adapter_java = adapter->getJavaObject(); // hold until done!
+        jau::JavaGlobalObj::check(adapter_java, E_FILE_LINE);
+
         HCIStatusCode res = adapter->setDefaultConnParam(static_cast<uint16_t>(conn_interval_min),
                                                          static_cast<uint16_t>(conn_interval_max),
                                                          static_cast<uint16_t>(conn_latency),
@@ -936,8 +976,9 @@ jbyte Java_jau_direct_1bt_DBTAdapter_setDefaultConnParamImpl(JNIEnv *env, jobjec
 
 void Java_jau_direct_1bt_DBTAdapter_setServerConnSecurityImpl(JNIEnv *env, jobject obj, jbyte jsec_level, jbyte jio_cap) {
     try {
-        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
-        jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
+        jau::shared_ptr_ref<BTAdapter> adapter(env, obj); // hold until done
+        jau::JavaAnonRef adapter_java = adapter->getJavaObject(); // hold until done!
+        jau::JavaGlobalObj::check(adapter_java, E_FILE_LINE);
 
         adapter->setServerConnSecurity( to_BTSecurityLevel( static_cast<uint8_t>(jsec_level) ),
                                         to_SMPIOCapability( static_cast<uint8_t>(jio_cap) ) );
@@ -948,8 +989,10 @@ void Java_jau_direct_1bt_DBTAdapter_setServerConnSecurityImpl(JNIEnv *env, jobje
 
 void Java_jau_direct_1bt_DBTAdapter_setSMPKeyPath(JNIEnv *env, jobject obj, jstring jpath) {
     try {
-        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
-        jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
+        jau::shared_ptr_ref<BTAdapter> adapter(env, obj); // hold until done
+        jau::JavaAnonRef adapter_java = adapter->getJavaObject(); // hold until done!
+        jau::JavaGlobalObj::check(adapter_java, E_FILE_LINE);
+
         std::string path = jau::from_jstring_to_string(env, jpath);
         adapter->setSMPKeyPath(path);
     } catch(...) {
@@ -959,8 +1002,10 @@ void Java_jau_direct_1bt_DBTAdapter_setSMPKeyPath(JNIEnv *env, jobject obj, jstr
 
 jbyte Java_jau_direct_1bt_DBTAdapter_initializeImpl(JNIEnv *env, jobject obj, jbyte jbtMode) {
     try {
-        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
-        jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
+        jau::shared_ptr_ref<BTAdapter> adapter(env, obj); // hold until done
+        jau::JavaAnonRef adapter_java = adapter->getJavaObject(); // hold until done!
+        jau::JavaGlobalObj::check(adapter_java, E_FILE_LINE);
+
         const BTMode btMode = static_cast<BTMode>(jbtMode);
         HCIStatusCode res = adapter->initialize(btMode);
         return (jbyte) number(res);
@@ -972,8 +1017,10 @@ jbyte Java_jau_direct_1bt_DBTAdapter_initializeImpl(JNIEnv *env, jobject obj, jb
 
 jboolean Java_jau_direct_1bt_DBTAdapter_isInitialized(JNIEnv *env, jobject obj) {
     try {
-        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
-        jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
+        jau::shared_ptr_ref<BTAdapter> adapter(env, obj); // hold until done
+        jau::JavaAnonRef adapter_java = adapter->getJavaObject(); // hold until done!
+        jau::JavaGlobalObj::check(adapter_java, E_FILE_LINE);
+
         return adapter->isInitialized();
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -983,8 +1030,10 @@ jboolean Java_jau_direct_1bt_DBTAdapter_isInitialized(JNIEnv *env, jobject obj) 
 
 jbyte Java_jau_direct_1bt_DBTAdapter_resetImpl(JNIEnv *env, jobject obj) {
     try {
-        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
-        jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
+        jau::shared_ptr_ref<BTAdapter> adapter(env, obj); // hold until done
+        jau::JavaAnonRef adapter_java = adapter->getJavaObject(); // hold until done!
+        jau::JavaGlobalObj::check(adapter_java, E_FILE_LINE);
+
         HCIStatusCode res = adapter->reset();
         return (jbyte) number(res);
     } catch(...) {
@@ -996,8 +1045,9 @@ jbyte Java_jau_direct_1bt_DBTAdapter_resetImpl(JNIEnv *env, jobject obj) {
 jbyte Java_jau_direct_1bt_DBTAdapter_setDefaultLE_1PHYImpl(JNIEnv *env, jobject obj,
                                                            jbyte jTx, jbyte jRx) {
     try {
-        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
-        jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
+        jau::shared_ptr_ref<BTAdapter> adapter(env, obj); // hold until done
+        jau::JavaAnonRef adapter_java = adapter->getJavaObject(); // hold until done!
+        jau::JavaGlobalObj::check(adapter_java, E_FILE_LINE);
 
         const LE_PHYs Tx = static_cast<LE_PHYs>(jTx);
         const LE_PHYs Rx = static_cast<LE_PHYs>(jRx);
@@ -1011,8 +1061,10 @@ jbyte Java_jau_direct_1bt_DBTAdapter_setDefaultLE_1PHYImpl(JNIEnv *env, jobject 
 
 jstring Java_jau_direct_1bt_DBTAdapter_getNameImpl(JNIEnv *env, jobject obj) {
     try {
-        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
-        jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
+        jau::shared_ptr_ref<BTAdapter> adapter(env, obj); // hold until done
+        jau::JavaAnonRef adapter_java = adapter->getJavaObject(); // hold until done!
+        jau::JavaGlobalObj::check(adapter_java, E_FILE_LINE);
+
         return jau::from_string_to_jstring(env, adapter->getName());
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -1022,8 +1074,10 @@ jstring Java_jau_direct_1bt_DBTAdapter_getNameImpl(JNIEnv *env, jobject obj) {
 
 jstring Java_jau_direct_1bt_DBTAdapter_getShortNameImpl(JNIEnv *env, jobject obj) {
     try {
-        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
-        jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
+        jau::shared_ptr_ref<BTAdapter> adapter(env, obj); // hold until done
+        jau::JavaAnonRef adapter_java = adapter->getJavaObject(); // hold until done!
+        jau::JavaGlobalObj::check(adapter_java, E_FILE_LINE);
+
         return jau::from_string_to_jstring(env, adapter->getShortName());
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -1033,8 +1087,10 @@ jstring Java_jau_direct_1bt_DBTAdapter_getShortNameImpl(JNIEnv *env, jobject obj
 
 jbyte Java_jau_direct_1bt_DBTAdapter_setNameImpl(JNIEnv *env, jobject obj, jstring jname, jstring jshort_name) {
     try {
-        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
-        jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
+        jau::shared_ptr_ref<BTAdapter> adapter(env, obj); // hold until done
+        jau::JavaAnonRef adapter_java = adapter->getJavaObject(); // hold until done!
+        jau::JavaGlobalObj::check(adapter_java, E_FILE_LINE);
+
         std::string name = jau::from_jstring_to_string(env, jname);
         std::string short_name = jau::from_jstring_to_string(env, jshort_name);
         return (jbyte) number( adapter->setName(name, short_name) );
@@ -1046,8 +1102,9 @@ jbyte Java_jau_direct_1bt_DBTAdapter_setNameImpl(JNIEnv *env, jobject obj, jstri
 
 jobject Java_jau_direct_1bt_DBTAdapter_connectDeviceImpl(JNIEnv *env, jobject obj, jbyteArray jaddress, jbyte jaddressType) {
     try {
-        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
-        jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
+        jau::shared_ptr_ref<BTAdapter> adapter(env, obj); // hold until done
+        jau::JavaAnonRef adapter_java = adapter->getJavaObject(); // hold until done!
+        jau::JavaGlobalObj::check(adapter_java, E_FILE_LINE);
 
         if( nullptr == jaddress ) {
             throw jau::IllegalArgumentException("address null", E_FILE_LINE);
@@ -1073,7 +1130,7 @@ jobject Java_jau_direct_1bt_DBTAdapter_connectDeviceImpl(JNIEnv *env, jobject ob
             if( !hci.isOpen() ) {
                 throw BTException("Adapter's HCI closed "+adapter->toString(), E_FILE_LINE);
             }
-            std::shared_ptr<jau::JavaAnon> jDeviceRef = device->getJavaObject();
+            jau::JavaAnonRef jDeviceRef = device->getJavaObject();
             jau::JavaGlobalObj::check(jDeviceRef, E_FILE_LINE);
 
             device->connectDefault();
@@ -1087,8 +1144,10 @@ jobject Java_jau_direct_1bt_DBTAdapter_connectDeviceImpl(JNIEnv *env, jobject ob
 
 void Java_jau_direct_1bt_DBTAdapter_printDeviceListsImpl(JNIEnv *env, jobject obj) {
     try {
-        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
-        jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
+        jau::shared_ptr_ref<BTAdapter> adapter(env, obj); // hold until done
+        jau::JavaAnonRef adapter_java = adapter->getJavaObject(); // hold until done!
+        jau::JavaGlobalObj::check(adapter_java, E_FILE_LINE);
+
         adapter->printDeviceLists();
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -1103,22 +1162,18 @@ jbyte Java_jau_direct_1bt_DBTAdapter_startAdvertising1Impl(JNIEnv *env, jobject 
                                                            jshort adv_interval_min, jshort adv_interval_max,
                                                            jbyte jadv_type, jbyte adv_chan_map, jbyte filter_policy) {
     try {
-        DBGattServerRef gattServerRef; // nullptr
-        if( nullptr != jgattServerData ) {
-            std::shared_ptr<DBGattServer> * ref_ptr = jau::getInstance<std::shared_ptr<DBGattServer>>(env, jgattServerData);
-            gattServerRef = *ref_ptr;
-        }
-        if( nullptr == jeir ) {
-            throw jau::IllegalArgumentException("eir null", E_FILE_LINE);
-        }
-        std::shared_ptr<EInfoReport>& eir_ptr = *jau::getInstance<std::shared_ptr<EInfoReport>>(env, jeir);
-        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
-        jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
+        jau::shared_ptr_ref<BTAdapter> adapter(env, obj); // hold until done
+        jau::JavaAnonRef adapter_java = adapter->getJavaObject(); // hold until done!
+        jau::JavaGlobalObj::check(adapter_java, E_FILE_LINE);
+
+        jau::shared_ptr_ref<DBGattServer> gatt_server_ref(env, jgattServerData, false /** throw_on_null */); // hold until done
+        gatt_server_ref.null_check1();
+        jau::shared_ptr_ref<EInfoReport> eir_ref(env, jeir); // hold until done
 
         const EIRDataType adv_mask = static_cast<EIRDataType>(jadv_mask);
         const EIRDataType scanrsp_mask = static_cast<EIRDataType>(jscanrsp_mask);
         const AD_PDU_Type adv_type = static_cast<AD_PDU_Type>(jadv_type);
-        HCIStatusCode res = adapter->startAdvertising(gattServerRef, *eir_ptr, adv_mask, scanrsp_mask, adv_interval_min, adv_interval_max, adv_type, adv_chan_map, filter_policy);
+        HCIStatusCode res = adapter->startAdvertising(gatt_server_ref.shared_ptr(), *eir_ref, adv_mask, scanrsp_mask, adv_interval_min, adv_interval_max, adv_type, adv_chan_map, filter_policy);
         return (jbyte) number(res);
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -1131,15 +1186,15 @@ jbyte Java_jau_direct_1bt_DBTAdapter_startAdvertising2Impl(JNIEnv *env, jobject 
                                                            jshort adv_interval_min, jshort adv_interval_max, jbyte jadv_type, jbyte adv_chan_map,
                                                            jbyte filter_policy) {
     try {
-        DBGattServerRef gattServerRef; // nullptr
-        if( nullptr != jgattServerData ) {
-            std::shared_ptr<DBGattServer> * ref_ptr = jau::getInstance<std::shared_ptr<DBGattServer>>(env, jgattServerData);
-            gattServerRef = *ref_ptr;
-        }
-        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
-        jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
+        jau::shared_ptr_ref<BTAdapter> adapter(env, obj); // hold until done
+        jau::JavaAnonRef adapter_java = adapter->getJavaObject(); // hold until done!
+        jau::JavaGlobalObj::check(adapter_java, E_FILE_LINE);
+
+        jau::shared_ptr_ref<DBGattServer> gatt_server_ref(env, jgattServerData, false /** throw_on_null */); // hold until done
+        gatt_server_ref.null_check1();
+
         const AD_PDU_Type adv_type = static_cast<AD_PDU_Type>(jadv_type);
-        HCIStatusCode res = adapter->startAdvertising(gattServerRef, adv_interval_min, adv_interval_max, adv_type, adv_chan_map, filter_policy);
+        HCIStatusCode res = adapter->startAdvertising(gatt_server_ref.shared_ptr(), adv_interval_min, adv_interval_max, adv_type, adv_chan_map, filter_policy);
         return (jbyte) number(res);
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -1149,8 +1204,10 @@ jbyte Java_jau_direct_1bt_DBTAdapter_startAdvertising2Impl(JNIEnv *env, jobject 
 
 jbyte Java_jau_direct_1bt_DBTAdapter_stopAdvertisingImpl(JNIEnv *env, jobject obj) {
     try {
-        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
-        jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
+        jau::shared_ptr_ref<BTAdapter> adapter(env, obj); // hold until done
+        jau::JavaAnonRef adapter_java = adapter->getJavaObject(); // hold until done!
+        jau::JavaGlobalObj::check(adapter_java, E_FILE_LINE);
+
         HCIStatusCode res = adapter->stopAdvertising();
         return (jbyte) number(res);
     } catch(...) {
@@ -1161,8 +1218,10 @@ jbyte Java_jau_direct_1bt_DBTAdapter_stopAdvertisingImpl(JNIEnv *env, jobject ob
 
 jboolean Java_jau_direct_1bt_DBTAdapter_isAdvertising(JNIEnv *env, jobject obj) {
     try {
-        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
-        jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
+        jau::shared_ptr_ref<BTAdapter> adapter(env, obj); // hold until done
+        jau::JavaAnonRef adapter_java = adapter->getJavaObject(); // hold until done!
+        jau::JavaGlobalObj::check(adapter_java, E_FILE_LINE);
+
         return adapter->isAdvertising() ? JNI_TRUE : JNI_FALSE;
     } catch(...) {
         rethrow_and_raise_java_exception(env);

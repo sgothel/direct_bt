@@ -36,34 +36,37 @@
 using namespace direct_bt;
 using namespace jau;
 
+void Java_jau_direct_1bt_DBTGattChar_deleteImpl(JNIEnv *env, jobject obj, jlong nativeInstance) {
+    (void)obj;
+    try {
+        jau::shared_ptr_ref<BTGattChar> sref(nativeInstance, false /* throw_on_nullptr */); // hold copy until done
+        if( nullptr != sref.pointer() ) {
+            std::shared_ptr<BTGattChar>* sref_ptr = jau::castInstance<BTGattChar>(nativeInstance);
+            delete sref_ptr;
+        }
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+}
+
 jstring Java_jau_direct_1bt_DBTGattChar_toStringImpl(JNIEnv *env, jobject obj) {
     try {
-        BTGattChar *nativePtr = getJavaUplinkObject<BTGattChar>(env, obj);
-        JavaGlobalObj::check(nativePtr->getJavaObject(), E_FILE_LINE);
-        return from_string_to_jstring(env, nativePtr->toString());
+        shared_ptr_ref<BTGattChar> characteristic(env, obj); // hold until done
+        jau::JavaAnonRef characteristic_java = characteristic->getJavaObject(); // hold until done!
+        JavaGlobalObj::check(characteristic_java, E_FILE_LINE);
+        return from_string_to_jstring(env, characteristic->toString());
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
     return nullptr;
 }
 
-void Java_jau_direct_1bt_DBTGattChar_deleteImpl(JNIEnv *env, jobject obj, jlong nativeInstance) {
-    (void)obj;
-    try {
-        BTGattChar *characteristic = castInstance<BTGattChar>(nativeInstance);
-        (void)characteristic;
-        // No delete: Service instance owned by BTGattService -> BTDevice
-    } catch(...) {
-        rethrow_and_raise_java_exception(env);
-    }
-}
-
 static const std::string _descriptorClazzCtorArgs("(JLjau/direct_bt/DBTGattChar;Ljava/lang/String;S[B)V");
 
 jobject Java_jau_direct_1bt_DBTGattChar_getDescriptorsImpl(JNIEnv *env, jobject obj) {
     try {
-        BTGattChar *characteristic = getJavaUplinkObject<BTGattChar>(env, obj);
-        std::shared_ptr<JavaAnon> characteristic_java = characteristic->getJavaObject(); // hold until done!
+        shared_ptr_ref<BTGattChar> characteristic(env, obj); // hold until done
+        jau::JavaAnonRef characteristic_java = characteristic->getJavaObject(); // hold until done!
         JavaGlobalObj::check(characteristic_java, E_FILE_LINE);
 
         jau::darray<BTGattDescRef> & descriptorList = characteristic->descriptorList;
@@ -74,14 +77,14 @@ jobject Java_jau_direct_1bt_DBTGattChar_getDescriptorsImpl(JNIEnv *env, jobject 
         // BTGattDesc(final long nativeInstance, final BTGattChar characteristic,
         //                   final String type_uuid, final short handle, final byte[] value)
 
-        std::function<jobject(JNIEnv*, jclass, jmethodID, BTGattDesc *)> ctor_desc =
-                [](JNIEnv *env_, jclass clazz, jmethodID clazz_ctor, BTGattDesc *descriptor)->jobject {
+        std::function<jobject(JNIEnv*, jclass, jmethodID, const BTGattDescRef&)> ctor_desc =
+                [](JNIEnv *env_, jclass clazz, jmethodID clazz_ctor, const BTGattDescRef& descriptor)->jobject {
                     // prepare adapter ctor
                     std::shared_ptr<BTGattChar> _characteristic = descriptor->getGattCharUnchecked();
                     if( nullptr == _characteristic ) {
                         throw jau::RuntimeException("Descriptor's characteristic null: "+descriptor->toString(), E_FILE_LINE);
                     }
-                    std::shared_ptr<JavaAnon> _characteristic_java = _characteristic->getJavaObject(); // hold until done!
+                    jau::JavaAnonRef _characteristic_java = _characteristic->getJavaObject(); // hold until done!
                     JavaGlobalObj::check(_characteristic_java, E_FILE_LINE);
                     jobject jcharacteristic = JavaGlobalObj::GetObject(_characteristic_java);
 
@@ -93,11 +96,12 @@ jobject Java_jau_direct_1bt_DBTGattChar_getDescriptorsImpl(JNIEnv *env, jobject 
                     env_->SetByteArrayRegion(jval, 0, (jsize)value_size, (const jbyte *)descriptor->value.get_ptr());
                     java_exception_check_and_throw(env_, E_FILE_LINE);
 
-                    jobject jdesc = env_->NewObject(clazz, clazz_ctor, (jlong)descriptor, jcharacteristic,
+                    shared_ptr_ref<BTGattDesc> descriptor_sref(descriptor); // new instance to be released into new jobject
+                    jobject jdesc = env_->NewObject(clazz, clazz_ctor, descriptor_sref.release_to_jlong(), jcharacteristic,
                             juuid, (jshort)descriptor->handle, jval);
                     java_exception_check_and_throw(env_, E_FILE_LINE);
                     JNIGlobalRef::check(jdesc, E_FILE_LINE);
-                    std::shared_ptr<JavaAnon> jDescRef = descriptor->getJavaObject(); // GlobalRef
+                    jau::JavaAnonRef jDescRef = descriptor->getJavaObject(); // GlobalRef
                     JavaGlobalObj::check(jDescRef, E_FILE_LINE);
                     env_->DeleteLocalRef(juuid);
                     env_->DeleteLocalRef(jval);
@@ -114,8 +118,9 @@ jobject Java_jau_direct_1bt_DBTGattChar_getDescriptorsImpl(JNIEnv *env, jobject 
 
 jbyteArray Java_jau_direct_1bt_DBTGattChar_readValueImpl(JNIEnv *env, jobject obj) {
     try {
-        BTGattChar *characteristic = getJavaUplinkObject<BTGattChar>(env, obj);
-        JavaGlobalObj::check(characteristic->getJavaObject(), E_FILE_LINE);
+        shared_ptr_ref<BTGattChar> characteristic(env, obj); // hold until done
+        jau::JavaAnonRef characteristic_java = characteristic->getJavaObject(); // hold until done!
+        JavaGlobalObj::check(characteristic_java, E_FILE_LINE);
 
         POctets res(BTGattHandler::number(BTGattHandler::Defaults::MAX_ATT_MTU), 0, jau::endian::little);
         if( !characteristic->readValue(res) ) {
@@ -137,6 +142,10 @@ jbyteArray Java_jau_direct_1bt_DBTGattChar_readValueImpl(JNIEnv *env, jobject ob
 
 jboolean Java_jau_direct_1bt_DBTGattChar_writeValueImpl(JNIEnv *env, jobject obj, jbyteArray jval, jboolean withResponse) {
     try {
+        shared_ptr_ref<BTGattChar> characteristic(env, obj); // hold until done
+        jau::JavaAnonRef characteristic_java = characteristic->getJavaObject(); // hold until done!
+        JavaGlobalObj::check(characteristic_java, E_FILE_LINE);
+
         if( nullptr == jval ) {
             throw IllegalArgumentException("byte array null", E_FILE_LINE);
         }
@@ -144,8 +153,6 @@ jboolean Java_jau_direct_1bt_DBTGattChar_writeValueImpl(JNIEnv *env, jobject obj
         if( 0 == value_size ) {
             return JNI_TRUE;
         }
-        BTGattChar *characteristic = getJavaUplinkObject<BTGattChar>(env, obj);
-        JavaGlobalObj::check(characteristic->getJavaObject(), E_FILE_LINE);
 
         JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
         uint8_t * value_ptr = criticalArray.get(jval, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
@@ -174,8 +181,8 @@ jboolean Java_jau_direct_1bt_DBTGattChar_writeValueImpl(JNIEnv *env, jobject obj
 jboolean Java_jau_direct_1bt_DBTGattChar_configNotificationIndicationImpl(JNIEnv *env, jobject obj,
                         jboolean enableNotification, jboolean enableIndication, jbooleanArray jEnabledState) {
     try {
-        BTGattChar *characteristic = getJavaUplinkObjectUnchecked<BTGattChar>(env, obj);
-        if( nullptr == characteristic ) {
+        shared_ptr_ref<BTGattChar> characteristic(env, obj, false /* throw_on_nullptr */); // hold until done
+        if( characteristic.is_null() ) {
             if( !enableNotification && !enableIndication ) {
                 // OK to have native characteristic being shutdown @ disable
                 DBG_PRINT("Characteristic's native instance has been deleted");
@@ -183,7 +190,8 @@ jboolean Java_jau_direct_1bt_DBTGattChar_configNotificationIndicationImpl(JNIEnv
             }
             throw IllegalStateException("Characteristic's native instance deleted", E_FILE_LINE);
         }
-        JavaGlobalObj::check(characteristic->getJavaObject(), E_FILE_LINE);
+        jau::JavaAnonRef characteristic_java = characteristic->getJavaObject(); // hold until done!
+        JavaGlobalObj::check(characteristic_java, E_FILE_LINE);
 
         if( nullptr == jEnabledState ) {
             throw IllegalArgumentException("boolean array null", E_FILE_LINE);

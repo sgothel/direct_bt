@@ -37,11 +37,14 @@
 using namespace direct_bt;
 using namespace jau;
 
-void Java_jau_direct_1bt_DBTGattDesc_deleteImpl(JNIEnv *env, jobject obj) {
+void Java_jau_direct_1bt_DBTGattDesc_deleteImpl(JNIEnv *env, jobject obj, jlong nativeInstance) {
+    (void)obj;
     try {
-        BTGattDesc *descriptor = getJavaUplinkObject<BTGattDesc>(env, obj);
-        (void)descriptor;
-        // No delete: Service instance owned by GATTService -> BTDevice
+        jau::shared_ptr_ref<BTGattDesc> sref(nativeInstance, false /* throw_on_nullptr */); // hold copy until done
+        if( nullptr != sref.pointer() ) {
+            std::shared_ptr<BTGattDesc>* sref_ptr = jau::castInstance<BTGattDesc>(nativeInstance);
+            delete sref_ptr;
+        }
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
@@ -50,8 +53,9 @@ void Java_jau_direct_1bt_DBTGattDesc_deleteImpl(JNIEnv *env, jobject obj) {
 jstring Java_jau_direct_1bt_DBTGattDesc_toStringImpl(JNIEnv *env, jobject obj) {
     (void)obj;
     try {
-        BTGattDesc *descriptor = getJavaUplinkObject<BTGattDesc>(env, obj);
-        JavaGlobalObj::check(descriptor->getJavaObject(), E_FILE_LINE);
+        shared_ptr_ref<BTGattDesc> descriptor(env, obj); // hold until done
+        jau::JavaAnonRef descriptor_java = descriptor->getJavaObject(); // hold until done!
+        JavaGlobalObj::check(descriptor_java, E_FILE_LINE);
         return from_string_to_jstring(env, descriptor->toString());
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -61,8 +65,9 @@ jstring Java_jau_direct_1bt_DBTGattDesc_toStringImpl(JNIEnv *env, jobject obj) {
 
 jbyteArray Java_jau_direct_1bt_DBTGattDesc_readValueImpl(JNIEnv *env, jobject obj) {
     try {
-        BTGattDesc *descriptor = getJavaUplinkObject<BTGattDesc>(env, obj);
-        JavaGlobalObj::check(descriptor->getJavaObject(), E_FILE_LINE);
+        shared_ptr_ref<BTGattDesc> descriptor(env, obj); // hold until done
+        jau::JavaAnonRef descriptor_java = descriptor->getJavaObject(); // hold until done!
+        JavaGlobalObj::check(descriptor_java, E_FILE_LINE);
 
         if( !descriptor->readValue() ) {
             ERR_PRINT("Characteristic readValue failed: %s", descriptor->toString().c_str());
@@ -82,6 +87,10 @@ jbyteArray Java_jau_direct_1bt_DBTGattDesc_readValueImpl(JNIEnv *env, jobject ob
 
 jboolean Java_jau_direct_1bt_DBTGattDesc_writeValueImpl(JNIEnv *env, jobject obj, jbyteArray jval) {
     try {
+        shared_ptr_ref<BTGattDesc> descriptor(env, obj); // hold until done
+        jau::JavaAnonRef descriptor_java = descriptor->getJavaObject(); // hold until done!
+        JavaGlobalObj::check(descriptor_java, E_FILE_LINE);
+
         if( nullptr == jval ) {
             throw IllegalArgumentException("byte array null", E_FILE_LINE);
         }
@@ -89,9 +98,6 @@ jboolean Java_jau_direct_1bt_DBTGattDesc_writeValueImpl(JNIEnv *env, jobject obj
         if( 0 == value_size ) {
             return JNI_TRUE;
         }
-        BTGattDesc *descriptor = getJavaUplinkObject<BTGattDesc>(env, obj);
-        JavaGlobalObj::check(descriptor->getJavaObject(), E_FILE_LINE);
-
         JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
         uint8_t * value_ptr = criticalArray.get(jval, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
         if( NULL == value_ptr ) {

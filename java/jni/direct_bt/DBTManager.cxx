@@ -109,12 +109,18 @@ static void _addMgmtCBOnce(JNIEnv *env, BTManager & mgmt, JNIGlobalRef jmgmtRef,
     }
 }
 
+// special NOP deleted for shared_ptr<BTManager>: static singleton
+static void nodelete_BTManager(BTManager* p) { (void)p; }
+
 void Java_jau_direct_1bt_DBTManager_initImpl(JNIEnv *env, jobject obj)
 {
     try {
-        BTManager *manager = &BTManager::get(); // special: static singleton
+        std::shared_ptr<BTManager> manager( &BTManager::get(), nodelete_BTManager ); // special: static singleton
         jau::JNIGlobalRef global_obj(obj); // lock instance first (global reference), inserted below
-        setInstance<BTManager>(env, global_obj.getObject(), manager);
+        {
+            jau::shared_ptr_ref<BTManager> ref( manager );
+            ref.release_into_object(env, global_obj.getObject());
+        }
         java_exception_check_and_throw(env, E_FILE_LINE);
         manager->setJavaObject( std::make_shared<jau::JavaGlobalObj>( std::move(global_obj), nullptr ) );
         JavaGlobalObj::check(manager->getJavaObject(), E_FILE_LINE);
@@ -133,17 +139,23 @@ void Java_jau_direct_1bt_DBTManager_deleteImpl(JNIEnv *env, jobject obj, jlong n
 {
     (void)obj;
     try {
-        BTManager *manager = castInstance<BTManager>(nativeInstance); // special: static singleton
-        manager->close();
-        manager->setJavaObject();
-        (void) manager;
+        jau::shared_ptr_ref<BTManager> manager(nativeInstance, false /* throw_on_nullptr */); // hold copy until done
+        if( nullptr != manager.pointer() ) {
+            if( !manager.is_null() ) {
+                jau::JavaAnonRef manager_java = manager->getJavaObject(); // hold until done!
+                jau::JavaGlobalObj::check(manager_java, E_FILE_LINE);
+                manager->setJavaObject();
+            }
+            std::shared_ptr<BTManager>* ref_ptr = jau::castInstance<BTManager>(nativeInstance); // special: static singleton
+            delete ref_ptr; // will leave singleton BTManager instance untouched -> nodelete_BTManager()
+        }
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
 }
 
 static const std::string _adapterClazzCtorArgs("(J[BBLjava/lang/String;I)V");
-static jobject _createJavaAdapter(JNIEnv *env_, jclass clazz, jmethodID clazz_ctor, BTAdapter* adapter) {
+static jobject _createJavaAdapter(JNIEnv *env_, jclass clazz, jmethodID clazz_ctor, const std::shared_ptr<BTAdapter>& adapter) {
     // prepare adapter ctor
     const EUI48 addr = adapter->getAddressAndType().address;
     jbyteArray jaddr = env_->NewByteArray(sizeof(addr));
@@ -151,26 +163,27 @@ static jobject _createJavaAdapter(JNIEnv *env_, jclass clazz, jmethodID clazz_ct
     jau::java_exception_check_and_throw(env_, E_FILE_LINE);
     const jstring name = from_string_to_jstring(env_, adapter->getName());
     java_exception_check_and_throw(env_, E_FILE_LINE);
-    jobject jAdapter = env_->NewObject(clazz, clazz_ctor, (jlong)adapter, jaddr, adapter->getAddressAndType().type, name, adapter->dev_id);
+    jau::shared_ptr_ref<BTAdapter> adapter_ref( adapter );
+    jobject jAdapter = env_->NewObject(clazz, clazz_ctor, adapter_ref.release_to_jlong(), jaddr, adapter->getAddressAndType().type, name, adapter->dev_id);
     java_exception_check_and_throw(env_, E_FILE_LINE);
     JNIGlobalRef::check(jAdapter, E_FILE_LINE);
-    std::shared_ptr<JavaAnon> jAdapterRef = adapter->getJavaObject(); // GlobalRef
+    jau::JavaAnonRef jAdapterRef = adapter->getJavaObject(); // GlobalRef
     JavaGlobalObj::check(jAdapterRef, E_FILE_LINE);
     env_->DeleteLocalRef(jaddr);
     env_->DeleteLocalRef(name);
     env_->DeleteLocalRef(jAdapter);
 
-    DBG_PRINT("Java_jau_direct_1bt_DBTManager_createJavaAdapter: New Adapter %p %s", adapter, adapter->toString().c_str());
+    DBG_PRINT("Java_jau_direct_1bt_DBTManager_createJavaAdapter: New Adapter %p %s", adapter.get(), adapter->toString().c_str());
     return JavaGlobalObj::GetObject(jAdapterRef);
 };
 
 jobject Java_jau_direct_1bt_DBTManager_getAdapterListImpl(JNIEnv *env, jobject obj)
 {
     try {
-        BTManager *manager = getInstance<BTManager>(env, obj);
-        DBG_PRINT("Java_jau_direct_1bt_DBTManager_getAdapterListImpl: Manager %s", manager->toString().c_str());
+        jau::shared_ptr_ref<BTManager> ref(env, obj); // hold until done
+        DBG_PRINT("Java_jau_direct_1bt_DBTManager_getAdapterListImpl: Manager %s", ref->toString().c_str());
 
-        jau::darray<std::shared_ptr<BTAdapter>> adapters = manager->getAdapters();
+        jau::darray<std::shared_ptr<BTAdapter>> adapters = ref->getAdapters();
         return convert_vector_sharedptr_to_jarraylist<jau::darray<std::shared_ptr<BTAdapter>>, BTAdapter>(
                 env, adapters, _adapterClazzCtorArgs.c_str(), _createJavaAdapter);
     } catch(...) {
@@ -182,16 +195,16 @@ jobject Java_jau_direct_1bt_DBTManager_getAdapterListImpl(JNIEnv *env, jobject o
 jobject Java_jau_direct_1bt_DBTManager_getAdapterImpl(JNIEnv *env, jobject obj, jint dev_id)
 {
     try {
-        BTManager *manager = getInstance<BTManager>(env, obj);
+        jau::shared_ptr_ref<BTManager> ref(env, obj); // hold until done
 
-        std::shared_ptr<BTAdapter> adapter = manager->getAdapter(dev_id);
+        std::shared_ptr<BTAdapter> adapter = ref->getAdapter(dev_id);
         if( nullptr == adapter ) {
             ERR_PRINT("BTManager::getAdapterImpl: Adapter dev_id %d: Not found", dev_id);
             return nullptr;
         }
         DBG_PRINT("BTManager::getAdapterImpl: Adapter dev_id %d: %s", dev_id, adapter->toString().c_str());
 
-        return jau::convert_instance_to_jobject<BTAdapter>(env, adapter.get(),  _adapterClazzCtorArgs.c_str(), _createJavaAdapter);
+        return jau::convert_instance_to_jobject<BTAdapter>(env, adapter,  _adapterClazzCtorArgs.c_str(), _createJavaAdapter);
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
