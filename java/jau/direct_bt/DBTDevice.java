@@ -581,7 +581,7 @@ public class DBTDevice extends DBTObject implements BTDevice
     private native boolean removeImpl() throws BTException;
 
     @Override
-    public final boolean isValid() { return super.isValid() /* && isValidImpl() */; }
+    public final boolean isValid() { return super.isNativeValid() /* && isValidImpl() */; }
     // private native boolean isValidImpl();
 
     @Override

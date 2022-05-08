@@ -29,24 +29,55 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.direct_bt.BTFactory;
 
+/**
+ * Java counterpart to C++ jau::JavaUplink
+ *
+ * Store the native `std::shared_ptr<T> *` long representation
+ * and handles the lifecycles of
+ * - Java object reference in the native object
+ *   - `jau::JavaUplink`'s `std::shared_ptr<JavaAnon>` via `JavaUplink::setJavaObject()`
+ * - Native object reference in the Java object
+ *   - `std::shared_ptr<T> *` long representation in `long nativeInstance`
+ *
+ * Using a `shared_ptr<T>` ensures surviving of the native object when temporary copied
+ * within JNI methods w/o locking.
+ */
 public abstract class DBTNativeDownlink
 {
+    /** native `std::shared_ptr<T> *` long representation. */
     private long nativeInstance;
-    private final AtomicBoolean isValid = new AtomicBoolean(false);
+    private final AtomicBoolean isNativeValid = new AtomicBoolean(false);
     private final Object nativeLock = new Object();
 
     static {
         BTFactory.checkInitialized();
     }
 
+    /**
+     *
+     * @param nativeInstance
+     */
     protected DBTNativeDownlink(final long nativeInstance)
     {
         this.nativeInstance = nativeInstance;
-        isValid.set(true);
+        isNativeValid.set(true);
         initNativeJavaObject(nativeInstance);
     }
+    protected DBTNativeDownlink()
+    {
+        this.nativeInstance = 0;
+        isNativeValid.set(false);
+    }
+    protected final void initDownlink(final long nativeInstance) {
+        synchronized (nativeLock) {
+            if( isNativeValid.compareAndSet(false, true) ) {
+                this.nativeInstance = nativeInstance;
+                initNativeJavaObject(nativeInstance);
+            }
+        }
+    }
 
-    protected boolean isValid() { return isValid.get(); }
+    protected final boolean isNativeValid() { return isNativeValid.get(); }
 
     @Override
     protected void finalize()
@@ -57,14 +88,14 @@ public abstract class DBTNativeDownlink
     /**
      * Deletes the {@code nativeInstance} in the following order
      * <ol>
-     *   <li>Removes this java reference from the {@code nativeInstance}</li>
+     *   <li>Removes this java reference from the {@code nativeInstance}, i.e. `std::shared_ptr<JavaAnon>` via `JavaUplink::setJavaObject()`</li>
      *   <li>Deletes the {@code nativeInstance} via {@link #deleteImpl(long)}</li>
      *   <li>Zeros the {@code nativeInstance} reference</li>
      * </ol>
      */
     public final void delete() {
         synchronized (nativeLock) {
-            if( !isValid.compareAndSet(true, false) ) {
+            if( !isNativeValid.compareAndSet(true, false) ) {
                 if( DBTManager.DEBUG ) {
                     System.err.println("JAVA: delete: !valid -> bail: "+getClass().getSimpleName());
                 }
@@ -89,9 +120,9 @@ public abstract class DBTNativeDownlink
      */
     private final void notifyDeleted() {
         synchronized (nativeLock) {
-            final boolean _isValid = isValid.get();
+            final boolean _isValid = isNativeValid.get();
             final long _nativeInstance = nativeInstance;
-            isValid.set(false);
+            isNativeValid.set(false);
             nativeInstance = 0;
             if( DBTManager.DEBUG ) {
                 System.err.println("JAVA: delete.notifyDeleted: "+getClass().getSimpleName()+", was: valid "+_isValid+", handle 0x"+Long.toHexString(_nativeInstance)+": "+toString());

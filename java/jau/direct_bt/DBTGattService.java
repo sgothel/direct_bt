@@ -117,7 +117,7 @@ public class DBTGattService extends DBTObject implements BTGattService
 
     @Override
     public final String toString() {
-        if( !isValid() ) {
+        if( !isNativeValid() ) {
             return "Service" + "\u271D" + "[uuid "+getUUID()+", handles [0x"+Integer.toHexString(handleStart)+".."+Integer.toHexString(handleEnd)+"]]";
         }
         return toStringImpl();

@@ -38,7 +38,8 @@ using namespace jau;
 void Java_jau_direct_1bt_DBTNativeDownlink_initNativeJavaObject(JNIEnv *env, jobject obj, jlong nativeInstance)
 {
     try {
-        JavaUplink *javaUplink = castInstance<JavaUplink>(nativeInstance);
+        shared_ptr_ref<JavaUplink> javaUplink(nativeInstance); // hold copy until done
+        javaUplink.null_check2();
         JNIGlobalRef global_obj(obj); // lock instance first (global reference), inserted below
         jclass javaClazz = search_class(env, global_obj.getObject());
         java_exception_check_and_throw(env, E_FILE_LINE);
@@ -52,7 +53,7 @@ void Java_jau_direct_1bt_DBTNativeDownlink_initNativeJavaObject(JNIEnv *env, job
         }
         javaUplink->setJavaObject( std::make_shared<jau::JavaGlobalObj>( std::move(global_obj), mNotifyDeleted ) );
         JavaGlobalObj::check(javaUplink->getJavaObject(), E_FILE_LINE);
-        DBG_JNI_PRINT("Java_jau_direct_1bt_DBTNativeDownlink_initNativeJavaObject %p -> %s", javaUplink, javaUplink->toString().c_str());
+        DBG_JNI_PRINT("Java_jau_direct_1bt_DBTNativeDownlink_initNativeJavaObject %p -> %s", javaUplink.shared_ptr().get(), javaUplink->toString().c_str());
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
@@ -62,8 +63,9 @@ void Java_jau_direct_1bt_DBTNativeDownlink_deleteNativeJavaObject(JNIEnv *env, j
 {
     (void)obj;
     try {
-        JavaUplink *javaUplink = castInstance<JavaUplink>(nativeInstance);
-        DBG_JNI_PRINT("Java_jau_direct_1bt_DBTNativeDownlink_deleteNativeJavaObject %p -> %s", javaUplink, javaUplink->toString().c_str());
+        shared_ptr_ref<JavaUplink> javaUplink(nativeInstance); // hold copy until done
+        javaUplink.null_check2();
+        DBG_JNI_PRINT("Java_jau_direct_1bt_DBTNativeDownlink_deleteNativeJavaObject %p -> %s", javaUplink.shared_ptr().get(), javaUplink->toString().c_str());
         javaUplink->setJavaObject();
     } catch(...) {
         rethrow_and_raise_java_exception(env);

@@ -353,7 +353,7 @@ public class DBTAdapter extends DBTObject implements BTAdapter
     private native boolean isSuspendedImpl();
 
     @Override
-    public final boolean isValid() { return super.isValid() && isValidImpl(); }
+    public final boolean isValid() { return super.isNativeValid() && isValidImpl(); }
     private native boolean isValidImpl();
 
     @Override

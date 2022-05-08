@@ -122,7 +122,7 @@ public class DBTGattChar extends DBTObject implements BTGattChar
 
     @Override
     public synchronized void close() {
-        if( !isValid() ) {
+        if( !isNativeValid() ) {
             return;
         }
         removeAllAssociatedCharListener(true);
@@ -338,7 +338,7 @@ public class DBTGattChar extends DBTObject implements BTGattChar
 
     @Override
     public final String toString() {
-        if( !isValid() ) {
+        if( !isNativeValid() ) {
             return "Characteristic" + "\u271D" + "[uuid "+getUUID()+", handle 0x"+Integer.toHexString(handle)+"]";
         }
         return toStringImpl();

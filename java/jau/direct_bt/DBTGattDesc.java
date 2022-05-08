@@ -67,7 +67,7 @@ public class DBTGattDesc extends DBTObject implements BTGattDesc
 
     @Override
     public synchronized void close() {
-        if( !isValid() ) {
+        if( !isNativeValid() ) {
             return;
         }
         super.close();
@@ -118,7 +118,7 @@ public class DBTGattDesc extends DBTObject implements BTGattDesc
 
     @Override
     public final String toString() {
-        if( !isValid() ) {
+        if( !isNativeValid() ) {
             return "Descriptor" + "\u271D" + "[uuid "+getUUID()+", handle 0x"+Integer.toHexString(handle)+"]";
         }
         return toStringImpl();
