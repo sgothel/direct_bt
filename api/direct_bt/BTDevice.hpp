@@ -339,7 +339,7 @@ namespace direct_bt {
              * The EInfoReport is updated by new scan-reports (update) and when disconnected (empty).
              * @since 2.5.3
              */
-            std::shared_ptr<EInfoReport> getEIR() noexcept;
+            EInfoReportRef getEIR() noexcept;
 
             /**
              * Return the latest advertised EInfoReport AD_IND variant for this remote device.
@@ -347,7 +347,7 @@ namespace direct_bt {
              * The EInfoReport is replaced by new scan-reports only.
              * @since 2.6.6
              */
-            std::shared_ptr<EInfoReport> getEIRInd() noexcept;
+            EInfoReportRef getEIRInd() noexcept;
 
             /**
              * Return the latest advertised EInfoReport AD_SCAN_RSP for this remote device.
@@ -355,7 +355,7 @@ namespace direct_bt {
              * The EInfoReport is replaced by new scan-reports only.
              * @since 2.6.6
              */
-            std::shared_ptr<EInfoReport> getEIRScanRsp() noexcept;
+            EInfoReportRef getEIRScanRsp() noexcept;
 
             std::string toString() const noexcept override { return toString(false); }
 

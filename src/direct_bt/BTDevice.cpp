@@ -116,17 +116,17 @@ std::string const BTDevice::getName() const noexcept {
     return res;
 }
 
-std::shared_ptr<EInfoReport> BTDevice::getEIR() noexcept {
+EInfoReportRef BTDevice::getEIR() noexcept {
     const std::lock_guard<std::mutex> lock(mtx_eir); // RAII-style acquire and relinquish via destructor
     return eir;
 }
 
-std::shared_ptr<EInfoReport> BTDevice::getEIRInd() noexcept {
+EInfoReportRef BTDevice::getEIRInd() noexcept {
     const std::lock_guard<std::mutex> lock(mtx_eir); // RAII-style acquire and relinquish via destructor
     return eir_ind;
 }
 
-std::shared_ptr<EInfoReport> BTDevice::getEIRScanRsp() noexcept {
+EInfoReportRef BTDevice::getEIRScanRsp() noexcept {
     const std::lock_guard<std::mutex> lock(mtx_eir); // RAII-style acquire and relinquish via destructor
     return eir_scan_rsp;
 }
@@ -256,11 +256,11 @@ EIRDataType BTDevice::update(GattGenericAccessSvc const &data, const uint64_t ti
     return res;
 }
 
-bool BTDevice::addStatusListener(std::shared_ptr<AdapterStatusListener> l) {
+bool BTDevice::addStatusListener(const AdapterStatusListenerRef& l) {
     return adapter.addStatusListener(*this, l);
 }
 
-bool BTDevice::removeStatusListener(std::shared_ptr<AdapterStatusListener> l) {
+bool BTDevice::removeStatusListener(const AdapterStatusListenerRef& l) {
     return adapter.removeStatusListener(l);
 }
 

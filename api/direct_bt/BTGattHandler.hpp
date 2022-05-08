@@ -434,10 +434,11 @@ namespace direct_bt {
                     bool operator!=(const NativeGattCharListener& rhs) const noexcept
                     { return !(*this == rhs); }
             };
-            typedef jau::cow_darray<std::shared_ptr<NativeGattCharListener>> NativeGattCharListenerList_t;
+            typedef std::shared_ptr<NativeGattCharListener> NativeGattCharListenerRef;
+            typedef jau::cow_darray<NativeGattCharListenerRef> NativeGattCharListenerList_t;
             typedef jau::darray<NativeGattCharListener::Section> NativeGattCharSections_t;
 
-            typedef jau::cow_darray<std::shared_ptr<BTGattCharListener>> BTGattCharListenerList_t;
+            typedef jau::cow_darray<BTGattCharListenerRef> BTGattCharListenerList_t;
 
        private:
             /** BTGattHandler's device weak back-reference */
@@ -807,7 +808,7 @@ namespace direct_bt {
              * otherwise false.
              * </p>
              */
-            bool addCharListener(std::shared_ptr<BTGattCharListener> l) noexcept;
+            bool addCharListener(const BTGattCharListenerRef& l) noexcept;
 
             /**
              * Remove the given listener from the list.
@@ -816,7 +817,7 @@ namespace direct_bt {
              * otherwise false.
              * </p>
              */
-            bool removeCharListener(std::shared_ptr<BTGattCharListener> l) noexcept;
+            bool removeCharListener(const BTGattCharListenerRef& l) noexcept;
 
             /**
              * Remove the given listener from the list.
@@ -836,7 +837,7 @@ namespace direct_bt {
              * @param associatedCharacteristic the match criteria to remove any BTGattCharListener from the list
              * @return number of removed listener.
              */
-            int removeAllAssociatedCharListener(std::shared_ptr<BTGattChar> associatedChar) noexcept;
+            int removeAllAssociatedCharListener(const BTGattCharRef& associatedChar) noexcept;
 
             int removeAllAssociatedCharListener(const BTGattChar * associatedChar) noexcept;
 
@@ -847,7 +848,7 @@ namespace direct_bt {
              * otherwise false.
              * </p>
              */
-            bool addCharListener(std::shared_ptr<NativeGattCharListener> l) noexcept;
+            bool addCharListener(const NativeGattCharListenerRef& l) noexcept;
 
             /**
              * Remove the given listener from the list.
@@ -856,7 +857,7 @@ namespace direct_bt {
              * otherwise false.
              * </p>
              */
-            bool removeCharListener(std::shared_ptr<NativeGattCharListener> l) noexcept;
+            bool removeCharListener(const NativeGattCharListenerRef& l) noexcept;
 
             /**
              * Remove all event listener from the list.
@@ -896,7 +897,7 @@ namespace direct_bt {
              * @param pduRequest the request
              * @param clientSource the GATTRole::Client source device, only known and not nullptr for DBGattServer::Mode:FWD GattServerHandler
              */
-            void notifyNativeRequestSent(const AttPDUMsg& pduRequest, BTDeviceRef clientSource) noexcept;
+            void notifyNativeRequestSent(const AttPDUMsg& pduRequest, const BTDeviceRef& clientSource) noexcept;
 
             /**
              * Notify all NativeGattCharListener about a low-level AttPDUMsg reply being received from this GATTRole::Server.
@@ -904,7 +905,7 @@ namespace direct_bt {
              * @param pduReply the response
              * @param clientDest the GATTRole::Client receiver device, only known and not nullptr for DBGattServer::Mode:FWD GattServerHandler
              */
-            void notifyNativeReplyReceived(const AttPDUMsg& pduReply, BTDeviceRef clientDest) noexcept;
+            void notifyNativeReplyReceived(const AttPDUMsg& pduReply, const BTDeviceRef& clientDest) noexcept;
 
             /**
              * Notify all NativeGattCharListener about a completed MTU exchange request and response to and from this GATTRole::Server.
@@ -921,7 +922,7 @@ namespace direct_bt {
             void notifyNativeMTUResponse(const uint16_t clientMTU,
                                          const AttPDUMsg& pduReply, const AttErrorRsp::ErrorCode error_reply,
                                          const uint16_t serverMTU, const uint16_t usedMTU,
-                                         BTDeviceRef clientRequester) noexcept;
+                                         const BTDeviceRef& clientRequester) noexcept;
 
             /**
              * Notify all NativeGattCharListener about a completed write request sent to this GATTRole::Server.
@@ -934,7 +935,7 @@ namespace direct_bt {
              * @param with_response true if the write requests expects a response, i.e. via AttPDUMsg::Opcode::WRITE_REQ or AttPDUMsg::Opcode::EXECUTE_WRITE_REQ
              * @param clientSource the GATTRole::Client source device, only known and not nullptr for DBGattServer::Mode:FWD GattServerHandler
              */
-            void notifyNativeWriteRequest(const uint16_t handle, const jau::TROOctets& data, const NativeGattCharSections_t& sections, const bool with_response, BTDeviceRef clientSource) noexcept;
+            void notifyNativeWriteRequest(const uint16_t handle, const jau::TROOctets& data, const NativeGattCharSections_t& sections, const bool with_response, const BTDeviceRef& clientSource) noexcept;
 
             /**
              * Notify all NativeGattCharListener about a write response received from this GATTRole::Server.
@@ -945,7 +946,7 @@ namespace direct_bt {
              * @param error_code in case of an AttErrorRsp reply, the AttErrorRsp::ErrorCode is passed for convenience, otherwise AttErrorRsp::ErrorCode::NO_ERROR.
              * @param clientDest the GATTRole::Client receiver device, only known and not nullptr for DBGattServer::Mode:FWD GattServerHandler
              */
-            void notifyNativeWriteResponse(const AttPDUMsg& pduReply, const AttErrorRsp::ErrorCode error_code, BTDeviceRef clientDest) noexcept;
+            void notifyNativeWriteResponse(const AttPDUMsg& pduReply, const AttErrorRsp::ErrorCode error_code, const BTDeviceRef& clientDest) noexcept;
 
             /**
              * Notify all NativeGattCharListener about a completed read request and response to and from this GATTRole::Server.
@@ -961,7 +962,7 @@ namespace direct_bt {
              */
             void notifyNativeReadResponse(const uint16_t handle, const uint16_t value_offset,
                                           const AttPDUMsg& pduReply, const AttErrorRsp::ErrorCode error_reply, const jau::TROOctets& data_reply,
-                                          BTDeviceRef clientRequester) noexcept;
+                                          const BTDeviceRef& clientRequester) noexcept;
 
             /**
              * Enable or disable sending an immediate confirmation for received indication events from the device.

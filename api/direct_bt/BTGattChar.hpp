@@ -556,6 +556,7 @@ namespace direct_bt {
             bool operator!=(const BTGattCharListener& rhs) const noexcept
             { return !(*this == rhs); }
     };
+    typedef std::shared_ptr<BTGattCharListener> BTGattCharListenerRef;
 
     class AssociatedBTGattCharListener : public BTGattCharListener {
         private:

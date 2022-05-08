@@ -102,10 +102,10 @@ bool BTGattHandler::validateConnected() noexcept {
     return true;
 }
 
-static jau::cow_darray<std::shared_ptr<BTGattCharListener>>::equal_comparator _btGattCharListenerRefEqComparator =
-        [](const std::shared_ptr<BTGattCharListener> &a, const std::shared_ptr<BTGattCharListener> &b) -> bool { return *a == *b; };
+static jau::cow_darray<BTGattCharListenerRef>::equal_comparator _btGattCharListenerRefEqComparator =
+        [](const BTGattCharListenerRef& a, const BTGattCharListenerRef& b) -> bool { return *a == *b; };
 
-bool BTGattHandler::addCharListener(std::shared_ptr<BTGattCharListener> l) noexcept {
+bool BTGattHandler::addCharListener(const BTGattCharListenerRef& l) noexcept {
     if( nullptr == l ) {
         ERR_PRINT("GATTCharacteristicListener ref is null");
         return false;
@@ -113,7 +113,7 @@ bool BTGattHandler::addCharListener(std::shared_ptr<BTGattCharListener> l) noexc
     return btGattCharListenerList.push_back_unique(l, _btGattCharListenerRefEqComparator);
 }
 
-bool BTGattHandler::removeCharListener(std::shared_ptr<BTGattCharListener> l) noexcept {
+bool BTGattHandler::removeCharListener(const BTGattCharListenerRef& l) noexcept {
     if( nullptr == l ) {
         ERR_PRINT("GATTCharacteristicListener ref is null");
         return false;
@@ -138,10 +138,10 @@ bool BTGattHandler::removeCharListener(const BTGattCharListener * l) noexcept {
     return false;
 }
 
-static jau::cow_darray<std::shared_ptr<BTGattHandler::NativeGattCharListener>>::equal_comparator _nativeGattCharListenerRefEqComparator =
-        [](const std::shared_ptr<BTGattHandler::NativeGattCharListener> &a, const std::shared_ptr<BTGattHandler::NativeGattCharListener> &b) -> bool { return *a == *b; };
+static jau::cow_darray<BTGattHandler::NativeGattCharListenerRef>::equal_comparator _nativeGattCharListenerRefEqComparator =
+        [](const BTGattHandler::NativeGattCharListenerRef& a, const BTGattHandler::NativeGattCharListenerRef& b) -> bool { return *a == *b; };
 
-bool BTGattHandler::addCharListener(std::shared_ptr<NativeGattCharListener> l) noexcept {
+bool BTGattHandler::addCharListener(const BTGattHandler::NativeGattCharListenerRef& l) noexcept {
     if( nullptr == l ) {
         ERR_PRINT("NativeGattCharListener ref is null");
         return false;
@@ -149,7 +149,7 @@ bool BTGattHandler::addCharListener(std::shared_ptr<NativeGattCharListener> l) n
     return nativeGattCharListenerList.push_back_unique(l, _nativeGattCharListenerRefEqComparator);
 }
 
-bool BTGattHandler::removeCharListener(std::shared_ptr<NativeGattCharListener> l) noexcept {
+bool BTGattHandler::removeCharListener(const BTGattHandler::NativeGattCharListenerRef& l) noexcept {
     if( nullptr == l ) {
         ERR_PRINT("NativeGattCharListener ref is null");
         return false;
@@ -177,7 +177,7 @@ void BTGattHandler::printCharListener() noexcept {
     }
 }
 
-int BTGattHandler::removeAllAssociatedCharListener(std::shared_ptr<BTGattChar> associatedCharacteristic) noexcept {
+int BTGattHandler::removeAllAssociatedCharListener(const BTGattCharRef& associatedCharacteristic) noexcept {
     if( nullptr == associatedCharacteristic ) {
         ERR_PRINT("Given GATTCharacteristic ref is null");
         return false;
@@ -214,7 +214,7 @@ int BTGattHandler::removeAllCharListener() noexcept {
     return count;
 }
 
-void BTGattHandler::notifyNativeRequestSent(const AttPDUMsg& pduRequest, BTDeviceRef clientSource) noexcept {
+void BTGattHandler::notifyNativeRequestSent(const AttPDUMsg& pduRequest, const BTDeviceRef& clientSource) noexcept {
     BTDeviceRef serverDest = getDeviceUnchecked();
     if( nullptr != serverDest ) {
         int i=0;
@@ -231,7 +231,7 @@ void BTGattHandler::notifyNativeRequestSent(const AttPDUMsg& pduRequest, BTDevic
     }
 }
 
-void BTGattHandler::notifyNativeReplyReceived(const AttPDUMsg& pduReply, BTDeviceRef clientDest) noexcept {
+void BTGattHandler::notifyNativeReplyReceived(const AttPDUMsg& pduReply, const BTDeviceRef& clientDest) noexcept {
     BTDeviceRef serverSource = getDeviceUnchecked();
     if( nullptr != serverSource ) {
         int i=0;
@@ -251,7 +251,8 @@ void BTGattHandler::notifyNativeReplyReceived(const AttPDUMsg& pduReply, BTDevic
 void BTGattHandler::notifyNativeMTUResponse(const uint16_t clientMTU_,
                                             const AttPDUMsg& pduReply, const AttErrorRsp::ErrorCode error_reply,
                                             const uint16_t serverMTU_, const uint16_t usedMTU_,
-                                            BTDeviceRef clientRequester) noexcept {
+                                            const BTDeviceRef& clientRequester) noexcept
+{
     BTDeviceRef serverReplier = getDeviceUnchecked();
     if( nullptr != serverReplier ) {
         int i=0;
@@ -268,7 +269,9 @@ void BTGattHandler::notifyNativeMTUResponse(const uint16_t clientMTU_,
     }
 }
 
-void BTGattHandler::notifyNativeWriteRequest(const uint16_t handle, const jau::TROOctets& data, const NativeGattCharSections_t& sections, const bool with_response, BTDeviceRef clientSource) noexcept {
+void BTGattHandler::notifyNativeWriteRequest(const uint16_t handle, const jau::TROOctets& data, const NativeGattCharSections_t& sections,
+                                             const bool with_response, const BTDeviceRef& clientSource) noexcept
+{
     BTDeviceRef serverDest = getDeviceUnchecked();
     if( nullptr != serverDest ) {
         int i=0;
@@ -285,7 +288,7 @@ void BTGattHandler::notifyNativeWriteRequest(const uint16_t handle, const jau::T
     }
 }
 
-void BTGattHandler::notifyNativeWriteResponse(const AttPDUMsg& pduReply, const AttErrorRsp::ErrorCode error_code, BTDeviceRef clientDest) noexcept {
+void BTGattHandler::notifyNativeWriteResponse(const AttPDUMsg& pduReply, const AttErrorRsp::ErrorCode error_code, const BTDeviceRef& clientDest) noexcept {
     BTDeviceRef serverSource = getDeviceUnchecked();
     if( nullptr != serverSource ) {
         int i=0;
@@ -304,7 +307,7 @@ void BTGattHandler::notifyNativeWriteResponse(const AttPDUMsg& pduReply, const A
 
 void BTGattHandler::notifyNativeReadResponse(const uint16_t handle, const uint16_t value_offset,
                                              const AttPDUMsg& pduReply, const AttErrorRsp::ErrorCode error_code, const jau::TROOctets& data_reply,
-                                             BTDeviceRef clientRequester) noexcept {
+                                             const BTDeviceRef& clientRequester) noexcept {
     BTDeviceRef serverReplier = getDeviceUnchecked();
     if( nullptr != serverReplier ) {
         int i=0;
