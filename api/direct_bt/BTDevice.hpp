@@ -53,6 +53,7 @@ namespace direct_bt {
 
     class BTAdapter; // forward
     class AdapterStatusListener; // forward
+    typedef std::shared_ptr<AdapterStatusListener> AdapterStatusListenerRef; // forward
 
     /**
      * BTDevice represents one remote Bluetooth device.
@@ -383,7 +384,7 @@ namespace direct_bt {
              * @see BTAdapter::removeAllStatusListener()
              * @see removeStatusListener()
              */
-            bool addStatusListener(std::shared_ptr<AdapterStatusListener> l);
+            bool addStatusListener(const AdapterStatusListenerRef& l);
 
             /**
              * Remove the given listener from the list.
@@ -397,7 +398,7 @@ namespace direct_bt {
              * @see BTAdapter::removeAllStatusListener()
              * @see addStatusListener()
              */
-            bool removeStatusListener(std::shared_ptr<AdapterStatusListener> l);
+            bool removeStatusListener(const AdapterStatusListenerRef& l);
 
             /**
              * Retrieves the current connection info for this device and returns the ConnectionInfo reference if successful,

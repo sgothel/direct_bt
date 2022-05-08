@@ -110,13 +110,13 @@ namespace direct_bt {
      * </p>
      * <p>
      * A listener instance may be attached to a {@link BTAdapter} via
-     * {@link BTAdapter::addStatusListener(std::shared_ptr<AdapterStatusListener>)}.
+     * {@link BTAdapter::addStatusListener(const AdapterStatusListenerRef&)}.
      * </p>
      * <p>
      * The listener receiver maintains a unique set of listener instances without duplicates.
      * </p>
      */
-    class AdapterStatusListener {
+    class AdapterStatusListener : public jau::JavaUplink {
         public:
             /**
              * Custom filter for all 'device*' notification methods,
@@ -281,7 +281,14 @@ namespace direct_bt {
 
             virtual ~AdapterStatusListener() {}
 
-            virtual std::string toString() const = 0;
+            std::string toString() const noexcept override { return "AdapterStatusListener["+jau::to_hexstring(this)+"]"; }
+
+            std::string get_java_class() const noexcept override {
+                return java_class();
+            }
+            static std::string java_class() noexcept {
+                return std::string(JAVA_MAIN_PACKAGE "AdapterStatusListener");
+            }
 
             /**
              * Default comparison operator, merely testing for same memory reference.
@@ -295,6 +302,7 @@ namespace direct_bt {
             bool operator!=(const AdapterStatusListener& rhs) const
             { return !(*this == rhs); }
     };
+    typedef std::shared_ptr<AdapterStatusListener> AdapterStatusListenerRef;
 
     // *************************************************
     // *************************************************
@@ -303,7 +311,7 @@ namespace direct_bt {
     namespace impl {
         struct StatusListenerPair {
             /** The actual listener */
-            std::shared_ptr<AdapterStatusListener> listener;
+            AdapterStatusListenerRef listener;
             /** The optional weak device reference. Weak, b/c it shall not block destruction */
             std::weak_ptr<BTDevice> wbr_device;
         };
@@ -960,12 +968,14 @@ namespace direct_bt {
              * @see removeStatusListener()
              * @see removeAllStatusListener()
              */
-            bool addStatusListener(std::shared_ptr<AdapterStatusListener> l);
+            bool addStatusListener(const AdapterStatusListenerRef& l);
 
             /**
              * Please use BTDevice::addStatusListener() for clarity, merely existing here to allow JNI access.
              */
-            bool addStatusListener(const BTDevice& d, std::shared_ptr<AdapterStatusListener> l);
+            bool addStatusListener(const BTDeviceRef& d, const AdapterStatusListenerRef& l);
+
+            bool addStatusListener(const BTDevice& d, const AdapterStatusListenerRef& l);
 
             /**
              * Remove the given listener from the list.
@@ -976,7 +986,7 @@ namespace direct_bt {
              * @see BTDevice::removeStatusListener()
              * @see addStatusListener()
              */
-            bool removeStatusListener(std::shared_ptr<AdapterStatusListener> l);
+            bool removeStatusListener(const AdapterStatusListenerRef& l);
 
             /**
              * Remove the given listener from the list.

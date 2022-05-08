@@ -270,7 +270,7 @@ class AdapterToServerStatusListener : public AdapterStatusListener {
         dc.detach();
     }
 
-    std::string toString() const override {
+    std::string toString() const noexcept override {
         return "MyAdapterClientStatusListener[this "+to_hexstring(this)+"]";
     }
 
@@ -700,7 +700,7 @@ class AdapterToClientStatusListener : public AdapterStatusListener {
         (void)timestamp;
     }
 
-    std::string toString() const override {
+    std::string toString() const noexcept override {
         return "MyAdapterServerStatusListener[this "+to_hexstring(this)+"]";
     }
 

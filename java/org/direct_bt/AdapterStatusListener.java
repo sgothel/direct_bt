@@ -25,6 +25,8 @@
 
 package org.direct_bt;
 
+import jau.direct_bt.DBTNativeDownlink;
+
 /**
  * {@link BTAdapter} status listener for remote {@link BTDevice} discovery events: Added, updated and removed;
  * as well as for certain {@link BTAdapter} events.
@@ -53,18 +55,15 @@ package org.direct_bt;
  * </p>
  * @since 2.0.0
  */
-public abstract class AdapterStatusListener {
-    @SuppressWarnings("unused")
-    private volatile long nativeInstance;
-
-    /**
-     * Called from native JNIAdapterStatusListener dtor
-     * i.e. native instance destructed in native land.
-     */
-    @SuppressWarnings("unused")
-    private final void notifyDeleted() {
-        nativeInstance = 0;
+public abstract class AdapterStatusListener extends DBTNativeDownlink {
+    protected AdapterStatusListener() {
+        super(); // pending native ctor
+        initDownlink(ctorImpl());
     }
+    private native long ctorImpl();
+
+    @Override
+    protected native void deleteImpl(long nativeInstance);
 
     /**
      * {@link BTAdapter} setting(s) changed.

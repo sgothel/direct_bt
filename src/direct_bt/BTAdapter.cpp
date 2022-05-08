@@ -917,7 +917,7 @@ bool BTAdapter::removeDeviceFromWhitelist(const BDAddressAndType & addressAndTyp
 static jau::cow_darray<impl::StatusListenerPair>::equal_comparator _adapterStatusListenerRefEqComparator =
         [](const impl::StatusListenerPair &a, const impl::StatusListenerPair &b) -> bool { return *a.listener == *b.listener; };
 
-bool BTAdapter::addStatusListener(std::shared_ptr<AdapterStatusListener> l) {
+bool BTAdapter::addStatusListener(const AdapterStatusListenerRef& l) {
     if( nullptr == l ) {
         throw jau::IllegalArgumentException("AdapterStatusListener ref is null", E_FILE_LINE);
     }
@@ -933,16 +933,14 @@ bool BTAdapter::addStatusListener(std::shared_ptr<AdapterStatusListener> l) {
     return added;
 }
 
-bool BTAdapter::addStatusListener(const BTDevice& d, std::shared_ptr<AdapterStatusListener> l) {
+bool BTAdapter::addStatusListener(const BTDeviceRef& d, const AdapterStatusListenerRef& l) {
     if( nullptr == l ) {
         throw jau::IllegalArgumentException("AdapterStatusListener ref is null", E_FILE_LINE);
     }
-
-    BTDeviceRef sd = getSharedDevice(d);
-    if( nullptr == sd ) {
-        throw jau::IllegalArgumentException("Device not shared: "+d.toString(), E_FILE_LINE);
+    if( nullptr == d ) {
+        throw jau::IllegalArgumentException("Device is null", E_FILE_LINE);
     }
-    const bool added = statusListenerList.push_back_unique(impl::StatusListenerPair{l, sd},
+    const bool added = statusListenerList.push_back_unique(impl::StatusListenerPair{l, d},
                                                            _adapterStatusListenerRefEqComparator);
     if( added ) {
         sendAdapterSettingsInitial(*l, jau::getCurrentMilliseconds());
@@ -954,7 +952,11 @@ bool BTAdapter::addStatusListener(const BTDevice& d, std::shared_ptr<AdapterStat
     return added;
 }
 
-bool BTAdapter::removeStatusListener(std::shared_ptr<AdapterStatusListener> l) {
+bool BTAdapter::addStatusListener(const BTDevice& d, const AdapterStatusListenerRef& l) {
+    return addStatusListener(getSharedDevice(d), l);
+}
+
+bool BTAdapter::removeStatusListener(const AdapterStatusListenerRef& l) {
     if( nullptr == l ) {
         throw jau::IllegalArgumentException("AdapterStatusListener ref is null", E_FILE_LINE);
     }

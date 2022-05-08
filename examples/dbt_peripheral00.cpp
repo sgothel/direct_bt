@@ -337,7 +337,7 @@ class MyAdapterStatusListener : public AdapterStatusListener {
         (void)timestamp;
     }
 
-    std::string toString() const override {
+    std::string toString() const noexcept override {
         return "MyAdapterStatusListener[this "+to_hexstring(this)+"]";
     }
 

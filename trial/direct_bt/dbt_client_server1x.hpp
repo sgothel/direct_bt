@@ -131,7 +131,7 @@ class DBTClientServer1x {
                 fprintf_td(stderr, "XXXXXX Client Ready: %s\n", device->toString(true).c_str());
             }
 
-            std::string toString() const override { return "DBTClientServer1x::Client"; }
+            std::string toString() const noexcept override { return "DBTClientServer1x::Client"; }
         };
         std::shared_ptr<AdapterStatusListener> clientAdapterStatusListener = std::make_shared<MyAdapterStatusListener>(*this);
         REQUIRE( true == client->getAdapter()->addStatusListener(clientAdapterStatusListener) );

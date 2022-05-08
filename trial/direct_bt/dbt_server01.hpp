@@ -301,7 +301,7 @@ class DBTServer01 : public DBTServerTest {
                 (void)timestamp;
             }
 
-            std::string toString() const override {
+            std::string toString() const noexcept override {
                 return "Server MyAdapterStatusListener[this "+to_hexstring(this)+"]";
             }
 

@@ -222,7 +222,7 @@ class DBTClient00 : public DBTClientTest {
                 dc.detach();
             }
 
-            std::string toString() const override {
+            std::string toString() const noexcept override {
                 return "Client MyAdapterStatusListener[this "+to_hexstring(this)+"]";
             }
 

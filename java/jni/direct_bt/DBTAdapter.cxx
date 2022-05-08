@@ -23,6 +23,7 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#include "org_direct_bt_AdapterStatusListener.h"
 #include "jau_direct_bt_DBTAdapter.h"
 
 // #define VERBOSE_ON 1
@@ -83,10 +84,8 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
     */
     static std::atomic<int> iname_next;
     int const iname;
-    BTDevice const * const deviceMatchRef;
-    jau::JavaGlobalObj listenerObjRef;
+    BTDeviceRef deviceMatchRef;
 
-    std::shared_ptr<jau::JavaAnon> adapterObjRef;
     jau::JNIGlobalRef adapterSettingsClazzRef;
     jmethodID adapterSettingsClazzCtor;
     jau::JNIGlobalRef eirDataTypeSetClazzRef;
@@ -118,7 +117,7 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
 
   public:
 
-    std::string toString() const override {
+    std::string toString() const noexcept override {
         const std::string devMatchAddr = nullptr != deviceMatchRef ? deviceMatchRef->getAddressAndType().toString() : "nil";
         return "JNIAdapterStatusListener[this "+jau::to_hexstring(this)+", iname "+std::to_string(iname)+", devMatchAddr "+devMatchAddr+"]";
     }
@@ -127,14 +126,10 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
         // listenerObjRef dtor will call notifyDelete and clears the nativeInstance handle
     }
 
-    JNIAdapterStatusListener(JNIEnv *env, BTAdapter *adapter,
-                             jclass listenerClazz, jobject statusListenerObj, jmethodID  statusListenerNotifyDeleted,
-                             const BTDevice * _deviceMatchRef)
-    : iname(iname_next.fetch_add(1)), deviceMatchRef(_deviceMatchRef),
-      listenerObjRef(statusListenerObj, statusListenerNotifyDeleted)
+    JNIAdapterStatusListener(JNIEnv *env, jobject statusListenerObj, const BTDeviceRef& _deviceMatchRef)
+    : iname(iname_next.fetch_add(1)), deviceMatchRef(_deviceMatchRef)
     {
-        adapterObjRef = adapter->getJavaObject();
-        jau::JavaGlobalObj::check(adapterObjRef, E_FILE_LINE);
+        jclass listenerClazz = jau::search_class(env, statusListenerObj);
 
         // adapterSettingsClazzRef, adapterSettingsClazzCtor
         {
@@ -214,6 +209,10 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
         mDeviceDisconnected = jau::search_method(env, listenerClazz, "deviceDisconnected", _deviceDisconnectedMethodArgs.c_str(), false);
     }
 
+    void setDeviceMatchRef(const BTDeviceRef& _deviceMatchRef) {
+        deviceMatchRef = _deviceMatchRef;
+    }
+
     bool matchDevice(const BTDevice & device) override {
         if( nullptr == deviceMatchRef ) {
             return true;
@@ -225,6 +224,12 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
                                 const AdapterSetting changedmask, const uint64_t timestamp) override {
         JNIEnv *env = *jau::jni_env;
         (void)a;
+        jau::JavaAnonRef asl_java = getJavaObject(); // hold until done!
+        jau::JavaGlobalObj::check(asl_java, E_FILE_LINE);
+
+        jau::JavaAnonRef adapter_java = a.getJavaObject(); // hold until done!
+        jau::JavaGlobalObj::check(adapter_java, E_FILE_LINE);
+
         jobject adapterSettingOld = env->NewObject(adapterSettingsClazzRef.getClass(), adapterSettingsClazzCtor,  (jint)oldmask);
         jau::java_exception_check_and_throw(env, E_FILE_LINE);
         jau::JNIGlobalRef::check(adapterSettingOld, E_FILE_LINE);
@@ -237,8 +242,8 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
         jau::java_exception_check_and_throw(env, E_FILE_LINE);
         jau::JNIGlobalRef::check(adapterSettingChanged, E_FILE_LINE);
 
-        env->CallVoidMethod(listenerObjRef.getObject(), mAdapterSettingsChanged,
-                jau::JavaGlobalObj::GetObject(adapterObjRef), adapterSettingOld, adapterSettingNew, adapterSettingChanged, (jlong)timestamp);
+        env->CallVoidMethod(jau::JavaGlobalObj::GetObject(asl_java), mAdapterSettingsChanged,
+                            jau::JavaGlobalObj::GetObject(adapter_java), adapterSettingOld, adapterSettingNew, adapterSettingChanged, (jlong)timestamp);
         jau::java_exception_check_and_throw(env, E_FILE_LINE);
         env->DeleteLocalRef(adapterSettingOld);
         env->DeleteLocalRef(adapterSettingNew);
@@ -248,6 +253,11 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
     void discoveringChanged(BTAdapter &a, const ScanType currentMeta, const ScanType changedType, const bool changedEnabled, const DiscoveryPolicy policy, const uint64_t timestamp) override {
         JNIEnv *env = *jau::jni_env;
         (void)a;
+        jau::JavaAnonRef asl_java = getJavaObject(); // hold until done!
+        jau::JavaGlobalObj::check(asl_java, E_FILE_LINE);
+
+        jau::JavaAnonRef adapter_java = a.getJavaObject(); // hold until done!
+        jau::JavaGlobalObj::check(adapter_java, E_FILE_LINE);
 
         jobject jcurrentMeta = env->CallStaticObjectMethod(scanTypeClazzRef.getClass(), scanTypeClazzGet, (jbyte)number(currentMeta));
         jau::java_exception_check_and_throw(env, E_FILE_LINE);
@@ -261,7 +271,8 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
         jau::java_exception_check_and_throw(env, E_FILE_LINE);
         jau::JNIGlobalRef::check(jdiscoveryPolicy, E_FILE_LINE);
 
-        env->CallVoidMethod(listenerObjRef.getObject(), mDiscoveringChanged, jau::JavaGlobalObj::GetObject(adapterObjRef),
+        env->CallVoidMethod(jau::JavaGlobalObj::GetObject(asl_java), mDiscoveringChanged,
+                            jau::JavaGlobalObj::GetObject(adapter_java),
                             jcurrentMeta, jchangedType, (jboolean)changedEnabled, jdiscoveryPolicy, (jlong)timestamp);
         jau::java_exception_check_and_throw(env, E_FILE_LINE);
     }
@@ -271,18 +282,22 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
     jobject newJavaBTDevice(JNIEnv *env, BTDeviceRef device, const uint64_t timestamp) {
         // DBTDevice(final long nativeInstance, final DBTAdapter adptr, final byte byteAddress[/*6*/], final byte byteAddressType,
         //           final long ts_creation, final String name)
+        jau::JavaAnonRef adapter_java = device->getAdapter().getJavaObject(); // hold until done!
+        jau::JavaGlobalObj::check(adapter_java, E_FILE_LINE);
+
         const EUI48 & addr = device->getAddressAndType().address;
         jbyteArray jaddr = env->NewByteArray(sizeof(addr));
         env->SetByteArrayRegion(jaddr, 0, sizeof(addr), (const jbyte*)(addr.b));
         jau::java_exception_check_and_throw(env, E_FILE_LINE);
         const jstring name = jau::from_string_to_jstring(env, device->getName());
         jau::java_exception_check_and_throw(env, E_FILE_LINE);
+        jau::shared_ptr_ref<BTDevice> device_sref(device); // new instance to be released into new jobject
         jobject tmp_jdevice = env->NewObject(deviceClazzRef.getClass(), deviceClazzCtor,
-                (jlong)device.get(), jau::JavaGlobalObj::GetObject(adapterObjRef),
+                device_sref.release_to_jlong(), jau::JavaGlobalObj::GetObject(adapter_java),
                 jaddr, device->getAddressAndType().type, (jlong)timestamp, name);
         jau::java_exception_check_and_throw(env, E_FILE_LINE);
         jau::JNIGlobalRef::check(tmp_jdevice, E_FILE_LINE);
-        std::shared_ptr<jau::JavaAnon> jDeviceRef1 = device->getJavaObject();
+        jau::JavaAnonRef jDeviceRef1 = device->getJavaObject();
         jau::JavaGlobalObj::check(jDeviceRef1, E_FILE_LINE);
         jobject jdevice = jau::JavaGlobalObj::GetObject(jDeviceRef1);
         env->DeleteLocalRef(jaddr);
@@ -295,47 +310,55 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
 
     bool deviceFound(BTDeviceRef device, const uint64_t timestamp) override {
         JNIEnv *env = *jau::jni_env;
+        jau::JavaAnonRef asl_java = getJavaObject(); // hold until done!
+        jau::JavaGlobalObj::check(asl_java, E_FILE_LINE);
+
         jobject jdevice;
-        std::shared_ptr<jau::JavaAnon> jDeviceRef0 = device->getJavaObject();
-        if( jau::JavaGlobalObj::isValid(jDeviceRef0) ) {
+        jau::JavaAnonRef device_java = device->getJavaObject();
+        if( jau::JavaGlobalObj::isValid(device_java) ) {
             // Reuse Java instance
-            jdevice = jau::JavaGlobalObj::GetObject(jDeviceRef0);
+            jdevice = jau::JavaGlobalObj::GetObject(device_java);
         } else {
             jdevice = newJavaBTDevice(env, device, timestamp);
         }
         env->SetLongField(jdevice, deviceClazzTSLastDiscoveryField, (jlong)device->getLastDiscoveryTimestamp());
         jau::java_exception_check_and_throw(env, E_FILE_LINE);
-        jboolean res = env->CallBooleanMethod(listenerObjRef.getObject(), mDeviceFound, jdevice, (jlong)timestamp);
+        jboolean res = env->CallBooleanMethod(jau::JavaGlobalObj::GetObject(asl_java), mDeviceFound, jdevice, (jlong)timestamp);
         jau::java_exception_check_and_throw(env, E_FILE_LINE);
         return JNI_TRUE == res;
     }
 
     void deviceUpdated(BTDeviceRef device, const EIRDataType updateMask, const uint64_t timestamp) override {
-        std::shared_ptr<jau::JavaAnon> jDeviceRef = device->getJavaObject();
-        if( !jau::JavaGlobalObj::isValid(jDeviceRef) ) {
+        JNIEnv *env = *jau::jni_env;
+        jau::JavaAnonRef asl_java = getJavaObject(); // hold until done!
+        jau::JavaGlobalObj::check(asl_java, E_FILE_LINE);
+
+        jau::JavaAnonRef device_java = device->getJavaObject();
+        if( !jau::JavaGlobalObj::isValid(device_java) ) {
             return; // java device has been pulled
         }
-        JNIEnv *env = *jau::jni_env;
-        env->SetLongField(jau::JavaGlobalObj::GetObject(jDeviceRef), deviceClazzTSLastUpdateField, (jlong)timestamp);
+        env->SetLongField(jau::JavaGlobalObj::GetObject(device_java), deviceClazzTSLastUpdateField, (jlong)timestamp);
         jau::java_exception_check_and_throw(env, E_FILE_LINE);
 
         jobject eirDataTypeSet = env->NewObject(eirDataTypeSetClazzRef.getClass(), eirDataTypeSetClazzCtor, (jint)updateMask);
         jau::java_exception_check_and_throw(env, E_FILE_LINE);
         jau::JNIGlobalRef::check(eirDataTypeSet, E_FILE_LINE);
 
-        env->CallVoidMethod(listenerObjRef.getObject(), mDeviceUpdated, jau::JavaGlobalObj::GetObject(jDeviceRef), eirDataTypeSet, (jlong)timestamp);
+        env->CallVoidMethod(jau::JavaGlobalObj::GetObject(asl_java), mDeviceUpdated, jau::JavaGlobalObj::GetObject(device_java), eirDataTypeSet, (jlong)timestamp);
         jau::java_exception_check_and_throw(env, E_FILE_LINE);
         env->DeleteLocalRef(eirDataTypeSet);
     }
 
     void deviceConnected(BTDeviceRef device, const bool discovered, const uint64_t timestamp) override {
         JNIEnv *env = *jau::jni_env;
+        jau::JavaAnonRef asl_java = getJavaObject(); // hold until done!
+        jau::JavaGlobalObj::check(asl_java, E_FILE_LINE);
 
         jobject jdevice;
-        std::shared_ptr<jau::JavaAnon> jDeviceRef0 = device->getJavaObject();
-        if( jau::JavaGlobalObj::isValid(jDeviceRef0) ) {
+        jau::JavaAnonRef device_java = device->getJavaObject();
+        if( jau::JavaGlobalObj::isValid(device_java) ) {
             // Reuse Java instance
-            jdevice = jau::JavaGlobalObj::GetObject(jDeviceRef0);
+            jdevice = jau::JavaGlobalObj::GetObject(device_java);
         } else {
             jdevice = newJavaBTDevice(env, device, timestamp);
         }
@@ -346,17 +369,20 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
         env->SetLongField(jdevice, deviceClazzTSLastUpdateField, (jlong)timestamp);
         jau::java_exception_check_and_throw(env, E_FILE_LINE);
 
-        env->CallVoidMethod(listenerObjRef.getObject(), mDeviceConnected, jdevice, (jboolean)discovered, (jlong)timestamp);
+        env->CallVoidMethod(jau::JavaGlobalObj::GetObject(asl_java), mDeviceConnected, jdevice, (jboolean)discovered, (jlong)timestamp);
         jau::java_exception_check_and_throw(env, E_FILE_LINE);
     }
     void devicePairingState(BTDeviceRef device, const SMPPairingState state, const PairingMode mode, const uint64_t timestamp) override {
-        std::shared_ptr<jau::JavaAnon> jDeviceRef = device->getJavaObject();
-        if( !jau::JavaGlobalObj::isValid(jDeviceRef) ) {
+        JNIEnv *env = *jau::jni_env;
+        jau::JavaAnonRef asl_java = getJavaObject(); // hold until done!
+        jau::JavaGlobalObj::check(asl_java, E_FILE_LINE);
+
+        jau::JavaAnonRef device_java = device->getJavaObject();
+        if( !jau::JavaGlobalObj::isValid(device_java) ) {
             return; // java device has been pulled
         }
-        JNIEnv *env = *jau::jni_env;
 
-        jobject jdevice = jau::JavaGlobalObj::GetObject(jDeviceRef);
+        jobject jdevice = jau::JavaGlobalObj::GetObject(device_java);
         env->SetLongField(jdevice, deviceClazzTSLastUpdateField, (jlong)timestamp);
         jau::java_exception_check_and_throw(env, E_FILE_LINE);
 
@@ -368,31 +394,37 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
         jau::java_exception_check_and_throw(env, E_FILE_LINE);
         jau::JNIGlobalRef::check(jmode, E_FILE_LINE);
 
-        env->CallVoidMethod(listenerObjRef.getObject(), mDevicePairingState, jdevice, jstate, jmode, (jlong)timestamp);
+        env->CallVoidMethod(jau::JavaGlobalObj::GetObject(asl_java), mDevicePairingState, jdevice, jstate, jmode, (jlong)timestamp);
         jau::java_exception_check_and_throw(env, E_FILE_LINE);
     }
     void deviceReady(BTDeviceRef device, const uint64_t timestamp) override {
-        std::shared_ptr<jau::JavaAnon> jDeviceRef = device->getJavaObject();
-        if( !jau::JavaGlobalObj::isValid(jDeviceRef) ) {
+        JNIEnv *env = *jau::jni_env;
+        jau::JavaAnonRef asl_java = getJavaObject(); // hold until done!
+        jau::JavaGlobalObj::check(asl_java, E_FILE_LINE);
+
+        jau::JavaAnonRef device_java = device->getJavaObject();
+        if( !jau::JavaGlobalObj::isValid(device_java) ) {
             return; // java device has been pulled
         }
-        JNIEnv *env = *jau::jni_env;
 
-        jobject jdevice = jau::JavaGlobalObj::GetObject(jDeviceRef);
+        jobject jdevice = jau::JavaGlobalObj::GetObject(device_java);
         env->SetLongField(jdevice, deviceClazzTSLastUpdateField, (jlong)timestamp);
         jau::java_exception_check_and_throw(env, E_FILE_LINE);
 
-        env->CallVoidMethod(listenerObjRef.getObject(), mDeviceReady, jdevice, (jlong)timestamp);
+        env->CallVoidMethod(jau::JavaGlobalObj::GetObject(asl_java), mDeviceReady, jdevice, (jlong)timestamp);
         jau::java_exception_check_and_throw(env, E_FILE_LINE);
     }
     void deviceDisconnected(BTDeviceRef device, const HCIStatusCode reason, const uint16_t handle, const uint64_t timestamp) override {
-        std::shared_ptr<jau::JavaAnon> jDeviceRef = device->getJavaObject();
-        if( !jau::JavaGlobalObj::isValid(jDeviceRef) ) {
+        JNIEnv *env = *jau::jni_env;
+        jau::JavaAnonRef asl_java = getJavaObject(); // hold until done!
+        jau::JavaGlobalObj::check(asl_java, E_FILE_LINE);
+
+        jau::JavaAnonRef device_java = device->getJavaObject();
+        if( !jau::JavaGlobalObj::isValid(device_java) ) {
             return; // java device has been pulled
         }
-        JNIEnv *env = *jau::jni_env;
 
-        jobject jdevice = jau::JavaGlobalObj::GetObject(jDeviceRef);
+        jobject jdevice = jau::JavaGlobalObj::GetObject(device_java);
         env->SetLongField(jdevice, deviceClazzTSLastUpdateField, (jlong)timestamp);
         jau::java_exception_check_and_throw(env, E_FILE_LINE);
 
@@ -403,88 +435,116 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
         env->SetShortField(jdevice, deviceClazzConnectionHandleField, (jshort)0); // zero out, disconnected
         jau::java_exception_check_and_throw(env, E_FILE_LINE);
 
-        env->CallVoidMethod(listenerObjRef.getObject(), mDeviceDisconnected, jdevice, hciErrorCode, (jshort)handle, (jlong)timestamp);
+        env->CallVoidMethod(jau::JavaGlobalObj::GetObject(asl_java), mDeviceDisconnected, jdevice, hciErrorCode, (jshort)handle, (jlong)timestamp);
         jau::java_exception_check_and_throw(env, E_FILE_LINE);
     }
 };
 std::atomic<int> JNIAdapterStatusListener::iname_next(0);
 
-jboolean Java_jau_direct_1bt_DBTAdapter_addStatusListenerImpl(JNIEnv *env, jobject obj, jobject jdeviceOwnerAndMatch, jobject statusListener)
+/*
+ * Class:     org_direct_bt_AdapterStatusListener
+ * Method:    ctorImpl
+ * Signature: ()J
+ */
+jlong Java_org_direct_1bt_AdapterStatusListener_ctorImpl(JNIEnv *env, jobject obj) {
+    try {
+        // new instance
+        jau::shared_ptr_ref<JNIAdapterStatusListener> ref( new JNIAdapterStatusListener(env, obj, nullptr) );
+
+        return ref.release_to_jlong();
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return (jlong) (intptr_t) nullptr;
+}
+
+
+/*
+ * Class:     org_direct_bt_AdapterStatusListener
+ * Method:    deleteImpl
+ * Signature: (J)V
+ */
+void Java_org_direct_1bt_AdapterStatusListener_deleteImpl(JNIEnv *env, jobject obj, jlong nativeInstance) {
+    (void)obj;
+    try {
+        jau::shared_ptr_ref<JNIAdapterStatusListener> sref(nativeInstance, false /* throw_on_nullptr */); // hold copy until done
+        if( nullptr != sref.pointer() ) {
+            std::shared_ptr<JNIAdapterStatusListener>* sref_ptr = jau::castInstance<JNIAdapterStatusListener>(nativeInstance);
+            delete sref_ptr;
+        }
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+}
+
+void Java_jau_direct_1bt_DBTAdapter_deleteImpl(JNIEnv *env, jobject obj, jlong nativeInstance)
+{
+    (void)obj;
+    try {
+        jau::shared_ptr_ref<BTAdapter> adapter(nativeInstance, false /* throw_on_nullptr */); // hold copy until done
+        if( nullptr != adapter.pointer() ) {
+            if( !adapter.is_null() ) {
+                DBG_PRINT("Java_jau_direct_1bt_DBTAdapter_deleteImpl (w/ close) %s", adapter->toString().c_str());
+                adapter->close();
+            } else {
+                DBG_PRINT("Java_jau_direct_1bt_DBTAdapter_deleteImpl null reference");
+            }
+            std::shared_ptr<BTAdapter>* ref_ptr = jau::castInstance<BTAdapter>(nativeInstance);
+            delete ref_ptr;
+        } else {
+            DBG_PRINT("Java_jau_direct_1bt_DBTAdapter_deleteImpl null reference store");
+        }
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+}
+
+jboolean Java_jau_direct_1bt_DBTAdapter_addStatusListenerImpl(JNIEnv *env, jobject obj, jobject jdeviceOwnerAndMatch, jobject jstatusListener)
 {
     try {
-        if( nullptr == statusListener ) {
-            throw jau::IllegalArgumentException("JNIAdapterStatusListener::addStatusListener: statusListener is null", E_FILE_LINE);
-        }
-        {
-            JNIAdapterStatusListener * pre = jau::getInstanceUnchecked<JNIAdapterStatusListener>(env, statusListener);
-            if( nullptr != pre ) {
-                throw jau::IllegalStateException("JNIAdapterStatusListener::addStatusListener: statusListener's nativeInstance not null, already in use", E_FILE_LINE);
-                return false;
-            }
-        }
-        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
-        jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
+        jau::shared_ptr_ref<BTAdapter> adapter(env, obj); // hold until done
+        jau::JavaAnonRef adapter_java = adapter->getJavaObject(); // hold until done!
+        jau::JavaGlobalObj::check(adapter_java, E_FILE_LINE);
 
-        BTDevice * deviceOwnerAndMatchRef = nullptr;
-        if( nullptr != jdeviceOwnerAndMatch ) {
-            deviceOwnerAndMatchRef = jau::getJavaUplinkObject<BTDevice>(env, jdeviceOwnerAndMatch);
+        jau::shared_ptr_ref<JNIAdapterStatusListener> asl(env, jstatusListener); // hold until done
+        jau::JavaAnonRef asl_java = asl->getJavaObject(); // hold until done!
+        jau::JavaGlobalObj::check(asl_java, E_FILE_LINE);
+
+        jau::shared_ptr_ref<BTDevice> deviceOwnerAndMatchRef(env, jdeviceOwnerAndMatch, false /* throw_on_nullptr */);
+        if( !deviceOwnerAndMatchRef.is_null() ) {
             jau::JavaGlobalObj::check(deviceOwnerAndMatchRef->getJavaObject(), E_FILE_LINE);
         }
 
-        jclass listenerClazz = jau::search_class(env, statusListener);
-        jmethodID  mStatusListenerNotifyDeleted = jau::search_method(env, listenerClazz, "notifyDeleted", "()V", false);
-
-        std::shared_ptr<AdapterStatusListener> l =
-                std::shared_ptr<AdapterStatusListener>( new JNIAdapterStatusListener(env, adapter,
-                        listenerClazz, statusListener, mStatusListenerNotifyDeleted, deviceOwnerAndMatchRef) );
-
-        env->DeleteLocalRef(listenerClazz);
-
-        jau::setInstance(env, statusListener, l.get());
         bool addRes;
-        if( nullptr != deviceOwnerAndMatchRef ) {
-            addRes = adapter->addStatusListener( *deviceOwnerAndMatchRef, l );
+        if( !deviceOwnerAndMatchRef.is_null() ) {
+            addRes = adapter->addStatusListener( deviceOwnerAndMatchRef.shared_ptr(), asl.shared_ptr() );
         } else {
-            addRes = adapter->addStatusListener( l );
+            addRes = adapter->addStatusListener( asl.shared_ptr() );
         }
         if( addRes ) {
             return JNI_TRUE;
         }
-        jau::clearInstance(env, statusListener);
-        ERR_PRINT("JNIAdapterStatusListener::addStatusListener: FAILED: %s", l->toString().c_str());
+        ERR_PRINT("JNIAdapterStatusListener::addStatusListener: FAILED: %s", asl->toString().c_str());
     } catch(...) {
-        jau::clearInstance(env, statusListener);
         rethrow_and_raise_java_exception(env);
     }
     return JNI_FALSE;
 }
 
-jboolean Java_jau_direct_1bt_DBTAdapter_removeStatusListenerImpl(JNIEnv *env, jobject obj, jobject statusListener)
+jboolean Java_jau_direct_1bt_DBTAdapter_removeStatusListenerImpl(JNIEnv *env, jobject obj, jobject jstatusListener)
 {
     try {
-        if( nullptr == statusListener ) {
-            throw jau::IllegalArgumentException("statusListener is null", E_FILE_LINE);
-        }
-        JNIAdapterStatusListener * pre = jau::getInstanceUnchecked<JNIAdapterStatusListener>(env, statusListener);
-        if( nullptr == pre ) {
-            DBG_PRINT("JNIAdapterStatusListener::removeStatusListener: statusListener's nativeInstance is null, not in use");
-            return false;
-        }
-        jau::clearInstance(env, statusListener);
+        jau::shared_ptr_ref<BTAdapter> adapter(env, obj); // hold until done
+        jau::JavaAnonRef adapter_java = adapter->getJavaObject(); // hold until done!
+        jau::JavaGlobalObj::check(adapter_java, E_FILE_LINE);
 
-        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
-        jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
+        jau::shared_ptr_ref<JNIAdapterStatusListener> asl(env, jstatusListener); // hold until done
+        jau::JavaAnonRef asl_java = asl->getJavaObject(); // hold until done!
+        jau::JavaGlobalObj::check(asl_java, E_FILE_LINE);
 
-        if( ! adapter->removeStatusListener( pre ) ) {
-            WARN_PRINT("Failed to remove statusListener with nativeInstance: %p at %s", pre, adapter->toString().c_str());
+        if( ! adapter->removeStatusListener( asl.shared_ptr() ) ) {
+            WARN_PRINT("Failed to remove statusListener with nativeInstance: %p at %s", asl.shared_ptr().get(), adapter->toString().c_str());
             return false;
-        }
-        {
-            JNIAdapterStatusListener * post = jau::getInstanceUnchecked<JNIAdapterStatusListener>(env, statusListener);
-            if( nullptr != post ) {
-                ERR_PRINT("JNIAdapterStatusListener::removeStatusListener: statusListener's nativeInstance not null post native removal");
-                return false;
-            }
         }
         return true;
     } catch(...) {
@@ -495,9 +555,9 @@ jboolean Java_jau_direct_1bt_DBTAdapter_removeStatusListenerImpl(JNIEnv *env, jo
 
 jint Java_jau_direct_1bt_DBTAdapter_removeAllStatusListenerImpl(JNIEnv *env, jobject obj) {
     try {
-        BTAdapter *adapter = jau::getJavaUplinkObject<BTAdapter>(env, obj);
-        jau::JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
-
+        jau::shared_ptr_ref<BTAdapter> adapter(env, obj); // hold until done
+        jau::JavaAnonRef adapter_java = adapter->getJavaObject(); // hold until done!
+        jau::JavaGlobalObj::check(adapter_java, E_FILE_LINE);
         return adapter->removeAllStatusListener();
     } catch(...) {
         rethrow_and_raise_java_exception(env);
