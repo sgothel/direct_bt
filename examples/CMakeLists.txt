@@ -4,13 +4,7 @@ include_directories(
 )
 
 # These examples use the standard separate compilation
-set( SOURCES_IDIOMATIC_EXAMPLES
-    dbt_readsmpkey.cpp
-    dbt_scanner10.cpp
-    dbt_peripheral00.cpp
-    dbt_repeater00.cpp
-    dbt_test_gattcharlifecycle01.cpp
-)
+file(GLOB_RECURSE SOURCES_IDIOMATIC_EXAMPLES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "dbt_*.cpp")
 
 string( REPLACE ".cpp" "" BASENAMES_IDIOMATIC_EXAMPLES "${SOURCES_IDIOMATIC_EXAMPLES}" )
 set( TARGETS_IDIOMATIC_EXAMPLES ${BASENAMES_IDIOMATIC_EXAMPLES} )
