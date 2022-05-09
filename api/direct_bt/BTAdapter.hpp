@@ -119,22 +119,6 @@ namespace direct_bt {
     class AdapterStatusListener : public jau::JavaUplink {
         public:
             /**
-             * Custom filter for all 'device*' notification methods,
-             * which will not be called if this method returns false.
-             * <p>
-             * User may override this method to test whether the 'device*' methods shall be called
-             * for the given device.
-             * </p>
-             * <p>
-             * Defaults to true;
-             * </p>
-             */
-            virtual bool matchDevice(const BTDevice & device) {
-                (void)device;
-                return true;
-            }
-
-            /**
              * BTAdapter setting(s) changed.
              * @param adapter the adapter which settings have changed.
              * @param oldmask the previous settings mask. AdapterSetting::NONE indicates the initial setting notification, see BTAdapter::addStatusListener().
@@ -314,6 +298,15 @@ namespace direct_bt {
             AdapterStatusListenerRef listener;
             /** The optional weak device reference. Weak, b/c it shall not block destruction */
             std::weak_ptr<BTDevice> wbr_device;
+
+            bool match(const BTDeviceRef& device) const noexcept {
+                BTDeviceRef sda = wbr_device.lock();
+                if( nullptr != sda && nullptr != device ) {
+                    return *sda == *device;
+                } else {
+                    return true;
+                }
+            }
         };
     }
 

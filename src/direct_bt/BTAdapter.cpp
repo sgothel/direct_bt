@@ -1615,7 +1615,7 @@ void BTAdapter::sendDeviceUpdated(std::string cause, BTDeviceRef device, uint64_
     int i=0;
     jau::for_each_fidelity(statusListenerList, [&](impl::StatusListenerPair &p) {
         try {
-            if( p.listener->matchDevice(*device) ) {
+            if( p.match(device) ) {
                 p.listener->deviceUpdated(device, updateMask, timestamp);
             }
         } catch (std::exception &e) {
@@ -1998,7 +1998,7 @@ bool BTAdapter::mgmtEvDeviceConnectedHCI(const MgmtEvent& e) noexcept {
     int i=0;
     jau::for_each_fidelity(statusListenerList, [&](impl::StatusListenerPair &p) {
         try {
-            if( p.listener->matchDevice(*device) ) {
+            if( p.match(device) ) {
                 if( EIRDataType::NONE != updateMask ) {
                     p.listener->deviceUpdated(device, updateMask, ad_report.getTimestamp());
                 }
@@ -2048,7 +2048,7 @@ bool BTAdapter::mgmtEvConnectFailedHCI(const MgmtEvent& e) noexcept {
             int i=0;
             jau::for_each_fidelity(statusListenerList, [&](impl::StatusListenerPair &p) {
                 try {
-                    if( p.listener->matchDevice(*device) ) {
+                    if( p.match(device) ) {
                         p.listener->deviceDisconnected(device, event.getHCIStatus(), handle, event.getTimestamp());
                     }
                 } catch (std::exception &except) {
@@ -2148,7 +2148,7 @@ bool BTAdapter::mgmtEvDeviceDisconnectedHCI(const MgmtEvent& e) noexcept {
             int i=0;
             jau::for_each_fidelity(statusListenerList, [&](impl::StatusListenerPair &p) {
                 try {
-                    if( p.listener->matchDevice(*device) ) {
+                    if( p.match(device) ) {
                         p.listener->deviceDisconnected(device, event.getHCIReason(), event.getHCIHandle(), event.getTimestamp());
                     }
                 } catch (std::exception &except) {
@@ -2395,7 +2395,7 @@ bool BTAdapter::mgmtEvDeviceFoundHCI(const MgmtEvent& e) noexcept {
             bool device_used = false;
             jau::for_each_fidelity(statusListenerList, [&](impl::StatusListenerPair &p) {
                 try {
-                    if( p.listener->matchDevice(*dev_shared) ) {
+                    if( p.match(dev_shared) ) {
                         device_used = p.listener->deviceFound(dev_shared, eir->getTimestamp()) || device_used;
                     }
                 } catch (std::exception &except) {
@@ -2435,7 +2435,7 @@ bool BTAdapter::mgmtEvDeviceFoundHCI(const MgmtEvent& e) noexcept {
             bool device_used = false;
             jau::for_each_fidelity(statusListenerList, [&](impl::StatusListenerPair &p) {
                 try {
-                    if( p.listener->matchDevice(*dev_shared) ) {
+                    if( p.match(dev_shared) ) {
                         device_used = p.listener->deviceFound(dev_shared, eir->getTimestamp()) || device_used;
                     }
                 } catch (std::exception &except) {
@@ -2474,7 +2474,7 @@ bool BTAdapter::mgmtEvDeviceFoundHCI(const MgmtEvent& e) noexcept {
                 bool device_used = false;
                 jau::for_each_fidelity(statusListenerList, [&](impl::StatusListenerPair &p) {
                     try {
-                        if( p.listener->matchDevice(*dev_discovered) ) {
+                        if( p.match(dev_discovered) ) {
                             device_used = p.listener->deviceFound(dev_discovered, eir->getTimestamp()) || device_used;
                         }
                     } catch (std::exception &except) {
@@ -2617,7 +2617,7 @@ void BTAdapter::sendDevicePairingState(BTDeviceRef device, const SMPPairingState
     int i=0;
     jau::for_each_fidelity(statusListenerList, [&](impl::StatusListenerPair &p) {
         try {
-            if( p.listener->matchDevice(*device) ) {
+            if( p.match(device) ) {
                 p.listener->devicePairingState(device, state, mode, timestamp);
             }
         } catch (std::exception &except) {
@@ -2650,7 +2650,7 @@ void BTAdapter::sendDeviceReady(BTDeviceRef device, uint64_t timestamp) noexcept
         try {
             // Only issue if valid && received connected confirmation (HCI) && not have called disconnect yet.
             if( device->isValidInstance() && device->getConnected() && device->allowDisconnect ) {
-                if( p.listener->matchDevice(*device) ) {
+                if( p.match(device) ) {
                     p.listener->deviceReady(device, timestamp);
                 }
             }

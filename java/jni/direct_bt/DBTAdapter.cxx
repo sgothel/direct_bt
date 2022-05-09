@@ -66,8 +66,6 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
   private:
     /**
         public abstract class AdapterStatusListener {
-            private long nativeInstance;
-
             public void adapterSettingsChanged(final BluetoothAdapter adapter,
                                                final AdapterSettings oldmask, final AdapterSettings newmask,
                                                final AdapterSettings changedmask, final long timestamp) { }
@@ -84,7 +82,6 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
     */
     static std::atomic<int> iname_next;
     int const iname;
-    BTDeviceRef deviceMatchRef;
 
     jau::JNIGlobalRef adapterSettingsClazzRef;
     jmethodID adapterSettingsClazzCtor;
@@ -118,16 +115,15 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
   public:
 
     std::string toString() const noexcept override {
-        const std::string devMatchAddr = nullptr != deviceMatchRef ? deviceMatchRef->getAddressAndType().toString() : "nil";
-        return "JNIAdapterStatusListener[this "+jau::to_hexstring(this)+", iname "+std::to_string(iname)+", devMatchAddr "+devMatchAddr+"]";
+        return "JNIAdapterStatusListener[this "+jau::to_hexstring(this)+", iname "+std::to_string(iname)+"]";
     }
 
     ~JNIAdapterStatusListener() override {
         // listenerObjRef dtor will call notifyDelete and clears the nativeInstance handle
     }
 
-    JNIAdapterStatusListener(JNIEnv *env, jobject statusListenerObj, const BTDeviceRef& _deviceMatchRef)
-    : iname(iname_next.fetch_add(1)), deviceMatchRef(_deviceMatchRef)
+    JNIAdapterStatusListener(JNIEnv *env, jobject statusListenerObj)
+    : iname(iname_next.fetch_add(1))
     {
         jclass listenerClazz = jau::search_class(env, statusListenerObj);
 
@@ -207,17 +203,6 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
         mDevicePairingState = jau::search_method(env, listenerClazz, "devicePairingState", _devicePairingStateMethodArgs.c_str(), false);
         mDeviceReady = jau::search_method(env, listenerClazz, "deviceReady", _deviceReadyMethodArgs.c_str(), false);
         mDeviceDisconnected = jau::search_method(env, listenerClazz, "deviceDisconnected", _deviceDisconnectedMethodArgs.c_str(), false);
-    }
-
-    void setDeviceMatchRef(const BTDeviceRef& _deviceMatchRef) {
-        deviceMatchRef = _deviceMatchRef;
-    }
-
-    bool matchDevice(const BTDevice & device) override {
-        if( nullptr == deviceMatchRef ) {
-            return true;
-        }
-        return device == *deviceMatchRef;
     }
 
     void adapterSettingsChanged(BTAdapter &a, const AdapterSetting oldmask, const AdapterSetting newmask,
@@ -449,7 +434,7 @@ std::atomic<int> JNIAdapterStatusListener::iname_next(0);
 jlong Java_org_direct_1bt_AdapterStatusListener_ctorImpl(JNIEnv *env, jobject obj) {
     try {
         // new instance
-        jau::shared_ptr_ref<JNIAdapterStatusListener> ref( new JNIAdapterStatusListener(env, obj, nullptr) );
+        jau::shared_ptr_ref<JNIAdapterStatusListener> ref( new JNIAdapterStatusListener(env, obj) );
 
         return ref.release_to_jlong();
     } catch(...) {
