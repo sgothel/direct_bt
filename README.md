@@ -493,6 +493,11 @@ from the year 2016.
 
 * TODO
 
+**2.7.0** (TODO)
+* Robustness of JNI
+  - Passing `trial.org.direct_bt.TestDBTProvokeClientServer_i470` w/o crash
+  - Use `std::shared_ptr<T>` instead of a `naked pointer` for sane lifcycle, see new `shared_ptr_ref<T>`.
+
 **2.6.5**
 * Fix several memory leaks and uninitialized fields using valgrind analysis (native and w/ JVM)
   - BTGattHandler::disconnect(): Check weak BTDevice before using resources
