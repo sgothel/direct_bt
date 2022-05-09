@@ -42,7 +42,7 @@ import jau.direct_bt.DBTNativeDownlink;
  * @since 2.0.0
  */
 public abstract class AdapterStatusListener extends DBTNativeDownlink {
-    protected AdapterStatusListener() {
+    public AdapterStatusListener() {
         super(); // pending native ctor
         initDownlink(ctorImpl());
     }
