@@ -88,9 +88,6 @@ public interface BTGattService extends BTObject
         if( null == listener ) {
             throw new IllegalArgumentException("listener argument null");
         }
-        if( null != listener.getAssociatedChar() ) {
-            throw new IllegalArgumentException("listener's associated characteristic is not null");
-        }
         final boolean res = device.addCharListener(listener);
         for(final Iterator<BTGattService> is = services.iterator(); is.hasNext(); ) {
             final BTGattService s = is.next();

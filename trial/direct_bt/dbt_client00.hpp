@@ -228,22 +228,21 @@ class DBTClient00 : public DBTClientTest {
 
         };
 
-        class MyGATTEventListener : public BTGattChar::Listener {
+        class MyGATTEventListener : public BTGattCharListener {
           private:
             DBTClient00& parent;
-            int i, j;
 
           public:
-            MyGATTEventListener(DBTClient00& p, int i_, int j_) : parent(p), i(i_), j(j_) {}
+            MyGATTEventListener(DBTClient00& p) : parent(p) {}
 
             void notificationReceived(BTGattCharRef charDecl, const TROOctets& char_value, const uint64_t timestamp) override {
                 if( GATT_VERBOSE ) {
                     const uint64_t tR = jau::getCurrentMilliseconds();
-                    fprintf_td(stderr, "**[%2.2d.%2.2d] Characteristic-Notify: UUID %s, td %" PRIu64 " ******\n",
-                            i, j, charDecl->value_type->toUUID128String().c_str(), (tR-timestamp));
-                    fprintf_td(stderr, "**[%2.2d.%2.2d]     Characteristic: %s ******\n", i, j, charDecl->toString().c_str());
-                    fprintf_td(stderr, "**[%2.2d.%2.2d]     Value R: %s ******\n", i, j, char_value.toString().c_str());
-                    fprintf_td(stderr, "**[%2.2d.%2.2d]     Value S: %s ******\n", i, j, jau::dfa_utf8_decode(char_value.get_ptr(), char_value.size()).c_str());
+                    fprintf_td(stderr, "** Characteristic-Notify: UUID %s, td %" PRIu64 " ******\n",
+                            charDecl->value_type->toUUID128String().c_str(), (tR-timestamp));
+                    fprintf_td(stderr, "**    Characteristic: %s ******\n", charDecl->toString().c_str());
+                    fprintf_td(stderr, "**    Value R: %s ******\n", char_value.toString().c_str());
+                    fprintf_td(stderr, "**    Value S: %s ******\n", jau::dfa_utf8_decode(char_value.get_ptr(), char_value.size()).c_str());
                 }
                 parent.notificationsReceived++;
             }
@@ -254,11 +253,11 @@ class DBTClient00 : public DBTClientTest {
             {
                 if( GATT_VERBOSE ) {
                     const uint64_t tR = jau::getCurrentMilliseconds();
-                    fprintf_td(stderr, "**[%2.2d.%2.2d] Characteristic-Indication: UUID %s, td %" PRIu64 ", confirmed %d ******\n",
-                            i, j, charDecl->value_type->toUUID128String().c_str(), (tR-timestamp), confirmationSent);
-                    fprintf_td(stderr, "**[%2.2d.%2.2d]     Characteristic: %s ******\n", i, j, charDecl->toString().c_str());
-                    fprintf_td(stderr, "**[%2.2d.%2.2d]     Value R: %s ******\n", i, j, char_value.toString().c_str());
-                    fprintf_td(stderr, "**[%2.2d.%2.2d]     Value S: %s ******\n", i, j, jau::dfa_utf8_decode(char_value.get_ptr(), char_value.size()).c_str());
+                    fprintf_td(stderr, "** Characteristic-Indication: UUID %s, td %" PRIu64 ", confirmed %d ******\n",
+                            charDecl->value_type->toUUID128String().c_str(), (tR-timestamp), confirmationSent);
+                    fprintf_td(stderr, "**    Characteristic: %s ******\n", charDecl->toString().c_str());
+                    fprintf_td(stderr, "**    Value R: %s ******\n", char_value.toString().c_str());
+                    fprintf_td(stderr, "**    Value S: %s ******\n", jau::dfa_utf8_decode(char_value.get_ptr(), char_value.size()).c_str());
                 }
                 parent.indicationsReceived++;
             }
@@ -443,75 +442,76 @@ class DBTClient00 : public DBTClientTest {
                     // cmd.close(); // done via dtor
                 }
 
-                for(size_t i=0; i<primServices.size(); i++) {
-                    BTGattService & primService = *primServices.at(i);
-                    if( GATT_VERBOSE ) {
-                        fprintf_td(stderr, "  [%2.2d] Service UUID %s (%s)\n", i,
-                                primService.type->toUUID128String().c_str(),
-                                primService.type->getTypeSizeString().c_str());
-                        fprintf_td(stderr, "  [%2.2d]         %s\n", i, primService.toString().c_str());
-                    }
-                    jau::darray<BTGattCharRef> & serviceCharacteristics = primService.characteristicList;
-                    for(size_t j=0; j<serviceCharacteristics.size(); j++) {
-                        BTGattCharRef & serviceChar = serviceCharacteristics.at(j);
+                std::vector<BTGattCharListenerRef> gattListener;
+                int loop = 0;
+                do {
+                    for(size_t i=0; i<primServices.size(); i++) {
+                        BTGattService & primService = *primServices.at(i);
                         if( GATT_VERBOSE ) {
-                            fprintf_td(stderr, "  [%2.2d.%2.2d] Characteristic: UUID %s (%s)\n", i, j,
-                                    serviceChar->value_type->toUUID128String().c_str(),
-                                    serviceChar->value_type->getTypeSizeString().c_str());
-                            fprintf_td(stderr, "  [%2.2d.%2.2d]     %s\n", i, j, serviceChar->toString().c_str());
+                            fprintf_td(stderr, "  [%2.2d] Service UUID %s (%s)\n", i,
+                                    primService.type->toUUID128String().c_str(),
+                                    primService.type->getTypeSizeString().c_str());
+                            fprintf_td(stderr, "  [%2.2d]         %s\n", i, primService.toString().c_str());
                         }
-                        if( serviceChar->hasProperties(BTGattChar::PropertyBitVal::Read) ) {
-                            POctets value(BTGattHandler::number(BTGattHandler::Defaults::MAX_ATT_MTU), 0, jau::endian::little);
-                            if( serviceChar->readValue(value) ) {
-                                std::string sval = dfa_utf8_decode(value.get_ptr(), value.size());
+                        jau::darray<BTGattCharRef> & serviceCharacteristics = primService.characteristicList;
+                        for(size_t j=0; j<serviceCharacteristics.size(); j++) {
+                            BTGattCharRef & serviceChar = serviceCharacteristics.at(j);
+                            if( GATT_VERBOSE ) {
+                                fprintf_td(stderr, "  [%2.2d.%2.2d] Characteristic: UUID %s (%s)\n", i, j,
+                                        serviceChar->value_type->toUUID128String().c_str(),
+                                        serviceChar->value_type->getTypeSizeString().c_str());
+                                fprintf_td(stderr, "  [%2.2d.%2.2d]     %s\n", i, j, serviceChar->toString().c_str());
+                            }
+                            if( serviceChar->hasProperties(BTGattChar::PropertyBitVal::Read) ) {
+                                POctets value(BTGattHandler::number(BTGattHandler::Defaults::MAX_ATT_MTU), 0, jau::endian::little);
+                                if( serviceChar->readValue(value) ) {
+                                    std::string sval = dfa_utf8_decode(value.get_ptr(), value.size());
+                                    if( GATT_VERBOSE ) {
+                                        fprintf_td(stderr, "  [%2.2d.%2.2d]     value: %s ('%s')\n", (int)i, (int)j, value.toString().c_str(), sval.c_str());
+                                    }
+                                }
+                            }
+                            jau::darray<BTGattDescRef> & charDescList = serviceChar->descriptorList;
+                            for(size_t k=0; k<charDescList.size(); k++) {
+                                BTGattDesc & charDesc = *charDescList.at(k);
                                 if( GATT_VERBOSE ) {
-                                    fprintf_td(stderr, "  [%2.2d.%2.2d]     value: %s ('%s')\n", (int)i, (int)j, value.toString().c_str(), sval.c_str());
+                                    fprintf_td(stderr, "  [%2.2d.%2.2d.%2.2d] Descriptor: UUID %s (%s)\n", i, j, k,
+                                            charDesc.type->toUUID128String().c_str(),
+                                            charDesc.type->getTypeSizeString().c_str());
+                                    fprintf_td(stderr, "  [%2.2d.%2.2d.%2.2d]     %s\n", i, j, k, charDesc.toString().c_str());
+                                }
+                            }
+                            if( 0 == loop ) {
+                                bool cccdEnableResult[2];
+                                if( serviceChar->enableNotificationOrIndication( cccdEnableResult ) ) {
+                                    // ClientCharConfigDescriptor (CCD) is available
+                                    std::shared_ptr<BTGattCharListener> gattEventListener = std::make_shared<MyGATTEventListener>(*this);
+                                    bool clAdded = serviceChar->addCharListener( gattEventListener );
+                                    REQUIRE( true == clAdded );
+                                    if( clAdded ) {
+                                        gattListener.push_back(gattEventListener);
+                                    }
+                                    if( GATT_VERBOSE ) {
+                                        fprintf_td(stderr, "  [%2.2d.%2.2d] Characteristic-Listener: Notification(%d), Indication(%d): Added %d\n",
+                                                (int)i, (int)j, cccdEnableResult[0], cccdEnableResult[1], clAdded);
+                                        fprintf_td(stderr, "\n");
+                                    }
                                 }
                             }
                         }
-                        jau::darray<BTGattDescRef> & charDescList = serviceChar->descriptorList;
-                        for(size_t k=0; k<charDescList.size(); k++) {
-                            BTGattDesc & charDesc = *charDescList.at(k);
-                            if( GATT_VERBOSE ) {
-                                fprintf_td(stderr, "  [%2.2d.%2.2d.%2.2d] Descriptor: UUID %s (%s)\n", i, j, k,
-                                        charDesc.type->toUUID128String().c_str(),
-                                        charDesc.type->getTypeSizeString().c_str());
-                                fprintf_td(stderr, "  [%2.2d.%2.2d.%2.2d]     %s\n", i, j, k, charDesc.toString().c_str());
-                            }
-                        }
-                        bool cccdEnableResult[2];
-                        if( serviceChar->enableNotificationOrIndication( cccdEnableResult ) ) {
-                            // ClientCharConfigDescriptor (CCD) is available
-                            std::shared_ptr<BTGattChar::Listener> cl = std::make_shared<MyGATTEventListener>(*this, i, j);
-                            bool clAdded = serviceChar->addCharListener( cl );
-                            if( GATT_VERBOSE ) {
-                                fprintf_td(stderr, "  [%2.2d.%2.2d] Characteristic-Listener: Notification(%d), Indication(%d): Added %d\n",
-                                        (int)i, (int)j, cccdEnableResult[0], cccdEnableResult[1], clAdded);
-                                fprintf_td(stderr, "\n");
-                            }
+                        if( GATT_VERBOSE ) {
+                            fprintf_td(stderr, "\n");
                         }
                     }
-                    if( GATT_VERBOSE ) {
-                        fprintf_td(stderr, "\n");
-                    }
+                    success = notificationsReceived >= 2 || indicationsReceived >= 2;
+                    ++loop;
+                } while( !success && device->getConnected() );
+
+                for(BTGattCharListenerRef gcl : gattListener) {
+                    REQUIRE( true == device->removeCharListener(gcl) );
                 }
 
-                {
-                    const fraction_timespec t0 = getMonotonicTime();
-                    bool timeout = false;
-                    do {
-                        success = completedGATTCommands >= 1 && ( notificationsReceived >= 2 || indicationsReceived >= 2 );
-                        if( !success ) {
-                            const fraction_i64 td = ( getMonotonicTime() - t0 ).to_fraction_i64();
-                            timeout = 3_s < td;
-                            if( !timeout ) {
-                                jau::sleep_for( 17_ms );
-                            }
-                        }
-                    } while( !success && !timeout );
-                }
-
-                {
+                if( device->getConnected() ) {
                     // Tell server we have successfully completed the test.
                     BTGattCmd cmd = BTGattCmd(*device, "FinalHandshake", DBTConstants::CommandUUID, DBTConstants::ResponseUUID, 256);
                     cmd.setVerbose(true);

@@ -49,16 +49,7 @@ using namespace jau;
  */
 JAU_TYPENAME_CUE(direct_bt::BTGattCharListener)
 
-/**
- * Simple access and provision of a typename string representation
- * at compile time like RTTI via jau::type_name_cue.
- */
-JAU_TYPENAME_CUE(direct_bt::AssociatedBTGattCharListener)
-
 const char * BTGattCharListener::type_name() const noexcept { return jau::type_name_cue<BTGattCharListener>::name(); }
-
-const char * AssociatedBTGattCharListener::type_name() const noexcept { return jau::type_name_cue<AssociatedBTGattCharListener>::name(); }
-
 
 #define CHAR_DECL_PROPS_ENUM(X) \
         X(BTGattChar,Broadcast,broadcast) \
@@ -180,7 +171,7 @@ std::string BTGattChar::toShortString() const noexcept {
            "], ccd-idx "+std::to_string(clientCharConfigIndex)+notify_str+"]";
 }
 
-std::shared_ptr<BTGattHandler> BTGattChar::getGattHandlerUnchecked() const noexcept {
+BTGattHandlerRef BTGattChar::getGattHandlerUnchecked() const noexcept {
     std::shared_ptr<BTGattService> s = getServiceUnchecked();
     if( nullptr != s ) {
         return s->getGattHandlerUnchecked();
@@ -188,7 +179,7 @@ std::shared_ptr<BTGattHandler> BTGattChar::getGattHandlerUnchecked() const noexc
     return nullptr;
 }
 
-std::shared_ptr<BTDevice> BTGattChar::getDeviceUnchecked() const noexcept {
+BTDeviceRef BTGattChar::getDeviceUnchecked() const noexcept {
     std::shared_ptr<BTGattService> s = getServiceUnchecked();
     if( nullptr != s ) {
         return s->getDeviceUnchecked();
@@ -266,88 +257,39 @@ bool BTGattChar::disableIndicationNotification() noexcept {
     return configNotificationIndication(false, false, enabledState);
 }
 
-class DelegatedBTGattCharListener : public BTGattCharListener {
-    private:
-        const BTGattChar * associatedChar;
-        std::shared_ptr<BTGattChar::Listener> delegate;
-
-    public:
-        DelegatedBTGattCharListener(const BTGattChar * characteristicMatch, std::shared_ptr<BTGattChar::Listener> l) noexcept
-        : associatedChar(characteristicMatch), delegate(l) { }
-
-        const char * type_name() const noexcept override;
-
-        bool match(const BTGattChar & characteristic) noexcept override {
-            if( nullptr == associatedChar ) {
-                return true;
-            }
-            return *associatedChar == characteristic;
-        }
-
-        void notificationReceived(BTGattCharRef charDecl,
-                                  const TROOctets& charValue, const uint64_t timestamp) override {
-            delegate->notificationReceived(charDecl, charValue, timestamp);
-        }
-
-        void indicationReceived(BTGattCharRef charDecl,
-                                const TROOctets& charValue, const uint64_t timestamp,
-                                const bool confirmationSent) override {
-            delegate->indicationReceived(charDecl, charValue, timestamp, confirmationSent);
-        }
-
-        std::string toString() override {
-            return std::string(type_name())+"["+jau::to_string(this)+", delegate "+jau::to_string(delegate.get())+"]";
-        }
-
-        /**
-         * Comparison operator merely testing for same memory reference of the delegate.
-         */
-        bool operator==(const BTGattCharListener& rhs) const noexcept override;
-
-        bool operator!=(const DelegatedBTGattCharListener& rhs) const noexcept
-        { return !(*this == rhs); }
-};
-
-/**
- * Simple access and provision of a typename string representation
- * at compile time like RTTI via jau::type_name_cue.
- */
-JAU_TYPENAME_CUE(DelegatedBTGattCharListener)
-
-const char * DelegatedBTGattCharListener::type_name() const noexcept { return jau::type_name_cue<DelegatedBTGattCharListener>::name(); }
-
-bool DelegatedBTGattCharListener::operator==(const BTGattCharListener& rhs) const noexcept
-{
-    if( 0 != strcmp(rhs.type_name(), jau::type_name_cue<DelegatedBTGattCharListener>::name()) ) {
-        return false;
-    }
-    const DelegatedBTGattCharListener& rhs2 = static_cast<const DelegatedBTGattCharListener&>(rhs);
-    return delegate.get() == rhs2.delegate.get();
-}
-
-bool BTGattChar::addCharListener(std::shared_ptr<BTGattChar::Listener> l) noexcept {
-    std::shared_ptr<BTDevice> device = getDeviceUnchecked();
+bool BTGattChar::addCharListener(const BTGattCharListenerRef& l) noexcept {
+    BTDeviceRef device = getDeviceUnchecked();
     if( nullptr == device ) {
         ERR_PRINT("Characteristic's device null: %s", toShortString().c_str());
         return false;
     }
-    return device->addCharListener( std::make_shared<DelegatedBTGattCharListener>( this, l ) );
+    BTGattServiceRef service = getServiceUnchecked();
+    if( nullptr == service ) {
+        ERR_PRINT("Characteristic's service null: %s", toShortString().c_str());
+        return false;
+    }
+    BTGattCharRef characteristic = service->findGattChar(*this);
+    if( nullptr == service ) {
+        ERR_PRINT("Characteristic not in service: %s", toShortString().c_str());
+        return false;
+    }
+    return device->addCharListener(l, characteristic);
 }
 
-bool BTGattChar::addCharListener(std::shared_ptr<BTGattChar::Listener> l, bool enabledState[2]) noexcept {
+bool BTGattChar::addCharListener(const BTGattCharListenerRef& l, bool enabledState[2]) noexcept {
     if( !enableNotificationOrIndication(enabledState) ) {
         return false;
     }
     return addCharListener(l);
 }
 
-bool BTGattChar::removeCharListener(std::shared_ptr<Listener> l) noexcept {
+bool BTGattChar::removeCharListener(const BTGattCharListenerRef& l) noexcept {
     std::shared_ptr<BTDevice> device = getDeviceUnchecked();
     if( nullptr == device ) {
         ERR_PRINT("Characteristic's device null: %s", toShortString().c_str());
         return false;
     }
-    return device->removeCharListener( std::make_shared<DelegatedBTGattCharListener>( this, l ) );
+    return device->removeCharListener(l);
 }
 
 int BTGattChar::removeAllAssociatedCharListener(bool shallDisableIndicationNotification) noexcept {

@@ -97,7 +97,7 @@ public class DBTGattChar extends DBTObject implements BTGattChar
             final boolean hasIndicate = properties.isSet(GattCharPropertySet.Type.Indicate);
 
             if( hasNotify || hasIndicate ) {
-                final Listener characteristicListener = new Listener() {
+                final BTGattCharListener characteristicListener = new BTGattCharListener() {
                     @Override
                     public void notificationReceived(final BTGattChar charDecl, final byte[] value, final long timestamp) {
                         System.err.println("GATTCharacteristicListener.notificationReceived: "+charDecl+
@@ -243,38 +243,15 @@ public class DBTGattChar extends DBTObject implements BTGattChar
         return configNotificationIndication(false /* enableNotification */, false /* enableIndication */, new boolean[2]);
     }
 
-    static private class DelegatedBTGattCharListener extends BTGattCharListener {
-        private final Listener delegate;
-
-        public DelegatedBTGattCharListener(final BTGattChar characteristicMatch, final Listener l) {
-            super(characteristicMatch);
-            delegate = l;
-        }
-
-        @Override
-        public void notificationReceived(final BTGattChar charDecl,
-                                         final byte[] value, final long timestamp) {
-            delegate.notificationReceived(charDecl, value, timestamp);
-        }
-
-        @Override
-        public void indicationReceived(final BTGattChar charDecl,
-                                       final byte[] value, final long timestamp,
-                                       final boolean confirmationSent) {
-            delegate.indicationReceived(charDecl, value, timestamp, confirmationSent);
-        }
-    };
-
     @Override
-    public final BTGattCharListener addCharListener(final Listener listener) {
-        final BTGattCharListener wl = new DelegatedBTGattCharListener(this, listener);
-        return getService().getDevice().addCharListener( wl ) ? wl : null;
+    public final boolean addCharListener(final BTGattCharListener listener) {
+        return getService().getDevice().addCharListener( listener, this );
     }
 
     @Override
-    public final BTGattCharListener addCharListener(final Listener listener, final boolean enabledState[/*2*/]) {
+    public final boolean addCharListener(final BTGattCharListener listener, final boolean enabledState[/*2*/]) {
         if( !enableNotificationOrIndication(enabledState) ) {
-            return null;
+            return false;
         }
         return addCharListener( listener );
     }

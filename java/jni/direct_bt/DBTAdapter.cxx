@@ -509,7 +509,7 @@ jboolean Java_jau_direct_1bt_DBTAdapter_addStatusListenerImpl(JNIEnv *env, jobje
         if( addRes ) {
             return JNI_TRUE;
         }
-        ERR_PRINT("JNIAdapterStatusListener::addStatusListener: FAILED: %s", asl->toString().c_str());
+        ERR_PRINT("BTAdapter::addStatusListener: FAILED: %s", asl->toString().c_str());
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }

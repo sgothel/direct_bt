@@ -263,7 +263,7 @@ namespace direct_bt {
                 (void)timestamp;
             }
 
-            virtual ~AdapterStatusListener() {}
+            ~AdapterStatusListener() noexcept override {}
 
             std::string toString() const noexcept override { return "AdapterStatusListener["+jau::to_hexstring(this)+"]"; }
 
@@ -291,24 +291,6 @@ namespace direct_bt {
     // *************************************************
     // *************************************************
     // *************************************************
-
-    namespace impl {
-        struct StatusListenerPair {
-            /** The actual listener */
-            AdapterStatusListenerRef listener;
-            /** The optional weak device reference. Weak, b/c it shall not block destruction */
-            std::weak_ptr<BTDevice> wbr_device;
-
-            bool match(const BTDeviceRef& device) const noexcept {
-                BTDeviceRef sda = wbr_device.lock();
-                if( nullptr != sda && nullptr != device ) {
-                    return *sda == *device;
-                } else {
-                    return true;
-                }
-            }
-        };
-    }
 
     /**
      * BTAdapter represents one local Bluetooth Controller.
@@ -397,7 +379,23 @@ namespace direct_bt {
             jau::simple_timer smp_watchdog;
             jau::fraction_i64 smp_timeoutfunc(jau::simple_timer& timer);
 
-            typedef jau::cow_darray<impl::StatusListenerPair> statusListenerList_t;
+            struct StatusListenerPair {
+                /** The actual listener */
+                AdapterStatusListenerRef listener;
+                /** The optional weak device reference. Weak, b/c it shall not block destruction */
+                std::weak_ptr<BTDevice> wbr_device;
+
+                bool match(const BTDeviceRef& device) const noexcept {
+                    BTDeviceRef sda = wbr_device.lock();
+                    if( nullptr != sda && nullptr != device ) {
+                        return *sda == *device;
+                    } else {
+                        return true;
+                    }
+                }
+            };
+            typedef jau::cow_darray<StatusListenerPair> statusListenerList_t;
+            static statusListenerList_t::equal_comparator adapterStatusListenerRefEqComparator;
             statusListenerList_t statusListenerList;
 
             // Storing SMPKeyBin entries, referenced by their remote address, i.e. BTDevice address.
@@ -563,7 +561,7 @@ namespace direct_bt {
 
             void sendDeviceUpdated(std::string cause, BTDeviceRef device, uint64_t timestamp, EIRDataType updateMask) noexcept;
 
-            int removeAllStatusListener(const BTDevice& d);
+            int removeAllStatusListener(const BTDevice& d) noexcept;
 
         public:
 
@@ -961,25 +959,14 @@ namespace direct_bt {
              * @see removeStatusListener()
              * @see removeAllStatusListener()
              */
-            bool addStatusListener(const AdapterStatusListenerRef& l);
+            bool addStatusListener(const AdapterStatusListenerRef& l) noexcept;
 
             /**
              * Please use BTDevice::addStatusListener() for clarity, merely existing here to allow JNI access.
              */
-            bool addStatusListener(const BTDeviceRef& d, const AdapterStatusListenerRef& l);
+            bool addStatusListener(const BTDeviceRef& d, const AdapterStatusListenerRef& l) noexcept;
 
-            bool addStatusListener(const BTDevice& d, const AdapterStatusListenerRef& l);
-
-            /**
-             * Remove the given listener from the list.
-             * <p>
-             * Returns true if the given listener is an element of the list and has been removed,
-             * otherwise false.
-             * </p>
-             * @see BTDevice::removeStatusListener()
-             * @see addStatusListener()
-             */
-            bool removeStatusListener(const AdapterStatusListenerRef& l);
+            bool addStatusListener(const BTDevice& d, const AdapterStatusListenerRef& l) noexcept;
 
             /**
              * Remove the given listener from the list.
@@ -990,7 +977,18 @@ namespace direct_bt {
              * @see BTDevice::removeStatusListener()
              * @see addStatusListener()
              */
-            bool removeStatusListener(const AdapterStatusListener * l);
+            bool removeStatusListener(const AdapterStatusListenerRef& l) noexcept;
+
+            /**
+             * Remove the given listener from the list.
+             * <p>
+             * Returns true if the given listener is an element of the list and has been removed,
+             * otherwise false.
+             * </p>
+             * @see BTDevice::removeStatusListener()
+             * @see addStatusListener()
+             */
+            bool removeStatusListener(const AdapterStatusListener * l) noexcept;
 
             /**
              * Remove all status listener from the list.

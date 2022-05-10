@@ -914,15 +914,16 @@ bool BTAdapter::removeDeviceFromWhitelist(const BDAddressAndType & addressAndTyp
     return mgmt.removeDeviceFromWhitelist(dev_id, addressAndType);
 }
 
-static jau::cow_darray<impl::StatusListenerPair>::equal_comparator _adapterStatusListenerRefEqComparator =
-        [](const impl::StatusListenerPair &a, const impl::StatusListenerPair &b) -> bool { return *a.listener == *b.listener; };
+BTAdapter::statusListenerList_t::equal_comparator BTAdapter::adapterStatusListenerRefEqComparator =
+        [](const StatusListenerPair &a, const StatusListenerPair &b) -> bool { return *a.listener == *b.listener; };
 
-bool BTAdapter::addStatusListener(const AdapterStatusListenerRef& l) {
+bool BTAdapter::addStatusListener(const AdapterStatusListenerRef& l) noexcept {
     if( nullptr == l ) {
-        throw jau::IllegalArgumentException("AdapterStatusListener ref is null", E_FILE_LINE);
+        ERR_PRINT("AdapterStatusListener ref is null");
+        return false;
     }
-    const bool added = statusListenerList.push_back_unique(impl::StatusListenerPair{l, std::weak_ptr<BTDevice>{} },
-                                                           _adapterStatusListenerRefEqComparator);
+    const bool added = statusListenerList.push_back_unique(StatusListenerPair{l, std::weak_ptr<BTDevice>{} },
+                                                           adapterStatusListenerRefEqComparator);
     if( added ) {
         sendAdapterSettingsInitial(*l, jau::getCurrentMilliseconds());
     }
@@ -933,15 +934,17 @@ bool BTAdapter::addStatusListener(const AdapterStatusListenerRef& l) {
     return added;
 }
 
-bool BTAdapter::addStatusListener(const BTDeviceRef& d, const AdapterStatusListenerRef& l) {
+bool BTAdapter::addStatusListener(const BTDeviceRef& d, const AdapterStatusListenerRef& l) noexcept {
     if( nullptr == l ) {
-        throw jau::IllegalArgumentException("AdapterStatusListener ref is null", E_FILE_LINE);
+        ERR_PRINT("AdapterStatusListener ref is null");
+        return false;
     }
     if( nullptr == d ) {
-        throw jau::IllegalArgumentException("Device is null", E_FILE_LINE);
+        ERR_PRINT("Device ref is null");
+        return false;
     }
-    const bool added = statusListenerList.push_back_unique(impl::StatusListenerPair{l, d},
-                                                           _adapterStatusListenerRefEqComparator);
+    const bool added = statusListenerList.push_back_unique(StatusListenerPair{l, d},
+                                                           adapterStatusListenerRefEqComparator);
     if( added ) {
         sendAdapterSettingsInitial(*l, jau::getCurrentMilliseconds());
     }
@@ -952,17 +955,18 @@ bool BTAdapter::addStatusListener(const BTDeviceRef& d, const AdapterStatusListe
     return added;
 }
 
-bool BTAdapter::addStatusListener(const BTDevice& d, const AdapterStatusListenerRef& l) {
+bool BTAdapter::addStatusListener(const BTDevice& d, const AdapterStatusListenerRef& l) noexcept {
     return addStatusListener(getSharedDevice(d), l);
 }
 
-bool BTAdapter::removeStatusListener(const AdapterStatusListenerRef& l) {
+bool BTAdapter::removeStatusListener(const AdapterStatusListenerRef& l) noexcept {
     if( nullptr == l ) {
-        throw jau::IllegalArgumentException("AdapterStatusListener ref is null", E_FILE_LINE);
+        ERR_PRINT("AdapterStatusListener ref is null");
+        return false;
     }
-    const int count = statusListenerList.erase_matching(impl::StatusListenerPair{l, std::weak_ptr<BTDevice>{}},
+    const int count = statusListenerList.erase_matching(StatusListenerPair{l, std::weak_ptr<BTDevice>{}},
                                                         false /* all_matching */,
-                                                        _adapterStatusListenerRefEqComparator);
+                                                        adapterStatusListenerRefEqComparator);
     if( _print_device_lists || jau::environment::get().verbose ) {
         jau::PLAIN_PRINT(true, "BTAdapter::removeStatusListener.1: res %d, %s", count>0, toString().c_str());
         printDeviceLists();
@@ -970,24 +974,21 @@ bool BTAdapter::removeStatusListener(const AdapterStatusListenerRef& l) {
     return count > 0;
 }
 
-bool BTAdapter::removeStatusListener(const AdapterStatusListener * l) {
+bool BTAdapter::removeStatusListener(const AdapterStatusListener * l) noexcept {
     if( nullptr == l ) {
-        throw jau::IllegalArgumentException("AdapterStatusListener ref is null", E_FILE_LINE);
+        ERR_PRINT("AdapterStatusListener ref is null");
+        return false;
     }
     bool res = false;
     {
-        auto begin = statusListenerList.begin(); // lock mutex and copy_store
-        while ( !begin.is_end() ) {
-            if ( *begin->listener == *l ) {
-                begin.erase();
+        auto it = statusListenerList.begin(); // lock mutex and copy_store
+        for (; !it.is_end(); ++it ) {
+            if ( *it->listener == *l ) {
+                it.erase();
+                it.write_back();
                 res = true;
                 break;
-            } else {
-                ++begin;
             }
-        }
-        if( res ) {
-            begin.write_back();
         }
     }
     if( _print_device_lists || jau::environment::get().verbose ) {
@@ -997,7 +998,7 @@ bool BTAdapter::removeStatusListener(const AdapterStatusListener * l) {
     return res;
 }
 
-int BTAdapter::removeAllStatusListener(const BTDevice& d) {
+int BTAdapter::removeAllStatusListener(const BTDevice& d) noexcept {
     int count = 0;
 
     int res = statusListenerList.size();
@@ -1586,7 +1587,7 @@ void BTAdapter::sendAdapterSettingsChanged(const AdapterSetting old_settings_, c
                                             const uint64_t timestampMS) noexcept
 {
     int i=0;
-    jau::for_each_fidelity(statusListenerList, [&](impl::StatusListenerPair &p) {
+    jau::for_each_fidelity(statusListenerList, [&](StatusListenerPair &p) {
         try {
             p.listener->adapterSettingsChanged(*this, old_settings_, current_settings, changes, timestampMS);
         } catch (std::exception &e) {
@@ -1613,7 +1614,7 @@ void BTAdapter::sendAdapterSettingsInitial(AdapterStatusListener & asl, const ui
 
 void BTAdapter::sendDeviceUpdated(std::string cause, BTDeviceRef device, uint64_t timestamp, EIRDataType updateMask) noexcept {
     int i=0;
-    jau::for_each_fidelity(statusListenerList, [&](impl::StatusListenerPair &p) {
+    jau::for_each_fidelity(statusListenerList, [&](StatusListenerPair &p) {
         try {
             if( p.match(device) ) {
                 p.listener->deviceUpdated(device, updateMask, timestamp);
@@ -1696,7 +1697,7 @@ bool BTAdapter::mgmtEvDeviceDiscoveringAny(const ScanType eventScanType, const b
     checkDiscoveryState();
 
     int i=0;
-    jau::for_each_fidelity(statusListenerList, [&](impl::StatusListenerPair &p) {
+    jau::for_each_fidelity(statusListenerList, [&](StatusListenerPair &p) {
         try {
             p.listener->discoveringChanged(*this, currentMetaScanType, eventScanType, eventEnabled, discovery_policy, eventTimestamp);
         } catch (std::exception &except) {
@@ -1996,7 +1997,7 @@ bool BTAdapter::mgmtEvDeviceConnectedHCI(const MgmtEvent& e) noexcept {
     }
 
     int i=0;
-    jau::for_each_fidelity(statusListenerList, [&](impl::StatusListenerPair &p) {
+    jau::for_each_fidelity(statusListenerList, [&](StatusListenerPair &p) {
         try {
             if( p.match(device) ) {
                 if( EIRDataType::NONE != updateMask ) {
@@ -2046,7 +2047,7 @@ bool BTAdapter::mgmtEvConnectFailedHCI(const MgmtEvent& e) noexcept {
 
         if( !device->isConnSecurityAutoEnabled() ) {
             int i=0;
-            jau::for_each_fidelity(statusListenerList, [&](impl::StatusListenerPair &p) {
+            jau::for_each_fidelity(statusListenerList, [&](StatusListenerPair &p) {
                 try {
                     if( p.match(device) ) {
                         p.listener->deviceDisconnected(device, event.getHCIStatus(), handle, event.getTimestamp());
@@ -2146,7 +2147,7 @@ bool BTAdapter::mgmtEvDeviceDisconnectedHCI(const MgmtEvent& e) noexcept {
 
         if( !device->isConnSecurityAutoEnabled() ) {
             int i=0;
-            jau::for_each_fidelity(statusListenerList, [&](impl::StatusListenerPair &p) {
+            jau::for_each_fidelity(statusListenerList, [&](StatusListenerPair &p) {
                 try {
                     if( p.match(device) ) {
                         p.listener->deviceDisconnected(device, event.getHCIReason(), event.getHCIHandle(), event.getTimestamp());
@@ -2393,7 +2394,7 @@ bool BTAdapter::mgmtEvDeviceFoundHCI(const MgmtEvent& e) noexcept {
             }
             int i=0;
             bool device_used = false;
-            jau::for_each_fidelity(statusListenerList, [&](impl::StatusListenerPair &p) {
+            jau::for_each_fidelity(statusListenerList, [&](StatusListenerPair &p) {
                 try {
                     if( p.match(dev_shared) ) {
                         device_used = p.listener->deviceFound(dev_shared, eir->getTimestamp()) || device_used;
@@ -2433,7 +2434,7 @@ bool BTAdapter::mgmtEvDeviceFoundHCI(const MgmtEvent& e) noexcept {
             }
             int i=0;
             bool device_used = false;
-            jau::for_each_fidelity(statusListenerList, [&](impl::StatusListenerPair &p) {
+            jau::for_each_fidelity(statusListenerList, [&](StatusListenerPair &p) {
                 try {
                     if( p.match(dev_shared) ) {
                         device_used = p.listener->deviceFound(dev_shared, eir->getTimestamp()) || device_used;
@@ -2472,7 +2473,7 @@ bool BTAdapter::mgmtEvDeviceFoundHCI(const MgmtEvent& e) noexcept {
                 addSharedDevice(dev_discovered); // re-add to shared devices!
                 int i=0;
                 bool device_used = false;
-                jau::for_each_fidelity(statusListenerList, [&](impl::StatusListenerPair &p) {
+                jau::for_each_fidelity(statusListenerList, [&](StatusListenerPair &p) {
                     try {
                         if( p.match(dev_discovered) ) {
                             device_used = p.listener->deviceFound(dev_discovered, eir->getTimestamp()) || device_used;
@@ -2615,7 +2616,7 @@ void BTAdapter::sendDevicePairingState(BTDeviceRef device, const SMPPairingState
         }
     }
     int i=0;
-    jau::for_each_fidelity(statusListenerList, [&](impl::StatusListenerPair &p) {
+    jau::for_each_fidelity(statusListenerList, [&](StatusListenerPair &p) {
         try {
             if( p.match(device) ) {
                 p.listener->devicePairingState(device, state, mode, timestamp);
@@ -2646,7 +2647,7 @@ void BTAdapter::sendDeviceReady(BTDeviceRef device, uint64_t timestamp) noexcept
         removeDevicePausingDiscovery(*device, false /* off_thread_enable */);
     }
     int i=0;
-    jau::for_each_fidelity(statusListenerList, [&](impl::StatusListenerPair &p) {
+    jau::for_each_fidelity(statusListenerList, [&](StatusListenerPair &p) {
         try {
             // Only issue if valid && received connected confirmation (HCI) && not have called disconnect yet.
             if( device->isValidInstance() && device->getConnected() && device->allowDisconnect ) {

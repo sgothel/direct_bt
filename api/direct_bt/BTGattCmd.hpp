@@ -78,7 +78,7 @@ namespace direct_bt {
             BTGattCharRef rspCharRef;
             bool setup_done;
 
-            class ResponseCharListener : public BTGattChar::Listener {
+            class ResponseCharListener : public BTGattCharListener {
                 private:
                     BTGattCmd& source;
                     jau::POctets& rsp_data;

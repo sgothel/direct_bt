@@ -102,15 +102,29 @@ bool BTGattHandler::validateConnected() noexcept {
     return true;
 }
 
-static jau::cow_darray<BTGattCharListenerRef>::equal_comparator _btGattCharListenerRefEqComparator =
-        [](const BTGattCharListenerRef& a, const BTGattCharListenerRef& b) -> bool { return *a == *b; };
+BTGattHandler::gattCharListenerList_t::equal_comparator BTGattHandler::gattCharListenerRefEqComparator =
+        [](const GattCharListenerPair& a, const GattCharListenerPair& b) -> bool { return *a.listener == *b.listener; };
 
 bool BTGattHandler::addCharListener(const BTGattCharListenerRef& l) noexcept {
     if( nullptr == l ) {
         ERR_PRINT("GATTCharacteristicListener ref is null");
         return false;
     }
-    return btGattCharListenerList.push_back_unique(l, _btGattCharListenerRefEqComparator);
+    return gattCharListenerList.push_back_unique(GattCharListenerPair{l, std::weak_ptr<BTGattChar>{} },
+                                                 gattCharListenerRefEqComparator);
+}
+
+bool BTGattHandler::addCharListener(const BTGattCharListenerRef& l, const BTGattCharRef& d) noexcept {
+    if( nullptr == l ) {
+        ERR_PRINT("GATTCharacteristicListener ref is null");
+        return false;
+    }
+    if( nullptr == d ) {
+        ERR_PRINT("BTGattChar ref is null");
+        return false;
+    }
+    return gattCharListenerList.push_back_unique(GattCharListenerPair{l, d},
+                                                 gattCharListenerRefEqComparator);
 }
 
 bool BTGattHandler::removeCharListener(const BTGattCharListenerRef& l) noexcept {
@@ -118,7 +132,9 @@ bool BTGattHandler::removeCharListener(const BTGattCharListenerRef& l) noexcept 
         ERR_PRINT("GATTCharacteristicListener ref is null");
         return false;
     }
-    const int count = btGattCharListenerList.erase_matching(l, false /* all_matching */, _btGattCharListenerRefEqComparator);
+    const int count = gattCharListenerList.erase_matching(GattCharListenerPair{l, std::weak_ptr<BTGattChar>{}},
+                                                        false /* all_matching */,
+                                                        gattCharListenerRefEqComparator);
     return count > 0;
 }
 
@@ -127,9 +143,9 @@ bool BTGattHandler::removeCharListener(const BTGattCharListener * l) noexcept {
         ERR_PRINT("GATTCharacteristicListener ref is null");
         return false;
     }
-    auto it = btGattCharListenerList.begin(); // lock mutex and copy_store
+    auto it = gattCharListenerList.begin(); // lock mutex and copy_store
     for (; !it.is_end(); ++it ) {
-        if ( **it == *l ) {
+        if ( *it->listener == *l ) {
             it.erase();
             it.write_back();
             return true;
@@ -159,12 +175,12 @@ bool BTGattHandler::removeCharListener(const BTGattHandler::NativeGattCharListen
 }
 
 void BTGattHandler::printCharListener() noexcept {
-    jau::INFO_PRINT("BTGattHandler: BTGattChar %u listener", btGattCharListenerList.size());
+    jau::INFO_PRINT("BTGattHandler: BTGattChar %u listener", gattCharListenerList.size());
     {
         int i=0;
-        auto it = btGattCharListenerList.begin(); // lock mutex and copy_store
+        auto it = gattCharListenerList.begin(); // lock mutex and copy_store
         for (; !it.is_end(); ++it, ++i ) {
-            jau::INFO_PRINT("[%d]: %s", i, (*it)->toString().c_str());
+            jau::INFO_PRINT("[%d]: %s", i, it->listener->toString().c_str());
         }
     }
     jau::INFO_PRINT("BTGattHandler: NativeGattChar %u listener", nativeGattCharListenerList.size());
@@ -191,9 +207,9 @@ int BTGattHandler::removeAllAssociatedCharListener(const BTGattChar * associated
         return false;
     }
     int count = 0;
-    auto it = btGattCharListenerList.begin(); // lock mutex and copy_store
+    auto it = gattCharListenerList.begin(); // lock mutex and copy_store
     while( !it.is_end() ) {
-        if ( (*it)->match(*associatedCharacteristic) ) {
+        if ( it->match(*associatedCharacteristic) ) {
             it.erase();
             ++count;
         } else {
@@ -207,8 +223,8 @@ int BTGattHandler::removeAllAssociatedCharListener(const BTGattChar * associated
 }
 
 int BTGattHandler::removeAllCharListener() noexcept {
-    int count = btGattCharListenerList.size();
-    btGattCharListenerList.clear();
+    int count = gattCharListenerList.size();
+    gattCharListenerList.clear();
     count += nativeGattCharListenerList.size();
     nativeGattCharListenerList.clear();
     return count;
@@ -424,7 +440,7 @@ void BTGattHandler::l2capReaderWork(jau::service_runner& sr) noexcept {
         } else if( AttPDUMsg::Opcode::HANDLE_VALUE_NTF == opc ) { // AttPDUMsg::OpcodeType::NOTIFICATION
             const AttHandleValueRcv * a = static_cast<const AttHandleValueRcv*>(attPDU.get());
             COND_PRINT(env.DEBUG_DATA, "GATTHandler::reader: NTF: %s, listener [native %zd, bt %zd]",
-                    a->toString().c_str(), nativeGattCharListenerList.size(), btGattCharListenerList.size());
+                    a->toString().c_str(), nativeGattCharListenerList.size(), gattCharListenerList.size());
             const uint64_t a_timestamp = a->ts_creation;
             const uint16_t a_handle = a->getHandle();
             const jau::TOctetSlice& a_value = a->getValue();
@@ -443,18 +459,18 @@ void BTGattHandler::l2capReaderWork(jau::service_runner& sr) noexcept {
                     i++;
                 });
             }
-            BTGattCharRef decl = findCharacterisicsByValueHandle(services, a_handle);
-            if( nullptr != decl ) {
+            BTGattCharRef characteristic = findCharacterisicsByValueHandle(services, a_handle);
+            if( nullptr != characteristic ) {
                 int i=0;
-                jau::for_each_fidelity(btGattCharListenerList, [&](std::shared_ptr<BTGattCharListener> &l) {
+                jau::for_each_fidelity(gattCharListenerList, [&](GattCharListenerPair &p) {
                     try {
-                        if( l->match(*decl) ) {
-                            l->notificationReceived(decl, a_data_view, a_timestamp);
+                        if( p.match(*characteristic) ) {
+                            p.listener->notificationReceived(characteristic, a_data_view, a_timestamp);
                         }
                     } catch (std::exception &e) {
                         ERR_PRINT("GATTHandler::notificationReceived-CBs %d/%zd: BTGattCharListener %s: Caught exception %s",
-                                i+1, btGattCharListenerList.size(),
-                                jau::to_hexstring((void*)l.get()).c_str(), e.what());
+                                i+1, gattCharListenerList.size(),
+                                jau::to_hexstring((void*)p.listener.get()).c_str(), e.what());
                     }
                     i++;
                 });
@@ -462,7 +478,7 @@ void BTGattHandler::l2capReaderWork(jau::service_runner& sr) noexcept {
         } else if( AttPDUMsg::Opcode::HANDLE_VALUE_IND == opc ) { // AttPDUMsg::OpcodeType::INDICATION
             const AttHandleValueRcv * a = static_cast<const AttHandleValueRcv*>(attPDU.get());
             COND_PRINT(env.DEBUG_DATA, "GATTHandler::reader: IND: %s, sendIndicationConfirmation %d, listener [native %zd, bt %zd]",
-                    a->toString().c_str(), sendIndicationConfirmation.load(), nativeGattCharListenerList.size(), btGattCharListenerList.size());
+                    a->toString().c_str(), sendIndicationConfirmation.load(), nativeGattCharListenerList.size(), gattCharListenerList.size());
             bool cfmSent = false;
             if( sendIndicationConfirmation ) {
                 AttHandleValueCfm cfm;
@@ -492,18 +508,18 @@ void BTGattHandler::l2capReaderWork(jau::service_runner& sr) noexcept {
                     i++;
                 });
             }
-            BTGattCharRef decl = findCharacterisicsByValueHandle(services, a_handle);
-            if( nullptr != decl ) {
+            BTGattCharRef characteristic = findCharacterisicsByValueHandle(services, a_handle);
+            if( nullptr != characteristic ) {
                 int i=0;
-                jau::for_each_fidelity(btGattCharListenerList, [&](std::shared_ptr<BTGattCharListener> &l) {
+                jau::for_each_fidelity(gattCharListenerList, [&](GattCharListenerPair &p) {
                     try {
-                        if( l->match(*decl) ) {
-                            l->indicationReceived(decl, a_data_view, a_timestamp, cfmSent);
+                        if( p.match(*characteristic) ) {
+                            p.listener->indicationReceived(characteristic, a_data_view, a_timestamp, cfmSent);
                         }
                     } catch (std::exception &e) {
                         ERR_PRINT("GATTHandler::indicationReceived-CBs %d/%zd: BTGattCharListener %s, cfmSent %d: Caught exception %s",
-                                i+1, btGattCharListenerList.size(),
-                                jau::to_hexstring((void*)l.get()).c_str(), cfmSent, e.what());
+                                i+1, gattCharListenerList.size(),
+                                jau::to_hexstring((void*)p.listener.get()).c_str(), cfmSent, e.what());
                     }
                     i++;
                 });
@@ -640,7 +656,7 @@ BTGattHandler::BTGattHandler(const BTDeviceRef &device, L2CAPClient& l2cap_att, 
 BTGattHandler::~BTGattHandler() noexcept {
     DBG_PRINT("GATTHandler::dtor: Start: %s", toString().c_str());
     disconnect(false /* disconnect_device */, false /* ioerr_cause */);
-    btGattCharListenerList.clear();
+    gattCharListenerList.clear();
     nativeGattCharListenerList.clear();
     services.clear();
     genericAccess = nullptr;
@@ -669,7 +685,7 @@ bool BTGattHandler::disconnect(const bool disconnect_device, const bool ioerr_ca
         DBG_PRINT("GATTHandler::disconnect: Not connected: disconnect_device %d, ioerr %d: GattHandler[%s], l2cap[%s], stopped %d: %s",
                   disconnect_device, ioerr_cause, getStateString().c_str(), l2cap.getStateString().c_str(),
                   l2cap_service_stopped, toString().c_str());
-        btGattCharListenerList.clear();
+        gattCharListenerList.clear();
         nativeGattCharListenerList.clear();
         return false;
     }
@@ -685,7 +701,7 @@ bool BTGattHandler::disconnect(const bool disconnect_device, const bool ioerr_ca
     const std::lock_guard<std::recursive_mutex> lock(mtx_command); // RAII-style acquire and relinquish via destructor
     DBG_PRINT("GATTHandler::disconnect: Start: disconnect_device %d, ioerr %d: GattHandler[%s], l2cap[%s]: %s",
               disconnect_device, ioerr_cause, getStateString().c_str(), l2cap.getStateString().c_str(), toString().c_str());
-    btGattCharListenerList.clear();
+    gattCharListenerList.clear();
     nativeGattCharListenerList.clear();
 
     clientMTUExchanged = false;
@@ -1546,7 +1562,7 @@ std::string BTGattHandler::toString() const noexcept {
     return "GattHndlr["+to_string(getRole())+", "+deviceString+
            ", mode "+to_string(gattServerHandler->getMode())+
            ", mtu "+std::to_string(usedMTU.load())+
-           ", listener[BTGatt "+std::to_string(btGattCharListenerList.size())+
+           ", listener[BTGatt "+std::to_string(gattCharListenerList.size())+
            ", Native "+std::to_string(nativeGattCharListenerList.size())+
            "], l2capWorker[running "+std::to_string(l2cap_reader_service.is_running())+
            ", shallStop "+std::to_string(l2cap_reader_service.shall_stop())+

@@ -39,6 +39,9 @@ import jau.direct_bt.DBTNativeDownlink;
  * A listener instance may be attached to a {@link BTAdapter} via
  * {@link BTAdapter#addStatusListener(AdapterStatusListener, BTDevice)}.
  * </p>
+ * <p>
+ * The listener receiver maintains a unique set of listener instances without duplicates.
+ * </p>
  * @since 2.0.0
  */
 public abstract class AdapterStatusListener extends DBTNativeDownlink {

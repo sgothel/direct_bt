@@ -24,6 +24,7 @@
  */
 
 #include "jau_direct_bt_DBTDevice.h"
+#include "org_direct_bt_BTGattCharListener.h"
 
 // #define VERBOSE_ON 1
 #include <jau/debug.hpp>
@@ -46,8 +47,6 @@ class JNIGattCharListener : public BTGattCharListener {
   private:
     /**
         public abstract class BTGattCharListener {
-            long nativeInstance;
-
             public void notificationReceived(final BTGattChar charDecl,
                                              final byte[] value, final long timestamp) {
             }
@@ -59,17 +58,14 @@ class JNIGattCharListener : public BTGattCharListener {
 
         };
     */
-    std::shared_ptr<BTGattChar> associatedCharacteristicRef;
     JNIGlobalRef listenerObj; // keep listener instance alive
-    JNIGlobalRef associatedCharacteristicObj; // keeps associated characteristic alive, if not null
     jmethodID  mNotificationReceived = nullptr;
     jmethodID  mIndicationReceived = nullptr;
 
   public:
 
-    JNIGattCharListener(JNIEnv *env, const std::shared_ptr<BTDevice>& device, jobject listener, const std::shared_ptr<BTGattChar>& associatedCharacteristicRef_)
-    : associatedCharacteristicRef(associatedCharacteristicRef_),
-      listenerObj(listener)
+    JNIGattCharListener(JNIEnv *env, jobject listener)
+    : listenerObj(listener)
     {
         jclass listenerClazz = search_class(env, listenerObj.getObject());
         java_exception_check_and_throw(env, E_FILE_LINE);
@@ -77,28 +73,11 @@ class JNIGattCharListener : public BTGattCharListener {
             throw InternalError("BTGattCharListener not found", E_FILE_LINE);
         }
 
-        if( nullptr != associatedCharacteristicRef_ ) {
-            JavaGlobalObj::check(associatedCharacteristicRef_->getJavaObject(), E_FILE_LINE);
-            associatedCharacteristicObj = JavaGlobalObj::GetJavaObject(associatedCharacteristicRef_->getJavaObject()); // new global ref
-        }
-
         mNotificationReceived = search_method(env, listenerClazz, "notificationReceived", _notificationReceivedMethodArgs.c_str(), false);
         java_exception_check_and_throw(env, E_FILE_LINE);
-        if( nullptr == mNotificationReceived ) {
-            throw InternalError("BTGattCharListener has no notificationReceived"+_notificationReceivedMethodArgs+" method, for "+device->toString(), E_FILE_LINE);
-        }
+
         mIndicationReceived = search_method(env, listenerClazz, "indicationReceived", _indicationReceivedMethodArgs.c_str(), false);
         java_exception_check_and_throw(env, E_FILE_LINE);
-        if( nullptr == mNotificationReceived ) {
-            throw InternalError("BTGattCharListener has no indicationReceived"+_indicationReceivedMethodArgs+" method, for "+device->toString(), E_FILE_LINE);
-        }
-    }
-
-    bool match(const BTGattChar & characteristic) noexcept override {
-        if( nullptr == associatedCharacteristicRef ) {
-            return true;
-        }
-        return characteristic == *associatedCharacteristicRef;
     }
 
     void notificationReceived(BTGattCharRef charDecl,
@@ -143,6 +122,41 @@ class JNIGattCharListener : public BTGattCharListener {
     }
 };
 
+/*
+ * Class:     org_direct_bt_BTGattCharListener
+ * Method:    ctorImpl
+ * Signature: ()J
+ */
+jlong Java_org_direct_1bt_BTGattCharListener_ctorImpl(JNIEnv *env, jobject obj) {
+    try {
+        // new instance
+        jau::shared_ptr_ref<JNIGattCharListener> ref( new JNIGattCharListener(env, obj) );
+
+        return ref.release_to_jlong();
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return (jlong) (intptr_t) nullptr;
+}
+
+
+/*
+ * Class:     org_direct_bt_BTGattCharListener
+ * Method:    deleteImpl
+ * Signature: (J)V
+ */
+void Java_org_direct_1bt_BTGattCharListener_deleteImpl(JNIEnv *env, jobject obj, jlong nativeInstance) {
+    (void)obj;
+    try {
+        jau::shared_ptr_ref<JNIGattCharListener> sref(nativeInstance, false /* throw_on_nullptr */); // hold copy until done
+        if( nullptr != sref.pointer() ) {
+            std::shared_ptr<JNIGattCharListener>* sref_ptr = jau::castInstance<JNIGattCharListener>(nativeInstance);
+            delete sref_ptr;
+        }
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+}
 
 void Java_jau_direct_1bt_DBTDevice_deleteImpl(JNIEnv *env, jobject obj, jlong nativeInstance)
 {
@@ -201,35 +215,42 @@ jstring Java_jau_direct_1bt_DBTDevice_toStringImpl(JNIEnv *env, jobject obj) {
     return nullptr;
 }
 
-jboolean Java_jau_direct_1bt_DBTDevice_addCharListener(JNIEnv *env, jobject obj, jobject listener, jobject jAssociatedCharacteristic) {
+/*
+ * Class:     jau_direct_bt_DBTDevice
+ * Method:    addCharListenerImpl
+ * Signature: (Lorg/direct_bt/BTGattCharListener;Lorg/direct_bt/BTGattChar;)Z
+ */
+jboolean Java_jau_direct_1bt_DBTDevice_addCharListenerImpl(JNIEnv *env, jobject obj, jobject jlistener, jobject jAssociatedCharacteristic) {
     try {
         shared_ptr_ref<BTDevice> device(env, obj); // hold until done
         jau::JavaAnonRef device_java = device->getJavaObject(); // hold until done!
         JavaGlobalObj::check(device_java, E_FILE_LINE);
 
-        if( nullptr == listener ) {
-            throw IllegalArgumentException("BTGattCharListener argument is null", E_FILE_LINE);
+        jau::shared_ptr_ref<JNIGattCharListener> gcl(env, jlistener); // hold until done
+        jau::JavaAnonRef gcl_java = gcl->getJavaObject(); // hold until done!
+        jau::JavaGlobalObj::check(gcl_java, E_FILE_LINE);
+
+        jau::shared_ptr_ref<BTGattChar> charMatchRef(env, jAssociatedCharacteristic, false /* throw_on_nullptr */);
+        if( !charMatchRef.is_null() ) {
+            jau::JavaGlobalObj::check(charMatchRef->getJavaObject(), E_FILE_LINE);
         }
-        {
-            std::shared_ptr<JNIGattCharListener>* pre_orig = jau::getInstance<JNIGattCharListener>(env, listener, false /* throw_on_nullptr */);
-            if( !( nullptr == pre_orig || nullptr == *pre_orig ) ) {
-                throw IllegalStateException("BTGattCharListener's nativeInstance not null, already in use", E_FILE_LINE);
-                return false;
-            }
-        }
+
         std::shared_ptr<BTGattHandler> gatt = device->getGattHandler();
         if( nullptr == gatt ) {
-            throw IllegalStateException("BTGattChar's device GATTHandle not connected: "+ device->toString(), E_FILE_LINE);
+            ERR_PRINT("BTGattChar's device GATTHandle not connected: %s", device->toString().c_str());
+            return false;
         }
 
-        jau::shared_ptr_ref<BTGattChar> associatedCharacteristicRef(env, jAssociatedCharacteristic, false /* throw_on_nullptr */);
-
-        shared_ptr_ref<JNIGattCharListener> l(
-                        new JNIGattCharListener(env, device.shared_ptr(), listener, associatedCharacteristicRef.shared_ptr()) );
-        if( gatt->addCharListener( l.shared_ptr() ) ) {
-            l.release_into_object(env, listener);
+        bool addRes;
+        if( !charMatchRef.is_null() ) {
+            addRes = gatt->addCharListener( gcl.shared_ptr(), charMatchRef.shared_ptr() );
+        } else {
+            addRes = gatt->addCharListener( gcl.shared_ptr() );
+        }
+        if( addRes ) {
             return JNI_TRUE;
         }
+        ERR_PRINT("BTDevice::addCharListener: FAILED: %s", gcl->toString().c_str());
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
@@ -246,15 +267,9 @@ jboolean Java_jau_direct_1bt_DBTDevice_removeCharListener(JNIEnv *env, jobject o
         jau::JavaAnonRef device_java = device->getJavaObject(); // hold until done!
         JavaGlobalObj::check(device_java, E_FILE_LINE);
 
-        if( nullptr == jlistener ) {
-            throw IllegalArgumentException("BTGattCharListener argument is null", E_FILE_LINE);
-        }
-        shared_ptr_ref<JNIGattCharListener> pre( env, jlistener, false /* throw_on_nullptr */ ); // hold until done
-        if( pre.is_null() ) {
-            WARN_PRINT("BTGattCharListener's nativeInstance is null, not in use");
-            return false;
-        }
-        jau::clearInstance<JNIGattCharListener>(env, jlistener);
+        jau::shared_ptr_ref<JNIGattCharListener> gcl(env, jlistener); // hold until done
+        jau::JavaAnonRef gcl_java = gcl->getJavaObject(); // hold until done!
+        jau::JavaGlobalObj::check(gcl_java, E_FILE_LINE);
 
         std::shared_ptr<BTGattHandler> gatt = device->getGattHandler();
         if( nullptr == gatt ) {
@@ -263,8 +278,8 @@ jboolean Java_jau_direct_1bt_DBTDevice_removeCharListener(JNIEnv *env, jobject o
             return false;
         }
 
-        if( ! gatt->removeCharListener(pre.shared_ptr()) ) {
-            WARN_PRINT("Failed to remove BTGattCharListener with nativeInstance: %p at %s", pre.shared_ptr().get(), device->toString().c_str());
+        if( ! gatt->removeCharListener(gcl.shared_ptr()) ) {
+            WARN_PRINT("Failed to remove BTGattCharListener with nativeInstance: %p at %s", gcl.shared_ptr().get(), device->toString().c_str());
             return false;
         }
         return true;

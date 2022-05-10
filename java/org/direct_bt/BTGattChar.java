@@ -45,45 +45,6 @@ import java.util.List;
 public interface BTGattChar extends BTObject
 {
     /**
-     * {@link BTGattChar} event listener for notification and indication events.
-     * <p>
-     * This listener instance is attached to a {@link BTGattChar} via
-     * {@link BTGattChar#addCharListener(Listener)} or {@link BTGattChar#addCharListener(Listener, boolean[])}
-     * to listen to events associated with the {@link BTGattChar} instance.
-     * </p>
-     * <p>
-     * The listener manager maintains a unique set of listener instances without duplicates.
-     * </p>
-     * <p>
-     * Implementation will utilize a {@link BTGattCharListener) for the listener manager,
-     * delegating matching {@link BTGattChar} events to this instance.
-     * </p>
-     */
-    static public interface Listener {
-        /**
-         * Called from native BLE stack, initiated by a received notification associated
-         * with the given {@link BTGattChar}.
-         * @param charDecl {@link BTGattChar} related to this notification
-         * @param value the notification value
-         * @param timestamp monotonic timestamp at reception, see {@link BTUtils#currentTimeMillis()}
-         */
-        void notificationReceived(final BTGattChar charDecl,
-                                  final byte[] value, final long timestamp);
-
-        /**
-         * Called from native BLE stack, initiated by a received indication associated
-         * with the given {@link BTGattChar}.
-         * @param charDecl {@link BTGattChar} related to this indication
-         * @param value the indication value
-         * @param timestamp monotonic timestamp at reception, see {@link BTUtils#currentTimeMillis()}
-         * @param confirmationSent if true, the native stack has sent the confirmation, otherwise user is required to do so.
-         */
-        void indicationReceived(final BTGattChar charDecl,
-                                final byte[] value, final long timestamp,
-                                final boolean confirmationSent);
-    };
-
-    /**
      * Find a {@link BTGattDesc} by its desc_uuid.
      *
      * @parameter desc_uuid the UUID of the desired {@link BTGattDesc}
@@ -133,8 +94,9 @@ public interface BTGattChar extends BTObject
      * @see #disableIndicationNotification()
      * @see #enableNotificationOrIndication(boolean[])
      * @see #configNotificationIndication(boolean, boolean, boolean[])
-     * @see #addCharListener(Listener)
-     * @see #removeCharListener(Listener)
+     * @see #addCharListener(BTGattCharListener)
+     * #see #addCharListener(BTGattCharListener, boolean[])
+     * @see #removeCharListener(BTGattCharListener)
      * @see #removeAllAssociatedCharListener(boolean)
      * @since 2.0.0
      */
@@ -163,8 +125,9 @@ public interface BTGattChar extends BTObject
      * @see #disableIndicationNotification()
      * @see #enableNotificationOrIndication(boolean[])
      * @see #configNotificationIndication(boolean, boolean, boolean[])
-     * @see #addCharListener(Listener)
-     * @see #removeCharListener(Listener)
+     * @see #addCharListener(BTGattCharListener)
+     * #see #addCharListener(BTGattCharListener, boolean[])
+     * @see #removeCharListener(BTGattCharListener)
      * @see #removeAllAssociatedCharListener(boolean)
      * @since 2.0.0
      */
@@ -188,43 +151,41 @@ public interface BTGattChar extends BTObject
      * @see #disableIndicationNotification()
      * @see #enableNotificationOrIndication(boolean[])
      * @see #configNotificationIndication(boolean, boolean, boolean[])
-     * @see #addCharListener(Listener)
-     * @see #removeCharListener(Listener)
+     * @see #addCharListener(BTGattCharListener)
+     * #see #addCharListener(BTGattCharListener, boolean[])
+     * @see #removeCharListener(BTGattCharListener)
      * @see #removeAllAssociatedCharListener(boolean)
      * @since 2.4.0
      */
     boolean disableIndicationNotification() throws IllegalStateException;
 
     /**
-     * Add the given {@link BTGattChar.Listener} to the listener list if not already present.
+     * Add the given BTGattCharListener to the listener list if not already present.
      *
      * Occurring notifications and indications for this characteristic,
      * if enabled via {@link #configNotificationIndication(boolean, boolean, boolean[])}
      * or {@link #enableNotificationOrIndication(boolean[])},
-     * will call the respective {@link BTGattChar.Listener} callback method.
+     * will call the respective BTGattCharListener callback method.
      *
-     * Implementation wraps given {@link BTGattChar.Listener} into a {@link BTGattCharListener}
-     * to restrict the listener to listen only to this BTGattChar instance.
+     * Returns true if the given listener is not element of the list and has been newly added,
+     * otherwise false.
      *
-     * {@link #removeCharListener(BTGattCharListener)} must be utilized with the returned {@link BTGattCharListener}.
-     *
-     * @param listener A {@link BTGattChar.Listener} instance, listening to this {@link BTGattChar}'s events
-     * @return if successful, {@link BTGattCharListener} instance wrapping the given {@link BTGattChar.Listener} is returned, otherwise null.
+     * @param listener A {@link {@link BTGattCharListener}} instance, listening to this {@link BTGattChar}'s events
+     * @return if successful, true is being returned, otherwise false.
      * @throws IllegalStateException if the DBTDevice's GATTHandler is null, i.e. not connected
-     * @throws IllegalStateException if the given {@link BTGattChar.Listener} is already in use, i.e. added.
      * @see #disableIndicationNotification()
      * @see #enableNotificationOrIndication(boolean[])
      * @see #configNotificationIndication(boolean, boolean, boolean[])
-     * @see #addCharListener(Listener)
-     * @see #removeCharListener(Listener)
+     * @see #addCharListener(BTGattCharListener)
+     * #see #addCharListener(BTGattCharListener, boolean[])
+     * @see #removeCharListener(BTGattCharListener)
      * @see #removeAllAssociatedCharListener(boolean)
      * @since 2.4.0
      */
-    BTGattCharListener addCharListener(final Listener listener)
-            throws IllegalStateException;
+    boolean addCharListener(final BTGattCharListener listener) throws IllegalStateException;
 
     /**
-     * Add the given {@link BTGattChar.Listener} to the listener list if not already present
+     * Add the given BTGattCharListener to the listener list if not already present
      * and if enabling the notification <i>or</i> indication for this characteristic at BLE level was successful.<br>
      * Notification and/or indication configuration is only performed per characteristic if changed.
      *
@@ -233,30 +194,28 @@ public interface BTGattChar extends BTObject
      * Implementation uses {@link #enableNotificationOrIndication(boolean[])} to enable either.
      *
      * Occurring notifications and indications for this characteristic
-     * will call the respective {@link BTGattChar.Listener} callback method.
+     * will call the respective BTGattCharListener callback method.
      *
-     * Implementation wraps given {@link BTGattChar.Listener} into a {@link BTGattCharListener}
-     * to restrict the listener to listen only to this BTGattChar instance.
-     *
-     * {@link #removeCharListener(BTGattCharListener)} must be utilized with the returned {@link BTGattCharListener}.
+     * Returns true if enabling the notification and/or indication was successful
+     * and if the given listener is not element of the list and has been newly added,
+     * otherwise false.
      *
      * @param listener A {@link BTGattChar.Listener} instance, listening to this {@link BTGattChar}'s events
      * @param enabledState array of size 2, holding the resulting enabled state for notification and indication
      * using {@link #enableNotificationOrIndication(boolean[])}
-     * @return if enabling the notification and/or indication was successful
-     * and if the given listener is not element of the list and has been newly added,
-     * {@link BTGattCharListener} instance wrapping the given {@link BTGattChar.Listener} is returned, otherwise null.
+     * @return if successful, true is being returned, otherwise false.
      * @throws IllegalStateException if the {@link BTDevice}'s GATTHandler is null, i.e. not connected
      * @throws IllegalStateException if the given {@link BTGattChar.Listener} is already in use, i.e. added.
      * @see #disableIndicationNotification()
      * @see #enableNotificationOrIndication(boolean[])
      * @see #configNotificationIndication(boolean, boolean, boolean[])
-     * @see #addCharListener(Listener)
-     * @see #removeCharListener(Listener)
+     * @see #addCharListener(BTGattCharListener)
+     * #see #addCharListener(BTGattCharListener, boolean[])
+     * @see #removeCharListener(BTGattCharListener)
      * @see #removeAllAssociatedCharListener(boolean)
      * @since 2.4.0
      */
-    BTGattCharListener addCharListener(final Listener listener, final boolean enabledState[/*2*/])
+    boolean addCharListener(final BTGattCharListener listener, final boolean enabledState[/*2*/])
             throws IllegalStateException;
 
     /**
@@ -268,13 +227,12 @@ public interface BTGattChar extends BTObject
      * @param listener returned {@link BTGattCharListener} from {@link #addCharListener(Listener)} ...
      * @return true if successful, otherwise false.
      *
-     * @throws IllegalStateException if the {@link BTDevice's}'s {@link BTGattHandler} is null, i.e. not connected
-     *
      * @see #disableIndicationNotification()
      * @see #enableNotificationOrIndication(boolean[])
      * @see #configNotificationIndication(boolean, boolean, boolean[])
-     * @see #addCharListener(Listener)
-     * @see #removeCharListener(Listener)
+     * @see #addCharListener(BTGattCharListener)
+     * #see #addCharListener(BTGattCharListener, boolean[])
+     * @see #removeCharListener(BTGattCharListener)
      * @see #removeAllAssociatedCharListener(boolean)
      * @since 2.4.0
      */
@@ -296,8 +254,9 @@ public interface BTGattChar extends BTObject
      * @see #disableIndicationNotification()
      * @see #enableNotificationOrIndication(boolean[])
      * @see #configNotificationIndication(boolean, boolean, boolean[])
-     * @see #addCharListener(Listener)
-     * @see #removeCharListener(Listener)
+     * @see #addCharListener(BTGattCharListener)
+     * #see #addCharListener(BTGattCharListener, boolean[])
+     * @see #removeCharListener(BTGattCharListener)
      * @see #removeAllAssociatedCharListener(boolean)
      * @since 2.0.0
      */

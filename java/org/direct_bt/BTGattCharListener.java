@@ -25,7 +25,7 @@
 
 package org.direct_bt;
 
-import java.lang.ref.WeakReference;
+import jau.direct_bt.DBTNativeDownlink;
 
 /**
  * {@link BTGattChar} event listener for notification and indication events.
@@ -39,49 +39,18 @@ import java.lang.ref.WeakReference;
  * to listen to all events of the device or the matching filtered events.
  * </p>
  * <p>
- * One {@link BTGattCharListener} instance can only be attached to a listener manager once at a time,
- * i.e. you cannot attach the same instance more than once to a {@link BTDevice}
- * or {@link BTGattChar}.
- * <br>
- * To attach multiple listener, one instance per attachment must be created.
- * <br>
- * This restriction is due to implementation semantics of strictly associating
- * one Java {@link BTGattCharListener} instance to one C++ {@code BTGattCharListener} instance.
- * The latter will be added to the native list of listeners.
- * This class's {@code nativeInstance} field links the Java instance to mentioned C++ listener.
- * <br>
- * Since the listener manager maintains a unique set of listener instances without duplicates,
- * this restriction is more esoteric.
+ * The listener manager maintains a unique set of listener instances without duplicates.
  * </p>
  */
-public abstract class BTGattCharListener {
-    @SuppressWarnings("unused")
-    private long nativeInstance;
-    private final WeakReference<BTGattChar> associatedChar;
-
-    /**
-     * Returns the weakly associated {@link BTGattChar} to this listener instance.
-     * <p>
-     * Returns {@code null} if no association has been made
-     * or if the associated {@link BTGattChar} has been garbage collected.
-     * </p>
-     */
-    public final BTGattChar getAssociatedChar() {
-        return null != associatedChar ? associatedChar.get() : null;
+public abstract class BTGattCharListener extends DBTNativeDownlink {
+    public BTGattCharListener() {
+        super(); // pending native ctor
+        initDownlink(ctorImpl());
     }
+    private native long ctorImpl();
 
-    /**
-     * @param associatedCharacteristic weakly associates this listener instance to one {@link BTGattChar},
-     *        may be {@code null} for no association.
-     * @see #getAssociatedChar()
-     */
-    public BTGattCharListener(final BTGattChar associatedCharacteristic) {
-        if( null != associatedCharacteristic ) {
-            this.associatedChar = new WeakReference<BTGattChar>(associatedCharacteristic);
-        } else {
-            this.associatedChar = null;
-        }
-    }
+    @Override
+    protected native void deleteImpl(long nativeInstance);
 
     /**
      * Called from native BLE stack, initiated by a received notification associated
@@ -109,8 +78,6 @@ public abstract class BTGattCharListener {
 
     @Override
     public String toString() {
-        final BTGattChar c = getAssociatedChar();
-        final String cs = null != c ? c.toString() : "null";
-        return "BTGattCharListener[associated "+cs+"]";
+        return "BTGattCharListener[]";
     }
 };

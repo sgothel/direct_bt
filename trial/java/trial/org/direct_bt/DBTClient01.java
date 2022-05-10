@@ -24,6 +24,7 @@
 
 package trial.org.direct_bt;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
@@ -37,6 +38,7 @@ import org.direct_bt.BTAdapter;
 import org.direct_bt.BTDevice;
 import org.direct_bt.BTDeviceRegistry;
 import org.direct_bt.BTGattChar;
+import org.direct_bt.BTGattCharListener;
 import org.direct_bt.BTGattCmd;
 import org.direct_bt.BTGattDesc;
 import org.direct_bt.BTGattService;
@@ -55,6 +57,7 @@ import org.direct_bt.SMPKeyBin;
 import org.direct_bt.SMPPairingState;
 import org.direct_bt.ScanType;
 import org.jau.net.EUI48;
+import org.junit.Assert;
 
 /**
  * This central BTRole::Master participant works with DBTServer00.
@@ -309,21 +312,17 @@ public class DBTClient01 implements DBTClientTest {
         }
     };
 
-    class MyGATTEventListener implements BTGattChar.Listener {
-        private final int i, j;
-
-        public MyGATTEventListener(final int i_, final int j_) { i=i_; j=j_; }
-
+    class MyGATTEventListener extends BTGattCharListener {
         @Override
         public void notificationReceived(final BTGattChar charDecl,
                                          final byte[] value, final long timestamp) {
             if( GATT_VERBOSE ) {
                 final long tR = BTUtils.currentTimeMillis();
-                BTUtils.fprintf_td(System.err, "**[%02d.%02d] Characteristic-Notify: UUID %s, td %d ******\n",
-                        i, j, charDecl.getUUID(), (tR-timestamp));
-                BTUtils.fprintf_td(System.err, "**[%02d.%02d]     Characteristic: %s ******\n", i, j, charDecl.toString());
-                BTUtils.fprintf_td(System.err, "**[%02d.%02d]     Value R: size %d, ro: %s ******\n", i, j, value.length, BTUtils.bytesHexString(value, 0, -1, true));
-                BTUtils.fprintf_td(System.err, "**[%02d.%02d]     Value S: %s ******\n", i, j, BTUtils.decodeUTF8String(value, 0, value.length));
+                BTUtils.fprintf_td(System.err, "** Characteristic-Notify: UUID %s, td %d ******\n",
+                        charDecl.getUUID(), (tR-timestamp));
+                BTUtils.fprintf_td(System.err, "**    Characteristic: %s ******\n", charDecl.toString());
+                BTUtils.fprintf_td(System.err, "**    Value R: size %d, ro: %s ******\n", value.length, BTUtils.bytesHexString(value, 0, -1, true));
+                BTUtils.fprintf_td(System.err, "**    Value S: %s ******\n", BTUtils.decodeUTF8String(value, 0, value.length));
             }
             notificationsReceived.incrementAndGet();
         }
@@ -333,11 +332,11 @@ public class DBTClient01 implements DBTClientTest {
                                        final byte[] value, final long timestamp, final boolean confirmationSent) {
             if( GATT_VERBOSE ) {
                 final long tR = BTUtils.currentTimeMillis();
-                BTUtils.fprintf_td(System.err, "**[%02d.%02d] Characteristic-Indication: UUID %s, td %d, confirmed %b ******\n",
-                        i, j, charDecl.getUUID(), (tR-timestamp), confirmationSent);
-                BTUtils.fprintf_td(System.err, "**[%02d.%02d]     Characteristic: %s ******\n", i, j, charDecl.toString());
-                BTUtils.fprintf_td(System.err, "**[%02d.%02d]     Value R: size %d, ro: %s ******\n", i, j, value.length, BTUtils.bytesHexString(value, 0, -1, true));
-                BTUtils.fprintf_td(System.err, "**[%02d.%02d]     Value S: %s ******\n", i, j, BTUtils.decodeUTF8String(value, 0, value.length));
+                BTUtils.fprintf_td(System.err, "** Characteristic-Indication: UUID %s, td %d, confirmed %b ******\n",
+                        charDecl.getUUID(), (tR-timestamp), confirmationSent);
+                BTUtils.fprintf_td(System.err, "**    Characteristic: %s ******\n", charDecl.toString());
+                BTUtils.fprintf_td(System.err, "**    Value R: size %d, ro: %s ******\n", value.length, BTUtils.bytesHexString(value, 0, -1, true));
+                BTUtils.fprintf_td(System.err, "**    Value S: %s ******\n", BTUtils.decodeUTF8String(value, 0, value.length));
             }
             indicationsReceived.incrementAndGet();
         }
@@ -449,6 +448,8 @@ public class DBTClient01 implements DBTClientTest {
                         "PERF:  get-gatt-services " + td35 + " ms,"+System.lineSeparator());
             }
 
+            final List<BTGattCharListener> gattListener = new ArrayList<BTGattCharListener>();
+            int loop = 0;
             do {
                 try {
                     int i=0;
@@ -483,14 +484,21 @@ public class DBTClient01 implements DBTClientTest {
                                     BTUtils.fprintf_td(System.err, "  [%02d.%02d.%02d]     %s\n", i, j, k, charDesc.toString());
                                 }
                             }
-                            final boolean cccdEnableResult[] = { false, false };
-                            if( serviceChar.enableNotificationOrIndication( cccdEnableResult ) ) {
-                                // ClientCharConfigDescriptor (CCD) is available
-                                final boolean clAdded = null != serviceChar.addCharListener( new MyGATTEventListener(i, j) );
-                                if( GATT_VERBOSE ) {
-                                    BTUtils.fprintf_td(System.err, "  [%02d.%02d] Characteristic-Listener: Notification(%b), Indication(%b): Added %b\n",
-                                            i, j, cccdEnableResult[0], cccdEnableResult[1], clAdded);
-                                    BTUtils.fprintf_td(System.err, "\n");
+                            if( 0 == loop ) {
+                                final boolean cccdEnableResult[] = { false, false };
+                                if( serviceChar.enableNotificationOrIndication( cccdEnableResult ) ) {
+                                    // ClientCharConfigDescriptor (CCD) is available
+                                    final MyGATTEventListener gattEventListener = new MyGATTEventListener();
+                                    final boolean clAdded = serviceChar.addCharListener( gattEventListener );
+                                    Assert.assertTrue(clAdded);
+                                    if( clAdded ) {
+                                        gattListener.add(gattEventListener);
+                                    }
+                                    if( GATT_VERBOSE ) {
+                                        BTUtils.fprintf_td(System.err, "  [%02d.%02d] Characteristic-Listener: Notification(%b), Indication(%b): Added %b\n",
+                                                i, j, cccdEnableResult[0], cccdEnableResult[1], clAdded);
+                                        BTUtils.fprintf_td(System.err, "\n");
+                                    }
                                 }
                             }
                         }
@@ -498,14 +506,17 @@ public class DBTClient01 implements DBTClientTest {
                             BTUtils.fprintf_td(System.err, "\n");
                         }
                     }
-
                     success = notificationsReceived.get() >= 2 || indicationsReceived.get() >= 2;
-
+                    ++loop;
                 } catch( final Exception ex) {
                     BTUtils.println(System.err, "****** Client Processing Ready Device: Exception.2 caught for " + device.toString() + ": "+ex.getMessage());
                     ex.printStackTrace();
                 }
             } while( !success && device.getConnected() );
+
+            for(final BTGattCharListener gcl : gattListener) {
+                Assert.assertTrue( device.removeCharListener(gcl) );
+            }
 
             if( device.getConnected() ) {
                 // Tell server we have successfully completed the test.

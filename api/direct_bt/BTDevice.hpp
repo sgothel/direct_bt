@@ -384,7 +384,7 @@ namespace direct_bt {
              * @see BTAdapter::removeAllStatusListener()
              * @see removeStatusListener()
              */
-            bool addStatusListener(const AdapterStatusListenerRef& l);
+            bool addStatusListener(const AdapterStatusListenerRef& l) noexcept;
 
             /**
              * Remove the given listener from the list.
@@ -398,7 +398,7 @@ namespace direct_bt {
              * @see BTAdapter::removeAllStatusListener()
              * @see addStatusListener()
              */
-            bool removeStatusListener(const AdapterStatusListenerRef& l);
+            bool removeStatusListener(const AdapterStatusListenerRef& l) noexcept;
 
             /**
              * Retrieves the current connection info for this device and returns the ConnectionInfo reference if successful,
@@ -1161,7 +1161,12 @@ namespace direct_bt {
              * @return true if the given listener is not element of the list and has been newly added, otherwise false.
              * @throws IllegalStateException if the GATTHandler is null, i.e. not connected
              */
-            bool addCharListener(std::shared_ptr<BTGattCharListener> l);
+            bool addCharListener(const BTGattCharListenerRef& l) noexcept;
+
+            /**
+             * Please use BTGattChar::addCharListener() for clarity, merely existing here to allow JNI access.
+             */
+            bool addCharListener(const BTGattCharListenerRef& l, const BTGattCharRef& d) noexcept;
 
             /**
              * Remove the given {@link BTGattCharListener} from the listener list.
@@ -1171,7 +1176,7 @@ namespace direct_bt {
              * @param listener A {@link BTGattCharListener} instance
              * @return true if the given listener is an element of the list and has been removed, otherwise false.
              */
-            bool removeCharListener(std::shared_ptr<BTGattCharListener> l) noexcept;
+            bool removeCharListener(const BTGattCharListenerRef& l) noexcept;
 
             /**
              * Remove all {@link BTGattCharListener} from the list, which are associated to the given {@link BTGattChar}.
@@ -1182,7 +1187,7 @@ namespace direct_bt {
              * @param associatedCharacteristic the match criteria to remove any BTGattCharListener from the list
              * @return number of removed listener.
              */
-            int removeAllAssociatedCharListener(std::shared_ptr<BTGattChar> associatedCharacteristic) noexcept;
+            int removeAllAssociatedCharListener(const BTGattCharRef& associatedCharacteristic) noexcept;
 
             int removeAllAssociatedCharListener(const BTGattChar * associatedCharacteristic) noexcept;
 

@@ -917,14 +917,16 @@ public interface BTDevice extends BTObject
      * </p>
      * @param listener A {@link BTGattCharListener} instance, listening to all {@link BTGattChar} events of this device
      * @return true if the given listener is not element of the list and has been newly added, otherwise false.
-     * @throws IllegalStateException if the {@link BTDevice}'s BTGattHandler is null, i.e. not connected
-     * @throws IllegalStateException if the given {@link BTGattCharListener} is already in use, i.e. added.
      * @see BTGattChar#configNotificationIndication(boolean, boolean, boolean[])
      * @see BTGattChar#enableNotificationOrIndication(boolean[])
      * @since 2.0.0
      */
-    boolean addCharListener(final BTGattCharListener listener)
-        throws IllegalStateException;
+    boolean addCharListener(final BTGattCharListener listener);
+
+    /**
+     * Please use {@link BTGattChar#addCharListener(BTGattCharListener)} for clarity.
+     */
+    boolean addCharListener(final BTGattCharListener listener, final BTGattChar associatedCharacteristic);
 
     /**
      * Remove the given {@link BTGattCharListener} from the listener list.

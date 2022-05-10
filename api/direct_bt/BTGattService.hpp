@@ -57,7 +57,10 @@
 namespace direct_bt {
 
     class BTGattHandler; // forward
+    typedef std::shared_ptr<BTGattHandler> BTGattHandlerRef;
+
     class BTDevice; // forward
+    typedef std::shared_ptr<BTDevice> BTDeviceRef;
 
     /**
      * Representing a Gatt Service object from the ::GATTRole::Client perspective.
@@ -113,11 +116,11 @@ namespace direct_bt {
                 return std::string(JAVA_DBT_PACKAGE "DBTGattService");
             }
 
-            std::shared_ptr<BTGattHandler> getGattHandlerUnchecked() const noexcept { return wbr_handler.lock(); }
-            std::shared_ptr<BTGattHandler> getGattHandlerChecked() const;
+            BTGattHandlerRef getGattHandlerUnchecked() const noexcept { return wbr_handler.lock(); }
+            BTGattHandlerRef getGattHandlerChecked() const;
 
-            std::shared_ptr<BTDevice> getDeviceUnchecked() const noexcept;
-            std::shared_ptr<BTDevice> getDeviceChecked() const;
+            BTDeviceRef getDeviceUnchecked() const noexcept;
+            BTDeviceRef getDeviceChecked() const;
 
             /**
              * Find a BTGattChar by its char_uuid.
@@ -125,10 +128,19 @@ namespace direct_bt {
              * @parameter char_uuid the jau::uuid_t of the desired BTGattChar, within this BTGattService.
              * @return The matching characteristic or null if not found
              */
-            std::shared_ptr<BTGattChar> findGattChar(const jau::uuid_t& char_uuid) noexcept;
+            BTGattCharRef findGattChar(const jau::uuid_t& char_uuid) noexcept;
+
+            /**
+             * Find a BTGattChar by itself, i.e. mapping BTGattChar instance to BTGattCharRef.
+             *
+             * @parameter characteristic the desired BTGattChar, within this BTGattService.
+             * @return The matching characteristic or null if not found
+             */
+            BTGattCharRef findGattChar(const BTGattChar& characteristic) noexcept;
 
             std::string toString() const noexcept override;
     };
+    typedef std::shared_ptr<BTGattService> BTGattServiceRef;
 
     inline bool operator==(const BTGattService& lhs, const BTGattService& rhs) noexcept
     { return lhs.handle == rhs.handle && lhs.end_handle == rhs.end_handle; /** unique attribute handles */ }

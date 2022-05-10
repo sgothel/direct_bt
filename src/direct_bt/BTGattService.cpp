@@ -43,7 +43,7 @@
 using namespace direct_bt;
 using namespace jau;
 
-std::shared_ptr<BTGattHandler> BTGattService::getGattHandlerChecked() const {
+BTGattHandlerRef BTGattService::getGattHandlerChecked() const {
     std::shared_ptr<BTGattHandler> ref = wbr_handler.lock();
     if( nullptr == ref ) {
         throw IllegalStateException("GATTService's GATTHandler already destructed: "+toShortString(), E_FILE_LINE);
@@ -51,7 +51,7 @@ std::shared_ptr<BTGattHandler> BTGattService::getGattHandlerChecked() const {
     return ref;
 }
 
-std::shared_ptr<BTDevice> BTGattService::getDeviceUnchecked() const noexcept {
+BTDeviceRef BTGattService::getDeviceUnchecked() const noexcept {
     std::shared_ptr<BTGattHandler> h = getGattHandlerUnchecked();
     if( nullptr != h ) {
         return h->getDeviceUnchecked();
@@ -59,13 +59,22 @@ std::shared_ptr<BTDevice> BTGattService::getDeviceUnchecked() const noexcept {
     return nullptr;
 }
 
-std::shared_ptr<BTDevice> BTGattService::getDeviceChecked() const {
+BTDeviceRef BTGattService::getDeviceChecked() const {
     return getGattHandlerChecked()->getDeviceChecked();
 }
 
-std::shared_ptr<BTGattChar> BTGattService::findGattChar(const jau::uuid_t& char_uuid) noexcept {
+BTGattCharRef BTGattService::findGattChar(const jau::uuid_t& char_uuid) noexcept {
     for(BTGattCharRef& c : characteristicList) {
         if( nullptr != c && char_uuid.equivalent( *(c->value_type) ) ) {
+            return c;
+        }
+    }
+    return nullptr;
+}
+
+BTGattCharRef BTGattService::findGattChar(const BTGattChar& characteristic) noexcept {
+    for(BTGattCharRef& c : characteristicList) {
+        if( nullptr != c && characteristic == *c ) {
             return c;
         }
     }

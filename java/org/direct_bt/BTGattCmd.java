@@ -62,10 +62,11 @@ public class BTGattCmd implements AutoCloseable
     private BTGattChar rspCharRef;
     private boolean setup_done;
 
-    private static class ResponseCharListener implements BTGattChar.Listener {
+    private static class ResponseCharListener extends BTGattCharListener {
         private final BTGattCmd source;
 
         public ResponseCharListener(final BTGattCmd source_) {
+            super();
             source = source_;
         }
 
@@ -97,7 +98,6 @@ public class BTGattCmd implements AutoCloseable
         }
     }
     private final ResponseCharListener rspCharListener;
-    private BTGattCharListener addedRspCharListener;
     private boolean verbose;
 
     private boolean isConnected() { return dev.getConnected(); }
@@ -143,8 +143,7 @@ public class BTGattCmd implements AutoCloseable
             }
             try {
                 final boolean cccdEnableResult[] = { false, false };
-                addedRspCharListener = rspCharRef.addCharListener( rspCharListener, cccdEnableResult );
-                if( null != addedRspCharListener ) {
+                if( rspCharRef.addCharListener( rspCharListener, cccdEnableResult ) ) {
                     return HCIStatusCode.SUCCESS;
                 } else {
                     if( verbose ) {
@@ -158,7 +157,6 @@ public class BTGattCmd implements AutoCloseable
                 BTUtils.fprintf_td(System.err, "Exception caught for %s: %s\n", e.toString(), toString());
                 cmdCharRef = null;
                 rspCharRef = null;
-                addedRspCharListener = null;
                 return HCIStatusCode.TIMEOUT;
             }
         } else {
@@ -186,10 +184,8 @@ public class BTGattCmd implements AutoCloseable
     public synchronized HCIStatusCode close0() {
         final boolean wasResolved = isResolvedEq();
         final BTGattChar rspCharRefCopy = rspCharRef;
-        final BTGattCharListener addedRspCharListenerCopy = addedRspCharListener;
         cmdCharRef = null;
         rspCharRef = null;
-        addedRspCharListener = null;
         if( !setup_done ) {
             return HCIStatusCode.SUCCESS;
         }
@@ -200,9 +196,9 @@ public class BTGattCmd implements AutoCloseable
         if( !isConnected() ) {
             return HCIStatusCode.DISCONNECTED;
         }
-        if( null != addedRspCharListenerCopy && null != rspCharRefCopy) {
+        if( null != rspCharRefCopy) {
             try {
-                final boolean res1 = rspCharRefCopy.removeCharListener(addedRspCharListenerCopy);
+                final boolean res1 = rspCharRefCopy.removeCharListener(rspCharListener);
                 final boolean res2 = rspCharRefCopy.disableIndicationNotification();
                 if( res1 && res2 ) {
                     return HCIStatusCode.SUCCESS;
@@ -240,7 +236,6 @@ public class BTGattCmd implements AutoCloseable
         rspCharRef = null;
         setup_done = false;
         rspCharListener = new ResponseCharListener(this);
-        addedRspCharListener = null;
         verbose = DEBUG;
     }
 
@@ -264,7 +259,6 @@ public class BTGattCmd implements AutoCloseable
         rspCharRef = null;
         setup_done = false;
         rspCharListener = null;
-        addedRspCharListener = null;
         verbose = DEBUG;
     }
 

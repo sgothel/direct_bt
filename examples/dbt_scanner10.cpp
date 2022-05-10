@@ -324,7 +324,7 @@ class MyAdapterStatusListener : public AdapterStatusListener {
 
 static const uuid16_t _TEMPERATURE_MEASUREMENT(GattCharacteristicType::TEMPERATURE_MEASUREMENT);
 
-class MyGATTEventListener : public BTGattChar::Listener {
+class MyGATTEventListener : public BTGattCharListener {
   private:
     int i, j;
 
@@ -559,8 +559,7 @@ static void processReadyDevice(BTDeviceRef device) {
                 bool cccdEnableResult[2];
                 if( serviceChar->enableNotificationOrIndication( cccdEnableResult ) ) {
                     // ClientCharConfigDescriptor (CCD) is available
-                    std::shared_ptr<BTGattChar::Listener> cl = std::make_shared<MyGATTEventListener>(i, j);
-                    bool clAdded = serviceChar->addCharListener( cl );
+                    bool clAdded = serviceChar->addCharListener( std::make_shared<MyGATTEventListener>(i, j) );
                     {
                         fprintf_td(stderr, "  [%2.2d.%2.2d] Characteristic-Listener: Notification(%d), Indication(%d): Added %d\n",
                                 (int)i, (int)j, cccdEnableResult[0], cccdEnableResult[1], clAdded);

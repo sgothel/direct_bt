@@ -39,6 +39,7 @@ import org.direct_bt.BTDeviceRegistry;
 import org.direct_bt.BTException;
 import org.direct_bt.BTFactory;
 import org.direct_bt.BTGattChar;
+import org.direct_bt.BTGattCharListener;
 import org.direct_bt.BTGattCmd;
 import org.direct_bt.BTGattDesc;
 import org.direct_bt.BTGattService;
@@ -277,7 +278,7 @@ public class DBTScanner10 {
         }
     };
 
-    class MyGATTEventListener implements BTGattChar.Listener {
+    class MyGATTEventListener extends BTGattCharListener {
         private final int i, j;
 
         public MyGATTEventListener(final int i_, final int j_) { i=i_; j=j_; }
@@ -518,7 +519,7 @@ public class DBTScanner10 {
                         final boolean cccdEnableResult[] = { false, false };
                         if( serviceChar.enableNotificationOrIndication( cccdEnableResult ) ) {
                             // ClientCharConfigDescriptor (CCD) is available
-                            final boolean clAdded = null != serviceChar.addCharListener( new MyGATTEventListener(i, j) );
+                            final boolean clAdded = serviceChar.addCharListener( new MyGATTEventListener(i, j) );
                             {
                                 BTUtils.fprintf_td(System.err, "  [%02d.%02d] Characteristic-Listener: Notification(%b), Indication(%b): Added %b\n",
                                         i, j, cccdEnableResult[0], cccdEnableResult[1], clAdded);

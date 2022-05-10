@@ -438,8 +438,6 @@ namespace direct_bt {
             typedef jau::cow_darray<NativeGattCharListenerRef> NativeGattCharListenerList_t;
             typedef jau::darray<NativeGattCharListener::Section> NativeGattCharSections_t;
 
-            typedef jau::cow_darray<BTGattCharListenerRef> BTGattCharListenerList_t;
-
        private:
             /** BTGattHandler's device weak back-reference */
             std::weak_ptr<BTDevice> wbr_device;
@@ -462,7 +460,26 @@ namespace direct_bt {
 
             /** send immediate confirmation of indication events from device, defaults to true. */
             jau::relaxed_atomic_bool sendIndicationConfirmation = true;
-            BTGattCharListenerList_t btGattCharListenerList;
+
+            struct GattCharListenerPair {
+                /** The actual listener */
+                BTGattCharListenerRef listener;
+                /** The optional weak device reference. Weak, b/c it shall not block destruction */
+                std::weak_ptr<BTGattChar> wbr_characteristic;
+
+                bool match(const BTGattChar& characteristic) const noexcept {
+                    BTGattCharRef sda = wbr_characteristic.lock();
+                    if( nullptr != sda ) {
+                        return *sda == characteristic;
+                    } else {
+                        return true;
+                    }
+                }
+            };
+            typedef jau::cow_darray<GattCharListenerPair> gattCharListenerList_t;
+            static gattCharListenerList_t::equal_comparator gattCharListenerRefEqComparator;
+            gattCharListenerList_t gattCharListenerList;
+
             NativeGattCharListenerList_t nativeGattCharListenerList;
 
             /** Pass through user Gatt-Server database, non-nullptr if ::GATTRole::Server */
@@ -811,6 +828,11 @@ namespace direct_bt {
             bool addCharListener(const BTGattCharListenerRef& l) noexcept;
 
             /**
+             * Please use BTGattChar::addCharListener() for clarity, merely existing here to allow JNI access.
+             */
+            bool addCharListener(const BTGattCharListenerRef& l, const BTGattCharRef& d) noexcept;
+
+            /**
              * Remove the given listener from the list.
              * <p>
              * Returns true if the given listener is an element of the list and has been removed,
@@ -829,11 +851,9 @@ namespace direct_bt {
             bool removeCharListener(const BTGattCharListener * l) noexcept;
             
             /**
-             * Remove all {@link BTGattCharListener} from the list, which are associated to the given {@link BTGattChar}.
-             * <p>
-             * Implementation tests all listener's BTGattCharListener::match(const BTGattChar & characteristic)
-             * to match with the given associated characteristic.
-             * </p>
+             * Remove all {@link BTGattCharListener} from the list, which are associated to the given {@link BTGattChar}
+             * when added via BTGattChar::addCharListener().
+             *
              * @param associatedCharacteristic the match criteria to remove any BTGattCharListener from the list
              * @return number of removed listener.
              */
@@ -870,17 +890,7 @@ namespace direct_bt {
             /**
              * Return event listener count.
              */
-            jau::nsize_t getCharListenerCount() const noexcept { return btGattCharListenerList.size() + nativeGattCharListenerList.size(); }
-
-            /**
-             * Return a thread safe snapshot of the BTGattCharListener array
-             */
-            BTGattCharListenerList_t::storage_ref_t getBTGattCharListener() const noexcept { return btGattCharListenerList.snapshot(); }
-
-            /**
-             * Return a thread safe snapshot of the NativeGattCharListener array
-             */
-            NativeGattCharListenerList_t::storage_ref_t getNativeGattCharListener() const noexcept { return nativeGattCharListenerList.snapshot(); }
+            jau::nsize_t getCharListenerCount() const noexcept { return gattCharListenerList.size() + nativeGattCharListenerList.size(); }
 
             /**
              * Print a list of all BTGattCharListener and NativeGattCharListener.
@@ -1011,6 +1021,7 @@ namespace direct_bt {
 
             std::string toString() const noexcept;
     };
+    typedef std::shared_ptr<BTGattHandler> BTGattHandlerRef;
 
 } // namespace direct_bt
 

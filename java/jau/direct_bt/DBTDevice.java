@@ -669,9 +669,14 @@ public class DBTDevice extends DBTObject implements BTDevice
 
     @Override
     public boolean addCharListener(final BTGattCharListener listener) {
-        return addCharListener(listener, (DBTGattChar)listener.getAssociatedChar());
+        return addCharListenerImpl(listener, null);
     }
-    private native boolean addCharListener(final BTGattCharListener listener, final DBTGattChar associatedCharacteristic);
+
+    @Override
+    public boolean addCharListener(final BTGattCharListener listener, final BTGattChar associatedCharacteristic) {
+        return addCharListenerImpl(listener, associatedCharacteristic);
+    }
+    private native boolean addCharListenerImpl(final BTGattCharListener listener, final BTGattChar associatedCharacteristic);
 
     @Override
     public native boolean removeCharListener(final BTGattCharListener l);

@@ -256,11 +256,11 @@ EIRDataType BTDevice::update(GattGenericAccessSvc const &data, const uint64_t ti
     return res;
 }
 
-bool BTDevice::addStatusListener(const AdapterStatusListenerRef& l) {
+bool BTDevice::addStatusListener(const AdapterStatusListenerRef& l) noexcept {
     return adapter.addStatusListener(*this, l);
 }
 
-bool BTDevice::removeStatusListener(const AdapterStatusListenerRef& l) {
+bool BTDevice::removeStatusListener(const AdapterStatusListenerRef& l) noexcept {
     return adapter.removeStatusListener(l);
 }
 
@@ -2076,16 +2076,25 @@ bool BTDevice::pingGATT() noexcept {
     return gh->ping();
 }
 
-bool BTDevice::addCharListener(std::shared_ptr<BTGattCharListener> l) {
+bool BTDevice::addCharListener(const BTGattCharListenerRef& l) noexcept {
     std::shared_ptr<BTGattHandler> gatt = getGattHandler();
     if( nullptr == gatt ) {
-        throw jau::IllegalStateException("Device's GATTHandle not connected: "+
-                toString(), E_FILE_LINE);
+        ERR_PRINT("Device's GATTHandle not connected: %s", toString().c_str());
+        return false;
     }
     return gatt->addCharListener(l);
 }
 
-bool BTDevice::removeCharListener(std::shared_ptr<BTGattCharListener> l) noexcept {
+bool BTDevice::addCharListener(const BTGattCharListenerRef& l, const BTGattCharRef& d) noexcept {
+    std::shared_ptr<BTGattHandler> gatt = getGattHandler();
+    if( nullptr == gatt ) {
+        ERR_PRINT("Device's GATTHandle not connected: %s", toString().c_str());
+        return false;
+    }
+    return gatt->addCharListener(l, d);
+}
+
+bool BTDevice::removeCharListener(const BTGattCharListenerRef& l) noexcept {
     std::shared_ptr<BTGattHandler> gatt = getGattHandler();
     if( nullptr == gatt ) {
         // OK to have GATTHandler being shutdown @ disable
@@ -2095,7 +2104,7 @@ bool BTDevice::removeCharListener(std::shared_ptr<BTGattCharListener> l) noexcep
     return gatt->removeCharListener(l);
 }
 
-int BTDevice::removeAllAssociatedCharListener(std::shared_ptr<BTGattChar> associatedCharacteristic) noexcept {
+int BTDevice::removeAllAssociatedCharListener(const BTGattCharRef& associatedCharacteristic) noexcept {
     std::shared_ptr<BTGattHandler> gatt = getGattHandler();
     if( nullptr == gatt ) {
         // OK to have GATTHandler being shutdown @ disable
