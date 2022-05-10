@@ -45,12 +45,21 @@ import jau.direct_bt.DBTNativeDownlink;
 public abstract class BTGattCharListener extends DBTNativeDownlink {
     public BTGattCharListener() {
         super(); // pending native ctor
-        initDownlink(ctorImpl());
+        if( BTFactory.isInitialized() ) {
+            initDownlink(ctorImpl());
+        } else {
+            System.err.println("BTGattCharListener.ctor: BTFactory not initialized, no nativeInstance");
+        }
     }
     private native long ctorImpl();
 
     @Override
     protected native void deleteImpl(long nativeInstance);
+
+    /**
+     * Returns true if native instance is valid, otherwise false.
+     */
+    public final boolean isValid() { return isNativeValid(); }
 
     /**
      * Called from native BLE stack, initiated by a received notification associated
@@ -78,6 +87,6 @@ public abstract class BTGattCharListener extends DBTNativeDownlink {
 
     @Override
     public String toString() {
-        return "BTGattCharListener[]";
+        return "BTGattCharListener[nativeValid "+isValid()+"]";
     }
 };

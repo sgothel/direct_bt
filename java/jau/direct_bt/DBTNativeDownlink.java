@@ -27,8 +27,6 @@ package jau.direct_bt;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.direct_bt.BTFactory;
-
 /**
  * Java counterpart to C++ jau::JavaUplink
  *
@@ -48,10 +46,6 @@ public abstract class DBTNativeDownlink
     private long nativeInstance;
     private final AtomicBoolean isNativeValid = new AtomicBoolean(false);
     private final Object nativeLock = new Object();
-
-    static {
-        BTFactory.checkInitialized();
-    }
 
     /**
      *
@@ -73,10 +67,15 @@ public abstract class DBTNativeDownlink
             if( isNativeValid.compareAndSet(false, true) ) {
                 this.nativeInstance = nativeInstance;
                 initNativeJavaObject(nativeInstance);
+            } else {
+                System.err.println("DBTNativeDownlink.init2: Already valid, dropping nativeInstance 0x"+Long.toHexString(nativeInstance));
             }
         }
     }
 
+    /**
+     * Returns true if native instance is valid, otherwise false.
+     */
     protected final boolean isNativeValid() { return isNativeValid.get(); }
 
     @Override

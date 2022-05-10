@@ -47,12 +47,21 @@ import jau.direct_bt.DBTNativeDownlink;
 public abstract class AdapterStatusListener extends DBTNativeDownlink {
     public AdapterStatusListener() {
         super(); // pending native ctor
-        initDownlink(ctorImpl());
+        if( BTFactory.isInitialized() ) {
+            initDownlink(ctorImpl());
+        } else {
+            System.err.println("AdapterStatusListener.ctor: BTFactory not initialized, no nativeInstance");
+        }
     }
     private native long ctorImpl();
 
     @Override
     protected native void deleteImpl(long nativeInstance);
+
+    /**
+     * Returns true if native instance is valid, otherwise false.
+     */
+    public final boolean isValid() { return isNativeValid(); }
 
     /**
      * {@link BTAdapter} setting(s) changed.
@@ -163,6 +172,6 @@ public abstract class AdapterStatusListener extends DBTNativeDownlink {
 
     @Override
     public String toString() {
-        return "AdapterStatusListener[anonymous]";
+        return "AdapterStatusListener[valid "+isValid()+"]";
     }
 };

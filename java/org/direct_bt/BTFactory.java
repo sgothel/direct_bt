@@ -36,6 +36,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.jar.Attributes;
 import java.util.jar.Manifest;
 
@@ -201,21 +202,21 @@ public class BTFactory {
         }
     }
 
-    private static ImplementationIdentifier initializedID = null;
+    private static AtomicReference<ImplementationIdentifier> initializedID = new AtomicReference<ImplementationIdentifier>(null);
 
-    public static synchronized void checkInitialized() {
-        if( null == initializedID ) {
+    public static void checkInitialized() {
+        if( null == initializedID.get() ) {
             throw new IllegalStateException("BluetoothFactory not initialized.");
         }
     }
-    public static synchronized boolean isInitialized() {
-        return null == initializedID;
+    public static boolean isInitialized() {
+        return null != initializedID.get();
     }
 
     private static synchronized void initLibrary(final ImplementationIdentifier id) {
-        if( null != initializedID ) {
-            if( id != initializedID ) {
-                throw new IllegalStateException("BluetoothFactory already initialized with "+initializedID+", can't override by "+id);
+        if( null != initializedID.get() ) {
+            if( id != initializedID.get() ) {
+                throw new IllegalStateException("BluetoothFactory already initialized with "+initializedID.get()+", can't override by "+id);
             }
             return;
         }
@@ -321,7 +322,7 @@ public class BTFactory {
                     }
                 }
             }
-            initializedID = id; // initialized!
+            initializedID.set( id ); // initialized!
 
             APIVersion = JAPIVersion;
             ImplVersion = null != mfAttributes ? mfAttributes.getValue(Attributes.Name.IMPLEMENTATION_VERSION) : null;
