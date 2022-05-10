@@ -494,6 +494,7 @@ from the year 2016.
 * TODO
 
 **2.7.0** (TODO)
+* AdapterStatusListener, BTGattCharListener: Adopt full Java/Native link via DBTNativeDownlink and JavaUplink, clean API, impl and lifecycle
 * Robustness of JNI
   - Passing `trial.org.direct_bt.TestDBTProvokeClientServer_i470` w/o crash
   - Use `std::shared_ptr<T>` instead of a `naked pointer` for sane lifcycle, see new `shared_ptr_ref<T>`.
