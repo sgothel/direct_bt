@@ -167,7 +167,8 @@ class DBTClientServer1x {
             }
             max_connections_hit = ( protocolSessionCount * max_connections_per_session ) <= server->getDisconnectCount();
             test_duration = ( jau::getMonotonicTime() - t0 ).to_fraction_i64();
-            timeout = 0_s < timeout_value && timeout_value <= test_duration + timeout_preempt_diff; // let's timeout here before our timeout timer
+            timeout = framework.is_timedout() ||
+                      ( 0_s < timeout_value && timeout_value <= test_duration + timeout_preempt_diff ); // let's timeout here before our timeout timer
             if( !done && !max_connections_hit && !timeout ) {
                 jau::sleep_for( 88_ms );
             }

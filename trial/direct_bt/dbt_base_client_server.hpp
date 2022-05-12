@@ -41,12 +41,13 @@ class BaseDBTClientServer {
 
         jau::fraction_i64 test_timeout = 0_s;
 
-        jau::simple_timer timeour_timer = jau::simple_timer("DBTTrial-Timeout", 1_s /* shutdown timeout */);
+        jau::simple_timer timeout_timer = jau::simple_timer("DBTTrial-Timeout", 1_s /* shutdown timeout */);
+        jau::sc_atomic_bool timedout = false;
 
         jau::fraction_i64 timeout_func(jau::simple_timer& timer) {
             if( !timer.shall_stop() ) {
                 fprintf(stderr, "\n***** DBTTrial Error: Timeout %s sec -> abort *****\n\n", test_timeout.to_string(true).c_str());
-                abort();
+                timedout = true;
             }
             return 0_s;
         }
@@ -62,7 +63,7 @@ class BaseDBTClientServer {
         }
 
         void close() {
-            timeour_timer.stop();
+            timeout_timer.stop();
             BTManager& manager = BTManager::get();
 #if 0
             jau::darray<BTAdapterRef> adapters = manager.getAdapters();
@@ -84,6 +85,8 @@ class BaseDBTClientServer {
 
         jau::fraction_i64 get_timeout_value() const { return test_timeout; }
 
+        bool is_timedout() const noexcept { return timedout; }
+
         /**
          * Ensure
          * - all adapter are powered off
@@ -96,7 +99,7 @@ class BaseDBTClientServer {
          * - all adapter are powered off
          */
         void setupTest(const jau::fraction_i64 timeout = 0_s) {
-            timeour_timer.stop();
+            timeout_timer.stop();
             test_timeout = timeout;
             BTManager& manager = BTManager::get();
             jau::darray<BTAdapterRef> adapters = manager.getAdapters();
@@ -110,7 +113,7 @@ class BaseDBTClientServer {
             BTDeviceRegistry::clearProcessingDevices();
             BTSecurityRegistry::clear();
             if( !timeout.is_zero() ) {
-                timeour_timer.start(timeout, jau::bindMemberFunc(this, &BaseDBTClientServer::timeout_func));
+                timeout_timer.start(timeout, jau::bindMemberFunc(this, &BaseDBTClientServer::timeout_func));
             }
         }
 
@@ -122,7 +125,7 @@ class BaseDBTClientServer {
          * - clear BTSecurityRegistry
          */
         void cleanupTest() {
-            timeour_timer.stop();
+            timeout_timer.stop();
             test_timeout = 0_s;
             BTManager& manager = BTManager::get();
             jau::darray<BTAdapterRef> adapters = manager.getAdapters();
