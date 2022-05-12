@@ -205,8 +205,12 @@ class DBTClient01 : public DBTClientTest {
                 static std::uniform_int_distribution<int> rng_dist(sleep_min, sleep_max);
                 const int64_t sleep_dur = rng_dist(rng_hw);
                 jau::sleep_for( sleep_dur * 1_ms );
-                fprintf_td(stderr, "****** Client i470 disconnectDevice(delayed %d ms): client %s\n", sleep_dur, device->toString().c_str());
-                device->disconnect();
+                if( nullptr != device ) {
+                    fprintf_td(stderr, "****** Client i470 disconnectDevice(delayed %d ms): client %s\n", sleep_dur, device->toString().c_str());
+                    device->disconnect();
+                } else {
+                    fprintf_td(stderr, "****** Client i470 disconnectDevice(delayed %d ms): client null\n", sleep_dur);
+                }
             }
 
             void deviceReady(BTDeviceRef device, const uint64_t timestamp) override {
@@ -437,6 +441,7 @@ class DBTClient01 : public DBTClientTest {
                                        td13, td12, td23, td35);
                 }
 
+                bool gattListenerError = false;
                 std::vector<BTGattCharListenerRef> gattListener;
                 int loop = 0;
                 do {
@@ -482,9 +487,12 @@ class DBTClient01 : public DBTClientTest {
                                     // ClientCharConfigDescriptor (CCD) is available
                                     std::shared_ptr<BTGattCharListener> gattEventListener = std::make_shared<MyGATTEventListener>(*this);
                                     bool clAdded = serviceChar->addCharListener( gattEventListener );
-                                    REQUIRE( true == clAdded );
                                     if( clAdded ) {
                                         gattListener.push_back(gattEventListener);
+                                    } else {
+                                        gattListenerError = true;
+                                        fprintf_td(stderr, "Client Error: Failed to add GattListener: %s @ %s, gattListener %zu\n",
+                                                gattEventListener->toString().c_str(), serviceChar->toString().c_str(), gattListener.size());
                                     }
                                     if( GATT_VERBOSE ) {
                                         fprintf_td(stderr, "  [%2.2d.%2.2d] Characteristic-Listener: Notification(%d), Indication(%d): Added %d\n",
@@ -500,10 +508,21 @@ class DBTClient01 : public DBTClientTest {
                     }
                     success = notificationsReceived >= 2 || indicationsReceived >= 2;
                     ++loop;
-                } while( !success && device->getConnected() );
+                } while( !success && device->getConnected() && !gattListenerError );
 
-                for(BTGattCharListenerRef gcl : gattListener) {
-                    REQUIRE( true == device->removeCharListener(gcl) );
+                if( gattListenerError ) {
+                    success = false;
+                }
+                {
+                    int i = 0;
+                    for(BTGattCharListenerRef gcl : gattListener) {
+                        if( !device->removeCharListener(gcl) ) {
+                            fprintf_td(stderr, "Client Error: Failed to remove GattListener[%d/%zu]: %s @ %s\n",
+                                    i, gattListener.size(), gcl->toString().c_str(), device->toString().c_str());
+                            success = false;
+                        }
+                        ++i;
+                    }
                 }
 
                 if( device->getConnected() ) {

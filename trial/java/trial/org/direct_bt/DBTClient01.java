@@ -57,7 +57,6 @@ import org.direct_bt.SMPKeyBin;
 import org.direct_bt.SMPPairingState;
 import org.direct_bt.ScanType;
 import org.jau.net.EUI48;
-import org.junit.Assert;
 
 /**
  * This central BTRole::Master participant works with DBTServer00.
@@ -448,6 +447,7 @@ public class DBTClient01 implements DBTClientTest {
                         "PERF:  get-gatt-services " + td35 + " ms,"+System.lineSeparator());
             }
 
+            boolean gattListenerError = false;
             final List<BTGattCharListener> gattListener = new ArrayList<BTGattCharListener>();
             int loop = 0;
             do {
@@ -490,9 +490,12 @@ public class DBTClient01 implements DBTClientTest {
                                     // ClientCharConfigDescriptor (CCD) is available
                                     final MyGATTEventListener gattEventListener = new MyGATTEventListener();
                                     final boolean clAdded = serviceChar.addCharListener( gattEventListener );
-                                    Assert.assertTrue(clAdded);
                                     if( clAdded ) {
                                         gattListener.add(gattEventListener);
+                                    } else {
+                                        gattListenerError = true;
+                                        BTUtils.fprintf_td(System.err, "Client Error: Failed to add GattListener: %s @ %s, gattListener %d\n",
+                                                gattEventListener.toString(), serviceChar.toString(), gattListener.size());
                                     }
                                     if( GATT_VERBOSE ) {
                                         BTUtils.fprintf_td(System.err, "  [%02d.%02d] Characteristic-Listener: Notification(%b), Indication(%b): Added %b\n",
@@ -512,10 +515,21 @@ public class DBTClient01 implements DBTClientTest {
                     BTUtils.println(System.err, "****** Client Processing Ready Device: Exception.2 caught for " + device.toString() + ": "+ex.getMessage());
                     ex.printStackTrace();
                 }
-            } while( !success && device.getConnected() );
+            } while( !success && device.getConnected() && !gattListenerError );
 
-            for(final BTGattCharListener gcl : gattListener) {
-                Assert.assertTrue( device.removeCharListener(gcl) );
+            if( gattListenerError ) {
+                success = false;
+            }
+            {
+                int i = 0;
+                for(final BTGattCharListener gcl : gattListener) {
+                    if( !device.removeCharListener(gcl) ) {
+                        BTUtils.fprintf_td(System.err, "Client Error: Failed to remove GattListener[%d/%d]: %s @ %s\n",
+                                i, gattListener.size(), gcl.toString(), device.toString());
+                        success = false;
+                    }
+                    ++i;
+                }
             }
 
             if( device.getConnected() ) {
