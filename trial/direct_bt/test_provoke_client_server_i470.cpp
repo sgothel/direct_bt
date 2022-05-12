@@ -35,9 +35,6 @@
 
 using namespace direct_bt;
 
-// Singleton test framework, alive until test program ends
-static BaseDBTClientServer& base_test_framework = BaseDBTClientServer::get();
-
 /**
  * Testing w/o client filtering processing device and hence not blocking deviceFound.
  *

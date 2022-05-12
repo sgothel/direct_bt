@@ -31,9 +31,6 @@
 
 using namespace direct_bt;
 
-// Singleton test framework, alive until test program ends
-static BaseDBTClientServer& base_test_framework = BaseDBTClientServer::get();
-
 /**
  * Testing a full Bluetooth server and client lifecycle of operations, requiring two BT adapter:
  * - operating in legacy non SC mode
