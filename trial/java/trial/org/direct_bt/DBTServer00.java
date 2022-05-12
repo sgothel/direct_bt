@@ -644,26 +644,19 @@ public class DBTServer00 implements DBTServerTest {
     static final byte filter_policy=(byte)0x00;
 
     @Override
-    public HCIStatusCode stop(final String msg) {
-        BTUtils.println(System.err, "****** Server Stop.0: "+msg);
-        final HCIStatusCode res = stopAdvertising(msg);
-        final BTDevice connectedDevice_ = getDevice();
-        if( null != connectedDevice_ ) {
-            setDevice(null);
-            connectedDevice_.disconnect();
-        }
-        gattServerListener.clear();
-        BTUtils.println(System.err, "****** Server Stop.X: "+msg);
-        return res;
-    }
-
-    @Override
     public void close(final String msg) {
         BTUtils.println(System.err, "****** Server Close.0: "+msg);
-        stop(msg);
+        serverAdapter.removeStatusListener( myAdapterStatusListener );
+        {
+            stopAdvertising(msg);
+            final BTDevice connectedDevice_ = getDevice();
+            if( null != connectedDevice_ ) {
+                setDevice(null);
+                connectedDevice_.disconnect();
+            }
+        }
         gattServerListener.close();
         // dbGattServer.close(); // keep alive
-        serverAdapter.removeStatusListener( myAdapterStatusListener );
         BTUtils.println(System.err, "****** Server Close.X: "+msg);
     }
 

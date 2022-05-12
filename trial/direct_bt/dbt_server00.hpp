@@ -387,6 +387,13 @@ class DBTServer00 : public DBTServerTest {
                 : parent(p), pulseSenderThread(&MyGATTServerListener::pulseSender, this)
                 { }
 
+                ~MyGATTServerListener() noexcept {
+                    stopPulseSenderFlag = true;
+                    if( pulseSenderThread.joinable() ) {
+                        pulseSenderThread.join();
+                    }
+                }
+
                 void clear() {
                     const std::lock_guard<std::mutex> lock(parent.mtx_sync); // RAII-style acquire and relinquish via destructor
 
@@ -400,12 +407,10 @@ class DBTServer00 : public DBTServerTest {
                 }
 
                 void close() noexcept {
+                    clear();
                     {
-                        clear();
-                        {
-                            const std::lock_guard<std::mutex> lock(parent.mtx_sync); // RAII-style acquire and relinquish via destructor
-                            stopPulseSenderFlag = true;
-                        }
+                        const std::lock_guard<std::mutex> lock(parent.mtx_sync); // RAII-style acquire and relinquish via destructor
+                        stopPulseSenderFlag = true;
                     }
                     if( pulseSenderThread.joinable() ) {
                         pulseSenderThread.join();
@@ -590,25 +595,19 @@ class DBTServer00 : public DBTServerTest {
 
     public:
 
-        HCIStatusCode stop(const std::string& msg) override {
-            fprintf_td(stderr, "****** Server Stop.0: %s\n", msg.c_str());
-            HCIStatusCode res = stopAdvertising(msg);
-            BTDeviceRef connectedDevice_ = getDevice();
-            if( nullptr != connectedDevice_ ) {
-                setDevice(nullptr);
-                connectedDevice_->disconnect();
-            }
-            gattServerListener->clear();
-            fprintf_td(stderr, "****** Server Stop.X: %s\n", msg.c_str());
-            return res;
-        }
-
         void close(const std::string& msg) override {
             fprintf_td(stderr, "****** Server Close.0: %s\n", msg.c_str());
-            stop(msg);
+            serverAdapter->removeStatusListener( myAdapterStatusListener );
+            {
+                stopAdvertising(msg);
+                BTDeviceRef connectedDevice_ = getDevice();
+                if( nullptr != connectedDevice_ ) {
+                    setDevice(nullptr);
+                    connectedDevice_->disconnect();
+                }
+            }
             gattServerListener->close();
             // dbGattServer = nullptr; // keep alive
-            serverAdapter->removeStatusListener( myAdapterStatusListener );
             fprintf_td(stderr, "****** Server Close.X: %s\n", msg.c_str());
         }
 

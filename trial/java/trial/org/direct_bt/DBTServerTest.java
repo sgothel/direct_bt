@@ -33,8 +33,6 @@ public interface DBTServerTest extends DBTEndpoint {
 
     BTSecurityLevel getSecurityLevel();
 
-    HCIStatusCode stop(final String msg);
-
     HCIStatusCode startAdvertising(String msg);
 
     public static void startAdvertising(final DBTServerTest server, final boolean current_exp_advertising_state, final String msg) {
@@ -57,7 +55,7 @@ public interface DBTServerTest extends DBTEndpoint {
         Assert.assertEquals( BTRole.Slave, adapter.getRole() ); // kept
 
         // Stopping advertising and serving even if stopped must be OK!
-        Assert.assertEquals( HCIStatusCode.SUCCESS, server.stop(msg) );
+        server.close(msg);
         Assert.assertFalse(adapter.isAdvertising());
         Assert.assertFalse(adapter.isDiscovering());
         Assert.assertEquals( BTRole.Slave, adapter.getRole() ); // kept

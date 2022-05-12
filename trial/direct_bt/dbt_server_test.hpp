@@ -35,8 +35,6 @@ class DBTServerTest : public DBTEndpoint {
     public:
         virtual BTSecurityLevel getSecurityLevel() = 0;
 
-        virtual HCIStatusCode stop(const std::string& msg) = 0;
-
         virtual HCIStatusCode startAdvertising(const std::string& msg) = 0;
 
         static void startAdvertising(DBTServerTestRef server, const bool current_exp_advertising_state, const std::string& msg) {
@@ -58,7 +56,7 @@ class DBTServerTest : public DBTEndpoint {
             REQUIRE( BTRole::Slave == adapter->getRole() ); // kept
 
             // Stopping advertising and serving even if stopped must be OK!
-            REQUIRE( HCIStatusCode::SUCCESS == server->stop(msg) );
+            server->close(msg);
             REQUIRE( false == adapter->isAdvertising() );
             REQUIRE( false == adapter->isDiscovering() );
             REQUIRE( BTRole::Slave == adapter->getRole() ); // kept
