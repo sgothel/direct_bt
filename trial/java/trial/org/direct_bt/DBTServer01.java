@@ -474,8 +474,12 @@ public class DBTServer01 implements DBTServerTest {
             } catch (final InterruptedException e) { }
 
             final BTDevice connectedDevice_ = getDevice();
-            BTUtils.fprintf_td(System.err, "****** Server i470 disconnectDevice(delayed %d ms): client %s\n", sleep_dur, connectedDevice_.toString());
-            connectedDevice_.disconnect();
+            if( null != connectedDevice_ ) {
+                BTUtils.fprintf_td(System.err, "****** Server i470 disconnectDevice(delayed %d ms): client %s\n", sleep_dur, connectedDevice_.toString());
+                connectedDevice_.disconnect();
+            } else {
+                BTUtils.fprintf_td(System.err, "****** Server i470 disconnectDevice(delayed %d ms): client null\n", sleep_dur);
+            }
         }
 
         public MyGATTServerListener() {

@@ -395,8 +395,12 @@ class DBTServer01 : public DBTServerTest {
                     const int64_t sleep_dur = rng_dist(rng_hw);
                     jau::sleep_for( sleep_dur * 1_ms );
                     BTDeviceRef connectedDevice_ = parent.getDevice();
-                    fprintf_td(stderr, "****** Server i470 disconnectDevice(delayed %d ms): client %s\n", sleep_dur, connectedDevice_->toString().c_str());
-                    connectedDevice_->disconnect();
+                    if( nullptr != connectedDevice_ ) {
+                        fprintf_td(stderr, "****** Server i470 disconnectDevice(delayed %d ms): client %s\n", sleep_dur, connectedDevice_->toString().c_str());
+                        connectedDevice_->disconnect();
+                    } else {
+                        fprintf_td(stderr, "****** Server i470 disconnectDevice(delayed %d ms): client null\n", sleep_dur);
+                    }
                 }
 
             public:
