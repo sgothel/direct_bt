@@ -212,8 +212,7 @@ class DBTClientServer1x {
         // Server stop
         //
         const bool current_exp_advertising_state = expSuccess ? false : server->getAdapter()->isAdvertising();
-        DBTServerTest::stop(server, current_exp_advertising_state, "test"+suffix+"_stopAdvertising");
-        server->close("test"+suffix+"_close");
+        DBTServerTest::stop(server, current_exp_advertising_state, "test"+suffix+"_stop");
 
         if( expSuccess ) {
             //
