@@ -345,8 +345,7 @@ class MyAdapterStatusListener : public AdapterStatusListener {
 
 class MyGATTServerListener : public DBGattServer::Listener {
     private:
-        std::thread pulseSenderThread;
-        jau::sc_atomic_bool stopPulseSender = false;
+        jau::service_runner pulse_service;
 
         jau::sc_atomic_uint16 handlePulseDataNotify = 0;
         jau::sc_atomic_uint16 handlePulseDataIndicate = 0;
@@ -367,29 +366,38 @@ class MyGATTServerListener : public DBGattServer::Listener {
             dbGattServer->resetGattClientCharConfig(DataServiceUUID, ResponseUUID);
         }
 
-        void pulseSender() {
-            while( !stopPulseSender ) {
-                {
-                    jau::sc_atomic_critical sync(sync_data);
-                    BTDeviceRef connectedDevice_ = getDevice();
-                    if( nullptr != connectedDevice_ && connectedDevice_->getConnected() ) {
-                        if( 0 != handlePulseDataNotify || 0 != handlePulseDataIndicate ) {
-                            std::string data( "Dynamic Data Example. Elapsed Milliseconds: "+jau::to_decstring(environment::getElapsedMillisecond(), ',', 9) );
-                            jau::POctets v(data.size()+1, jau::endian::little);
-                            v.put_string_nc(0, data, v.size(), true /* includeEOS */);
-                            if( 0 != handlePulseDataNotify ) {
-                                fprintf_td(stderr, "****** GATT::sendNotification: PULSE to %s\n", connectedDevice_->toString().c_str());
-                                connectedDevice_->sendNotification(handlePulseDataNotify, v);
-                            }
-                            if( 0 != handlePulseDataIndicate ) {
-                                fprintf_td(stderr, "****** GATT::sendIndication: PULSE to %s\n", connectedDevice_->toString().c_str());
-                                connectedDevice_->sendIndication(handlePulseDataIndicate, v);
-                            }
-                        }
+        void pulse_worker_init(jau::service_runner& sr) noexcept {
+            (void)sr;
+            const BTDeviceRef connectedDevice_ = getDevice();
+            const std::string connectedDeviceStr = nullptr != connectedDevice_ ? connectedDevice_->toString() : "n/a";
+            fprintf_td(stderr, "****** Server GATT::PULSE Start %s\n", connectedDeviceStr.c_str());
+        }
+        void pulse_worker(jau::service_runner& sr) noexcept {
+            BTDeviceRef connectedDevice_ = getDevice();
+            if( nullptr != connectedDevice_ && connectedDevice_->getConnected() ) {
+                if( 0 != handlePulseDataNotify || 0 != handlePulseDataIndicate ) {
+                    std::string data( "Dynamic Data Example. Elapsed Milliseconds: "+jau::to_decstring(environment::getElapsedMillisecond(), ',', 9) );
+                    jau::POctets v(data.size()+1, jau::endian::little);
+                    v.put_string_nc(0, data, v.size(), true /* includeEOS */);
+                    if( 0 != handlePulseDataNotify ) {
+                        fprintf_td(stderr, "****** GATT::sendNotification: PULSE to %s\n", connectedDevice_->toString().c_str());
+                        connectedDevice_->sendNotification(handlePulseDataNotify, v);
+                    }
+                    if( 0 != handlePulseDataIndicate ) {
+                        fprintf_td(stderr, "****** GATT::sendIndication: PULSE to %s\n", connectedDevice_->toString().c_str());
+                        connectedDevice_->sendIndication(handlePulseDataIndicate, v);
                     }
                 }
-                std::this_thread::sleep_for(std::chrono::milliseconds(500));
             }
+            if( !sr.shall_stop() ) {
+                jau::sleep_for( 500_ms );
+            }
+        }
+        void pulse_worker_end(jau::service_runner& sr) noexcept {
+            (void)sr;
+            const BTDeviceRef connectedDevice_ = getDevice();
+            const std::string connectedDeviceStr = nullptr != connectedDevice_ ? connectedDevice_->toString() : "n/a";
+            fprintf_td(stderr, "****** Server GATT::PULSE End %s\n", connectedDeviceStr.c_str());
         }
 
         void sendResponse(jau::POctets data) {
@@ -412,19 +420,21 @@ class MyGATTServerListener : public DBGattServer::Listener {
 
     public:
         MyGATTServerListener()
-        : pulseSenderThread(&MyGATTServerListener::pulseSender, this)
-        { }
+        : pulse_service("MyGATTServerListener::pulse", THREAD_SHUTDOWN_TIMEOUT_MS,
+                             jau::bindMemberFunc(this, &MyGATTServerListener::pulse_worker),
+                             jau::bindMemberFunc(this, &MyGATTServerListener::pulse_worker_init),
+                             jau::bindMemberFunc(this, &MyGATTServerListener::pulse_worker_end))
+        {
+            pulse_service.start();
+        }
 
-        ~MyGATTServerListener() noexcept { close(); }
+        ~MyGATTServerListener() noexcept {
+            pulse_service.stop();
+        }
 
         void close() noexcept {
-            {
-                jau::sc_atomic_critical sync(sync_data);
-                stopPulseSender = true;
-            }
-            if( pulseSenderThread.joinable() ) {
-                pulseSenderThread.join();
-            }
+            pulse_service.stop();
+            clear();
         }
 
         void connected(BTDeviceRef device, const uint16_t initialMTU) override {

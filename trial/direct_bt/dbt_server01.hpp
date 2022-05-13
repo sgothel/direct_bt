@@ -310,8 +310,7 @@ class DBTServer01 : public DBTServerTest {
         class MyGATTServerListener : public DBGattServer::Listener {
             private:
                 DBTServer01& parent;
-                std::thread pulseSenderThread;
-                jau::sc_atomic_bool stopPulseSenderFlag = false;
+                jau::service_runner pulse_service;
 
                 jau::sc_atomic_uint16 handlePulseDataNotify = 0;
                 jau::sc_atomic_uint16 handlePulseDataIndicate = 0;
@@ -320,47 +319,42 @@ class DBTServer01 : public DBTServerTest {
 
                 uint16_t usedMTU = BTGattHandler::number(BTGattHandler::Defaults::MIN_ATT_MTU);
 
-                bool shallStopPulseSender() {
-                    const std::lock_guard<std::mutex> lock(parent.mtx_sync); // RAII-style acquire and relinquish via destructor
-                    return stopPulseSenderFlag;
+                void pulse_worker_init(jau::service_runner& sr) noexcept {
+                    (void)sr;
+                    const BTDeviceRef connectedDevice_ = parent.getDevice();
+                    const std::string connectedDeviceStr = nullptr != connectedDevice_ ? connectedDevice_->toString() : "n/a";
+                    fprintf_td(stderr, "****** Server GATT::PULSE Start %s\n", connectedDeviceStr.c_str());
                 }
-
-                void pulseSender() {
-                    {
-                        const BTDeviceRef connectedDevice_ = parent.getDevice();
-                        const std::string connectedDeviceStr = nullptr != connectedDevice_ ? connectedDevice_->toString() : "n/a";
-                        fprintf_td(stderr, "****** Server GATT::PULSE Start %s\n", connectedDeviceStr.c_str());
-                    }
-                    while( !shallStopPulseSender() ) {
-                        BTDeviceRef connectedDevice_ = parent.getDevice();
-                        if( nullptr != connectedDevice_ && connectedDevice_->getConnected() ) {
-                            if( 0 != handlePulseDataNotify || 0 != handlePulseDataIndicate ) {
-                                std::string data( "Dynamic Data Example. Elapsed Milliseconds: "+jau::to_decstring(environment::getElapsedMillisecond(), ',', 9) );
-                                jau::POctets v(data.size()+1, jau::endian::little);
-                                v.put_string_nc(0, data, v.size(), true /* includeEOS */);
-                                if( 0 != handlePulseDataNotify ) {
-                                    if( GATT_VERBOSE ) {
-                                        fprintf_td(stderr, "****** Server GATT::sendNotification: PULSE to %s\n", connectedDevice_->toString().c_str());
-                                    }
-                                    connectedDevice_->sendNotification(handlePulseDataNotify, v);
+                void pulse_worker(jau::service_runner& sr) noexcept {
+                    BTDeviceRef connectedDevice_ = parent.getDevice();
+                    if( nullptr != connectedDevice_ && connectedDevice_->getConnected() ) {
+                        if( 0 != handlePulseDataNotify || 0 != handlePulseDataIndicate ) {
+                            std::string data( "Dynamic Data Example. Elapsed Milliseconds: "+jau::to_decstring(environment::getElapsedMillisecond(), ',', 9) );
+                            jau::POctets v(data.size()+1, jau::endian::little);
+                            v.put_string_nc(0, data, v.size(), true /* includeEOS */);
+                            if( 0 != handlePulseDataNotify ) {
+                                if( GATT_VERBOSE ) {
+                                    fprintf_td(stderr, "****** Server GATT::sendNotification: PULSE to %s\n", connectedDevice_->toString().c_str());
                                 }
-                                if( 0 != handlePulseDataIndicate ) {
-                                    if( GATT_VERBOSE ) {
-                                        fprintf_td(stderr, "****** Server GATT::sendIndication: PULSE to %s\n", connectedDevice_->toString().c_str());
-                                    }
-                                    connectedDevice_->sendIndication(handlePulseDataIndicate, v);
+                                connectedDevice_->sendNotification(handlePulseDataNotify, v);
+                            }
+                            if( 0 != handlePulseDataIndicate ) {
+                                if( GATT_VERBOSE ) {
+                                    fprintf_td(stderr, "****** Server GATT::sendIndication: PULSE to %s\n", connectedDevice_->toString().c_str());
                                 }
+                                connectedDevice_->sendIndication(handlePulseDataIndicate, v);
                             }
                         }
-                        if( !shallStopPulseSender() ) {
-                            std::this_thread::sleep_for(std::chrono::milliseconds(100));
-                        }
                     }
-                    {
-                        const BTDeviceRef connectedDevice_ = parent.getDevice();
-                        const std::string connectedDeviceStr = nullptr != connectedDevice_ ? connectedDevice_->toString() : "n/a";
-                        fprintf_td(stderr, "****** Server GATT::PULSE End %s\n", connectedDeviceStr.c_str());
+                    if( !sr.shall_stop() ) {
+                        jau::sleep_for( 100_ms );
                     }
+                }
+                void pulse_worker_end(jau::service_runner& sr) noexcept {
+                    (void)sr;
+                    const BTDeviceRef connectedDevice_ = parent.getDevice();
+                    const std::string connectedDeviceStr = nullptr != connectedDevice_ ? connectedDevice_->toString() : "n/a";
+                    fprintf_td(stderr, "****** Server GATT::PULSE End %s\n", connectedDeviceStr.c_str());
                 }
 
                 void sendResponse(jau::POctets data) {
@@ -406,14 +400,17 @@ class DBTServer01 : public DBTServerTest {
             public:
 
                 MyGATTServerListener(DBTServer01& p)
-                : parent(p), pulseSenderThread(&MyGATTServerListener::pulseSender, this)
-                { }
+                : parent(p),
+                  pulse_service("MyGATTServerListener::pulse", THREAD_SHUTDOWN_TIMEOUT_MS,
+                                       jau::bindMemberFunc(this, &MyGATTServerListener::pulse_worker),
+                                       jau::bindMemberFunc(this, &MyGATTServerListener::pulse_worker_init),
+                                       jau::bindMemberFunc(this, &MyGATTServerListener::pulse_worker_end))
+                {
+                    pulse_service.start();
+                }
 
                 ~MyGATTServerListener() noexcept {
-                    stopPulseSenderFlag = true;
-                    if( pulseSenderThread.joinable() ) {
-                        pulseSenderThread.join();
-                    }
+                    pulse_service.stop();
                 }
 
                 void clear() {
@@ -429,14 +426,8 @@ class DBTServer01 : public DBTServerTest {
                 }
 
                 void close() noexcept {
+                    pulse_service.stop();
                     clear();
-                    {
-                        const std::lock_guard<std::mutex> lock(parent.mtx_sync); // RAII-style acquire and relinquish via destructor
-                        stopPulseSenderFlag = true;
-                    }
-                    if( pulseSenderThread.joinable() ) {
-                        pulseSenderThread.join();
-                    }
                 }
 
             public:
