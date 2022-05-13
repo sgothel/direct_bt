@@ -676,6 +676,7 @@ public class DBTServer01 implements DBTServerTest {
         }
         gattServerListener.close();
         // dbGattServer.close(); // keep alive
+        stopAdvertising(msg); // try once more in case of already started AdapterStatusListener
         BTUtils.println(System.err, "****** Server Close.X: "+msg);
     }
 

@@ -49,9 +49,8 @@ class DBTServerTest : public DBTEndpoint {
             REQUIRE( server->getName() == adapter->getName() );
         }
 
-        static void stop(DBTServerTestRef server, const bool current_exp_advertising_state, const std::string& msg) {
+        static void stop(DBTServerTestRef server, const std::string& msg) {
             BTAdapterRef adapter = server->getAdapter();
-            REQUIRE( current_exp_advertising_state == adapter->isAdvertising() );
             REQUIRE( false == adapter->isDiscovering() );
             REQUIRE( BTRole::Slave == adapter->getRole() ); // kept
 

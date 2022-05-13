@@ -48,9 +48,8 @@ public interface DBTServerTest extends DBTEndpoint {
 
     }
 
-    public static void stop(final DBTServerTest server, final boolean current_exp_advertising_state, final String msg) {
+    public static void stop(final DBTServerTest server, final String msg) {
         final BTAdapter adapter = server.getAdapter();
-        Assert.assertEquals(current_exp_advertising_state, adapter.isAdvertising());
         Assert.assertFalse(adapter.isDiscovering());
         Assert.assertEquals( BTRole.Slave, adapter.getRole() ); // kept
 

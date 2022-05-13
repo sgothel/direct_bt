@@ -608,6 +608,7 @@ class DBTServer00 : public DBTServerTest {
             }
             gattServerListener->close();
             // dbGattServer = nullptr; // keep alive
+            stopAdvertising(msg); // try once more in case of already started AdapterStatusListener
             fprintf_td(stderr, "****** Server Close.X: %s\n", msg.c_str());
         }
 

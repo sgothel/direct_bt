@@ -110,7 +110,7 @@ TEST_CASE( "Server StartStop and SwitchRole Trial 10", "[trial][startstop][switc
     //
     // Server stop
     //
-    DBTServerTest::stop(server, true /* current_exp_advertising_state */, "test10_stop");
+    DBTServerTest::stop(server, "test10_stop");
 
     //
     // Now reuse adapter for client mode -> Start discovery + Stop Discovery

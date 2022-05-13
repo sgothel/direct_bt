@@ -213,8 +213,7 @@ public abstract class DBTClientServer1x extends BaseDBTClientServer {
         //
         // Server stop
         //
-        final boolean current_exp_advertising_state = expSuccess ? false : server.getAdapter().isAdvertising();
-        DBTServerTest.stop(server, current_exp_advertising_state, "test"+suffix+"_stopAdvertising");
+        DBTServerTest.stop(server, "test"+suffix+"_stopAdvertising");
         server.close("test"+suffix+"_close");
 
         if( expSuccess ) {

@@ -122,7 +122,7 @@ public class TestDBTClientServer00 extends BaseDBTClientServer {
         //
         // Server stop
         //
-        DBTServerTest.stop(server, true /* current_exp_advertising_state */, "test10_stopAdvertising");
+        DBTServerTest.stop(server, "test10_stopAdvertising");
         server.close("test10_close");
 
         //
