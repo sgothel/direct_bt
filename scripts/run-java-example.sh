@@ -7,7 +7,7 @@
 # [-log <filename>] Optional argument to define logfile
 # ...               All subsequent arguments are passed to the Direct-BT example
 #
-# See ../scripts/run-dbt_scanner10.sh for details
+# See scripts/scripts/run-native-example.sh for details
 #
 # JAVA_PROPS="-Dorg.direct_bt.debug=true -Dorg.direct_bt.verbose=true"
 #
@@ -18,7 +18,7 @@
 # export direct_bt_debug=adapter.event,hci.event
 # export direct_bt_debug=adapter.event
 #
-# See ../scripts/run-dbt_scanner10.sh for commandline invocation and non-root usage
+# See scripts/scripts/run-native-example.sh for commandline invocation and non-root usage
 #
 
 script_args="$@"
@@ -50,7 +50,7 @@ if [ "$1" = "-log" ] ; then
     logbasename=$2
     shift 2
 else
-    logbasename=~/$bname
+    logbasename=~/${bname}-${archabi}
 fi
 
 logfile=$logbasename.log
@@ -75,9 +75,9 @@ JAVA_EXE=`readlink -f $(which java)`
 # JAVA_CMD="${JAVA_EXE} -Xcheck:jni -verbose:jni"
 JAVA_CMD="${JAVA_EXE}"
 
-# EXE_WRAPPER="valgrind --tool=memcheck --leak-check=full --show-reachable=no --error-limit=no --default-suppressions=yes --suppressions=$sdir/valgrind.supp --gen-suppressions=all -s --log-file=$valgrindlogfile"
-# EXE_WRAPPER="valgrind --tool=helgrind --track-lockorders=yes  --ignore-thread-creation=yes --default-suppressions=yes --suppressions=$sdir/valgrind.supp --gen-suppressions=all -s --log-file=$valgrindlogfile"
-# EXE_WRAPPER="valgrind --tool=drd --segment-merging=no --ignore-thread-creation=yes --trace-barrier=no --trace-cond=no --trace-fork-join=no --trace-mutex=no --trace-rwlock=no --trace-semaphore=no --default-suppressions=yes --suppressions=$sdir/valgrind.supp --gen-suppressions=all -s --log-file=$valgrindlogfile"
+# EXE_WRAPPER="valgrind --tool=memcheck --leak-check=full --show-reachable=no --error-limit=no --default-suppressions=yes --suppressions=$sdir/valgrind.supp --suppressions=$sdir/valgrind-jvm.supp --gen-suppressions=all -s --log-file=$valgrindlogfile"
+# EXE_WRAPPER="valgrind --tool=helgrind --track-lockorders=yes  --ignore-thread-creation=yes --default-suppressions=yes --suppressions=$sdir/valgrind.supp --suppressions=$sdir/valgrind-jvm.supp --gen-suppressions=all -s --log-file=$valgrindlogfile"
+# EXE_WRAPPER="valgrind --tool=drd --segment-merging=no --ignore-thread-creation=yes --trace-barrier=no --trace-cond=no --trace-fork-join=no --trace-mutex=no --trace-rwlock=no --trace-semaphore=no --default-suppressions=yes --suppressions=$sdir/valgrind.supp --suppressions=$sdir/valgrind-jvm.supp --gen-suppressions=all -s --log-file=$valgrindlogfile"
 # EXE_WRAPPER="valgrind --tool=callgrind --instr-atstart=yes --collect-atstart=yes --collect-systime=yes --combine-dumps=yes --separate-threads=no --callgrind-out-file=$callgrindoutfile --log-file=$valgrindlogfile"
 
 runit_root() {

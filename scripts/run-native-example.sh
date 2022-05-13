@@ -103,7 +103,7 @@ if [ "$1" = "-log" ] ; then
     logbasename=$2
     shift 2
 else
-    logbasename=~/$bname
+    logbasename=~/${bname}-${archabi}
 fi
 
 logfile=$logbasename.log
