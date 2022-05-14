@@ -599,7 +599,7 @@ static void processDisconnectedDevice(BTDeviceRef device) {
     device->remove();
     BTDeviceRegistry::removeFromProcessingDevices(device->getAddressAndType());
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(100)); // wait a little (FIXME: Fast restart of advertising error)
+    jau::sleep_for( 100_ms ); // wait a little (FIXME: Fast restart of advertising error)
 
     if( !RUN_ONLY_ONCE ) {
         startAdvertising(&device->getAdapter(), "device-disconnected");
@@ -723,11 +723,11 @@ void test() {
     std::shared_ptr<MyGATTServerListener> listener = std::make_shared<MyGATTServerListener>();
     dbGattServer->addListener( listener );
 
-    BTManager & mngr = BTManager::get();
-    mngr.addChangedAdapterSetCallback(myChangedAdapterSetFunc);
+    std::shared_ptr<BTManager> mngr = BTManager::get();
+    mngr->addChangedAdapterSetCallback(myChangedAdapterSetFunc);
 
     while( !RUN_ONLY_ONCE || 0 == servedConnections ) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+        jau::sleep_for( 2_s );
     }
 
     fprintf_td(stderr, "****** Test Shutdown.01 (DBGattServer.remove-listener)\n");

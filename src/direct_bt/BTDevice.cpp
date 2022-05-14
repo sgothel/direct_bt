@@ -265,8 +265,8 @@ bool BTDevice::removeStatusListener(const AdapterStatusListenerRef& l) noexcept 
 }
 
 std::shared_ptr<ConnectionInfo> BTDevice::getConnectionInfo() noexcept {
-    BTManager & mgmt = adapter.getManager();
-    std::shared_ptr<ConnectionInfo> connInfo = mgmt.getConnectionInfo(adapter.dev_id, addressAndType);
+    const BTManagerRef& mgmt = adapter.getManager();
+    std::shared_ptr<ConnectionInfo> connInfo = mgmt->getConnectionInfo(adapter.dev_id, addressAndType);
     if( nullptr != connInfo ) {
         EIRDataType updateMask = EIRDataType::NONE;
         if( rssi != connInfo->getRSSI() ) {
@@ -1512,7 +1512,7 @@ HCIStatusCode BTDevice::uploadKeys() noexcept {
     }
     const std::unique_lock<std::recursive_mutex> lock_pairing(mtx_pairing); // RAII-style acquire and relinquish via destructor
     if constexpr ( USE_LINUX_BT_SECURITY ) {
-        BTManager & mngr = adapter.getManager();
+        const BTManagerRef& mngr = adapter.getManager();
         HCIStatusCode res = HCIStatusCode::SUCCESS;
 
         jau::darray<SMPLongTermKey> ltks;
@@ -1523,7 +1523,7 @@ HCIStatusCode BTDevice::uploadKeys() noexcept {
             ltks.push_back(pairing_data.ltk_resp);
         }
         if( ltks.size() > 0 ) {
-            res = mngr.uploadLongTermKey(!btRole, adapter.dev_id, addressAndType, ltks);
+            res = mngr->uploadLongTermKey(!btRole, adapter.dev_id, addressAndType, ltks);
             if( jau::environment::get().debug ) {
                 const std::string role_s = BTRole::Slave == btRole ? "Remote slave, master/init" : "Remote master, peripheral/resp";
                 DBG_PRINT("BTDevice::uploadKeys.LTK[%s]: %s", role_s.c_str(), to_string(res).c_str());
@@ -1542,13 +1542,13 @@ HCIStatusCode BTDevice::uploadKeys() noexcept {
         if( BTRole::Slave == btRole ) {
             // Remote device is slave (peripheral, responder), we are master (initiator)
             if( ( SMPKeyType::LINK_KEY & pairing_data.keys_init_has ) != SMPKeyType::NONE ) {
-                res = mngr.uploadLinkKey(adapter.dev_id, addressAndType, pairing_data.lk_init);
+                res = mngr->uploadLinkKey(adapter.dev_id, addressAndType, pairing_data.lk_init);
                 DBG_PRINT("BTDevice::uploadKeys.LK[Remote slave]: %s", to_string(res).c_str());
             }
         } else {
             // Remote device is master (initiator), we are slave (peripheral, responder)
             if( ( SMPKeyType::LINK_KEY & pairing_data.keys_resp_has ) != SMPKeyType::NONE ) {
-                res = mngr.uploadLinkKey(adapter.dev_id, addressAndType, pairing_data.lk_resp);
+                res = mngr->uploadLinkKey(adapter.dev_id, addressAndType, pairing_data.lk_resp);
                 DBG_PRINT("BTDevice::uploadKeys.LK[Remote master]: %s", to_string(res).c_str());
             }
         }
@@ -1732,8 +1732,8 @@ HCIStatusCode BTDevice::setPairingPasskey(const uint32_t passkey) noexcept {
         WARN_PRINT("BTDevice:mgmt:SMP: PASSKEY '%u', state %s, wrong state", passkey, to_string(pairing_data.state).c_str());
     }
     if constexpr ( USE_LINUX_BT_SECURITY ) {
-        BTManager& mngr = adapter.getManager();
-        MgmtStatus res = mngr.userPasskeyReply(adapter.dev_id, addressAndType, passkey);
+        const BTManagerRef& mngr = adapter.getManager();
+        MgmtStatus res = mngr->userPasskeyReply(adapter.dev_id, addressAndType, passkey);
         DBG_PRINT("BTDevice:mgmt:SMP: PASSKEY '%d', state %s, result %s",
             passkey, to_string(pairing_data.state).c_str(), to_string(res).c_str());
         return HCIStatusCode::SUCCESS;
@@ -1753,8 +1753,8 @@ HCIStatusCode BTDevice::setPairingPasskeyNegative() noexcept {
         WARN_PRINT("BTDevice:mgmt:SMP: PASSKEY_NEGATIVE, state %s, wrong state", to_string(pairing_data.state).c_str());
     }
     if constexpr ( USE_LINUX_BT_SECURITY ) {
-        BTManager& mngr = adapter.getManager();
-        MgmtStatus res = mngr.userPasskeyNegativeReply(adapter.dev_id, addressAndType);
+        const BTManagerRef& mngr = adapter.getManager();
+        MgmtStatus res = mngr->userPasskeyNegativeReply(adapter.dev_id, addressAndType);
         DBG_PRINT("BTDevice:mgmt:SMP: PASSKEY NEGATIVE, state %s, result %s",
             to_string(pairing_data.state).c_str(), to_string(res).c_str());
         return HCIStatusCode::SUCCESS;
@@ -1774,8 +1774,8 @@ HCIStatusCode BTDevice::setPairingNumericComparison(const bool positive) noexcep
         WARN_PRINT("BTDevice:mgmt:SMP: CONFIRM '%d', state %s, wrong state", positive, to_string(pairing_data.state).c_str());
     }
     if constexpr ( USE_LINUX_BT_SECURITY ) {
-        BTManager& mngr = adapter.getManager();
-        MgmtStatus res = mngr.userConfirmReply(adapter.dev_id, addressAndType, positive);
+        const BTManagerRef& mngr = adapter.getManager();
+        MgmtStatus res = mngr->userConfirmReply(adapter.dev_id, addressAndType, positive);
         DBG_PRINT("BTDevice:mgmt:SMP: CONFIRM '%d', state %s, result %s",
             positive, to_string(pairing_data.state).c_str(), to_string(res).c_str());
         return HCIStatusCode::SUCCESS;
@@ -2270,7 +2270,8 @@ exit:
 
 HCIStatusCode BTDevice::unpair() noexcept {
     if constexpr ( USE_LINUX_BT_SECURITY ) {
-        const HCIStatusCode res = adapter.getManager().unpairDevice(adapter.dev_id, addressAndType, false /* disconnect */);
+        const BTManagerRef& mngr = adapter.getManager();
+        const HCIStatusCode res = mngr->unpairDevice(adapter.dev_id, addressAndType, false /* disconnect */);
         if( HCIStatusCode::SUCCESS != res && HCIStatusCode::NOT_PAIRED != res ) {
             DBG_PRINT("BTDevice::unpair(): Unpair device failed: %s, %s", to_string(res).c_str(), toString().c_str());
         }

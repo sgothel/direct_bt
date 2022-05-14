@@ -83,9 +83,9 @@ class DBTClientServer1x {
 
         const jau::fraction_timespec t0 = jau::getMonotonicTime();
 
-        BTManager & manager = BTManager::get();
+        std::shared_ptr<BTManager> manager = BTManager::get();
         {
-            jau::darray<BTAdapterRef> adapters = manager.getAdapters();
+            jau::darray<BTAdapterRef> adapters = manager->getAdapters();
             jau::fprintf_td(stderr, "Adapter: Count %u\n", adapters.size());
 
             for(jau::nsize_t i=0; i<adapters.size(); i++) {
@@ -277,7 +277,7 @@ class DBTClientServer1x {
                 DBTEndpoint::stopDiscovery(adapter, true /* current_exp_discovering_state */);
             }
         }
-        const int count = manager.removeChangedAdapterSetCallback(myChangedAdapterSetFunc);
+        const int count = manager->removeChangedAdapterSetCallback(myChangedAdapterSetFunc);
         fprintf_td(stderr, "****** EOL Removed ChangedAdapterSetCallback %d\n", count);
     }
 };

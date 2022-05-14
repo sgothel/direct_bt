@@ -51,6 +51,7 @@ namespace direct_bt {
 
     class BTAdapter; // forward
     class BTManager; // forward
+    typedef std::shared_ptr<BTManager> BTManagerRef;
 
     /**
      * Discovery policy defines the BTAdapter discovery mode after connecting a remote BTDevice:
@@ -317,7 +318,7 @@ namespace direct_bt {
             friend BTManager;
 
             const bool debug_event, debug_lock;
-            BTManager& mgmt;
+            BTManagerRef mgmt;
             std::atomic_bool adapter_operational;
             AdapterInfo adapterInfo;
 
@@ -432,7 +433,7 @@ namespace direct_bt {
             class ctor_cookie { friend BTAdapter; ctor_cookie(const uint16_t secret) { (void)secret; } };
 
             /** Private std::make_shared<BTAdapter>(..) vehicle for friends. */
-            static std::shared_ptr<BTAdapter> make_shared(BTManager& mgmt_, const AdapterInfo& adapterInfo_) {
+            static std::shared_ptr<BTAdapter> make_shared(const BTManagerRef& mgmt_, const AdapterInfo& adapterInfo_) {
                 return std::make_shared<BTAdapter>(BTAdapter::ctor_cookie(0), mgmt_, adapterInfo_);
             }
 
@@ -566,7 +567,7 @@ namespace direct_bt {
         public:
 
             /** Private ctor for private BTAdapter::make_shared() intended for friends. */
-            BTAdapter(const BTAdapter::ctor_cookie& cc, BTManager& mgmt_, const AdapterInfo& adapterInfo_) noexcept;
+            BTAdapter(const BTAdapter::ctor_cookie& cc, const BTManagerRef& mgmt_, const AdapterInfo& adapterInfo_) noexcept;
 
             BTAdapter(const BTAdapter&) = delete;
             void operator=(const BTAdapter&) = delete;
@@ -897,7 +898,7 @@ namespace direct_bt {
             /**
              * Returns a reference to the used singleton BTManager instance, used to create this adapter.
              */
-            BTManager& getManager() const noexcept { return mgmt; }
+            const BTManagerRef& getManager() const noexcept { return mgmt; }
 
             /**
              * Returns a reference to the aggregated HCIHandler instance.

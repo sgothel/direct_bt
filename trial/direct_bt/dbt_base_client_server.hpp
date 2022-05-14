@@ -39,6 +39,8 @@ class BaseDBTClientServer {
     private:
         static constexpr const bool debug = false;
 
+        BTManagerRef manager;
+
         jau::fraction_i64 test_timeout = 0_s;
 
         jau::simple_timer timeout_timer = jau::simple_timer("DBTTrial-Timeout", 1_s /* shutdown timeout */);
@@ -52,7 +54,7 @@ class BaseDBTClientServer {
             return 0_s;
         }
 
-        BaseDBTClientServer() noexcept {
+        BaseDBTClientServer(const bool btmanager_hold_and_close) noexcept {
             if( debug ) {
                 setenv("direct_bt.debug", "true", 1 /* overwrite */);
                 // setenv("direct_bt.debug", "true,gatt.data", 1 /* overwrite */);
@@ -60,26 +62,22 @@ class BaseDBTClientServer {
 
             DBTUtils::rmKeyFolder();
             DBTUtils::mkdirKeyFolder();
+
+            if( btmanager_hold_and_close ) {
+                manager = BTManager::get();
+            }
         }
 
         void close() {
             timeout_timer.stop();
-            BTManager& manager = BTManager::get();
-#if 0
-            jau::darray<BTAdapterRef> adapters = manager.getAdapters();
-            for(BTAdapterRef a : adapters) {
-                a->stopAdvertising();
-                a->stopDiscovery();
-                a->setPowered(false);
+            if( nullptr != manager ) {
+                manager->close();
             }
-#endif
-            // All implicit via destructor or shutdown hook!
-            manager.close(); /* implies: adapter.close(); */
         }
 
     public:
-        static BaseDBTClientServer& get() {
-            static BaseDBTClientServer s;
+        static BaseDBTClientServer& get(const bool btmanager_hold_and_close = true) {
+            static BaseDBTClientServer s(btmanager_hold_and_close);
             return s;
         }
 
@@ -101,8 +99,8 @@ class BaseDBTClientServer {
         void setupTest(const jau::fraction_i64 timeout = 0_s) {
             timeout_timer.stop();
             test_timeout = timeout;
-            BTManager& manager = BTManager::get();
-            jau::darray<BTAdapterRef> adapters = manager.getAdapters();
+            std::shared_ptr<BTManager> mngr = BTManager::get();
+            jau::darray<BTAdapterRef> adapters = mngr->getAdapters();
             for(BTAdapterRef a : adapters) {
                 a->stopAdvertising();
                 a->stopDiscovery();
@@ -127,8 +125,8 @@ class BaseDBTClientServer {
         void cleanupTest() {
             timeout_timer.stop();
             test_timeout = 0_s;
-            BTManager& manager = BTManager::get();
-            jau::darray<BTAdapterRef> adapters = manager.getAdapters();
+            std::shared_ptr<BTManager> mngr = BTManager::get();
+            jau::darray<BTAdapterRef> adapters = mngr->getAdapters();
             for(BTAdapterRef a : adapters) {
                 { // if( false ) {
                     a->removeAllStatusListener();
@@ -141,6 +139,11 @@ class BaseDBTClientServer {
             BTDeviceRegistry::clearProcessedDevices();
             BTDeviceRegistry::clearProcessingDevices();
             BTSecurityRegistry::clear();
+        }
+
+        void closeBTManager() {
+            std::shared_ptr<BTManager> mngr = BTManager::get();
+            mngr->close();
         }
 };
 

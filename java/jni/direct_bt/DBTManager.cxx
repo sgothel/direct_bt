@@ -109,33 +109,28 @@ static void _addMgmtCBOnce(JNIEnv *env, BTManager & mgmt, JNIGlobalRef jmgmtRef,
     }
 }
 
-// special NOP deleted for shared_ptr<BTManager>: static singleton
-static void nodelete_BTManager(BTManager* p) { (void)p; }
-
-void Java_jau_direct_1bt_DBTManager_initImpl(JNIEnv *env, jobject obj)
+jlong Java_jau_direct_1bt_DBTManager_ctorImpl(JNIEnv *env, jobject obj)
 {
     try {
-        std::shared_ptr<BTManager> manager( &BTManager::get(), nodelete_BTManager ); // special: static singleton
+        jau::shared_ptr_ref<BTManager> ref( BTManager::get() );
         jau::JNIGlobalRef global_obj(obj); // lock instance first (global reference), inserted below
-        {
-            jau::shared_ptr_ref<BTManager> ref( manager );
-            ref.release_into_object(env, global_obj.getObject());
-        }
         java_exception_check_and_throw(env, E_FILE_LINE);
-        manager->setJavaObject( std::make_shared<jau::JavaGlobalObj>( std::move(global_obj), nullptr ) );
-        JavaGlobalObj::check(manager->getJavaObject(), E_FILE_LINE);
+        ref->setJavaObject( std::make_shared<jau::JavaGlobalObj>( std::move(global_obj), nullptr ) );
+        JavaGlobalObj::check(ref->getJavaObject(), E_FILE_LINE);
 
-        jau::JNIGlobalRef jmgmtRef = JavaGlobalObj::GetJavaObject(manager->getJavaObject());
-        _addMgmtCBOnce(env, *manager, jmgmtRef, MgmtEvent::Opcode::INDEX_REMOVED, _removeAdapterCBMethodName, _removeAdapterCBMethodArgs);
-        _addMgmtCBOnce(env, *manager, jmgmtRef, MgmtEvent::Opcode::INDEX_ADDED, _updatedAdapterCBMethodName, _updatedAdapterCBMethodArgs);
-        _addMgmtCBOnce(env, *manager, jmgmtRef, MgmtEvent::Opcode::NEW_SETTINGS, _updatedAdapterCBMethodName, _updatedAdapterCBMethodArgs);
-        DBG_PRINT("Java_jau_direct_1bt_DBTManager_init: Manager %s", manager->toString().c_str());
+        jau::JNIGlobalRef jmgmtRef = JavaGlobalObj::GetJavaObject(ref->getJavaObject());
+        _addMgmtCBOnce(env, *ref, jmgmtRef, MgmtEvent::Opcode::INDEX_REMOVED, _removeAdapterCBMethodName, _removeAdapterCBMethodArgs);
+        _addMgmtCBOnce(env, *ref, jmgmtRef, MgmtEvent::Opcode::INDEX_ADDED, _updatedAdapterCBMethodName, _updatedAdapterCBMethodArgs);
+        _addMgmtCBOnce(env, *ref, jmgmtRef, MgmtEvent::Opcode::NEW_SETTINGS, _updatedAdapterCBMethodName, _updatedAdapterCBMethodArgs);
+        DBG_PRINT("Java_jau_direct_1bt_DBTManager_init: Manager %s", ref->toString().c_str());
+        return ref.release_to_jlong();
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
+    return (jlong) (intptr_t)nullptr;
 }
 
-void Java_jau_direct_1bt_DBTManager_deleteImpl(JNIEnv *env, jobject obj, jlong nativeInstance)
+void Java_jau_direct_1bt_DBTManager_dtorImpl(JNIEnv *env, jobject obj, jlong nativeInstance)
 {
     (void)obj;
     try {
@@ -145,9 +140,10 @@ void Java_jau_direct_1bt_DBTManager_deleteImpl(JNIEnv *env, jobject obj, jlong n
                 jau::JavaAnonRef manager_java = manager->getJavaObject(); // hold until done!
                 jau::JavaGlobalObj::check(manager_java, E_FILE_LINE);
                 manager->setJavaObject();
+                manager->close();
             }
-            std::shared_ptr<BTManager>* ref_ptr = jau::castInstance<BTManager>(nativeInstance); // special: static singleton
-            delete ref_ptr; // will leave singleton BTManager instance untouched -> nodelete_BTManager()
+            std::shared_ptr<BTManager>* ref_ptr = jau::castInstance<BTManager>(nativeInstance);
+            delete ref_ptr;
         }
     } catch(...) {
         rethrow_and_raise_java_exception(env);

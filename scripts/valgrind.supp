@@ -554,3 +554,43 @@
    ...
 }
 
+#
+# Memcheck:Leak
+#
+
+# ==672244== 304 bytes in 1 blocks are possibly lost in loss record 1 of 1
+# ==672244==    at 0x483AB65: calloc (vg_replace_malloc.c:760)
+# ==672244==    by 0x4012D16: allocate_dtv (dl-tls.c:343)
+# ==672244==    by 0x4012D16: _dl_allocate_tls (dl-tls.c:589)
+# ==672244==    by 0x5051B81: allocate_stack (allocatestack.c:622)
+# ==672244==    by 0x5051B81: pthread_create@@GLIBC_2.2.5 (pthread_create.c:660)
+# ==672244==    by 0x4DEA144: std::thread::_M_start_thread(std::unique_ptr<std::thread::_State, std::default_delete<std::thread::_State> >, void (*)()) (in /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28)
+# ==672244==    by 0x4ABD4B0: std::thread::thread<void (jau::service_runner::*)(), jau::service_runner*, void>(void (jau::service_runner::*&&)(), jau::service_runner*&&) (thread:149)
+# ==672244==    by 0x4ABBD88: jau::service_runner::start() (service_runner.cpp:164)
+# ==672244==    by 0x4B67FE7: direct_bt::BTManager::initialize(std::shared_ptr<direct_bt::BTManager> const&) (BTManager.cpp:385)
+# ==672244==    by 0x43A753: direct_bt::BTManager::make_shared() (BTManager.hpp:287)
+# ==672244==    by 0x43A7BA: direct_bt::BTManager::get() (BTManager.hpp:335)
+# ==672244==    by 0x43CB6F: BaseDBTClientServer::BaseDBTClientServer(bool) (dbt_base_client_server.hpp:67)
+# ==672244==    by 0x43CC4B: BaseDBTClientServer::get(bool) (dbt_base_client_server.hpp:80)
+# ==672244==    by 0x4320FB: __static_initialization_and_destruction_0(int, int) (dbt_client_server1x.hpp:38)
+# ==672244==    by 0x43241E: _GLOBAL__sub_I_catch_auto_run (test_client_server10_NoEnc.cpp:75)
+# ==672244==    by 0x55C024: __libc_csu_init (in /usr/local/projects/zafena/direct_bt/build-amd64/trial/direct_bt/test_client_server10_NoEnc)
+# ==672244==    by 0x5090C99: (below main) (libc-start.c:264)
+# ==672244==
+# 
+{
+   direct_bt_btmanager_01_thread
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:calloc
+   ...
+   fun:pthread_create*
+   fun:_ZNSt6thread15_M_start_threadESt10unique_ptrINS_6_StateESt14default_deleteIS1_EEPFvvE
+   fun:_ZNSt6threadC1IMN3jau14service_runnerEFvvEJPS2_EvEEOT_DpOT0_
+   fun:_ZN3jau14service_runner5startEv
+   fun:_ZN9direct_bt9BTManager10initializeERKSt10shared_ptrIS0_E
+   fun:_ZN9direct_bt9BTManager11make_sharedEv
+   fun:_ZN9direct_bt9BTManager3getEv
+   ...
+}
+

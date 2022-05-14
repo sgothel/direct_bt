@@ -378,7 +378,9 @@ BTManager::BTManager() noexcept
         ERR_PRINT("BTManager::open: Could not open mgmt control channel");
         return;
     }
+}
 
+bool BTManager::initialize(const std::shared_ptr<BTManager>& self) noexcept {
     comm.set_interrupted_query( jau::bindMemberFunc(&mgmt_reader_service, &jau::service_runner::shall_stop2) );
     mgmt_reader_service.start();
 
@@ -453,7 +455,7 @@ next1:
             const uint16_t dev_id = jau::get_uint16(data, 2+i*2, true /* littleEndian */);
             std::unique_ptr<AdapterInfo> adapterInfo = readAdapterInfo(dev_id);
             if( nullptr != adapterInfo ) {
-                std::shared_ptr<BTAdapter> adapter = BTAdapter::make_shared(*this, *adapterInfo);
+                std::shared_ptr<BTAdapter> adapter = BTAdapter::make_shared(self, *adapterInfo);
                 adapters.push_back( adapter );
                 adapterIOCapability.push_back(BTManager::defaultIOCapability);
                 DBG_PRINT("BTManager::adapters %d/%d: dev_id %d: %s", i, num_adapter, dev_id, adapter->toString().c_str());
@@ -494,13 +496,13 @@ next1:
     }
     PERF_TS_TD("BTManager::ctor.ok");
     DBG_PRINT("BTManager::ctor: OK");
-    return;
+    return true;
 
 fail:
     close();
     PERF_TS_TD("BTManager::ctor.fail");
     DBG_PRINT("BTManager::ctor: FAIL");
-    return;
+    return false;
 }
 
 BTManager::~BTManager() noexcept {
@@ -514,13 +516,7 @@ void BTManager::close() noexcept {
     if( !allowClose.compare_exchange_strong(expConn, false) ) {
         // not open
         const bool mgmt_service_stopped = mgmt_reader_service.join(); // [data] race: wait until disconnecting thread has stopped service
-        comm.close();
         DBG_PRINT("BTManager::close: Not open: stopped %d, %s", mgmt_service_stopped, toString().c_str());
-        whitelist.clear();
-        clearAllCallbacks();
-        adapters.clear();
-        adapterIOCapability.clear();
-        comm.close();
         return;
     }
     PERF3_TS_T0();
@@ -584,7 +580,7 @@ std::shared_ptr<BTAdapter> BTManager::addAdapter(const AdapterInfo& ai ) noexcep
     }
     if( it.is_end() ) {
         // new entry
-        std::shared_ptr<BTAdapter> adapter = BTAdapter::make_shared(*this, ai);
+        std::shared_ptr<BTAdapter> adapter = BTAdapter::make_shared(BTManager::get(), ai);
         it.push_back( adapter );
         adapterIOCapability.push_back(BTManager::defaultIOCapability);
         DBG_PRINT("BTManager::addAdapter: Adding new: %s", adapter->toString().c_str())

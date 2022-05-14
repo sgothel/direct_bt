@@ -277,7 +277,7 @@ bool BTAdapter::updateDataFromAdapterInfo() noexcept {
 }
 
 bool BTAdapter::initialSetup() noexcept {
-    if( !mgmt.isOpen() ) {
+    if( !mgmt->isOpen() ) {
         ERR_PRINT("Adapter[%d]: Manager not open", dev_id);
         return false;
     }
@@ -310,7 +310,7 @@ bool BTAdapter::initialSetup() noexcept {
 
 bool BTAdapter::enableListening(const bool enable) noexcept {
     if( enable ) {
-        if( !mgmt.isOpen() ) {
+        if( !mgmt->isOpen() ) {
             ERR_PRINT("Adapter[%d]: Manager not open", dev_id);
             return false;
         }
@@ -320,21 +320,21 @@ bool BTAdapter::enableListening(const bool enable) noexcept {
         }
 
         // just be sure ..
-        mgmt.removeMgmtEventCallback(dev_id);
+        mgmt->removeMgmtEventCallback(dev_id);
         hci.clearAllCallbacks();
 
         bool ok = true;
-        ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::DISCOVERING, jau::bindMemberFunc(this, &BTAdapter::mgmtEvDeviceDiscoveringMgmt)) && ok;
-        ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::NEW_SETTINGS, jau::bindMemberFunc(this, &BTAdapter::mgmtEvNewSettingsMgmt)) && ok;
-        ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::LOCAL_NAME_CHANGED, jau::bindMemberFunc(this, &BTAdapter::mgmtEvLocalNameChangedMgmt)) && ok;
-        ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::PIN_CODE_REQUEST, jau::bindMemberFunc(this, &BTAdapter::mgmtEvPinCodeRequestMgmt));
-        ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::USER_CONFIRM_REQUEST, jau::bindMemberFunc(this, &BTAdapter::mgmtEvUserConfirmRequestMgmt));
-        ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::USER_PASSKEY_REQUEST, jau::bindMemberFunc(this, &BTAdapter::mgmtEvUserPasskeyRequestMgmt));
-        ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::AUTH_FAILED, jau::bindMemberFunc(this, &BTAdapter::mgmtEvAuthFailedMgmt));
-        ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::DEVICE_UNPAIRED, jau::bindMemberFunc(this, &BTAdapter::mgmtEvDeviceUnpairedMgmt));
-        ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::PAIR_DEVICE_COMPLETE, jau::bindMemberFunc(this, &BTAdapter::mgmtEvPairDeviceCompleteMgmt));
-        ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::NEW_LONG_TERM_KEY, jau::bindMemberFunc(this, &BTAdapter::mgmtEvNewLongTermKeyMgmt));
-        ok = mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::NEW_LINK_KEY, jau::bindMemberFunc(this, &BTAdapter::mgmtEvNewLinkKeyMgmt));
+        ok = mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::DISCOVERING, jau::bindMemberFunc(this, &BTAdapter::mgmtEvDeviceDiscoveringMgmt)) && ok;
+        ok = mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::NEW_SETTINGS, jau::bindMemberFunc(this, &BTAdapter::mgmtEvNewSettingsMgmt)) && ok;
+        ok = mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::LOCAL_NAME_CHANGED, jau::bindMemberFunc(this, &BTAdapter::mgmtEvLocalNameChangedMgmt)) && ok;
+        ok = mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::PIN_CODE_REQUEST, jau::bindMemberFunc(this, &BTAdapter::mgmtEvPinCodeRequestMgmt));
+        ok = mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::USER_CONFIRM_REQUEST, jau::bindMemberFunc(this, &BTAdapter::mgmtEvUserConfirmRequestMgmt));
+        ok = mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::USER_PASSKEY_REQUEST, jau::bindMemberFunc(this, &BTAdapter::mgmtEvUserPasskeyRequestMgmt));
+        ok = mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::AUTH_FAILED, jau::bindMemberFunc(this, &BTAdapter::mgmtEvAuthFailedMgmt));
+        ok = mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::DEVICE_UNPAIRED, jau::bindMemberFunc(this, &BTAdapter::mgmtEvDeviceUnpairedMgmt));
+        ok = mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::PAIR_DEVICE_COMPLETE, jau::bindMemberFunc(this, &BTAdapter::mgmtEvPairDeviceCompleteMgmt));
+        ok = mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::NEW_LONG_TERM_KEY, jau::bindMemberFunc(this, &BTAdapter::mgmtEvNewLongTermKeyMgmt));
+        ok = mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::NEW_LINK_KEY, jau::bindMemberFunc(this, &BTAdapter::mgmtEvNewLinkKeyMgmt));
 
         if( !ok ) {
             ERR_PRINT("Could not add all required MgmtEventCallbacks to DBTManager: %s", toString().c_str());
@@ -342,7 +342,7 @@ bool BTAdapter::enableListening(const bool enable) noexcept {
         }
 
     #if 0
-        mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::DEVICE_DISCONNECTED, bindMemberFunc(this, &BTAdapter::mgmtEvDeviceDisconnectedMgmt));
+        mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::DEVICE_DISCONNECTED, bindMemberFunc(this, &BTAdapter::mgmtEvDeviceDisconnectedMgmt));
     #endif
 
         ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::DISCOVERING, jau::bindMemberFunc(this, &BTAdapter::mgmtEvDeviceDiscoveringHCI)) && ok;
@@ -367,7 +367,7 @@ bool BTAdapter::enableListening(const bool enable) noexcept {
         }
         hci.addSMPMsgCallback(jau::bindMemberFunc(this, &BTAdapter::hciSMPMsgCallback));
     } else {
-        mgmt.removeMgmtEventCallback(dev_id);
+        mgmt->removeMgmtEventCallback(dev_id);
         hci.clearAllCallbacks();
     }
     WORDY_PRINT("BTAdapter::enableListening: Adapter[%d]: Done: %s - %s", dev_id, adapterInfo.toString().c_str(), toString().c_str());
@@ -375,7 +375,7 @@ bool BTAdapter::enableListening(const bool enable) noexcept {
     return true;
 }
 
-BTAdapter::BTAdapter(const BTAdapter::ctor_cookie& cc, BTManager& mgmt_, const AdapterInfo& adapterInfo_) noexcept
+BTAdapter::BTAdapter(const BTAdapter::ctor_cookie& cc, const BTManagerRef& mgmt_, const AdapterInfo& adapterInfo_) noexcept
 : debug_event(jau::environment::getBooleanProperty("direct_bt.debug.adapter.event", false)),
   debug_lock(jau::environment::getBooleanProperty("direct_bt.debug.adapter.lock", false)),
   mgmt( mgmt_ ),
@@ -410,14 +410,14 @@ BTAdapter::~BTAdapter() noexcept {
     if( !isValid() ) {
         DBG_PRINT("BTAdapter::dtor: dev_id %d, invalid, %p", dev_id, this);
         smp_watchdog.stop();
-        mgmt.removeAdapter(this); // remove this instance from manager
+        mgmt->removeAdapter(this); // remove this instance from manager
         hci.clearAllCallbacks();
         return;
     }
     DBG_PRINT("BTAdapter::dtor: ... %p %s", this, toString().c_str());
     close();
 
-    mgmt.removeAdapter(this); // remove this instance from manager
+    mgmt->removeAdapter(this); // remove this instance from manager
 
     DBG_PRINT("BTAdapter::dtor: XXX");
 }
@@ -434,7 +434,7 @@ void BTAdapter::close() noexcept {
 
     // mute all listener first
     {
-        int count = mgmt.removeMgmtEventCallback(dev_id);
+        int count = mgmt->removeMgmtEventCallback(dev_id);
         DBG_PRINT("BTAdapter::close removeMgmtEventCallback: %d callbacks", count);
     }
     hci.clearAllCallbacks();
@@ -592,7 +592,7 @@ HCIStatusCode BTAdapter::setName(const std::string &name, const std::string &sho
     if( isAdapterSettingBitSet(adapterInfo.getCurrentSettingMask(), AdapterSetting::POWERED) ) {
         return HCIStatusCode::COMMAND_DISALLOWED;
     }
-    std::shared_ptr<NameAndShortName> res = mgmt.setLocalName(dev_id, name, short_name);
+    std::shared_ptr<NameAndShortName> res = mgmt->setLocalName(dev_id, name, short_name);
     return nullptr != res ? HCIStatusCode::SUCCESS : HCIStatusCode::FAILED;
 }
 
@@ -602,7 +602,7 @@ bool BTAdapter::setPowered(const bool power_on) noexcept {
         // unchanged
         return true;
     }
-    if( !mgmt.setMode(dev_id, MgmtCommand::Opcode::SET_POWERED, power_on ? 1 : 0, settings) ) {
+    if( !mgmt->setMode(dev_id, MgmtCommand::Opcode::SET_POWERED, power_on ? 1 : 0, settings) ) {
         return false;
     }
     const AdapterSetting new_settings = adapterInfo.setCurrentSettingMask(settings);
@@ -619,7 +619,7 @@ HCIStatusCode BTAdapter::setSecureConnections(const bool enable) noexcept {
         // unchanged
         return HCIStatusCode::SUCCESS;
     }
-    if( !mgmt.setMode(dev_id, MgmtCommand::Opcode::SET_SECURE_CONN, enable ? 1 : 0, settings) ) {
+    if( !mgmt->setMode(dev_id, MgmtCommand::Opcode::SET_SECURE_CONN, enable ? 1 : 0, settings) ) {
         return HCIStatusCode::FAILED;
     }
     const AdapterSetting new_settings = adapterInfo.setCurrentSettingMask(settings);
@@ -632,7 +632,7 @@ HCIStatusCode BTAdapter::setDefaultConnParam(const uint16_t conn_interval_min, c
     if( isAdapterSettingBitSet(adapterInfo.getCurrentSettingMask(), AdapterSetting::POWERED) ) {
         return HCIStatusCode::COMMAND_DISALLOWED;
     }
-    const bool res = mgmt.setDefaultConnParam(dev_id, conn_interval_min, conn_interval_max, conn_latency, supervision_timeout);
+    const bool res = mgmt->setDefaultConnParam(dev_id, conn_interval_min, conn_interval_max, conn_latency, supervision_timeout);
     return res ? HCIStatusCode::SUCCESS : HCIStatusCode::FAILED;
 }
 
@@ -673,8 +673,7 @@ HCIStatusCode BTAdapter::uploadKeys(SMPKeyBin& bin, const bool write) noexcept {
     addSharedDevice(device);
 
     HCIStatusCode res;
-    BTManager & mngr = getManager();
-    res = mngr.unpairDevice(dev_id, bin.getRemoteAddrAndType(), false /* disconnect */);
+    res = mgmt->unpairDevice(dev_id, bin.getRemoteAddrAndType(), false /* disconnect */);
     if( HCIStatusCode::SUCCESS != res && HCIStatusCode::NOT_PAIRED != res ) {
         ERR_PRINT("(dev_id %d): Unpair device failed %s of %s: %s",
                 dev_id, to_string(res).c_str(), bin.getRemoteAddrAndType().toString().c_str(),
@@ -702,7 +701,7 @@ HCIStatusCode BTAdapter::initialize(const BTMode btMode) noexcept {
     adapter_initialized = true;
 
     // Also fails if unable to power-on and not powered-on!
-    HCIStatusCode status = mgmt.initializeAdapter(adapterInfo, dev_id, BTRole::None /* unused */, btMode);
+    HCIStatusCode status = mgmt->initializeAdapter(adapterInfo, dev_id, BTRole::None /* unused */, btMode);
     if( HCIStatusCode::SUCCESS != status ) {
         WARN_PRINT("Adapter[%d]: Failed initializing (1): res0 %s, powered[before %d, now %d], %s - %s",
                 dev_id, to_string(status).c_str(),
@@ -762,7 +761,7 @@ bool BTAdapter::lockConnect(const BTDevice & device, const bool wait, const SMPI
     if( SMPIOCapability::UNSET != io_cap ) {
         if constexpr ( USE_LINUX_BT_SECURITY ) {
             SMPIOCapability pre_io_cap { SMPIOCapability::UNSET };
-            const bool res_iocap = mgmt.setIOCapability(dev_id, io_cap, pre_io_cap);
+            const bool res_iocap = mgmt->setIOCapability(dev_id, io_cap, pre_io_cap);
             if( res_iocap ) {
                 iocap_defaultval  = pre_io_cap;
                 COND_PRINT(debug_lock, "BTAdapter::lockConnect: Success: New lock, setIOCapability[%s -> %s], %s",
@@ -798,7 +797,7 @@ bool BTAdapter::unlockConnect(const BTDevice & device) noexcept {
         if( USE_LINUX_BT_SECURITY && SMPIOCapability::UNSET != v ) {
             // Unreachable: !USE_LINUX_BT_SECURITY
             SMPIOCapability o;
-            const bool res = mgmt.setIOCapability(dev_id, v, o);
+            const bool res = mgmt->setIOCapability(dev_id, v, o);
             COND_PRINT(debug_lock, "BTAdapter::unlockConnect: Success: setIOCapability[res %d: %s -> %s], %s",
                 res, to_string(o).c_str(), to_string(v).c_str(),
                 single_conn_device_ptr->toString().c_str());
@@ -830,7 +829,7 @@ bool BTAdapter::unlockConnectAny() noexcept {
         if( USE_LINUX_BT_SECURITY && SMPIOCapability::UNSET != v ) {
             // Unreachable: !USE_LINUX_BT_SECURITY
             SMPIOCapability o;
-            const bool res = mgmt.setIOCapability(dev_id, v, o);
+            const bool res = mgmt->setIOCapability(dev_id, v, o);
             COND_PRINT(debug_lock, "BTAdapter::unlockConnectAny: Success: setIOCapability[res %d: %s -> %s]; %s",
                 res, to_string(o).c_str(), to_string(v).c_str(),
                 single_conn_device_ptr->toString().c_str());
@@ -888,7 +887,7 @@ HCIStatusCode BTAdapter::setDefaultLE_PHY(const LE_PHYs Tx, const LE_PHYs Rx) no
 }
 
 bool BTAdapter::isDeviceWhitelisted(const BDAddressAndType & addressAndType) noexcept {
-    return mgmt.isDeviceWhitelisted(dev_id, addressAndType);
+    return mgmt->isDeviceWhitelisted(dev_id, addressAndType);
 }
 
 bool BTAdapter::addDeviceToWhitelist(const BDAddressAndType & addressAndType, const HCIWhitelistConnectType ctype,
@@ -898,20 +897,20 @@ bool BTAdapter::addDeviceToWhitelist(const BDAddressAndType & addressAndType, co
         poweredOff(false /* active */);
         return false;
     }
-    if( mgmt.isDeviceWhitelisted(dev_id, addressAndType) ) {
+    if( mgmt->isDeviceWhitelisted(dev_id, addressAndType) ) {
         ERR_PRINT("device already listed: dev_id %d, address%s", dev_id, addressAndType.toString().c_str());
         return true;
     }
 
-    if( !mgmt.uploadConnParam(dev_id, addressAndType, conn_interval_min, conn_interval_max, conn_latency, timeout) ) {
+    if( !mgmt->uploadConnParam(dev_id, addressAndType, conn_interval_min, conn_interval_max, conn_latency, timeout) ) {
         ERR_PRINT("uploadConnParam(dev_id %d, address%s, interval[%u..%u], latency %u, timeout %u): Failed",
                 dev_id, addressAndType.toString().c_str(), conn_interval_min, conn_interval_max, conn_latency, timeout);
     }
-    return mgmt.addDeviceToWhitelist(dev_id, addressAndType, ctype);
+    return mgmt->addDeviceToWhitelist(dev_id, addressAndType, ctype);
 }
 
 bool BTAdapter::removeDeviceFromWhitelist(const BDAddressAndType & addressAndType) {
-    return mgmt.removeDeviceFromWhitelist(dev_id, addressAndType);
+    return mgmt->removeDeviceFromWhitelist(dev_id, addressAndType);
 }
 
 BTAdapter::statusListenerList_t::equal_comparator BTAdapter::adapterStatusListenerRefEqComparator =
@@ -1457,7 +1456,7 @@ HCIStatusCode BTAdapter::startAdvertising(DBGattServerRef gattServerData_,
         return HCIStatusCode::COMMAND_DISALLOWED;
     }
     if( jau::environment::get().debug ) {
-        std::vector<MgmtDefaultParam> params = mgmt.readDefaultSysParam(dev_id);
+        std::vector<MgmtDefaultParam> params = mgmt->readDefaultSysParam(dev_id);
         DBG_PRINT("BTAdapter::startAdvertising[%d]: SysParam: %zd", dev_id, params.size());
         for(size_t i=0; i<params.size(); ++i) {
             jau::PLAIN_PRINT(true, "[%2.2zd]: %s", i, params[i].toString().c_str());
@@ -1465,7 +1464,7 @@ HCIStatusCode BTAdapter::startAdvertising(DBGattServerRef gattServerData_,
     }
     if constexpr ( USE_LINUX_BT_SECURITY ) {
         SMPIOCapability pre_io_cap { SMPIOCapability::UNSET };
-        const bool res_iocap = mgmt.setIOCapability(dev_id, SMPIOCapability::NO_INPUT_NO_OUTPUT, pre_io_cap);
+        const bool res_iocap = mgmt->setIOCapability(dev_id, SMPIOCapability::NO_INPUT_NO_OUTPUT, pre_io_cap);
         DBG_PRINT("BTAdapter::startAdvertising: dev_id %u, setIOCapability[%s -> %s]: result %d",
             dev_id, to_string(pre_io_cap).c_str(), to_string(SMPIOCapability::NO_INPUT_NO_OUTPUT).c_str(), res_iocap);
     }
@@ -1564,7 +1563,7 @@ std::string BTAdapter::toString(bool includeDiscoveredDevices) const noexcept {
                     ", valid "+std::to_string(isValid())+
                     ", adv "+std::to_string(hci.isAdvertising())+
                     ", scanType[native "+to_string(hci.getCurrentScanType())+", meta "+to_string(currentMetaScanType)+"]"
-                    ", open[mgmt, "+std::to_string(mgmt.isOpen())+", hci "+std::to_string(hci.isOpen())+
+                    ", open[mgmt, "+std::to_string(mgmt->isOpen())+", hci "+std::to_string(hci.isOpen())+
                     "], "+l2cap_att_srv.toString()+", "+javaObjectToString()+"]");
     if( includeDiscoveredDevices ) {
         device_list_t devices = getDiscoveredDevices();
@@ -1959,7 +1958,7 @@ bool BTAdapter::mgmtEvDeviceConnectedHCI(const MgmtEvent& e) noexcept {
          */
         if( !has_smp_keys ) {
             // No pre-pairing -> unpair
-            HCIStatusCode  res = mgmt.unpairDevice(dev_id, device->getAddressAndType(), false /* disconnect */);
+            HCIStatusCode  res = mgmt->unpairDevice(dev_id, device->getAddressAndType(), false /* disconnect */);
             if( HCIStatusCode::SUCCESS != res && HCIStatusCode::NOT_PAIRED != res ) {
                 WARN_PRINT("(dev_id %d, new_connect %d): Unpair device failed %s of %s",
                         dev_id, new_connect, to_string(res).c_str(), device->getAddressAndType().toString().c_str());
@@ -1967,7 +1966,7 @@ bool BTAdapter::mgmtEvDeviceConnectedHCI(const MgmtEvent& e) noexcept {
         }
     }
 
-    const SMPIOCapability io_cap_conn = mgmt.getIOCapability(dev_id);
+    const SMPIOCapability io_cap_conn = mgmt->getIOCapability(dev_id);
 
     EIRDataType updateMask = device->update(ad_report);
     if( 0 == new_connect ) {
@@ -2386,7 +2385,7 @@ bool BTAdapter::mgmtEvDeviceFoundHCI(const MgmtEvent& e) noexcept {
                     dev_id, dev_shared->getAddressAndType().toString().c_str(), eir->toString().c_str());
 
             {
-                const HCIStatusCode res = mgmt.unpairDevice(dev_id, dev_shared->getAddressAndType(), false /* disconnect */);
+                const HCIStatusCode res = mgmt->unpairDevice(dev_id, dev_shared->getAddressAndType(), false /* disconnect */);
                 if( HCIStatusCode::SUCCESS != res && HCIStatusCode::NOT_PAIRED != res ) {
                     WARN_PRINT("(dev_id %d): Unpair device failed %s of %s",
                             dev_id, to_string(res).c_str(), dev_shared->getAddressAndType().toString().c_str());

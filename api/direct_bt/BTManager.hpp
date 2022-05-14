@@ -280,11 +280,16 @@ namespace direct_bt {
              * Instantiate singleton.
              */
             BTManager() noexcept;
+            bool initialize(const std::shared_ptr<BTManager>& self) noexcept;
+
+            static const std::shared_ptr<BTManager> make_shared() noexcept {
+                std::shared_ptr<BTManager> s( new BTManager() );
+                s->initialize(s);
+                return s;
+            }
 
             BTManager(const BTManager&) = delete;
             void operator=(const BTManager&) = delete;
-
-            ~BTManager() noexcept override;
 
             std::unique_ptr<AdapterInfo> readAdapterInfo(const uint16_t dev_id) noexcept;
 
@@ -316,7 +321,7 @@ namespace direct_bt {
              * </p>
              * @return singleton instance.
              */
-            static BTManager& get() {
+            static const std::shared_ptr<BTManager>& get() noexcept {
                 /**
                  * Thread safe starting with C++11 6.7:
                  *
@@ -327,9 +332,11 @@ namespace direct_bt {
                  *
                  * Avoiding non-working double checked locking.
                  */
-                static BTManager s;
+                static std::shared_ptr<BTManager> s = make_shared();
                 return s;
             }
+
+            ~BTManager() noexcept override;
 
             void close() noexcept;
 
@@ -557,6 +564,7 @@ namespace direct_bt {
              */
             int removeChangedAdapterSetCallback(ChangedAdapterSetFunc f);
     };
+    typedef std::shared_ptr<BTManager> BTManagerRef;
 
 } // namespace direct_bt
 

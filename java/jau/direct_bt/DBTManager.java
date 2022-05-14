@@ -279,11 +279,11 @@ public class DBTManager implements BTManager
         }
     }
 
-    private native void initImpl() throws BTException;
-    private native void deleteImpl(long nativeInstance);
+    private native long ctorImpl() throws BTException;
+    private native void dtorImpl(long nativeInstance);
     private DBTManager()
     {
-        initImpl();
+        nativeInstance = ctorImpl();
         try {
             adapters.addAll(getAdapterListImpl());
         } catch (final BTException be) {
@@ -314,6 +314,14 @@ public class DBTManager implements BTManager
             a.close();
         }
         adapters.clear();
-        deleteImpl(nativeInstance);
+
+        final long handle;
+        synchronized( this ) {
+            handle = nativeInstance;
+            nativeInstance = 0;
+        }
+        if( 0 != handle ) {
+            dtorImpl(handle);
+        }
     }
 }

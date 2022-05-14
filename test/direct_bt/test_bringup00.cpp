@@ -48,9 +48,9 @@ TEST_CASE( "BTManager Bringup Test 00", "[test][BTManager][bringup]" ) {
     }
     jau::fprintf_td(stderr, "Direct-BT Native Version %s (API %s)\n", DIRECT_BT_VERSION, DIRECT_BT_VERSION_API);
 
-    BTManager & manager = BTManager::get();
+    BTManagerRef manager = BTManager::get();
 
-    jau::darray<BTAdapterRef> adapters = manager.getAdapters();
+    jau::darray<BTAdapterRef> adapters = manager->getAdapters();
     jau::fprintf_td(stderr, "Adapter: Count %u\n", adapters.size());
 
     for(jau::nsize_t i=0; i<adapters.size(); i++) {
@@ -64,7 +64,7 @@ TEST_CASE( "BTManager Bringup Test 00", "[test][BTManager][bringup]" ) {
         REQUIRE( 4 <= a->getBTMajorVersion() );
     }
     jau::fprintf_td(stderr, "Manager: Closing\n");
-    manager.close(); /* implies: adapter.close(); */
+    manager->close(); /* implies: adapter.close(); */
 
     jau::fprintf_td(stderr, "Test: Done\n");
 }

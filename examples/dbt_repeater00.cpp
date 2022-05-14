@@ -713,7 +713,7 @@ static void processDisconnectedDeviceToClient(BTDeviceRef device) {
     // already unpaired
     stopAdvertisingToClient(adapterToClient, "processDisconnectedDeviceToClient");
     BTDeviceRegistry::removeFromProcessingDevices(device->getAddressAndType());
-    std::this_thread::sleep_for(std::chrono::milliseconds(100)); // wait a little (FIXME: Fast restart of advertising error)
+    jau::sleep_for( 100_ms ); // wait a little (FIXME: Fast restart of advertising error)
 
     BTDeviceRef devToServer;
     {
@@ -891,11 +891,11 @@ static bool myChangedAdapterSetFunc(const bool added, std::shared_ptr<BTAdapter>
 void test() {
     timestamp_t0 = getCurrentMilliseconds();
 
-    BTManager & mngr = BTManager::get();
-    mngr.addChangedAdapterSetCallback(myChangedAdapterSetFunc);
+    std::shared_ptr<BTManager> mngr = BTManager::get();
+    mngr->addChangedAdapterSetCallback(myChangedAdapterSetFunc);
 
     while( 0 == MAX_SERVED_CONNECTIONS || MAX_SERVED_CONNECTIONS > servedClientConnections ) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+        jau::sleep_for( 2_s );
     }
     adapterToServer = nullptr;
     adapterToClient = nullptr;
@@ -903,17 +903,17 @@ void test() {
     //
     // just a manually controlled pull down to show status, not required
     //
-    jau::darray<std::shared_ptr<BTAdapter>> adapterList = mngr.getAdapters();
+    jau::darray<std::shared_ptr<BTAdapter>> adapterList = mngr->getAdapters();
 
     jau::for_each_const(adapterList, [](const std::shared_ptr<BTAdapter>& adapter) {
         fprintf_td(stderr, "****** EOL Adapter's Devices - pre close: %s\n", adapter->toString().c_str());
         adapter->printDeviceLists();
     });
     {
-        int count = mngr.removeChangedAdapterSetCallback(myChangedAdapterSetFunc);
+        int count = mngr->removeChangedAdapterSetCallback(myChangedAdapterSetFunc);
         fprintf_td(stderr, "****** EOL Removed ChangedAdapterSetCallback %d\n", count);
 
-        mngr.close();
+        mngr->close();
     }
     jau::for_each_const(adapterList, [](const std::shared_ptr<BTAdapter>& adapter) {
         fprintf_td(stderr, "****** EOL Adapter's Devices - post close: %s\n", adapter->toString().c_str());
@@ -1040,8 +1040,8 @@ int main(int argc, char *argv[])
         // Just for testing purpose, i.e. triggering BTManager::close() within the test controlled app,
         // instead of program shutdown.
         fprintf_td(stderr, "****** Manager close start\n");
-        BTManager & mngr = BTManager::get(); // already existing
-        mngr.close();
+        std::shared_ptr<BTManager> mngr = BTManager::get(); // already existing
+        mngr->close();
         fprintf_td(stderr, "****** Manager close end\n");
     }
 }

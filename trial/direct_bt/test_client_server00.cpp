@@ -39,7 +39,7 @@
 using namespace direct_bt;
 
 // Singleton test framework, alive until test program ends
-static BaseDBTClientServer& base_test_framework = BaseDBTClientServer::get();
+static BaseDBTClientServer& base_test_framework = BaseDBTClientServer::get( false /* btmanager_hold_and_close */ );
 
 /**
  * Testing BTManager bring up:
@@ -47,13 +47,13 @@ static BaseDBTClientServer& base_test_framework = BaseDBTClientServer::get();
  * - test that at least one adapter are present
  * - validating basic default adapter status
  */
-TEST_CASE( "BTManager Bringup Trial 00", "[trial][BTManager][bringup]" ) {
+TEST_CASE( "BTManager Bringup Trial 00.1", "[trial][BTManager][bringup]" ) {
     base_test_framework.setupTest( 5_s );
 
     jau::fprintf_td(stderr, "Direct-BT Native Version %s (API %s)\n", DIRECT_BT_VERSION, DIRECT_BT_VERSION_API);
 
-    BTManager & manager = BTManager::get();
-    jau::darray<BTAdapterRef> adapters = manager.getAdapters();
+    std::shared_ptr<BTManager> manager = BTManager::get();
+    jau::darray<BTAdapterRef> adapters = manager->getAdapters();
     {
         jau::fprintf_td(stderr, "Adapter: Count %u\n", adapters.size());
 
@@ -80,12 +80,12 @@ TEST_CASE( "BTManager Bringup Trial 00", "[trial][BTManager][bringup]" ) {
  * - test that at least one adapter are present
  * - validating basic default adapter status
  */
-TEST_CASE( "Server StartStop and SwitchRole Trial 10", "[trial][startstop][switchrole]" ) {
+TEST_CASE( "Server StartStop and SwitchRole Trial 00.2", "[trial][startstop][switchrole]" ) {
     base_test_framework.setupTest( 5_s );
 
-    BTManager & manager = BTManager::get();
+    std::shared_ptr<BTManager> manager = BTManager::get();
     {
-        jau::darray<BTAdapterRef> adapters = manager.getAdapters();
+        jau::darray<BTAdapterRef> adapters = manager->getAdapters();
         jau::fprintf_td(stderr, "Adapter: Count %u\n", adapters.size());
 
         for(jau::nsize_t i=0; i<adapters.size(); i++) {
@@ -93,7 +93,7 @@ TEST_CASE( "Server StartStop and SwitchRole Trial 10", "[trial][startstop][switc
         }
         REQUIRE( adapters.size() >= 1 );
     }
-    REQUIRE( manager.getAdapterCount() >= 1 );
+    REQUIRE( manager->getAdapterCount() >= 1 );
 
     const std::string serverName = "TestDBTCS00-S-T10";
     std::shared_ptr<DBTServer00> server = std::make_shared<DBTServer00>(serverName, EUI48::ALL_DEVICE, BTMode::DUAL, true /* SC */, BTSecurityLevel::NONE);
@@ -126,8 +126,12 @@ TEST_CASE( "Server StartStop and SwitchRole Trial 10", "[trial][startstop][switc
         DBTEndpoint::stopDiscovery(adapter, true /* current_exp_discovering_state */);
     }
 
-    REQUIRE( 1 == manager.removeChangedAdapterSetCallback(myChangedAdapterSetFunc) );
+    REQUIRE( 1 == manager->removeChangedAdapterSetCallback(myChangedAdapterSetFunc) );
 
     base_test_framework.cleanupTest();
+}
+
+TEST_CASE( "BTManager::close() Trial 00.X", "[trial][btmanager_shutdown]" ) {
+    base_test_framework.closeBTManager();
 }
 

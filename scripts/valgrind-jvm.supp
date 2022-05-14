@@ -61,6 +61,42 @@
    ...
 }
 
+{
+   jau_jvm_memcheck_30
+   Memcheck:Param
+   ioctl(SIOCGIFCONF)
+   fun:ioctl
+   obj:/usr/lib/jvm/java-17-openjdk-amd64/lib/libnet.so
+   fun:Java_java_net_NetworkInterface_boundInetAddress0
+   ...
+   obj:/usr/lib/jvm/java-17-openjdk-amd64/lib/server/libjvm.so
+   ...
+}
+
+{
+   jau_jvm_memcheck_31
+   Memcheck:Param
+   ioctl(SIOCGIFCONF).ifc_buf
+   fun:ioctl
+   obj:/usr/lib/jvm/java-17-openjdk-amd64/lib/libnet.so
+   fun:Java_java_net_NetworkInterface_boundInetAddress0
+   ...
+   obj:/usr/lib/jvm/java-17-openjdk-amd64/lib/server/libjvm.so
+   ...
+}
+
+{
+   jau_jvm_memcheck_40
+   Memcheck:Cond
+   ...
+   obj:/usr/lib/jvm/java-17-openjdk-amd64/lib/libnet.so
+   fun:Java_java_net_NetworkInterface_boundInetAddress0
+   ...
+   obj:/usr/lib/jvm/java-17-openjdk-amd64/lib/server/libjvm.so
+   fun:JVM_InvokeMethod
+   ...
+}
+
 
 
 
