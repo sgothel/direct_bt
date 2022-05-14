@@ -380,12 +380,12 @@ class MyGATTServerListener : public DBGattServer::Listener {
                     jau::POctets v(data.size()+1, jau::endian::little);
                     v.put_string_nc(0, data, v.size(), true /* includeEOS */);
                     if( 0 != handlePulseDataNotify ) {
-                        fprintf_td(stderr, "****** GATT::sendNotification: PULSE to %s\n", connectedDevice_->toString().c_str());
-                        connectedDevice_->sendNotification(handlePulseDataNotify, v);
+                        const bool res = connectedDevice_->sendNotification(handlePulseDataNotify, v);
+                        fprintf_td(stderr, "****** GATT::sendNotification: PULSE (res %d) to %s\n", res, connectedDevice_->toString().c_str());
                     }
                     if( 0 != handlePulseDataIndicate ) {
-                        fprintf_td(stderr, "****** GATT::sendIndication: PULSE to %s\n", connectedDevice_->toString().c_str());
-                        connectedDevice_->sendIndication(handlePulseDataIndicate, v);
+                        const bool res = connectedDevice_->sendIndication(handlePulseDataIndicate, v);
+                        fprintf_td(stderr, "****** GATT::sendIndication: PULSE (res %d) to %s\n", res, connectedDevice_->toString().c_str());
                     }
                 }
             }
@@ -405,14 +405,14 @@ class MyGATTServerListener : public DBGattServer::Listener {
             if( nullptr != connectedDevice_ && connectedDevice_->getConnected() ) {
                 if( 0 != handleResponseDataNotify || 0 != handleResponseDataIndicate ) {
                     if( 0 != handleResponseDataNotify ) {
-                        fprintf_td(stderr, "****** GATT::sendNotification: %s to %s\n",
-                                data.toString().c_str(), connectedDevice_->toString().c_str());
-                        connectedDevice_->sendNotification(handleResponseDataNotify, data);
+                        const bool res = connectedDevice_->sendNotification(handleResponseDataNotify, data);
+                        fprintf_td(stderr, "****** GATT::sendNotification (res %d): %s to %s\n",
+                                res, data.toString().c_str(), connectedDevice_->toString().c_str());
                     }
                     if( 0 != handleResponseDataIndicate ) {
-                        fprintf_td(stderr, "****** GATT::sendIndication: %s to %s\n",
-                                data.toString().c_str(), connectedDevice_->toString().c_str());
-                        connectedDevice_->sendIndication(handleResponseDataIndicate, data);
+                        const bool res = connectedDevice_->sendIndication(handleResponseDataIndicate, data);
+                        fprintf_td(stderr, "****** GATT::sendIndication (res %d): %s to %s\n",
+                                res, data.toString().c_str(), connectedDevice_->toString().c_str());
                     }
                 }
             }

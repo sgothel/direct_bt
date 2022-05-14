@@ -393,12 +393,12 @@ public class DBTPeripheral00 {
                             final String data = String.format("Dynamic Data Example. Elapsed Milliseconds: %,9d", BTUtils.elapsedTimeMillis());
                             final byte[] v = data.getBytes(StandardCharsets.UTF_8);
                             if( 0 != handlePulseDataNotify ) {
-                                BTUtils.fprintf_td(System.err, "****** GATT::sendNotification: PULSE to %s\n", connectedDevice_.toString());
-                                connectedDevice_.sendNotification(handlePulseDataNotify, v);
+                                final boolean res = connectedDevice_.sendNotification(handlePulseDataNotify, v);
+                                BTUtils.fprintf_td(System.err, "****** GATT::sendNotification: PULSE (res %b) to %s\n", res, connectedDevice_.toString());
                             }
                             if( 0 != handlePulseDataIndicate ) {
-                                BTUtils.fprintf_td(System.err, "****** GATT::sendIndication: PULSE to %s\n", connectedDevice_.toString());
-                                connectedDevice_.sendIndication(handlePulseDataIndicate, v);
+                                final boolean res = connectedDevice_.sendIndication(handlePulseDataIndicate, v);
+                                BTUtils.fprintf_td(System.err, "****** GATT::sendIndication: PULSE (res %b) to %s\n", res, connectedDevice_.toString());
                             }
                         }
                     }
@@ -417,14 +417,14 @@ public class DBTPeripheral00 {
             if( null != connectedDevice_ && connectedDevice_.getConnected() ) {
                 if( 0 != handleResponseDataNotify || 0 != handleResponseDataIndicate ) {
                     if( 0 != handleResponseDataNotify ) {
-                        BTUtils.fprintf_td(System.err, "****** GATT::sendNotification: %s to %s\n",
-                                BTUtils.bytesHexString(data, 0, data.length, true /* lsb */), connectedDevice_.toString());
-                        connectedDevice_.sendNotification(handleResponseDataNotify, data);
+                        final boolean res = connectedDevice_.sendNotification(handleResponseDataNotify, data);
+                        BTUtils.fprintf_td(System.err, "****** GATT::sendNotification (res %b): %s to %s\n",
+                                res, BTUtils.bytesHexString(data, 0, data.length, true /* lsb */), connectedDevice_.toString());
                     }
                     if( 0 != handleResponseDataIndicate ) {
-                        BTUtils.fprintf_td(System.err, "****** GATT::sendIndication: %s to %s\n",
-                                BTUtils.bytesHexString(data, 0, data.length, true /* lsb */), connectedDevice_.toString());
-                        connectedDevice_.sendIndication(handleResponseDataIndicate, data);
+                        final boolean res = connectedDevice_.sendIndication(handleResponseDataIndicate, data);
+                        BTUtils.fprintf_td(System.err, "****** GATT::sendIndication (res %b): %s to %s\n",
+                                res, BTUtils.bytesHexString(data, 0, data.length, true /* lsb */), connectedDevice_.toString());
                     }
                 }
             }

@@ -957,8 +957,7 @@ jboolean Java_jau_direct_1bt_DBTDevice_sendNotification(JNIEnv *env, jobject obj
             throw InternalError("GetPrimitiveArrayCritical(byte array) is null", E_FILE_LINE);
         }
         const jau::TROOctets value(value_ptr, value_size, endian::little);
-        device->sendNotification(char_value_handle, value);
-        return JNI_TRUE;
+        return device->sendNotification(char_value_handle, value) ? JNI_TRUE : JNI_FALSE;
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
@@ -984,8 +983,7 @@ jboolean Java_jau_direct_1bt_DBTDevice_sendIndication(JNIEnv *env, jobject obj, 
             throw InternalError("GetPrimitiveArrayCritical(byte array) is null", E_FILE_LINE);
         }
         const jau::TROOctets value(value_ptr, value_size, endian::little);
-        device->sendIndication(char_value_handle, value);
-        return JNI_TRUE;
+        return device->sendIndication(char_value_handle, value) ? JNI_TRUE : JNI_FALSE;
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
