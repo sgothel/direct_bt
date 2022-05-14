@@ -736,28 +736,27 @@ bool BTGattHandler::send(const AttPDUMsg & msg) noexcept {
 
     // Thread safe l2cap.write(..) operation..
     const jau::snsize_t len = l2cap.write(msg.pdu.get_ptr(), msg.pdu.size());
-    if( len != L2CAPClient::number(L2CAPClient::RWExitCode::INTERRUPTED) ) { // expected exits
-        if( 0 > len ) {
+    if( 0 > len ) {
+        if( len == L2CAPClient::number(L2CAPClient::RWExitCode::INTERRUPTED) ) { // expected exits
+            WORDY_PRINT("GATTHandler::reader: l2cap read: IRQed res %d (%s); %s",
+                    len, L2CAPClient::getRWExitCodeString(len).c_str(), getStateString().c_str());
+        } else {
             ERR_PRINT("l2cap write: Error res %d (%s); %s; %s -> disconnect: %s",
                     len, L2CAPClient::getRWExitCodeString(len).c_str(), getStateString().c_str(),
                     msg.toString().c_str(), toString().c_str());
             has_ioerror = true;
             disconnect(true /* disconnect_device */, true /* ioerr_cause */); // state -> Disconnected
-            return false;
         }
-        if( static_cast<size_t>(len) != msg.pdu.size() ) {
-            ERR_PRINT("l2cap write: Error: Message size has %d != exp %zu: %s -> disconnect: %s",
-                    len, msg.pdu.size(), msg.toString().c_str(), toString().c_str());
-            has_ioerror = true;
-            disconnect(true /* disconnect_device */, true /* ioerr_cause */); // state -> Disconnected
-            return false;
-        }
-        return true;
-    } else {
-        WORDY_PRINT("GATTHandler::reader: l2cap read: IRQed res %d (%s); %s",
-                len, L2CAPClient::getRWExitCodeString(len).c_str(), getStateString().c_str());
         return false;
     }
+    if( static_cast<size_t>(len) != msg.pdu.size() ) {
+        ERR_PRINT("l2cap write: Error: Message size has %d != exp %zu: %s -> disconnect: %s",
+                len, msg.pdu.size(), msg.toString().c_str(), toString().c_str());
+        has_ioerror = true;
+        disconnect(true /* disconnect_device */, true /* ioerr_cause */); // state -> Disconnected
+        return false;
+    }
+    return true;
 }
 
 std::unique_ptr<const AttPDUMsg> BTGattHandler::sendWithReply(const AttPDUMsg & msg, const jau::fraction_i64& timeout) noexcept {
