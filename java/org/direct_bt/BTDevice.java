@@ -628,20 +628,23 @@ public interface BTDevice extends BTObject
     boolean isValid();
 
     /**
-     * Returns a list of shared BTGattService available on this device if successful,
-     * otherwise returns an empty list if an error occurred.
-     * <p>
+     * Returns a complete list of shared BTGattService available on this device,
+     * initially retrieved via GATT discovery.
+     *
+     * In case of transmission error, zero services or no GATT GenericAccess,
+     * method will return zero services indicating an error.
+     * In this case, user can assume that the connection is or will be disconnected.
+     *
      * Method is only functional on a remote BTDevice in {@link BTRole#Slave}, a GATT server,
      * i.e. the local BTAdapter acting as a {@link BTRole#Master} GATT client.
-     * </p>
-     * <p>
+     *
      * The HCI connectLE(..) or connectBREDR(..) must be performed first, see {@link #connectDefault()}.
-     * </p>
-     * <p>
-     * If this method has been called for the first time or no services have been detected yet:
+     *
+     * If this method has been called for the first time:
      * - the client MTU exchange will be performed
-     * - a list of GATTService will be retrieved
-     * </p>
+     * - a complete list of BTGattService inclusive their BTGattChar and BTGattDesc will be retrieved
+     * - the GATT GenericAccess is extracted from the services.
+     *
      * @since 2.4.0
      */
     List<BTGattService> getGattServices();

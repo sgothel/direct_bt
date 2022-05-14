@@ -905,7 +905,7 @@ BTGattCharRef BTGattHandler::findCharacterisicsByValueHandle(const BTGattService
 
 bool BTGattHandler::initClientGatt(std::shared_ptr<BTGattHandler> shared_this, bool& already_init) noexcept {
     const std::lock_guard<std::recursive_mutex> lock(mtx_command);
-    already_init = clientMTUExchanged && services.size() > 0;
+    already_init = clientMTUExchanged && services.size() > 0 && nullptr != genericAccess;
     if( already_init ) {
         return true;
     }
@@ -929,36 +929,53 @@ bool BTGattHandler::initClientGatt(std::shared_ptr<BTGattHandler> shared_this, b
         DBG_PRINT("GATTHandler::initClientGatt: Local GATT Client: MTU Exchanged: server %u -> used %u, %s", serverMTU.load(), usedMTU.load(), toString().c_str());
     }
 
-    if( services.size() > 0 ) {
+    if( services.size() > 0 && nullptr != genericAccess ) {
         // already initialized
         return true;
     }
+    services.clear();
 
     // Service discovery may consume 500ms - 2000ms, depending on bandwidth
     DBG_PRINT("GATTHandler::initClientGatt: Local GATT Client: Service Discovery Start: %s", toString().c_str());
-    jau::darray<BTGattServiceRef>& gattServices = discoverCompletePrimaryServices(shared_this);
-    if( gattServices.size() == 0 ) { // nothing discovered
-        ERR_PRINT2("No primary services discovered");
+    if( !discoverCompletePrimaryServices(shared_this) ) {
+        ERR_PRINT2("Failed service discovery");
+        services.clear();
+        disconnect(true /* disconnect_device */, true /* ioerr_cause */);
+        return false;
+    }
+    if( services.size() == 0 ) { // nothing discovered
+        ERR_PRINT2("No services discovered");
+        services.clear();
         disconnect(true /* disconnect_device */, false /* ioerr_cause */);
         return false;
     }
-    DBG_PRINT("GATTHandler::initClientGatt: %zu Services Discovered: %s", gattServices.size(), toString().c_str());
+    genericAccess = getGenericAccess(services);
+    if( nullptr == genericAccess ) {
+        ERR_PRINT2("No GenericAccess discovered");
+        services.clear();
+        disconnect(true /* disconnect_device */, false /* ioerr_cause */);
+        return false;
+    }
+    DBG_PRINT("GATTHandler::initClientGatt: End: %zu services discovered: %s, %s",
+            services.size(), genericAccess->toString().c_str(), toString().c_str());
     return true;
 }
 
-jau::darray<BTGattServiceRef> & BTGattHandler::discoverCompletePrimaryServices(std::shared_ptr<BTGattHandler> shared_this) noexcept {
+bool BTGattHandler::discoverCompletePrimaryServices(std::shared_ptr<BTGattHandler> shared_this) noexcept {
     const std::lock_guard<std::recursive_mutex> lock(mtx_command); // RAII-style acquire and relinquish via destructor
     if( !discoverPrimaryServices(shared_this, services) ) {
-        return services;
+        return false;
     }
     for(auto it = services.begin(); it != services.end(); it++) {
         BTGattServiceRef primSrv = *it;
-        if( discoverCharacteristics(primSrv) ) {
-            discoverDescriptors(primSrv);
+        if( !discoverCharacteristics(primSrv) ) {
+            return false;
+        }
+        if( !discoverDescriptors(primSrv) ) {
+            return false;
         }
     }
-    genericAccess = getGenericAccess(services);
-    return services;
+    return true;
 }
 
 bool BTGattHandler::discoverPrimaryServices(std::shared_ptr<BTGattHandler> shared_this, jau::darray<BTGattServiceRef> & result) noexcept {

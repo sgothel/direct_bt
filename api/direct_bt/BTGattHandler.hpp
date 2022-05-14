@@ -555,17 +555,17 @@ namespace direct_bt {
              * <p>
              * BT Core Spec v5.2: Vol 3, Part G GATT: 4.4.1 Discover All Primary Services
              * </p>
-             * Method returns reference to BTGattHandler's internal BTGattService vector of discovered services
+             * Populates the internal internal BTGattService vector of discovered services.
              *
              * Service discovery may consume 500ms - 2000ms, depending on bandwidth.
              *
-             * Method usually called via initClientGatt() and is only exposed special applications.
+             * Method called from initClientGatt().
              *
              * @param shared_this shared pointer of this instance, used to forward a weak_ptr to BTGattService for back-reference. Reference is validated.
-             * @return BTGattHandler's internal BTGattService vector of discovered services
+             * @return true if successful, otherwise false
              * @see initClientGatt()
              */
-            jau::darray<BTGattServiceRef> & discoverCompletePrimaryServices(std::shared_ptr<BTGattHandler> shared_this) noexcept;
+            bool discoverCompletePrimaryServices(std::shared_ptr<BTGattHandler> shared_this) noexcept;
 
         public:
             /**
@@ -635,12 +635,13 @@ namespace direct_bt {
              * Initialize the connection and internal data set for GATT client operations:
              * - Exchange MTU
              * - Discover all primary services, its characteristics and its descriptors
+             * - Extracts the GattGenericAccessSvc from the services, see getGenericAccess()
              *
              * Service discovery may consume 500ms - 2000ms, depending on bandwidth.
              *
              * @param shared_this the shared BTGattHandler reference
              * @param already_init if already initialized true, will hold true, otherwise false
-             * @return true if already initialized or newly initialized, otherwise false
+             * @return true if already initialized or successfully newly initialized with at least GattGenericAccessSvc available, otherwise false
              * @see clientMTUExchange()
              * @see discoverCompletePrimaryServices()
              */

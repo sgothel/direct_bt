@@ -1962,41 +1962,41 @@ jau::darray<BTGattServiceRef> BTDevice::getGattServices() noexcept {
     }
 
     bool gatt_already_init = false;
-    const bool gatt_client_init = gh->initClientGatt(gh, gatt_already_init);
-    jau::darray<BTGattServiceRef>& gattServices = gh->getServices();
-    if( !gatt_client_init ) {
-        ERR_PRINT2("BTDevice::getGattServices: Client GATT Initialization failed");
-        return gattServices; // copy previous discovery result (zero sized)
+    if( !gh->initClientGatt(gh, gatt_already_init) ) {
+        ERR_PRINT2("Client GATT Initialization failed");
+        return jau::darray<BTGattServiceRef>(); // return zero size
     }
     if( gatt_already_init ) {
-        return gattServices; // copy previous discovery result
+        return gh->getServices(); // copy previous discovery result
     }
-    // FIXME: GATTHandler::sendWithReply() == nullptr but gattServices.size() > 0 !!!
-    if( gattServices.size() == 0 ) { // nothing discovered
-        ERR_PRINT2("BTDevice::getGattServices: No primary services discovered");
-        return gattServices;
+
+    jau::darray<BTGattServiceRef> result = gh->getServices(); // copy
+    if( result.size() == 0 ) { // nothing discovered, actually a redundant check done @ BTGattHandler::initClientGatt() 1st
+        ERR_PRINT2("No primary services discovered");
+        return jau::darray<BTGattServiceRef>(); // return zero size
     }
 
     // discovery success, parse GenericAccess
     std::shared_ptr<GattGenericAccessSvc> gattGenericAccess = gh->getGenericAccess();
-    if( nullptr != gattGenericAccess ) {
-        const uint64_t ts = jau::getCurrentMilliseconds();
-        EIRDataType updateMask = update(*gattGenericAccess, ts);
-        DBG_PRINT("BTDevice::getGattServices: GenericAccess updated %s:\n    %s\n    -> %s",
-            to_string(updateMask).c_str(), gattGenericAccess->toString().c_str(), toString().c_str());
-        if( EIRDataType::NONE != updateMask ) {
-            std::shared_ptr<BTDevice> sharedInstance = getSharedInstance();
-            if( nullptr == sharedInstance ) {
-                ERR_PRINT("Device unknown to adapter and not tracked: %s", toString().c_str());
-            } else {
-                adapter.sendDeviceUpdated("getGattServices", sharedInstance, ts, updateMask);
-            }
-        }
-    } else {
-        // else: Actually an error w/o valid mandatory GenericAccess
-        WARN_PRINT("No GenericAccess: %s", toString().c_str());
+    if( nullptr == gattGenericAccess ) {
+        // no GenericAccess discovered, actually a redundant check done @ BTGattHandler::initClientGatt() 1st
+        ERR_PRINT2("No GenericAccess: %s", toString().c_str());
+        return jau::darray<BTGattServiceRef>(); // return zero size
     }
-    return gattServices; // return copy
+
+    const uint64_t ts = jau::getCurrentMilliseconds();
+    EIRDataType updateMask = update(*gattGenericAccess, ts);
+    DBG_PRINT("BTDevice::getGattServices: GenericAccess updated %s:\n    %s\n    -> %s",
+        to_string(updateMask).c_str(), gattGenericAccess->toString().c_str(), toString().c_str());
+    if( EIRDataType::NONE != updateMask ) {
+        std::shared_ptr<BTDevice> sharedInstance = getSharedInstance();
+        if( nullptr == sharedInstance ) {
+            ERR_PRINT("Device unknown to adapter and not tracked: %s", toString().c_str());
+        } else {
+            adapter.sendDeviceUpdated("getGattServices", sharedInstance, ts, updateMask);
+        }
+    }
+    return result; // return the copy, copy elision shall be used
 }
 
 std::shared_ptr<GattGenericAccessSvc> BTDevice::getGattGenericAccess() {

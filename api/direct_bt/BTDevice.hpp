@@ -1033,19 +1033,25 @@ namespace direct_bt {
             std::shared_ptr<BTGattHandler> getGattHandler() noexcept;
 
             /**
-             * Returns a list of shared GATTService available on this device if successful,
-             * otherwise returns an empty list if an error occurred.
+             * Returns a complete list of shared BTGattService available on this device,
+             * initially retrieved via GATT discovery.
+             *
+             * In case of transmission error, zero services or no GattGenericAccessSvc,
+             * method will return zero services indicating an error.
+             * In this case, user can assume that the connection is or will be disconnected.
              *
              * Method is only functional on a remote BTDevice in BTRole::Slave, a GATT server (GATTRole::Server),
              * i.e. the local BTAdapter acting as a BTRole::Master GATT client.
              *
              * The HCI connectLE(..) or connectBREDR(..) must be performed first, see {@link #connectDefault()}.
              *
-             * If this method has been called for the first time or no services have been detected yet:
+             * If this method has been called for the first time:
              * - the client MTU exchange will be performed
-             * - a list of GATTService will be retrieved
+             * - a complete list of BTGattService inclusive their BTGattChar and BTGattDesc will be retrieved
+             * - the GattGenericAccessSvc is extracted from the services, see getGattGenericAccess().
              *
              * A GATT connection will be created via connectGATT() if not established yet.
+             * @see getGattGenericAccess()
              */
             jau::darray<BTGattServiceRef> getGattServices() noexcept;
 
