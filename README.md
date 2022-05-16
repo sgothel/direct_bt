@@ -493,7 +493,12 @@ from the year 2016.
 
 * TODO
 
-**2.7.0** (TODO)
+**2.7.0**
+* `AdapterstatusListener::deviceFound()` is only called if not already connected and if initially found.
+* Use `noexcept` where possible
+  - `BTGattHandler::send*()`
+  - `BTGattHandler::GattServerHandler`, `BTGattChar`,  `BTGattDesc`
+* BTManager is passed as `shared_ptr<BTManager>`, aligning with JNI lifecycle
 * AdapterStatusListener, BTGattCharListener: Adopt full Java/Native link via DBTNativeDownlink and JavaUplink, clean API, impl and lifecycle
 * Robustness of JNI
   - Passing `trial.org.direct_bt.TestDBTProvokeClientServer_i470` w/o crash
