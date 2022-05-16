@@ -587,15 +587,13 @@ public class DBTClient01 implements DBTClientTest {
             t.printStackTrace();
         }
 
-        BTUtils.println(System.err, "****** Client Processing Ready Device: End-1: Success " + success +
-                           " on " + device.toString() + "; devInProc "+BTDeviceRegistry.getProcessingDeviceCount());
+        BTUtils.println(System.err, "****** Client Processing Ready Device: End-1: Success " + success + " on " + device.toString());
 
         if( DiscoveryPolicy.PAUSE_CONNECTED_UNTIL_DISCONNECTED == discoveryPolicy ) {
             device.getAdapter().removeDevicePausingDiscovery(device);
         }
 
-        BTUtils.println(System.err, "****** Client Processing Ready Device: End-2: Success " + success +
-                           " on " + device.toString() + "; devInProc "+BTDeviceRegistry.getProcessingDeviceCount());
+        BTUtils.println(System.err, "****** Client Processing Ready Device: End-2: Success " + success + " on " + device.toString());
         device.removeAllCharListener();
 
         if( !KEEP_CONNECTED ) {

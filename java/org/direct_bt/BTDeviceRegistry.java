@@ -144,7 +144,7 @@ public class BTDeviceRegistry {
         }
     }
     public static boolean isWaitingForAnyDevice() {
-        return waitForDevices.size()>0;
+        return waitForDevices.size()==0;
     }
     public static int getWaitForDevicesCount() {
         return waitForDevices.size();

@@ -298,7 +298,6 @@ public class DBTServer01 implements DBTServerTest {
             final boolean available = null == getDevice();
             if( available ) {
                 setDevice(device);
-                BTDeviceRegistry.addToProcessingDevices(device.getAddressAndType(), device.getName());
             }
         }
 
@@ -734,7 +733,6 @@ public class DBTServer01 implements DBTServerTest {
         // already unpaired
         stopAdvertising("device-disconnected");
         device.remove();
-        BTDeviceRegistry.removeFromProcessingDevices(device.getAddressAndType());
 
         disconnectCount.addAndGet(1);
 

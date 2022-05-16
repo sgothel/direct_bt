@@ -587,15 +587,13 @@ class DBTClient01 : public DBTClientTest {
             }
 
         exit:
-            fprintf_td(stderr, "****** Client Processing Ready Device: End-1: Success %d on %s; devInProc %zu\n",
-                    success, device->toString().c_str(), BTDeviceRegistry::getProcessingDeviceCount());
+            fprintf_td(stderr, "****** Client Processing Ready Device: End-1: Success %d on %s\n", success, device->toString().c_str());
 
             if( DiscoveryPolicy::PAUSE_CONNECTED_UNTIL_DISCONNECTED == discoveryPolicy ) {
                 device->getAdapter().removeDevicePausingDiscovery(*device);
             }
 
-            fprintf_td(stderr, "****** Client Processing Ready Device: End-2: Success %d on %s; devInProc %zu\n",
-                    success, device->toString().c_str(), BTDeviceRegistry::getProcessingDeviceCount());
+            fprintf_td(stderr, "****** Client Processing Ready Device: End-2: Success %d on %s\n", success, device->toString().c_str());
 
             device->removeAllCharListener();
 

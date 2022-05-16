@@ -122,7 +122,6 @@ public abstract class BaseDBTClientServer extends SingletonJunitCase {
         manager.removeAllChangedAdapterSetListener();
         BTDeviceRegistry.clearWaitForDevices();
         BTDeviceRegistry.clearProcessedDevices();
-        BTDeviceRegistry.clearProcessingDevices();
         BTSecurityRegistry.clear();
     }
 

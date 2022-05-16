@@ -144,11 +144,9 @@ public class DBTScanner10 {
 
         @Override
         public boolean deviceFound(final BTDevice device, final long timestamp) {
-            if( !BTDeviceRegistry.isDeviceProcessing( device.getAddressAndType() ) &&
-                ( !BTDeviceRegistry.isWaitingForAnyDevice() ||
-                  ( BTDeviceRegistry.isWaitingForDevice(device.getAddressAndType().address, device.getName()) &&
-                    ( 0 < MULTI_MEASUREMENTS.get() || !BTDeviceRegistry.isDeviceProcessed(device.getAddressAndType()) )
-                  )
+            if( BTDeviceRegistry.isWaitingForAnyDevice() ||
+                ( BTDeviceRegistry.isWaitingForDevice(device.getAddressAndType().address, device.getName()) &&
+                  ( 0 < MULTI_MEASUREMENTS.get() || !BTDeviceRegistry.isDeviceProcessed(device.getAddressAndType()) )
                 )
               )
             {
@@ -236,25 +234,13 @@ public class DBTScanner10 {
 
         @Override
         public void deviceReady(final BTDevice device, final long timestamp) {
-            if( !BTDeviceRegistry.isDeviceProcessing( device.getAddressAndType() ) &&
-                ( !BTDeviceRegistry.isWaitingForAnyDevice() ||
-                  ( BTDeviceRegistry.isWaitingForDevice(device.getAddressAndType().address, device.getName()) &&
-                    ( 0 < MULTI_MEASUREMENTS.get() || !BTDeviceRegistry.isDeviceProcessed(device.getAddressAndType()) )
-                  )
-                )
-              )
+            deviceReadyCount.incrementAndGet();
+            BTUtils.println(System.err, "****** READY-0: Processing["+deviceReadyCount.get()+"] "+device.toString());
             {
-                deviceReadyCount.incrementAndGet();
-                BTUtils.println(System.err, "****** READY-0: Processing["+deviceReadyCount.get()+"] "+device.toString());
-                {
-                    final long td = BTUtils.currentTimeMillis() - timestamp_t0; // adapter-init -> now
-                    BTUtils.println(System.err, "PERF: adapter-init -> READY-0 " + td + " ms");
-                }
-                BTDeviceRegistry.addToProcessingDevices(device.getAddressAndType(), device.getName());
-                processReadyDevice(device); // AdapterStatusListener::deviceReady() explicitly allows prolonged and complex code execution!
-            } else {
-                BTUtils.println(System.err, "****** READY-1: NOP " + device.toString());
+                final long td = BTUtils.currentTimeMillis() - timestamp_t0; // adapter-init -> now
+                BTUtils.println(System.err, "PERF: adapter-init -> READY-0 " + td + " ms");
             }
+            processReadyDevice(device); // AdapterStatusListener::deviceReady() explicitly allows prolonged and complex code execution!
         }
 
         @Override
@@ -263,8 +249,6 @@ public class DBTScanner10 {
 
             if( REMOVE_DEVICE ) {
                 executeOffThread( () -> { removeDevice(device); }, "DBT-Remove-"+device.getAddressAndType(), true /* detach */);
-            } else {
-                BTDeviceRegistry.removeFromProcessingDevices(device.getAddressAndType());
             }
             if( 0 < RESET_ADAPTER_EACH_CONN && 0 == deviceReadyCount.get() % RESET_ADAPTER_EACH_CONN ) {
                 executeOffThread( () -> { resetAdapter(device.getAdapter(), 1); },
@@ -545,10 +529,7 @@ public class DBTScanner10 {
             t.printStackTrace();
         }
 
-        BTUtils.println(System.err, "****** Processing Ready Device: End-1: Success " + success +
-                           " on " + device.toString() + "; devInProc "+BTDeviceRegistry.getProcessingDeviceCount());
-
-        BTDeviceRegistry.removeFromProcessingDevices( device.getAddressAndType() );
+        BTUtils.println(System.err, "****** Processing Ready Device: End-1: Success " + success + " on " + device.toString());
 
         if( DiscoveryPolicy.PAUSE_CONNECTED_UNTIL_DISCONNECTED == discoveryPolicy ) {
             device.getAdapter().removeDevicePausingDiscovery(device);
@@ -567,8 +548,7 @@ public class DBTScanner10 {
             // Even w/ GATT_PING_ENABLED, we utilize disconnect event to clean up -> remove
         }
 
-        BTUtils.println(System.err, "****** Processing Ready Device: End-2: Success " + success +
-                           " on " + device.toString() + "; devInProc "+BTDeviceRegistry.getProcessingDeviceCount());
+        BTUtils.println(System.err, "****** Processing Ready Device: End-2: Success " + success + " on " + device.toString());
         if( success ) {
             BTDeviceRegistry.addToProcessedDevices(device.getAddressAndType(), device.getName());
         }
@@ -591,8 +571,6 @@ public class DBTScanner10 {
 
     private void removeDevice(final BTDevice device) {
         BTUtils.println(System.err, "****** Remove Device: removing: "+device.getAddressAndType());
-
-        BTDeviceRegistry.removeFromProcessingDevices(device.getAddressAndType());
 
         device.remove();
     }
@@ -697,7 +675,7 @@ public class DBTScanner10 {
 
         while( !done ) {
             if( 0 == MULTI_MEASUREMENTS.get() ||
-                ( -1 == MULTI_MEASUREMENTS.get() && BTDeviceRegistry.isWaitingForAnyDevice() && BTDeviceRegistry.areAllDevicesProcessed() )
+                ( -1 == MULTI_MEASUREMENTS.get() && !BTDeviceRegistry.isWaitingForAnyDevice() && BTDeviceRegistry.areAllDevicesProcessed() )
               )
             {
                 BTUtils.println(System.err, "****** EOL Test MULTI_MEASUREMENTS left "+MULTI_MEASUREMENTS.get()+

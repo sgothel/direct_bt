@@ -105,7 +105,6 @@ class BaseDBTClientServer {
             mngr->removeAllChangedAdapterSetCallbacks();
             BTDeviceRegistry::clearWaitForDevices();
             BTDeviceRegistry::clearProcessedDevices();
-            BTDeviceRegistry::clearProcessingDevices();
             BTSecurityRegistry::clear();
         }
 

@@ -222,7 +222,6 @@ class DBTServer01 : public DBTServerTest {
                 const bool available = nullptr == parent.getDevice();
                 if( available ) {
                     parent.setDevice(device);
-                    BTDeviceRegistry::addToProcessingDevices(device->getAddressAndType(), device->getName());
                 }
                 (void)discovered;
                 (void)timestamp;
@@ -709,7 +708,6 @@ class DBTServer01 : public DBTServerTest {
             // already unpaired
             stopAdvertising("device-disconnected");
             device->remove();
-            BTDeviceRegistry::removeFromProcessingDevices(device->getAddressAndType());
 
             disconnectCount++;
 

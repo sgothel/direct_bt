@@ -54,7 +54,7 @@ namespace direct_bt::BTDeviceRegistry {
         }
     }
     bool isWaitingForAnyDevice() noexcept {
-        return !waitForDevices.empty();
+        return waitForDevices.empty();
     }
     size_t getWaitForDevicesCount() noexcept {
         return waitForDevices.size();

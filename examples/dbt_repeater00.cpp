@@ -152,10 +152,8 @@ class AdapterToServerStatusListener : public AdapterStatusListener {
     bool deviceFound(BTDeviceRef device, const uint64_t timestamp) override {
         (void)timestamp;
 
-        if( !BTDeviceRegistry::isDeviceProcessing( device->getAddressAndType() ) &&
-            ( !BTDeviceRegistry::isWaitingForAnyDevice() ||
-              BTDeviceRegistry::isWaitingForDevice(device->getAddressAndType().address, device->getName())
-            )
+        if( BTDeviceRegistry::isWaitingForAnyDevice() ||
+            BTDeviceRegistry::isWaitingForDevice(device->getAddressAndType().address, device->getName())
           )
         {
             fprintf_td(stderr, "****** To Server: FOUND__-0: Connecting %s\n", device->toString(true).c_str());
@@ -242,15 +240,12 @@ class AdapterToServerStatusListener : public AdapterStatusListener {
 
     void deviceReady(BTDeviceRef device, const uint64_t timestamp) override {
         (void)timestamp;
-        if( !BTDeviceRegistry::isDeviceProcessing( device->getAddressAndType() ) &&
-            ( !BTDeviceRegistry::isWaitingForAnyDevice() ||
-              BTDeviceRegistry::isWaitingForDevice(device->getAddressAndType().address, device->getName())
-            )
+        if( BTDeviceRegistry::isWaitingForAnyDevice() ||
+            BTDeviceRegistry::isWaitingForDevice(device->getAddressAndType().address, device->getName())
           )
         {
             serverDeviceReadyCount++;
             fprintf_td(stderr, "****** To Server: READY-0: Processing[%d] %s\n", serverDeviceReadyCount.load(), device->toString(true).c_str());
-            BTDeviceRegistry::addToProcessingDevices(device->getAddressAndType(), device->getName());
             processReadyToServer(device); // AdapterStatusListener::deviceReady() explicitly allows prolonged and complex code execution!
         } else {
             fprintf_td(stderr, "****** To Server: READY-1: NOP %s\n", device->toString(true).c_str());
@@ -489,10 +484,7 @@ static void processReadyToServer(BTDeviceRef device) {
         fprintf_td(stderr, "****** To Server: Processing Ready Device: Exception caught for %s: %s\n", device->toString().c_str(), e.what());
     }
 
-    fprintf_td(stderr, "****** To Server: Processing Ready Device: End-1: Success %d on %s; devInProc %zu\n",
-            success, device->toString().c_str(), BTDeviceRegistry::getProcessingDeviceCount());
-
-    BTDeviceRegistry::removeFromProcessingDevices(device->getAddressAndType());
+    fprintf_td(stderr, "****** To Server: Processing Ready Device: End-1: Success %d on %s\n", success, device->toString().c_str());
 
     if( success ) {
         BTDeviceRegistry::addToProcessedDevices(device->getAddressAndType(), device->getName());
@@ -502,8 +494,6 @@ static void processReadyToServer(BTDeviceRef device) {
 
 static void removeDeviceToServer(BTDeviceRef device) {
     fprintf_td(stderr, "****** To Server: Remove Device: %s\n", device->getAddressAndType().toString().c_str());
-
-    BTDeviceRegistry::removeFromProcessingDevices(device->getAddressAndType());
 
     {
         stopAdvertisingToClient(adapterToClient, "removeDeviceToServer");
@@ -682,7 +672,6 @@ class AdapterToClientStatusListener : public AdapterStatusListener {
             connectedDeviceToClient = device;
         }
         fprintf_td(stderr, "****** To Client: READY-0: Processing %s\n", device->toString(true).c_str());
-        BTDeviceRegistry::addToProcessingDevices(device->getAddressAndType(), device->getName());
     }
 
     void deviceDisconnected(BTDeviceRef device, const HCIStatusCode reason, const uint16_t handle, const uint64_t timestamp) override {
@@ -712,7 +701,7 @@ static void processDisconnectedDeviceToClient(BTDeviceRef device) {
 
     // already unpaired
     stopAdvertisingToClient(adapterToClient, "processDisconnectedDeviceToClient");
-    BTDeviceRegistry::removeFromProcessingDevices(device->getAddressAndType());
+
     jau::sleep_for( 100_ms ); // wait a little (FIXME: Fast restart of advertising error)
 
     BTDeviceRef devToServer;

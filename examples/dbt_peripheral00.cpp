@@ -254,7 +254,6 @@ class MyAdapterStatusListener : public AdapterStatusListener {
         const bool available = nullptr == getDevice();
         if( available ) {
             setDevice(device);
-            BTDeviceRegistry::addToProcessingDevices(device->getAddressAndType(), device->getName());
         }
         (void)discovered;
         (void)timestamp;
@@ -597,7 +596,6 @@ static void processDisconnectedDevice(BTDeviceRef device) {
     // already unpaired
     stopAdvertising(&device->getAdapter(), "device-disconnected");
     device->remove();
-    BTDeviceRegistry::removeFromProcessingDevices(device->getAddressAndType());
 
     jau::sleep_for( 100_ms ); // wait a little (FIXME: Fast restart of advertising error)
 
