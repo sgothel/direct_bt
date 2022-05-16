@@ -28,7 +28,9 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 
 import org.direct_bt.BTRole;
+import org.direct_bt.BTSecurityRegistry;
 import org.direct_bt.BTAdapter;
+import org.direct_bt.BTDeviceRegistry;
 import org.direct_bt.BTException;
 import org.direct_bt.BTFactory;
 import org.direct_bt.BTManager;
@@ -51,7 +53,33 @@ import jau.test.junit.util.SingletonJunitCase;
 public class TestBringup00 extends SingletonJunitCase {
     static final boolean DEBUG = false;
 
-    @Test(timeout = 5000)
+    private void resetStates() {
+        BTManager manager = null;
+        try {
+            manager = BTFactory.getDirectBTManager();
+        } catch (BTException | NoSuchMethodException | SecurityException
+                | IllegalAccessException | IllegalArgumentException
+                | InvocationTargetException | ClassNotFoundException e) {
+            e.printStackTrace();
+            BTUtils.println(System.err, "Unable to instantiate Direct-BT BluetoothManager: "+e.getMessage());
+            e.printStackTrace();
+        }
+        if( null != manager ) {
+            final List<BTAdapter> adapters = manager.getAdapters();
+            for(final BTAdapter a : adapters) {
+                a.removeAllStatusListener();
+                a.stopAdvertising();
+                a.stopDiscovery();
+                Assert.assertTrue( a.setPowered(false) );
+            }
+        }
+        manager.removeAllChangedAdapterSetListener();
+        BTDeviceRegistry.clearWaitForDevices();
+        BTDeviceRegistry.clearProcessedDevices();
+        BTSecurityRegistry.clear();
+    }
+
+    @Test(timeout = 40000) // long timeout for valgrind
     public final void test01_ManagerBringup() {
         {
             // System.setProperty("direct_bt.debug", "true"); // native code
@@ -62,6 +90,7 @@ public class TestBringup00 extends SingletonJunitCase {
         }
         BTFactory.initDirectBTLibrary();
         DirectBTVersion.printVersionInfo(System.err);
+        resetStates();
 
         BTManager manager = null;
         try {
@@ -87,6 +116,8 @@ public class TestBringup00 extends SingletonJunitCase {
             Assert.assertTrue( 4 <= a.getBTMajorVersion() );
         }
         // All implicit via destructor or shutdown hook!
+        adapters.clear();
+        resetStates();
         manager.shutdown(); /* implies: adapter.close(); */
     }
 

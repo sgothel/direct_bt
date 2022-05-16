@@ -36,6 +36,21 @@
 
 using namespace direct_bt;
 
+void resetStates() {
+    std::shared_ptr<BTManager> mngr = BTManager::get();
+    jau::darray<BTAdapterRef> adapters = mngr->getAdapters();
+    for(BTAdapterRef a : adapters) {
+        a->removeAllStatusListener();
+        a->stopAdvertising();
+        a->stopDiscovery();
+        REQUIRE( a->setPowered(false) );
+    }
+    mngr->removeAllChangedAdapterSetCallbacks();
+    BTDeviceRegistry::clearWaitForDevices();
+    BTDeviceRegistry::clearProcessedDevices();
+    BTSecurityRegistry::clear();
+}
+
 /**
  * Testing BTManager bring up:
  * - test loading native libraries
@@ -47,6 +62,7 @@ TEST_CASE( "BTManager Bringup Test 00", "[test][BTManager][bringup]" ) {
         // setenv("direct_bt.debug", "true", 1 /* overwrite */);
     }
     jau::fprintf_td(stderr, "Direct-BT Native Version %s (API %s)\n", DIRECT_BT_VERSION, DIRECT_BT_VERSION_API);
+    resetStates();
 
     BTManagerRef manager = BTManager::get();
 
@@ -63,7 +79,10 @@ TEST_CASE( "BTManager Bringup Test 00", "[test][BTManager][bringup]" ) {
         REQUIRE( BTRole::Master == a->getRole() ); // default role
         REQUIRE( 4 <= a->getBTMajorVersion() );
     }
+
     jau::fprintf_td(stderr, "Manager: Closing\n");
+    adapters.clear();
+    resetStates();
     manager->close(); /* implies: adapter.close(); */
 
     jau::fprintf_td(stderr, "Test: Done\n");
