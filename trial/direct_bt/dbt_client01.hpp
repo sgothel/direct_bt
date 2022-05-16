@@ -39,22 +39,9 @@ using namespace jau::fractions_i64_literals;
  * This central BTRole::Master participant works with DBTServer00.
  */
 class DBTClient01 : public DBTClientTest {
-    public:
-        /**
-         * Disconnect after processing.
-         *
-         * Default is `false`.
-         */
+    private:
         bool KEEP_CONNECTED = false;
 
-        /**
-         * Remove device when disconnecting.
-         *
-         * This removes the device from all instances within adapter
-         * and hence all potential side-effects of the current instance.
-         *
-         * Default is `false`, since it is good to test whether such side-effects exists.
-         */
         bool REMOVE_DEVICE = false;
 
         DiscoveryPolicy discoveryPolicy = DiscoveryPolicy::PAUSE_CONNECTED_UNTIL_READY; // default value
@@ -67,15 +54,17 @@ class DBTClient01 : public DBTClientTest {
         jau::sc_atomic_int disconnectCount = 0;
         jau::sc_atomic_int notificationsReceived = 0;
         jau::sc_atomic_int indicationsReceived = 0;
+        jau::sc_atomic_int completedGATTCommands = 0;
         jau::sc_atomic_int completedMeasurementsTotal = 0;
         jau::sc_atomic_int completedMeasurementsSuccess = 0;
         jau::sc_atomic_int measurementsLeft = 0;
 
         bool do_disconnect = false;
 
-    private:
         const uint64_t timestamp_t0 = getCurrentMilliseconds();
         // const fraction_i64 timestamp_t0 = jau::getMonotonicMicroseconds();
+
+        const uint8_t cmd_arg = 0x44;
 
         class MyAdapterStatusListener : public AdapterStatusListener {
           public:
@@ -335,6 +324,7 @@ class DBTClient01 : public DBTClientTest {
 
     private:
         void resetLastProcessingStats() {
+            completedGATTCommands = 0;
             notificationsReceived = 0;
             indicationsReceived = 0;
         }
@@ -441,6 +431,28 @@ class DBTClient01 : public DBTClientTest {
                                        td13, td12, td23, td35);
                 }
 
+                {
+                    BTGattCmd cmd = BTGattCmd(*device, "TestCmd", DBTConstants::CommandUUID, DBTConstants::ResponseUUID, 256);
+                    cmd.setVerbose(true);
+                    const bool cmd_resolved = cmd.isResolved();
+                    fprintf_td(stderr, "Command test: %s, resolved %d\n", cmd.toString().c_str(), cmd_resolved);
+                    POctets cmd_data(1, endian::little);
+                    cmd_data.put_uint8_nc(0, cmd_arg);
+                    const HCIStatusCode cmd_res = cmd.send(true /* prefNoAck */, cmd_data, 3_s);
+                    if( HCIStatusCode::SUCCESS == cmd_res ) {
+                        const jau::TROOctets& resp = cmd.getResponse();
+                        if( 1 == resp.size() && resp.get_uint8_nc(0) == cmd_arg ) {
+                            fprintf_td(stderr, "Client Success: %s -> %s (echo response)\n", cmd.toString().c_str(), resp.toString().c_str());
+                            completedGATTCommands++;
+                        } else {
+                            fprintf_td(stderr, "Client Failure: %s -> %s (different response)\n", cmd.toString().c_str(), resp.toString().c_str());
+                        }
+                    } else {
+                        fprintf_td(stderr, "Client Failure: %s -> %s\n", cmd.toString().c_str(), to_string(cmd_res).c_str());
+                    }
+                    // cmd.close(); // done via dtor
+                }
+
                 bool gattListenerError = false;
                 std::vector<BTGattCharListenerRef> gattListener;
                 int loop = 0;
@@ -509,6 +521,8 @@ class DBTClient01 : public DBTClientTest {
                     success = notificationsReceived >= 2 || indicationsReceived >= 2;
                     ++loop;
                 } while( !success && device->getConnected() && !gattListenerError );
+
+                success = success && completedGATTCommands >= 1;
 
                 if( gattListenerError ) {
                     success = false;
@@ -587,10 +601,11 @@ class DBTClient01 : public DBTClientTest {
                 }
             }
             fprintf_td(stderr, "****** Client Processing Ready Device: Success %d; Measurements completed %d"
-                            ", left %d; Received notitifications %d, indications %d: %s\n",
+                            ", left %d; Received notitifications %d, indications %d"
+                            "; Completed GATT commands %d: %s\n",
                             success, completedMeasurementsSuccess.load(),
                             measurementsLeft.load(), notificationsReceived.load(), indicationsReceived.load(),
-                            device->getAddressAndType().toString().c_str());
+                            completedGATTCommands.load(), device->getAddressAndType().toString().c_str());
         }
 
         void removeDevice(BTDeviceRef device) {

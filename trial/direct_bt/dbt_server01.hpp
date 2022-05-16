@@ -430,7 +430,6 @@ class DBTServer01 : public DBTServerTest {
                     clear();
                 }
 
-            public:
                 void connected(BTDeviceRef device, const uint16_t initialMTU) override {
                     const bool match = parent.matches(device);
                     fprintf_td(stderr, "****** Server GATT::connected(match %d): initMTU %d, %s\n",
@@ -519,11 +518,9 @@ class DBTServer01 : public DBTServerTest {
                                 parent.servingProtocolSessionsLeft--;
                             }
                         }
-                        {
-                            jau::POctets value2(value);
-                            std::thread senderThread(&MyGATTServerListener::sendResponse, this, value2);
-                            senderThread.detach();
-                        }
+                        jau::POctets value2(value);
+                        std::thread senderThread(&MyGATTServerListener::sendResponse, this, value2);
+                        senderThread.detach();
                     }
                     if( GATT_VERBOSE || isFinalHandshake ) {
                         fprintf_td(stderr, "****** Server GATT::writeCharValueDone(match %d, finalCmd %d, sessions [%d ok / %d total], left %d): From %s, to\n  %s\n    %s\n    Char-Value: %s\n",
@@ -690,7 +687,7 @@ class DBTServer01 : public DBTServerTest {
 
     private:
         void processDisconnectedDevice(BTDeviceRef device) {
-            fprintf_td(stderr, "****** Server Disconnected Device (count %zu, seved %zu, left %zu): Start %s\n",
+            fprintf_td(stderr, "****** Server Disconnected Device (count %zu, served %zu, left %zu): Start %s\n",
                     1+disconnectCount.load(), servedProtocolSessionsTotal.load(), servingProtocolSessionsLeft.load(), device->toString().c_str());
 
             // already unpaired

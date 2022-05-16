@@ -27,11 +27,10 @@
 #include <catch2/catch_amalgamated.hpp>
 #include <jau/test/catch2_ext.hpp>
 
-// #include "dbt_base_client_server.hpp"
 #include "dbt_client_server1x.hpp"
 
-#include "dbt_server01.hpp"
-#include "dbt_client01.hpp"
+// #include "dbt_server01.hpp"
+// #include "dbt_client01.hpp"
 
 using namespace direct_bt;
 

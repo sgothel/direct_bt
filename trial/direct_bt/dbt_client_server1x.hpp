@@ -29,8 +29,8 @@
 
 #include "dbt_base_client_server.hpp"
 
-#include "dbt_server00.hpp"
-#include "dbt_client00.hpp"
+#include "dbt_server01.hpp"
+#include "dbt_client01.hpp"
 
 using namespace direct_bt;
 
@@ -63,8 +63,9 @@ class DBTClientServer1x {
                           const bool serverSC, const BTSecurityLevel secLevelServer, const ExpectedPairing serverExpPairing,
                           const BTSecurityLevel secLevelClient, const ExpectedPairing clientExpPairing)
     {
-        std::shared_ptr<DBTServer00> server = std::make_shared<DBTServer00>("S-"+suffix, EUI48::ALL_DEVICE, BTMode::DUAL, serverSC, secLevelServer);
-        std::shared_ptr<DBTClient00> client = std::make_shared<DBTClient00>("C-"+suffix, EUI48::ALL_DEVICE, BTMode::DUAL);
+        std::shared_ptr<DBTServer01> server = std::make_shared<DBTServer01>("S-"+suffix, EUI48::ALL_DEVICE, BTMode::DUAL,
+                                                                            serverSC, secLevelServer, false /* do_disconnect_ */);
+        std::shared_ptr<DBTClient01> client = std::make_shared<DBTClient01>("C-"+suffix, EUI48::ALL_DEVICE, BTMode::DUAL, false /* do_disconnect_ */);
         test8x_fullCycle(suffix,
                          protocolSessionCount, DBTConstants::max_connections_per_session, true /* expSuccess */,
                          server_client_order,

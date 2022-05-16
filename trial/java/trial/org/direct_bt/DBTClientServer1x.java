@@ -72,8 +72,8 @@ public abstract class DBTClientServer1x extends BaseDBTClientServer {
                                 final boolean serverSC, final BTSecurityLevel secLevelServer, final ExpectedPairing serverExpPairing,
                                 final BTSecurityLevel secLevelClient, final ExpectedPairing clientExpPairing)
     {
-        final DBTServer00 server = new DBTServer00("S-"+suffix, EUI48.ALL_DEVICE, BTMode.DUAL, serverSC, secLevelServer);
-        final DBTClient00 client = new DBTClient00("C-"+suffix, EUI48.ALL_DEVICE, BTMode.DUAL);
+        final DBTServer01 server = new DBTServer01("S-"+suffix, EUI48.ALL_DEVICE, BTMode.DUAL, serverSC, secLevelServer, false /* do_disconnect */);
+        final DBTClient01 client = new DBTClient01("C-"+suffix, EUI48.ALL_DEVICE, BTMode.DUAL, false /* do_disconnect */);
         test8x_fullCycle(timeout_value, suffix,
                          protocolSessionCount, DBTConstants.max_connections_per_session, true /* expSuccess */,
                          server_client_order,

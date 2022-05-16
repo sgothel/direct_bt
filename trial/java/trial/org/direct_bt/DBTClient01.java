@@ -70,6 +70,8 @@ public class DBTClient01 implements DBTClientTest {
 
     private final MyAdapterStatusListener myAdapterStatusListener = new MyAdapterStatusListener();
 
+    private final byte cmd_arg = (byte)0x44;
+
     private String adapterName = "TestDev2_Clt";
     private EUI48 useAdapter = EUI48.ALL_DEVICE;
     private BTMode btMode = BTMode.DUAL;
@@ -86,6 +88,7 @@ public class DBTClient01 implements DBTClientTest {
     private final AtomicInteger deviceReadyCount = new AtomicInteger(0);
     private final AtomicInteger notificationsReceived = new AtomicInteger(0);
     private final AtomicInteger indicationsReceived = new AtomicInteger(0);
+    private final AtomicInteger completedGATTCommands = new AtomicInteger(0);
     private final AtomicInteger completedMeasurementsTotal = new AtomicInteger(0);
     private final AtomicInteger completedMeasurementsSuccess = new AtomicInteger(0);
 
@@ -342,6 +345,7 @@ public class DBTClient01 implements DBTClientTest {
     }
 
     private void resetLastProcessingStats() {
+        completedGATTCommands.set(0);
         notificationsReceived.set(0);
         indicationsReceived.set(0);
     }
@@ -447,6 +451,27 @@ public class DBTClient01 implements DBTClientTest {
                         "PERF:  get-gatt-services " + td35 + " ms,"+System.lineSeparator());
             }
 
+            {
+                final BTGattCmd cmd = new BTGattCmd(device, "TestCmd", null /* service_uuid */, DBTConstants.CommandUUID, DBTConstants.ResponseUUID);
+                cmd.setVerbose(true);
+                final boolean cmd_resolved = cmd.isResolved();
+                BTUtils.println(System.err, "Client Command test: "+cmd.toString()+", resolved "+cmd_resolved);
+                final byte[] cmd_data = { cmd_arg };
+                final HCIStatusCode cmd_res = cmd.send(true /* prefNoAck */, cmd_data, 3000 /* timeoutMS */);
+                if( HCIStatusCode.SUCCESS == cmd_res ) {
+                    final byte[] resp = cmd.getResponse();
+                    if( 1 == resp.length && resp[0] == cmd_arg ) {
+                        BTUtils.fprintf_td(System.err, "Client Success: %s -> %s (echo response)\n", cmd.toString(), BTUtils.bytesHexString(resp, 0, resp.length, true /* lsb */));
+                        completedGATTCommands.incrementAndGet();
+                    } else {
+                        BTUtils.fprintf_td(System.err, "Client Failure: %s -> %s (different response)\n", cmd.toString(), BTUtils.bytesHexString(resp, 0, resp.length, true /* lsb */));
+                    }
+                } else {
+                    BTUtils.fprintf_td(System.err, "Client Failure: %s -> %s\n", cmd.toString(), cmd_res.toString());
+                }
+                cmd.close();
+            }
+
             boolean gattListenerError = false;
             final List<BTGattCharListener> gattListener = new ArrayList<BTGattCharListener>();
             int loop = 0;
@@ -516,6 +541,8 @@ public class DBTClient01 implements DBTClientTest {
                     ex.printStackTrace();
                 }
             } while( !success && device.getConnected() && !gattListenerError );
+
+            success = success && completedGATTCommands.get() >= 1;
 
             if( gattListenerError ) {
                 success = false;
@@ -589,6 +616,7 @@ public class DBTClient01 implements DBTClientTest {
                         "; Measurements completed "+completedMeasurementsSuccess.get()+
                         ", left "+measurementsLeft.get()+
                         "; Received notitifications "+notificationsReceived.get()+", indications "+indicationsReceived.get()+
+                        "; Completed GATT commands "+completedGATTCommands.get()+
                         ": "+device.getAddressAndType());
     }
 

@@ -34,7 +34,7 @@
 
 #include "dbt_base_client_server.hpp"
 
-#include "dbt_server00.hpp"
+#include "dbt_server01.hpp"
 
 using namespace direct_bt;
 
@@ -96,7 +96,8 @@ TEST_CASE( "Server StartStop and SwitchRole Trial 00.2", "[trial][startstop][swi
     REQUIRE( manager->getAdapterCount() >= 1 );
 
     const std::string serverName = "TestDBTCS00-S-T10";
-    std::shared_ptr<DBTServer00> server = std::make_shared<DBTServer00>(serverName, EUI48::ALL_DEVICE, BTMode::DUAL, true /* SC */, BTSecurityLevel::NONE);
+    std::shared_ptr<DBTServer01> server = std::make_shared<DBTServer01>(serverName, EUI48::ALL_DEVICE, BTMode::DUAL,
+                                                                        true /* SC */, BTSecurityLevel::NONE, false /* do_disconnect_ */);
     server->setProtocolSessionsLeft(1);
 
     ChangedAdapterSetCallback myChangedAdapterSetFunc = DBTEndpoint::initChangedAdapterSetListener(manager, { server });
