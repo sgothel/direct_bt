@@ -970,8 +970,10 @@ bool BTGattHandler::discoverCompletePrimaryServices(std::shared_ptr<BTGattHandle
         if( !discoverCharacteristics(primSrv) ) {
             return false;
         }
-        if( !discoverDescriptors(primSrv) ) {
-            return false;
+        if( primSrv->characteristicList.size() > 0 ) {
+            if( !discoverDescriptors(primSrv) ) {
+                return false;
+            }
         }
     }
     return true;
@@ -1041,8 +1043,7 @@ bool BTGattHandler::discoverPrimaryServices(std::shared_ptr<BTGattHandler> share
         }
     }
     PERF_TS_TD("GATT discoverPrimaryServices");
-
-    return result.size() > 0;
+    return true;
 }
 
 bool BTGattHandler::discoverCharacteristics(BTGattServiceRef & service) noexcept {
@@ -1109,8 +1110,7 @@ bool BTGattHandler::discoverCharacteristics(BTGattServiceRef & service) noexcept
     }
 
     PERF_TS_TD("GATT discoverCharacteristics");
-
-    return service->characteristicList.size() > 0;
+    return true;
 }
 
 bool BTGattHandler::discoverDescriptors(BTGattServiceRef & service) noexcept {
@@ -1201,8 +1201,7 @@ bool BTGattHandler::discoverDescriptors(BTGattServiceRef & service) noexcept {
         }
     }
     PERF_TS_TD("GATT discoverDescriptors");
-
-    return service->characteristicList.size() > 0;
+    return true;
 }
 
 bool BTGattHandler::readDescriptorValue(BTGattDesc & desc, int expectedLength) noexcept {
