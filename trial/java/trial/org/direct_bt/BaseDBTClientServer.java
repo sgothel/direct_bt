@@ -99,15 +99,7 @@ public abstract class BaseDBTClientServer extends SingletonJunitCase {
         }
     }
 
-    /**
-     * Ensure
-     * - all adapter are powered off
-     */
-    @Before
-    public final void setupTest() {
-        final Class<?> ThisClazz = MethodHandles.lookup().lookupClass();
-        BTUtils.println(System.err, "++++ Test "+ThisClazz.getSimpleName()+".setupTest()");
-
+    private void resetStates() {
         BTManager manager = null;
         try {
             manager = BTFactory.getDirectBTManager();
@@ -121,15 +113,29 @@ public abstract class BaseDBTClientServer extends SingletonJunitCase {
         if( null != manager ) {
             final List<BTAdapter> adapters = manager.getAdapters();
             for(final BTAdapter a : adapters) {
+                a.removeAllStatusListener();
                 a.stopAdvertising();
                 a.stopDiscovery();
                 Assert.assertTrue( a.setPowered(false) );
             }
         }
+        manager.removeAllChangedAdapterSetListener();
         BTDeviceRegistry.clearWaitForDevices();
         BTDeviceRegistry.clearProcessedDevices();
         BTDeviceRegistry.clearProcessingDevices();
         BTSecurityRegistry.clear();
+    }
+
+    /**
+     * Ensure
+     * - all adapter are powered off
+     */
+    @Before
+    public final void setupTest() {
+        final Class<?> ThisClazz = MethodHandles.lookup().lookupClass();
+        BTUtils.println(System.err, "++++ Test "+ThisClazz.getSimpleName()+".setupTest()");
+
+        resetStates();
     }
 
     /**
@@ -144,30 +150,6 @@ public abstract class BaseDBTClientServer extends SingletonJunitCase {
         final Class<?> ThisClazz = MethodHandles.lookup().lookupClass();
         BTUtils.println(System.err, "++++ Test "+ThisClazz.getSimpleName()+".cleanupTest()");
 
-        BTManager manager = null;
-        try {
-            manager = BTFactory.getDirectBTManager();
-        } catch (BTException | NoSuchMethodException | SecurityException
-                | IllegalAccessException | IllegalArgumentException
-                | InvocationTargetException | ClassNotFoundException e) {
-            e.printStackTrace();
-            BTUtils.println(System.err, "Unable to instantiate Direct-BT BluetoothManager: "+e.getMessage());
-            e.printStackTrace();
-        }
-        if( null != manager ) {
-            final List<BTAdapter> adapters = manager.getAdapters();
-            for(final BTAdapter a : adapters) {
-                { // if( false ) {
-                    a.removeAllStatusListener();
-                }
-                a.stopAdvertising();
-                a.stopDiscovery();
-                Assert.assertTrue( a.setPowered(false) );
-            }
-        }
-        BTDeviceRegistry.clearWaitForDevices();
-        BTDeviceRegistry.clearProcessedDevices();
-        BTDeviceRegistry.clearProcessingDevices();
-        BTSecurityRegistry.clear();
+        resetStates();
     }
 }

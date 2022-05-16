@@ -1191,3 +1191,9 @@ int BTManager::removeChangedAdapterSetCallback(ChangedAdapterSetFunc f) {
     ChangedAdapterSetCallback l( jau::bindPlainFunc<bool, bool, std::shared_ptr<BTAdapter>&>(f) );
     return mgmtChangedAdapterSetCallbackList.erase_matching(l, true /* all_matching */, _changedAdapterSetCallbackEqComp);
 }
+
+int BTManager::removeAllChangedAdapterSetCallbacks() noexcept {
+    const int count = mgmtChangedAdapterSetCallbackList.size();
+    mgmtChangedAdapterSetCallbackList.clear();
+    return count;
+}

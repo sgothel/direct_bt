@@ -188,6 +188,13 @@ public class DBTManager implements BTManager
         return count[0];
     }
 
+    @Override
+    public int removeAllChangedAdapterSetListener() {
+        final int count = changedAdapterSetListenerList.size();
+        changedAdapterSetListenerList.clear();
+        return count;
+    }
+
     private native List<BTAdapter> getAdapterListImpl();
     private native BTAdapter getAdapterImpl(int dev_id);
 

@@ -92,6 +92,24 @@ class BaseDBTClientServer {
          */
         ~BaseDBTClientServer() noexcept { close(); }
 
+    private:
+        void resetStates() {
+            std::shared_ptr<BTManager> mngr = BTManager::get();
+            jau::darray<BTAdapterRef> adapters = mngr->getAdapters();
+            for(BTAdapterRef a : adapters) {
+                a->removeAllStatusListener();
+                a->stopAdvertising();
+                a->stopDiscovery();
+                REQUIRE( a->setPowered(false) );
+            }
+            mngr->removeAllChangedAdapterSetCallbacks();
+            BTDeviceRegistry::clearWaitForDevices();
+            BTDeviceRegistry::clearProcessedDevices();
+            BTDeviceRegistry::clearProcessingDevices();
+            BTSecurityRegistry::clear();
+        }
+
+    public:
         /**
          * Ensure
          * - all adapter are powered off
@@ -99,17 +117,7 @@ class BaseDBTClientServer {
         void setupTest(const jau::fraction_i64 timeout = 0_s) {
             timeout_timer.stop();
             test_timeout = timeout;
-            std::shared_ptr<BTManager> mngr = BTManager::get();
-            jau::darray<BTAdapterRef> adapters = mngr->getAdapters();
-            for(BTAdapterRef a : adapters) {
-                a->stopAdvertising();
-                a->stopDiscovery();
-                REQUIRE( a->setPowered(false) );
-            }
-            BTDeviceRegistry::clearWaitForDevices();
-            BTDeviceRegistry::clearProcessedDevices();
-            BTDeviceRegistry::clearProcessingDevices();
-            BTSecurityRegistry::clear();
+            resetStates();
             if( !timeout.is_zero() ) {
                 timeout_timer.start(timeout, jau::bindMemberFunc(this, &BaseDBTClientServer::timeout_func));
             }
@@ -125,20 +133,7 @@ class BaseDBTClientServer {
         void cleanupTest() {
             timeout_timer.stop();
             test_timeout = 0_s;
-            std::shared_ptr<BTManager> mngr = BTManager::get();
-            jau::darray<BTAdapterRef> adapters = mngr->getAdapters();
-            for(BTAdapterRef a : adapters) {
-                { // if( false ) {
-                    a->removeAllStatusListener();
-                }
-                a->stopAdvertising();
-                a->stopDiscovery();
-                REQUIRE( a->setPowered(false) );
-            }
-            BTDeviceRegistry::clearWaitForDevices();
-            BTDeviceRegistry::clearProcessedDevices();
-            BTDeviceRegistry::clearProcessingDevices();
-            BTSecurityRegistry::clear();
+            resetStates();
         }
 
         void closeBTManager() {

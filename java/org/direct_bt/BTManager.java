@@ -118,6 +118,13 @@ public interface BTManager
     int removeChangedAdapterSetListener(final ChangedAdapterSetListener l);
 
     /**
+     * Remove all added {@link ChangedAdapterSetListener} entries from this manager.
+     * @return the number of removed elements
+     * @since 2.7.0
+     */
+    int removeAllChangedAdapterSetListener();
+
+    /**
      * Release the native memory associated with this object and all related Bluetooth resources.
      * The object should not be used following a call to close
      * <p>

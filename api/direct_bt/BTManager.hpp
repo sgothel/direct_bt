@@ -563,6 +563,14 @@ namespace direct_bt {
              * @return the number of removed elements
              */
             int removeChangedAdapterSetCallback(ChangedAdapterSetFunc f);
+
+            /**
+             * Remove all added ChangedAdapterSetCallback entries from this manager.
+             * @return the number of removed elements
+             * @since 2.7.0
+             */
+            int removeAllChangedAdapterSetCallbacks() noexcept;
+
     };
     typedef std::shared_ptr<BTManager> BTManagerRef;
 
