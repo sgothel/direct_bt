@@ -31,6 +31,8 @@
 
 #include "dbt_server_test.hpp"
 
+#include <jau/latch.hpp>
+
 class DBTServer01;
 typedef std::shared_ptr<DBTServer01> DBTServer01Ref;
 
@@ -72,6 +74,7 @@ class DBTServer01 : public DBTServerTest {
         bool use_SC = true;
         BTSecurityLevel adapterSecurityLevel = BTSecurityLevel::UNSET;
 
+        jau::latch running_threads = jau::latch(0);
         jau::sc_atomic_int disconnectCount = 0;
         jau::sc_atomic_int servedProtocolSessionsTotal = 0;
         jau::sc_atomic_int servedProtocolSessionsSuccess = 0;
@@ -296,6 +299,7 @@ class DBTServer01 : public DBTServerTest {
                 if( match ) {
                     parent.setDevice(nullptr);
                 }
+                parent.running_threads.count_up();
                 std::thread sd(&DBTServer01::processDisconnectedDevice, &parent, device); // @suppress("Invalid arguments")
                 sd.detach();
                 (void)timestamp;
@@ -377,6 +381,7 @@ class DBTServer01 : public DBTServerTest {
                             }
                         }
                     }
+                    parent.running_threads.count_down();
                 }
 
                 void disconnectDevice() {
@@ -395,6 +400,7 @@ class DBTServer01 : public DBTServerTest {
                     } else {
                         fprintf_td(stderr, "****** Server i470 disconnectDevice(delayed %d ms): client null\n", sleep_dur);
                     }
+                    parent.running_threads.count_down();
                 }
 
             public:
@@ -459,6 +465,7 @@ class DBTServer01 : public DBTServerTest {
                             match, parent.servedProtocolSessionsTotal.load(), parent.servingProtocolSessionsLeft.load(),
                             match ? (int)usedMTU_old : 0, (int)mtu, device->toString().c_str());
                     if( parent.do_disconnect ) {
+                        parent.running_threads.count_up();
                         std::thread disconnectThread(&MyGATTServerListener::disconnectDevice, this);
                         disconnectThread.detach();
                     }
@@ -518,6 +525,7 @@ class DBTServer01 : public DBTServerTest {
                                 parent.servingProtocolSessionsLeft--;
                             }
                         }
+                        parent.running_threads.count_up();
                         jau::POctets value2(value);
                         std::thread senderThread(&MyGATTServerListener::sendResponse, this, value2);
                         senderThread.detach();
@@ -590,6 +598,11 @@ class DBTServer01 : public DBTServerTest {
             dbGattServer->addListener( gattServerListener );
         }
 
+        ~DBTServer01() {
+            fprintf_td(stderr, "****** Server dtor: running_threads %zu\n", running_threads.value());
+            running_threads.wait_for( 10_s );
+        }
+
         std::string getName() override { return adapterName; }
 
         BTSecurityLevel getSecurityLevel() override { return adapterSecurityLevel; }
@@ -621,6 +634,9 @@ class DBTServer01 : public DBTServerTest {
                 }
             }
             gattServerListener->close();
+            fprintf_td(stderr, "****** Server close: running_threads %zu\n", running_threads.value());
+            running_threads.wait_for( 10_s );
+
             // dbGattServer = nullptr; // keep alive
             stopAdvertising(msg); // try once more in case of already started AdapterStatusListener
             fprintf_td(stderr, "****** Server Close.X: %s\n", msg.c_str());
@@ -704,6 +720,7 @@ class DBTServer01 : public DBTServerTest {
             }
 
             fprintf_td(stderr, "****** Server Disonnected Device: End %s\n", device->toString().c_str());
+            running_threads.count_down();
         }
 
     public:

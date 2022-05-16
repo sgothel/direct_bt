@@ -29,6 +29,8 @@
 
 #include "dbt_client_test.hpp"
 
+#include <jau/latch.hpp>
+
 class DBTClient01;
 typedef std::shared_ptr<DBTClient01> DBTClient01Ref;
 
@@ -51,6 +53,7 @@ class DBTClient01 : public DBTClientTest {
 
         jau::sc_atomic_int deviceReadyCount = 0;
 
+        jau::latch running_threads = jau::latch(0);
         jau::sc_atomic_int disconnectCount = 0;
         jau::sc_atomic_int notificationsReceived = 0;
         jau::sc_atomic_int indicationsReceived = 0;
@@ -104,6 +107,7 @@ class DBTClient01 : public DBTClientTest {
                         const uint64_t td = jau::getCurrentMilliseconds() - parent.timestamp_t0; // adapter-init -> now
                         fprintf_td(stderr, "PERF: adapter-init -> FOUND__-0  %" PRIu64 " ms\n", td);
                     }
+                    parent.running_threads.count_up();
                     std::thread dc(&DBTClient01::connectDiscoveredDevice, &parent, device); // @suppress("Invalid arguments")
                     dc.detach();
                     return true;
@@ -200,6 +204,7 @@ class DBTClient01 : public DBTClientTest {
                 } else {
                     fprintf_td(stderr, "****** Client i470 disconnectDevice(delayed %d ms): client null\n", sleep_dur);
                 }
+                parent.running_threads.count_down();
             }
 
             void deviceReady(BTDeviceRef device, const uint64_t timestamp) override {
@@ -209,11 +214,13 @@ class DBTClient01 : public DBTClientTest {
                     fprintf_td(stderr, "****** Client READY-0: Processing[%d] %s\n", parent.deviceReadyCount.load(), device->toString(true).c_str());
 
                     // Be nice to Test* case, allowing to reach its own listener.deviceReady() added later
+                    parent.running_threads.count_up();
                     std::thread dc(&DBTClient01::processReadyDevice, &parent, device);
                     dc.detach();
                     // processReadyDevice(device); // AdapterStatusListener::deviceReady() explicitly allows prolonged and complex code execution!
 
                     if( parent.do_disconnect ) {
+                        parent.running_threads.count_up();
                         std::thread disconnectThread(&MyAdapterStatusListener::disconnectDevice, this, device);
                         disconnectThread.detach();
                     }
@@ -228,6 +235,7 @@ class DBTClient01 : public DBTClientTest {
 
                 parent.disconnectCount++;
 
+                parent.running_threads.count_up();
                 std::thread dc(&DBTClient01::removeDevice, &parent, device); // @suppress("Invalid arguments")
                 dc.detach();
             }
@@ -286,6 +294,11 @@ class DBTClient01 : public DBTClientTest {
             this->useAdapter = useAdapter_;
             this->btMode = btMode_;
             this->do_disconnect = do_disconnect_;
+        }
+
+        ~DBTClient01() {
+            fprintf_td(stderr, "****** Client dtor: running_threads %zu\n", running_threads.value());
+            running_threads.wait_for( 10_s );
         }
 
         std::string getName() override { return adapterName; }
@@ -374,6 +387,7 @@ class DBTClient01 : public DBTClientTest {
             const uint16_t supervision_timeout = (uint16_t) getHCIConnSupervisorTimeout(conn_latency, (int) ( conn_interval_max * 1.25 ) /* ms */);
             res = device->connectLE(le_scan_interval, le_scan_window, conn_interval_min, conn_interval_max, conn_latency, supervision_timeout);
             fprintf_td(stderr, "****** Client Connecting Device: End result %s of %s\n", to_string(res).c_str(), device->toString().c_str());
+            running_threads.count_down();
         }
 
         void processReadyDevice(BTDeviceRef device) {
@@ -606,6 +620,7 @@ class DBTClient01 : public DBTClientTest {
                             success, completedMeasurementsSuccess.load(),
                             measurementsLeft.load(), notificationsReceived.load(), indicationsReceived.load(),
                             completedGATTCommands.load(), device->getAddressAndType().toString().c_str());
+            running_threads.count_down();
         }
 
         void removeDevice(BTDeviceRef device) {
@@ -614,6 +629,7 @@ class DBTClient01 : public DBTClientTest {
             if( REMOVE_DEVICE ) {
                 device->remove();
             }
+            running_threads.count_down();
         }
 
         static const bool le_scan_active = true; // default value
@@ -640,6 +656,8 @@ class DBTClient01 : public DBTClientTest {
             fprintf_td(stderr, "****** Client Close: %s\n", msg.c_str());
             clientAdapter->stopDiscovery();
             clientAdapter->removeStatusListener( myAdapterStatusListener );
+            fprintf_td(stderr, "****** Client close: running_threads %zu\n", running_threads.value());
+            running_threads.wait_for( 10_s );
         }
 
         bool initAdapter(BTAdapterRef adapter) override {
