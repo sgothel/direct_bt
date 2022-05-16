@@ -130,7 +130,6 @@ public class BTDeviceRegistry {
             return "["+addressAndType+", "+name+"]";
         }
     };
-    private static Collection<DeviceID> devicesInProcessing = Collections.synchronizedCollection(new HashSet<DeviceID>());
     private static Collection<DeviceID> devicesProcessed = Collections.synchronizedCollection(new HashSet<DeviceID>());
 
     public static void addToWaitForDevices(final String addrOrNameSub) {
@@ -291,31 +290,5 @@ public class BTDeviceRegistry {
         return areAllDevicesProcessed( (final EUI48 a, final String n, final DeviceQuery q) -> {
                                         return q.isEUI48Sub() ? a.contains(q.addressSub) : n.indexOf(q.nameSub) >= 0;
                                      });
-    }
-
-
-    public static void addToProcessingDevices(final BDAddressAndType a, final String n) {
-        devicesInProcessing.add( new DeviceID(a, n) );
-    }
-    public static boolean removeFromProcessingDevices(final BDAddressAndType a) {
-        return devicesInProcessing.remove( new DeviceID(a, null) );
-    }
-    public static boolean isDeviceProcessing(final BDAddressAndType a) {
-        return devicesInProcessing.contains( new DeviceID(a, null) );
-    }
-    public static int getProcessingDeviceCount() {
-        return devicesInProcessing.size();
-    }
-    /**
-     * Returns a copy of the current collection of processing {@link DeviceID}.
-     */
-    public static List<DeviceID> getProcessingDevices() {
-        return new ArrayList<DeviceID>(devicesInProcessing);
-    }
-    /**
-     * Clears internal list
-     */
-    public static void clearProcessingDevices() {
-        devicesInProcessing.clear();
     }
 }

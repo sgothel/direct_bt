@@ -216,19 +216,6 @@ namespace direct_bt {
                                             return q.isEUI48Sub() ? a.contains(q.addressSub) : n.find(q.nameSub) != std::string::npos;
                                          });
         }
-
-        void addToProcessingDevices(const BDAddressAndType &a, const std::string& n) noexcept;
-        bool removeFromProcessingDevices(const BDAddressAndType &a) noexcept;
-        bool isDeviceProcessing(const BDAddressAndType & a) noexcept;
-        size_t getProcessingDeviceCount() noexcept;
-        /**
-         * Returns a copy of the current collection of processing DeviceID.
-         */
-        jau::darray<DeviceID> getProcessingDevices() noexcept;
-        /**
-         * Clears internal list
-         */
-        void clearProcessingDevices() noexcept;
     }
 
 } // namespace direct_bt
