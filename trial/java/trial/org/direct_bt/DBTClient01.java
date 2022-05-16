@@ -57,6 +57,7 @@ import org.direct_bt.SMPKeyBin;
 import org.direct_bt.SMPPairingState;
 import org.direct_bt.ScanType;
 import org.jau.net.EUI48;
+import org.junit.Assert;
 
 /**
  * This central BTRole::Master participant works with DBTServer00.
@@ -654,7 +655,7 @@ public class DBTClient01 implements DBTClientTest {
     public void close(final String msg) {
         BTUtils.println(System.err, "****** Client Close: "+msg);
         clientAdapter.stopDiscovery();
-        clientAdapter.removeStatusListener( myAdapterStatusListener );
+        Assert.assertTrue( clientAdapter.removeStatusListener( myAdapterStatusListener ) );
     }
 
     @Override
@@ -711,7 +712,7 @@ public class DBTClient01 implements DBTClientTest {
             BTUtils.fprintf_td(System.err, "initClientAdapter: Set Default LE PHY: status %s: Tx %s, Rx %s\n",
                                 res.toString(), Tx.toString(), Rx.toString());
         }
-        adapter.addStatusListener( myAdapterStatusListener );
+        Assert.assertTrue( adapter.addStatusListener( myAdapterStatusListener ) );
 
         return true;
     }

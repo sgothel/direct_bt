@@ -584,7 +584,7 @@ void BTAdapter::printStatusListenerList() noexcept {
     auto begin = statusListenerList.begin(); // lock mutex and copy_store
     jau::PLAIN_PRINT(true, "- BTAdapter::StatusListener    : %zu elements", (size_t)begin.size());
     for(int ii=0; !begin.is_end(); ++ii, ++begin ) {
-        jau::PLAIN_PRINT(true, "  - %d / %zu: %s", (ii+1), (size_t)begin.size(), begin->listener->toString().c_str());
+        jau::PLAIN_PRINT(true, "  - %d / %zu: %p, %s", (ii+1), (size_t)begin.size(), begin->listener.get(), begin->listener->toString().c_str());
     }
 }
 

@@ -655,7 +655,7 @@ class DBTClient01 : public DBTClientTest {
         void close(const std::string& msg) override {
             fprintf_td(stderr, "****** Client Close: %s\n", msg.c_str());
             clientAdapter->stopDiscovery();
-            clientAdapter->removeStatusListener( myAdapterStatusListener );
+            REQUIRE( true == clientAdapter->removeStatusListener( myAdapterStatusListener ) );
             fprintf_td(stderr, "****** Client close: running_threads %zu\n", running_threads.value());
             running_threads.wait_for( 10_s );
         }
@@ -720,7 +720,7 @@ class DBTClient01 : public DBTClientTest {
                 fprintf_td(stderr, "initClientAdapter: Set Default LE PHY: status %s: Tx %s, Rx %s\n",
                         to_string(res).c_str(), to_string(Tx).c_str(), to_string(Rx).c_str());
             }
-            adapter->addStatusListener( myAdapterStatusListener );
+            REQUIRE( true == adapter->addStatusListener( myAdapterStatusListener ) );
 
             return true;
         }

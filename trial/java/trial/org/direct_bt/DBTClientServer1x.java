@@ -214,7 +214,6 @@ public abstract class DBTClientServer1x extends BaseDBTClientServer {
         // Server stop
         //
         DBTServerTest.stop(server, "test"+suffix+"_stopAdvertising");
-        server.close("test"+suffix+"_close");
 
         if( expSuccess ) {
             //

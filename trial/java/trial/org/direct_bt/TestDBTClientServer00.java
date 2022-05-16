@@ -123,7 +123,6 @@ public class TestDBTClientServer00 extends BaseDBTClientServer {
         // Server stop
         //
         DBTServerTest.stop(server, "test10_stopAdvertising");
-        server.close("test10_close");
 
         //
         // Now reuse adapter for client mode -> Start discovery + Stop Discovery

@@ -59,6 +59,7 @@ import org.direct_bt.SMPIOCapability;
 import org.direct_bt.SMPPairingState;
 import org.direct_bt.ScanType;
 import org.jau.net.EUI48;
+import org.junit.Assert;
 
 /**
  * This peripheral BTRole::Slave test participant works with DBTClient00.
@@ -665,7 +666,7 @@ public class DBTServer01 implements DBTServerTest {
     @Override
     public void close(final String msg) {
         BTUtils.println(System.err, "****** Server Close.0: "+msg);
-        serverAdapter.removeStatusListener( myAdapterStatusListener );
+        Assert.assertTrue( serverAdapter.removeStatusListener( myAdapterStatusListener ) );
         {
             stopAdvertising(msg);
             final BTDevice connectedDevice_ = getDevice();
@@ -824,7 +825,7 @@ public class DBTServer01 implements DBTServerTest {
         }
         adapter.setSMPKeyPath(DBTConstants.SERVER_KEY_PATH);
 
-        adapter.addStatusListener( myAdapterStatusListener );
+        Assert.assertTrue( adapter.addStatusListener( myAdapterStatusListener ) );
 
         adapter.setServerConnSecurity(adapterSecurityLevel, SMPIOCapability.UNSET);
 

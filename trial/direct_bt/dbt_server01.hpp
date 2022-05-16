@@ -624,7 +624,7 @@ class DBTServer01 : public DBTServerTest {
 
         void close(const std::string& msg) override {
             fprintf_td(stderr, "****** Server Close.0: %s\n", msg.c_str());
-            serverAdapter->removeStatusListener( myAdapterStatusListener );
+            REQUIRE( true == serverAdapter->removeStatusListener( myAdapterStatusListener ) );
             {
                 stopAdvertising(msg);
                 BTDeviceRef connectedDevice_ = getDevice();
@@ -803,7 +803,7 @@ class DBTServer01 : public DBTServerTest {
             }
             adapter->setSMPKeyPath(DBTConstants::SERVER_KEY_PATH);
 
-            adapter->addStatusListener( myAdapterStatusListener );
+            REQUIRE( true == adapter->addStatusListener( myAdapterStatusListener ) );
 
             adapter->setServerConnSecurity(adapterSecurityLevel, SMPIOCapability::UNSET);
 
