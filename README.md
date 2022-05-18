@@ -315,6 +315,11 @@ Disable using `libunwind` (default: enabled for all but `arm32`, `armhf`)
 -DUSE_LIBUNWIND=OFF
 ~~~~~~~~~~~~~
 
+Disable using `C++ Runtime Type Information` (*RTTI*) (default: disabled for *Direct-BT*)
+~~~~~~~~~~~~~
+-DDONT_USE_RTTI=OFF
+~~~~~~~~~~~~~
+
 Override default javac debug arguments `source,lines`:
 ~~~~~~~~~~~~~
 -DJAVAC_DEBUG_ARGS="source,lines,vars"

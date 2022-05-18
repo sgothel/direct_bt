@@ -16,6 +16,13 @@ if (BUILD_TRIAL)
     set (BUILD_TESTING ON)
 endif(BUILD_TRIAL)
 
+if(NOT DEFINED DONT_USE_RTTI)
+    set(DONT_USE_RTTI ON)
+    message(STATUS "${PROJECT_NAME} DONT_USE_RTTI ${DONT_USE_RTTI} (direct_bt default)")
+else()
+    message(STATUS "${PROJECT_NAME} DONT_USE_RTTI ${DONT_USE_RTTI} (user)")
+endif()
+
 include(jaulib/JaulibSetup.cmake)
 JaulibSetup()
 
