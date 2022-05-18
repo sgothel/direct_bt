@@ -28,56 +28,34 @@
 #include <cstdint>
 #include <cstdio>
 
+#include <jau/file_util.hpp>
+
 #include "SMPKeyBin.hpp"
 
 #include "BTDevice.hpp"
 #include "BTAdapter.hpp"
 
-#define USE_CXX17lib_FS 0
-#if USE_CXX17lib_FS
-    #include <filesystem>
-    namespace fs = std::filesystem;
-#else
-    #include <sys/types.h>
-    #include <dirent.h>
-#endif
-
 using namespace direct_bt;
-
-static bool file_exists(const std::string& name) {
-    std::ifstream f(name.c_str());
-    return f.good();
-}
 
 static std::vector<std::string> get_file_list(const std::string& dname) {
     std::vector<std::string> res;
-#if USE_CXX17lib_FS
-    for( const auto & entry : fs::directory_iterator( dname ) ) {
-        std::string fname( entry.path().u8string() );
-        if( 0 == fname.find("bd_") ) { // prefix checl
-            const jau::nsize_t suffix_pos = fname.size() - 4;
-            if( suffix_pos == fname.find(".key", suffix_pos) ) { // suffix check
-                res.push_back( dname + "/" + fname ); // full path
-            }
-        }
-    }
-#else
-    DIR *dir;
-    struct dirent *ent;
-    if( ( dir = ::opendir( dname.c_str() ) ) != nullptr ) {
-      while ( ( ent = ::readdir( dir ) ) != NULL ) {
-          std::string fname( ent->d_name );
-          if( 0 == fname.find("bd_") ) { // prefix checl
-              const jau::nsize_t suffix_pos = fname.size() - 4;
-              if( suffix_pos == fname.find(".key", suffix_pos) ) { // suffix check
-                  res.push_back( dname + "/" + fname ); // full path
-              }
-          }
-      }
-      ::closedir (dir);
-    } // else: could not open directory
-#endif
+    const jau::fs::consume_dir_item cs = jau::bindCaptureRefFunc(&res,
+            ( void(*)(std::vector<std::string>*, const jau::fs::dir_item&) ) /* help template type deduction of function-ptr */
+                ( [](std::vector<std::string>* receiver, const jau::fs::dir_item& item) -> void {
+                    if( 0 == item.element().find("bd_") ) { // prefix checl
+                        const jau::nsize_t suffix_pos = item.element().size() - 4;
+                        if( suffix_pos == item.element().find(".key", suffix_pos) ) { // suffix check
+                            receiver->push_back( item.path() ); // full path
+                        }
+                    }
+                  } )
+        );
+    jau::fs::get_dir_content(dname, cs);
     return res;
+}
+
+bool SMPKeyBin::remove_impl(const std::string& fname) {
+    return 0 == std::remove( fname.c_str() );
 }
 
 SMPKeyBin SMPKeyBin::create(const BTDevice& device) {
@@ -233,15 +211,8 @@ std::string SMPKeyBin::toString() const noexcept {
     res += ", valid "+std::to_string( isSizeValid() )+
            "], ";
     {
-        std::time_t t0 = static_cast<std::time_t>(ts_creation_sec);
-        struct std::tm tm_0;
-        if( nullptr == ::gmtime_r( &t0, &tm_0 ) ) {
-            res += "1970-01-01 00:00:00"; // 19 + 1
-        } else {
-            char b[20];
-            strftime(b, sizeof(b), "%Y-%m-%d %H:%M:%S", &tm_0);
-            res += std::string(b);
-        }
+        jau::fraction_timespec t0( ts_creation_sec, 0 );
+        res += t0.to_iso8601_string(true);
     }
     res += ", valid "+std::to_string( isValid() )+"]";
     return res;
@@ -263,14 +234,6 @@ std::string SMPKeyBin::getFilename(const std::string& path, const BTDevice& remo
     return getFilename(path, remoteDevice.getAdapter().getAddressAndType(), remoteDevice.getAddressAndType());
 }
 
-bool SMPKeyBin::remove_impl(const std::string& fname) {
-#if USE_CXX17lib_FS
-    const fs::path fname2 = fname;
-    return fs::remove(fname);
-#else
-    return 0 == std::remove( fname.c_str() );
-#endif
-}
 bool SMPKeyBin::remove(const std::string& path, const BTDevice& remoteDevice) {
     return remove(path, remoteDevice.getAdapter().getAddressAndType(), remoteDevice.getAddressAndType());
 }
@@ -283,15 +246,16 @@ bool SMPKeyBin::write(const std::string& path, const bool overwrite) const noexc
         return false;
     }
     const std::string fname = getFilename(path);
-    if( file_exists(fname) ) {
-        if( overwrite ) {
+    const jau::fs::file_stats fname_stat(fname);
+    if( fname_stat.exists() ) {
+        if( fname_stat.is_file() && overwrite ) {
             if( !remove_impl(fname) ) {
-                jau::fprintf_td(stderr, "Write SMPKeyBin: Failed deletion of existing file %s, %s\n", fname.c_str(), toString().c_str());
+                jau::fprintf_td(stderr, "Write SMPKeyBin: Failed deletion of existing file %s, %s\n", fname_stat.to_string(true).c_str(), toString().c_str());
                 return false;
             }
         } else {
             if( verbose ) {
-                jau::fprintf_td(stderr, "Write SMPKeyBin: Not overwriting existing file %s, %s\n", fname.c_str(), toString().c_str());
+                jau::fprintf_td(stderr, "Write SMPKeyBin: Not overwriting existing %s, %s\n", fname_stat.to_string(true).c_str(), toString().c_str());
             }
             return false;
         }
@@ -299,7 +263,8 @@ bool SMPKeyBin::write(const std::string& path, const bool overwrite) const noexc
     std::ofstream file(fname, std::ios::out | std::ios::binary);
 
     if ( !file.good() || !file.is_open() ) {
-        jau::fprintf_td(stderr, "Write SMPKeyBin: Failed: File not open %s: %s\n", fname.c_str(), toString().c_str());
+        jau::fprintf_td(stderr, "Write SMPKeyBin: Failed: File not open %s: %s\n", fname_stat.to_string(true).c_str(), toString().c_str());
+        file.close();
         return false;
     }
     uint8_t buffer[8];
