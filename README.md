@@ -18,7 +18,7 @@ Further, the [provided repeater](https://jausoft.com/projects/direct_bt/build/do
 
 Direct-BT has been used successfully in a medical trial, as well as in a [connected medical device application](https://www.zafena.se/en/product/zafena-552-poc-workstation/).
 
-During development, a generic [C++ and Java support library](https://jausoft.com/cgit/jaulib.git/about/) has been extracted.
+The [Jau C++ and Java support library](https://jausoft.com/cgit/jaulib.git/about/) has been extracted to encapsulate its generic use-cases.
 
 Below you can find a few notes about [*Direct-BT* Origins](#direct_bt_origins).
 
@@ -233,9 +233,8 @@ are availble, demonstrates the event driven and multithreading workflow:
 
 
 ## Building Direct-BT
-This project also uses the [Jau Library](https://jausoft.com/cgit/jaulib.git/about/)
-as a git submodule, which has been extracted earlier from this project
-to better encapsulation and allow general use.
+This project also uses the [Jau C++ and Java Support Library](https://jausoft.com/cgit/jaulib.git/about/)
+as a git submodule, which has been extracted from this project to encapsulate its generic use-cases.
 
 *Direct-BT* does not require GLib/GIO 
 nor shall the *BlueZ* userspace service *bluetoothd* be active for best experience.
