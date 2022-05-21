@@ -10,7 +10,7 @@ This project's canonical repositories is hosted on [Gothel Software](https://jau
 offering robust high-performance support for embedded & desktop with zero overhead via C++ and Java.
 
 *Direct-BT* supports a fully event driven workflow from adapter management, device discovery to GATT programming,
-using its platform agnostic HCI, L2CAP, SMP and GATT client-side protocol implementation.
+using its platform agnostic HCI, L2CAP, SMP and GATT protocol implementation.
 
 Peripheral server device programming is supported as well as the central client, which is also used for [Java](http://jausoft.goethel.localnet/cgit/direct_bt.git/tree/trial/java/trial/org/direct_bt) and [C++ self unit testing](http://jausoft.goethel.localnet/cgit/direct_bt.git/tree/trial/direct_bt) across two or more Bluetooth adapter.
 
