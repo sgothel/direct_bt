@@ -5,21 +5,26 @@
 ## Git Repository
 This project's canonical repositories is hosted on [Gothel Software](https://jausoft.com/cgit/direct_bt.git/).
 
-## Goals
-This project aims to create a clean, modern and easy to use API for [Bluetooth LE and BREDR](https://www.bluetooth.com/specifications/bluetooth-core-specification/), 
-fully accessible through C++, Java and other languages.
-
 ## Overview
 *Direct-BT* provides direct [Bluetooth LE and BREDR](https://www.bluetooth.com/specifications/bluetooth-core-specification/) programming,
 offering robust high-performance support for embedded & desktop with zero overhead via C++ and Java.
 
+*Direct-BT* supports a fully event driven workflow from adapter management, device discovery to GATT programming,
+using its platform agnostic HCI, L2CAP, SMP and GATT client-side protocol implementation.
+
+Peripheral server device programming is supported as well as the central client, which is also used for [Java](http://jausoft.goethel.localnet/cgit/direct_bt.git/tree/trial/java/trial/org/direct_bt) and [C++ self unit testing](http://jausoft.goethel.localnet/cgit/direct_bt.git/tree/trial/direct_bt) across two or more Bluetooth adapter.
+
+Further, the [provided repeater](https://jausoft.com/projects/direct_bt/build/documentation/cpp/html/dbt_repeater00_8cpp-example.html) application allows to connect between a Bluetooth client and server to analyze their protocol.
+
+Direct-BT has been used successfully in a medical trial, as well as in a [connected medical device application](https://www.zafena.se/en/product/zafena-552-poc-workstation/).
+
+During development, a generic [C++ and Java support library](https://jausoft.com/cgit/jaulib.git/about/) has been extracted.
+
 Below you can find a few notes about [*Direct-BT* Origins](#direct_bt_origins).
 
+## Details
 You will find a [detailed overview of *Direct-BT*](https://jausoft.com/projects/direct_bt/build/documentation/cpp/html/namespacedirect__bt.html#details) (C++)
 and the [same in the Java API](https://jausoft.com/projects/direct_bt/build/documentation/java/html/namespaceorg_1_1direct__bt.html#details).
-
-*Direct-BT* supports a fully event driven workflow from adapter management via device discovery to GATT programming.
-using its platform agnostic HCI, L2CAP, SMP and GATT client-side protocol implementation.
 
 [AdapterStatusListener](https://jausoft.com/projects/direct_bt/build/documentation/cpp/html/classdirect__bt_1_1AdapterStatusListener.html) 
 allows listening to adapter changes and device discovery and
