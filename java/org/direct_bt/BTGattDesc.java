@@ -28,6 +28,11 @@ package org.direct_bt;
 /**
  * Representing a Gatt Characteristic Descriptor object from the GATT client perspective.
  *
+ * A list of shared BTGattDesc instances is available from BTGattChar
+ * via BTGattChar::getDescriptors().
+ *
+ * See [Direct-BT Overview](namespaceorg_1_1direct__bt.html#details).
+ *
  * BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3 Characteristic Descriptor
  *
  * See {@link DBGattDesc.UUID16} for selected standard GATT descriptor numbers in UUID16 format

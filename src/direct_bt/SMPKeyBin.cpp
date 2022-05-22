@@ -27,6 +27,8 @@
 #include <memory>
 #include <cstdint>
 #include <cstdio>
+#include <fstream>
+#include <iostream>
 
 #include <jau/file_util.hpp>
 

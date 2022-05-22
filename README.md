@@ -24,15 +24,13 @@ Below you can find a few notes about [*Direct-BT* Origins](#direct_bt_origins).
 
 ## Details
 You will find a [detailed overview of *Direct-BT*](https://jausoft.com/projects/direct_bt/build/documentation/cpp/html/namespacedirect__bt.html#details) (C++)
-and the [same in the Java API](https://jausoft.com/projects/direct_bt/build/documentation/java/html/namespaceorg_1_1direct__bt.html#details).
+and the [same in the Java API](https://jausoft.com/projects/direct_bt/build/documentation/java/html/namespaceorg_1_1direct__bt.html#details).<br/>
+See details on the [C++ and Java API](#direct_bt_apidoc) including its different C++ API level modules.
 
 [AdapterStatusListener](https://jausoft.com/projects/direct_bt/build/documentation/cpp/html/classdirect__bt_1_1AdapterStatusListener.html) 
 allows listening to adapter changes and device discovery and
 [BTGattCharListener](https://jausoft.com/projects/direct_bt/build/documentation/cpp/html/classdirect__bt_1_1BTGattCharListener.html)
 to GATT indications and notifications.
-
-*Direct-BT* may be utilized via its [C++ API](https://jausoft.com/projects/direct_bt/build/documentation/cpp/html/index.html)
-or via its [Java API](https://jausoft.com/projects/direct_bt/build/documentation/java/html/index.html).
 
 *Direct-BT* is exposed via the following native libraries
 - *libdirect_bt.so* for the core C++ implementation.
@@ -198,15 +196,18 @@ See *Examples* below ...
 ### API
 Exposed API closely follows and references the [Bluetooth Specification](https://www.bluetooth.com/specifications/bluetooth-core-specification/).
 
+<a name="direct_bt_apidoc"></a>
+
 #### API Documentation
 Up to date API documentation can be found:
 
-* [API Overview](https://jausoft.com/projects/direct_bt/build/documentation/cpp/html/namespacedirect__bt.html#details) (C++)
-and the [same in the Java API](https://jausoft.com/projects/direct_bt/build/documentation/java/html/namespaceorg_1_1direct__bt.html#details).
+* [C++ API Doc](https://jausoft.com/projects/direct_bt/build/documentation/cpp/html/namespacedirect__bt.html#details):
+  * [General User Level API](https://jausoft.com/projects/direct_bt/build/documentation/cpp/html/group__DBTUserAPI.html)
+  * [Central-Client User Level API](https://jausoft.com/projects/direct_bt/build/documentation/cpp/html/group__DBTUserClientAPI.html)
+  * [Peripheral-Server User Level API](https://jausoft.com/projects/direct_bt/build/documentation/cpp/html/group__DBTUserServerAPI.html)
+  * [System Level API](https://jausoft.com/projects/direct_bt/build/documentation/cpp/html/group__DBTSystemAPI.html)
 
-* [C++ API Doc](https://jausoft.com/projects/direct_bt/build/documentation/cpp/html/index.html).
-
-* [Java API Doc](https://jausoft.com/projects/direct_bt/build/documentation/java/html/index.html).
+* [Java API Doc](https://jausoft.com/projects/direct_bt/build/documentation/java/html/namespaceorg_1_1direct__bt.html#details)
 
 * [jaulib Standalone C++ API Doc](https://jausoft.com/projects/jaulib/build/documentation/cpp/html/index.html).
 

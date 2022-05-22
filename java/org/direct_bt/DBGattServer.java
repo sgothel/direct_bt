@@ -32,8 +32,12 @@ import java.util.List;
  * Representing a complete list of Gatt Service objects from the GATT server perspective,
  * i.e. the Gatt Server database.
  *
- * One instance shall be attached to BTAdapter
- * when operating in Gatt Server mode.
+ * One instance shall be attached to BTAdapter when advertising via BTAdapter::startAdvertising(),
+ * changing its operating mode to Gatt Server mode.
+ *
+ * The instance can also be retrieved via BTAdapter::getGATTServerData().
+ *
+ * See [Direct-BT Overview](namespaceorg_1_1direct__bt.html#details).
  *
  * @since 2.4.0
  */

@@ -93,6 +93,11 @@ extern "C" {
     #include <sys/socket.h>
 } /* extern "C" */
 
+/** \addtogroup DBTSystemAPI
+ *
+ *  @{
+ */
+
 /**
  * Information from include/net/bluetooth/l2cap.h
  * Mixed with own comments.
@@ -545,5 +550,7 @@ struct l2cap_le_credits {
 	__le16     cid;
 	__le16     credits;
 } __packed;
+
+/**@}*/
 
 #endif /* L2CAP_IOCTL_HPP_ */

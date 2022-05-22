@@ -49,6 +49,11 @@
  */
 namespace direct_bt {
 
+/** \addtogroup DBTUserAPI
+ *
+ *  @{
+ */
+
 /**
  * Following UUID16 GATT profile attribute types are listed under:
  * BT Core Spec v5.2: Vol 3, Part G GATT: 3.4 Summary of GATT Profile Attribute Types
@@ -414,26 +419,7 @@ class GattTemperatureMeasurement {
         std::string toString() const noexcept;
 };
 
-
-/* Application error */
-
-#define ATT_ECODE_IO				0x80
-#define ATT_ECODE_TIMEOUT			0x81
-#define ATT_ECODE_ABORTED			0x82
-
-#define ATT_MAX_VALUE_LEN			512
-#define ATT_DEFAULT_L2CAP_MTU			48
-#define ATT_DEFAULT_LE_MTU			23
-
-/* Flags for Execute Write Request Operation */
-
-#define ATT_CANCEL_ALL_PREP_WRITES              0x00
-#define ATT_WRITE_ALL_PREP_WRITES               0x01
-
-/* Find Information Response Formats */
-
-#define ATT_FIND_INFO_RESP_FMT_16BIT		0x01
-#define ATT_FIND_INFO_RESP_FMT_128BIT		0x02
+/**@}*/
 
 } // namespace direct_bt
 

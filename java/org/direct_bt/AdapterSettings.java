@@ -20,10 +20,16 @@
  *   - Using *BlueZ Kernel Manager Control Channel* via MgmtMsg communication.
  * - *HCI Handling* via HCIHandler using HCIPacket implementing connect/disconnect w/ tracking, device discovery, etc
  * - *ATT PDU* AttPDUMsg via L2CAP for low level packet communication
- * - *GATT Support* via BTGattHandler using AttPDUMsg over L2CAPComm, providing
- *   -  BTGattService
- *   -  BTGattChar
- *   -  BTGattDesc
+ * - *GATT Support* via BTGattHandler using AttPDUMsg over L2CAPComm, ...
+ *   - Central-Client Functionality, i.e. GATT client role or BTAdapter in {@link BTRole#Master}:
+ *     - BTGattService
+ *     - BTGattChar
+ *     - BTGattDesc
+ *   - Peripheral-Server Functionality, i.e. GATT server role or BTAdapter in {@link BTRole#Slave}:
+ *     - DBGattServer
+ *     - DBGattService
+ *     - DBGattChar
+ *     - DBGattDesc
  * - *SMP PDU* SMPPDUMsg via L2CAP for Security Manager Protocol (SMP) communication
  * - *SMP Support* via SMPHandler using SMPPDUMsg over L2CAPComm, providing (Not yet supported by Linux/BlueZ)
  *   - LE Secure Connections
@@ -44,13 +50,23 @@
  *
  * ## Direct-BT User Hierarchy
  *
- * From a user perspective the following hierarchy is provided
+ * From a user central-client perspective the following hierarchy is provided,
+ * i.e. GATT client role or BTAdapter in {@link BTRole#Master}:
  * - BTManager has zero or more
  *   - BTAdapter has zero or more
  *     - BTDevice has zero or more
  *       - BTGattService has zero or more
  *         - BTGattChar has zero or more
  *           - BTGattDesc
+ *
+ * From a user peripheral-server perspective the following hierarchy is provided,
+ * i.e. GATT server role or BTAdapter in {@link BTRole#Slave}:
+ * - BTManager has zero or more
+ *   - BTAdapter has zero or one
+ *     - DBGattServer has zero or more
+ *       - DBGattService has zero or more
+ *         - DBGattChar has zero or more
+ *           - DBGattDesc
  *
  * - - - - - - - - - - - - - - -
  *
@@ -65,6 +81,12 @@
  *         - BTGattChar ownership by BTGattService, with weak BTGattService back-reference
  *           - BTGattDesc ownership by BTGattChar, with weak BTGattChar back-reference
  *
+ * User application instantiates for peripheral-server functionality:
+ * - DBGattServer ownership by user
+ *   - DBGattService ownership by user
+ *     - DBGattChar ownership by user
+ *       - DBGattDesc
+ *
  * - - - - - - - - - - - - - - -
  *
  * ## Direct-BT Mapped Names C++ vs Java
@@ -72,16 +94,19 @@
  * Mapped names from C++ implementation to Java implementation and to Java interface:
  *
  *  C++  <br> `direct_bt` | Java Implementation  <br> `jau.direct_bt` | Java Interface <br> `org.direct_bt` |
- *  :----------------| :---------------------| :--------------------|
- *  BTManager        | DBTManager            | BTManager            |
- *  BTAdapter        | DBTAdapter            | BTAdapter            |
- *  BTDevice         | DBTDevice             | BTDevice             |
- *  BTGattService    | DBTGattService        | BTGattService        |
- *  BTGattChar       | DBTGattChar           | BTGattChar           |
- *  BTGattDesc       | DBTGattDesc           | BTGattDesc           |
- *  AdapterStatusListener |                  | AdapterStatusListener   |
- *  BTGattCharListener |                     | BTGattCharListener   |
- *  ChangedAdapterSetFunc() |                | BTManager::ChangedAdapterSetListener   |
+ *  :-----------------------| :-----------------| :------------------------------------|
+ *  BTManager               | DBTManager        | BTManager                            |
+ *  BTAdapter               | DBTAdapter        | BTAdapter                            |
+ *  BTDevice                | DBTDevice         | BTDevice                             |
+ *  BTGattService           | DBTGattService    | BTGattService                        |
+ *  BTGattChar              | DBTGattChar       | BTGattChar                           |
+ *  BTGattDesc              | DBTGattDesc       | BTGattDesc                           |
+ *  DBGattService           |                   | DBGattService                        |
+ *  DBGattChar              |                   | DBGattChar                           |
+ *  DBGattDesc              |                   | DBGattDesc                           |
+ *  AdapterStatusListener   |                   | AdapterStatusListener                |
+ *  BTGattCharListener      |                   | BTGattCharListener                   |
+ *  ChangedAdapterSetFunc() |                   | BTManager::ChangedAdapterSetListener |
  *
  * - - - - - - - - - - - - - - -
  *

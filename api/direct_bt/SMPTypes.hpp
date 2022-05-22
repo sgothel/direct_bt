@@ -49,6 +49,11 @@
  */
 namespace direct_bt {
 
+    /** \addtogroup DBTSystemAPI
+     *
+     *  @{
+     */
+
     class SMPException : public jau::RuntimeException {
         protected:
             SMPException(std::string const type, std::string const m, const char* file, int line) noexcept
@@ -2005,6 +2010,8 @@ namespace direct_bt {
                 return "auth_req "+to_string(getAuthReqMask());
             }
     };
+
+    /**@}*/
 
 } // namespace direct_bt
 

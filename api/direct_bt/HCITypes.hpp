@@ -52,6 +52,11 @@
  */
 namespace direct_bt {
 
+    /** \addtogroup DBTUserAPI
+     *
+     *  @{
+     */
+
     class HCIException : public jau::RuntimeException {
         protected:
             HCIException(std::string const type, std::string const m, const char* file, int line) noexcept
@@ -245,6 +250,13 @@ namespace direct_bt {
     inline std::error_code make_error_code( HCIStatusCode e ) noexcept {
       return std::error_code( number(e), HCIStatusCodeCategory::get() );
     }
+
+    /**@}*/
+
+    /** \addtogroup DBTSystemAPI
+     *
+     *  @{
+     */
 
     enum class HCIConstSizeT : jau::nsize_t {
         /** HCIPacketType::COMMAND header size including HCIPacketType */
@@ -1468,12 +1480,21 @@ namespace direct_bt {
         std::string toString() noexcept;
     };
 
+    /**@}*/
+
 } // namespace direct_bt
 
 namespace std
 {
+    /** \addtogroup DBTUserAPI
+     *
+     *  @{
+     */
+
     template <>
         struct is_error_code_enum<direct_bt::HCIStatusCode> : true_type {};
+
+    /**@}*/
 }
 
 #endif /* HCI_TYPES_HPP_ */

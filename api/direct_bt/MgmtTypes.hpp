@@ -47,6 +47,11 @@
 
 namespace direct_bt {
 
+    /** \addtogroup DBTSystemAPI
+     *
+     *  @{
+     */
+
     class MgmtException : public jau::RuntimeException {
         protected:
             MgmtException(std::string const type, std::string const m, const char* file, int line) noexcept
@@ -2811,6 +2816,8 @@ namespace direct_bt {
     };
 
     typedef jau::cow_darray<MgmtAdapterEventCallback> MgmtAdapterEventCallbackList;
+
+    /**@}*/
 
 } // namespace direct_bt
 

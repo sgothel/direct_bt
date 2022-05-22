@@ -30,6 +30,11 @@ import java.util.List;
 /**
  * Representing a Gatt Service object from the ::GATTRole::Server perspective.
  *
+ * A list of shared DBGattService instances are passed at DBGattServer construction
+ * and are retrievable via DBGattServer::getServices().
+ *
+ * See [Direct-BT Overview](namespaceorg_1_1direct__bt.html#details).
+ *
  * BT Core Spec v5.2: Vol 3, Part G GATT: 3.1 Service Definition
  *
  * Includes a complete [Primary] Service Declaration

@@ -33,6 +33,11 @@
 
 namespace direct_bt {
 
+    /** \addtogroup DBTUserAPI
+     *
+     *  @{
+     */
+
     /**
      * Application toolkit providing BT device registration of processed and awaited devices.
      * The latter on a pattern matching basis, i.e. EUI48Sub or name-sub.
@@ -218,16 +223,24 @@ namespace direct_bt {
         }
     }
 
+    /**@}*/
+
 } // namespace direct_bt
 
 // injecting specialization of std::hash to namespace std of our types above
 namespace std
 {
+    /** \addtogroup DBTUserAPI
+     *
+     *  @{
+     */
     template<> struct hash<direct_bt::BTDeviceRegistry::DeviceID> {
         std::size_t operator()(direct_bt::BTDeviceRegistry::DeviceID const& a) const noexcept {
             return a.hash_code();
         }
     };
+
+    /**@}*/
 }
 
 #endif /* DBT_DEV_ACCOUNTING_HPP_ */

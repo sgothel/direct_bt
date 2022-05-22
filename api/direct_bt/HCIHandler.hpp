@@ -56,6 +56,11 @@
  */
 namespace direct_bt {
 
+    /** \addtogroup DBTSystemAPI
+     *
+     *  @{
+     */
+
     class HCIHandler; // forward
 
     /**
@@ -894,6 +899,8 @@ namespace direct_bt {
             void sendMgmtEvent(const MgmtEvent& event) noexcept;
     };
 
+    /**@}*/
+
 } // namespace direct_bt
 
 #if 0
@@ -901,11 +908,19 @@ namespace direct_bt {
 // Would need to make direct_bt::HCIHandler::HCIConnection accessible
 namespace std
 {
+    /** \addtogroup DBTSystemAPI
+     *
+     *  @{
+     */
+
     template<> struct hash<direct_bt::HCIHandler::HCIConnection> {
         std::size_t operator()(direct_bt::HCIHandler::HCIConnection const& a) const noexcept {
             return a.hash_code();
         }
     };
+
+    /**@}*/
+
 }
 #endif
 

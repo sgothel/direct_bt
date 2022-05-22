@@ -28,6 +28,11 @@ package org.direct_bt;
 /**
  * Representing a Gatt Characteristic Descriptor object from the GATT server perspective.
  *
+ * A list of shared DBGattChar instances are passed at DBGattChar construction
+ * and are retrievable via DBGattChar::getDescriptors().
+ *
+ * See [Direct-BT Overview](namespaceorg_1_1direct__bt.html#details).
+ *
  * BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3 Characteristic Descriptor
  *
  * @since 2.4.0

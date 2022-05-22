@@ -61,6 +61,11 @@ namespace direct_bt {
     class BTDevice; // forward
     typedef std::shared_ptr<BTDevice> BTDeviceRef;
 
+    /** \addtogroup DBTSystemAPI
+     *
+     *  @{
+     */
+
     /**
      * GATT Singleton runtime environment properties
      * <p>
@@ -1023,6 +1028,8 @@ namespace direct_bt {
             std::string toString() const noexcept;
     };
     typedef std::shared_ptr<BTGattHandler> BTGattHandlerRef;
+
+    /**@}*/
 
 } // namespace direct_bt
 

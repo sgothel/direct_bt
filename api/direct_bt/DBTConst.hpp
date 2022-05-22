@@ -35,6 +35,11 @@ namespace direct_bt {
     using namespace jau::fractions_i64_literals;
     using namespace jau::int_literals;
 
+    /** \addtogroup DBTSystemAPI
+     *
+     *  @{
+     */
+
 #ifdef __linux__
 
     /**
@@ -81,6 +86,8 @@ namespace direct_bt {
      * Maximum number of enabling discovery in background in case of failure
      */
     inline constexpr const jau::nsize_t MAX_BACKGROUND_DISCOVERY_RETRY = 3;
+
+    /**@}*/
 
 } // namespace direct_bt
 

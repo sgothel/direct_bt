@@ -69,10 +69,22 @@ namespace direct_bt {
     class BTDevice; // forward
     typedef std::shared_ptr<BTDevice> BTDeviceRef;
 
+    /** @defgroup DBTUserServerAPI Direct-BT Peripheral-Server User Level API
+     *  User level Direct-BT API types and functionality addressing the peripheral-server ::GATTRole::Server perspective,
+     *  , [see Direct-BT Overview](namespacedirect__bt.html#details).
+     *
+     *  @{
+     */
+
     class DBGattService; // fwd
 
     /**
      * Representing a Gatt Characteristic Descriptor object from the ::GATTRole::Server perspective.
+     *
+     * A list of shared DBGattDesc instances are passed at DBGattChar construction
+     * and are retrievable via DBGattChar::getDescriptors().
+     *
+     * See [Direct-BT Overview](namespacedirect__bt.html#details).
      *
      * BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3 Characteristic Descriptor
      *
@@ -229,6 +241,11 @@ namespace direct_bt {
 
     /**
      * Representing a Gatt Characteristic object from the ::GATTRole::Server perspective.
+     *
+     * A list of shared DBGattChar instances are passed at DBGattService construction
+     * and are retrievable via DBGattService::getCharacteristics().
+     *
+     * See [Direct-BT Overview](namespacedirect__bt.html#details).
      *
      * BT Core Spec v5.2: Vol 3, Part G GATT: 3.3 Characteristic Definition
      *
@@ -484,6 +501,11 @@ namespace direct_bt {
     /**
      * Representing a Gatt Service object from the ::GATTRole::Server perspective.
      *
+     * A list of shared DBGattService instances are passed at DBGattServer construction
+     * and are retrievable via DBGattServer::getServices().
+     *
+     * See [Direct-BT Overview](namespacedirect__bt.html#details).
+     *
      * BT Core Spec v5.2: Vol 3, Part G GATT: 3.1 Service Definition
      *
      * Includes a complete [Primary] Service Declaration
@@ -620,8 +642,12 @@ namespace direct_bt {
      * Representing a complete list of Gatt Service objects from the ::GATTRole::Server perspective,
      * i.e. the Gatt Server database.
      *
-     * One instance shall be attached to BTAdapter and hence BTGattHandler
-     * when operating in Gatt Server mode, i.e. ::GATTRole::Server.
+     * One instance shall be attached to BTAdapter when advertising via BTAdapter::startAdvertising(),
+     * changing its operating mode to Gatt Server mode, i.e. ::GATTRole::Server.
+     *
+     * The instance can also be retrieved via BTAdapter::getGATTServerData().
+     *
+     * See [Direct-BT Overview](namespacedirect__bt.html#details).
      *
      * This class is not thread safe and only intended to be prepared
      * by the user at startup and processed by the Gatt Server facility.
@@ -967,6 +993,8 @@ namespace direct_bt {
     typedef std::shared_ptr<DBGattServer> DBGattServerRef;
 
     std::string to_string(const DBGattServer::Mode m) noexcept;
+
+    /**@}*/
 
 } // namespace direct_bt
 

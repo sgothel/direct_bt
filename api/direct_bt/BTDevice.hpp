@@ -51,6 +51,11 @@ namespace direct_bt {
     // *************************************************
     // *************************************************
 
+    /** \addtogroup DBTUserAPI
+     *
+     *  @{
+     */
+
     class BTAdapter; // forward
     class AdapterStatusListener; // forward
     typedef std::shared_ptr<AdapterStatusListener> AdapterStatusListenerRef; // forward
@@ -70,6 +75,7 @@ namespace direct_bt {
      * @see [BTAdapter roles](@ref BTAdapterRoles).
      * @see [BTGattHandler roles](@ref BTGattHandlerRoles).
      * @see [Bluetooth Specification](https://www.bluetooth.com/specifications/bluetooth-core-specification/)
+     * @see [Direct-BT Overview](namespacedirect__bt.html#details)
      */
     class BTDevice : public BTObject
     {
@@ -1211,6 +1217,8 @@ namespace direct_bt {
     { return !(lhs == rhs); }
 
     typedef std::shared_ptr<BTDevice> BTDeviceRef;
+
+    /**@}*/
 
 } // namespace direct_bt
 

@@ -44,6 +44,11 @@
 
 namespace direct_bt {
 
+    /** \addtogroup DBTUserAPI
+     *
+     *  @{
+     */
+
     class BTException : public jau::RuntimeException {
         public:
         BTException(std::string const m, const char* file, int line) noexcept
@@ -1157,6 +1162,8 @@ namespace direct_bt {
     // *************************************************
     // *************************************************
     // *************************************************
+
+    /**@}*/
 
 } // namespace direct_bt
 

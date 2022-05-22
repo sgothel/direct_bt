@@ -85,6 +85,12 @@ extern "C" {
     #include <sys/socket.h>
 } /* extern "C" */
 
+
+/** \addtogroup DBTSystemAPI
+ *
+ *  @{
+ */
+
 /**
  * Missing information ???
  */
@@ -2489,6 +2495,8 @@ struct hci_inquiry_req {
 	__u8  num_rsp;
 };
 #define IREQ_CACHE_FLUSH 0x0001
+
+/**@}*/
 
 #endif /* HCI_IOCTL_HPP_ */
 

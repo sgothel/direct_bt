@@ -46,6 +46,11 @@
  */
 namespace direct_bt {
 
+    /** \addtogroup DBTSystemAPI
+     *
+     *  @{
+     */
+
     /**
      * Read/Write HCI communication channel.
      */
@@ -168,6 +173,8 @@ namespace direct_bt {
                 return (f->opcode == opcode);
             }
     };
+
+    /**@}*/
 
 } // namespace direct_bt
 

@@ -42,6 +42,7 @@ import java.util.Map;
  * @see BTAdapter
  * @see [BTAdapter roles](@ref BTAdapterRoles).
  * @see [Bluetooth Specification](https://www.bluetooth.com/specifications/bluetooth-core-specification/)
+ * @see [Direct-BT Overview](namespaceorg_1_1direct__bt.html#details)
  */
 public interface BTDevice extends BTObject
 {

@@ -40,6 +40,11 @@ using jau::EUI48Sub;
 
 namespace direct_bt {
 
+    /** \addtogroup DBTUserAPI
+     *
+     *  @{
+     */
+
     /**
      * BT Core Spec v5.2:  Vol 3, Part C Generic Access Profile (GAP): 15.1.1.1 Public Bluetooth address
      * <pre>
@@ -320,16 +325,26 @@ namespace direct_bt {
 
     inline std::string to_string(const BDAddressAndType& a) noexcept { return a.toString(); }
 
+    /**@}*/
+
 } // namespace direct_bt
 
 // injecting specialization of std::hash to namespace std of our types above
 namespace std
 {
+    /** \addtogroup DBTUserAPI
+     *
+     *  @{
+     */
+
     template<> struct hash<direct_bt::BDAddressAndType> {
         std::size_t operator()(direct_bt::BDAddressAndType const& a) const noexcept {
             return a.hash_code();
         }
     };
+
+    /**@}*/
+
 }
 
 #endif /* BT_ADDRESS_HPP_ */

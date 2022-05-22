@@ -33,11 +33,21 @@
 
 namespace direct_bt {
 
+    /** \addtogroup DBTUserAPI
+     *
+     *  @{
+     */
+
     /**
      * Application toolkit providing BT security setup and its device association
      * on a pattern matching basis, i.e. EUI48Sub or name-sub.
      */
     namespace BTSecurityRegistry {
+
+        /** \addtogroup DBTUserAPI
+         *
+         *  @{
+         */
 
         struct Entry {
             static constexpr int NO_PASSKEY = -1;
@@ -229,7 +239,11 @@ namespace direct_bt {
 
         std::string allToString() noexcept;
 
+        /**@}*/
+
     } // namespace BTSecurityRegistry
+
+    /**@}*/
 
 } // namespace direct_bt
 

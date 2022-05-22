@@ -31,6 +31,11 @@ import java.util.List;
 /**
  * Representing a Gatt Service object from the GATT client perspective.
  *
+ * A list of shared BTGattService instances can be retrieved from BTDevice
+ * after successful connection and optional pairing via BTDevice::getGattServices().
+ *
+ * See [Direct-BT Overview](namespaceorg_1_1direct__bt.html#details).
+ *
  * BT Core Spec v5.2: Vol 3, Part G GATT: 3.1 Service Definition
  *
  * Includes a complete [Primary] Service Declaration

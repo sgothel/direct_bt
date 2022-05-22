@@ -40,6 +40,11 @@
 
 namespace direct_bt {
 
+    /** \addtogroup DBTUserClientAPI
+     *
+     *  @{
+     */
+
     /**
      * Class maps a GATT command and optionally its asynchronous response
      * to a synchronous atomic operation.
@@ -282,6 +287,9 @@ namespace direct_bt {
 
             std::string toString() const noexcept;
     };
+
+    /**@}*/
+
 }
 
 #endif // BT_GATT_CMD_HPP_

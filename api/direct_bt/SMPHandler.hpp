@@ -78,6 +78,11 @@
  */
 namespace direct_bt {
 
+    /** \addtogroup DBTSystemAPI
+     *
+     *  @{
+     */
+
     /**
      * SMP Singleton runtime environment properties
      * <p>
@@ -241,6 +246,8 @@ namespace direct_bt {
             void addSMPSecurityReqCallback(const SMPSecurityReqCallback & l);
             int removeSMPSecurityReqCallback(const SMPSecurityReqCallback & l);
     };
+
+    /**@}*/
 
 } // namespace direct_bt
 

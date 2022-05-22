@@ -62,8 +62,18 @@ namespace direct_bt {
     class BTDevice; // forward
     typedef std::shared_ptr<BTDevice> BTDeviceRef;
 
+    /** \addtogroup DBTUserClientAPI
+     *
+     *  @{
+     */
+
     /**
      * Representing a Gatt Service object from the ::GATTRole::Client perspective.
+     *
+     * A list of shared BTGattService instances can be retrieved from BTDevice
+     * after successful connection and optional pairing via BTDevice::getGattServices().
+     *
+     * See [Direct-BT Overview](namespacedirect__bt.html#details).
      *
      * BT Core Spec v5.2: Vol 3, Part G GATT: 3.1 Service Definition
      *
@@ -147,6 +157,8 @@ namespace direct_bt {
 
     inline bool operator!=(const BTGattService& lhs, const BTGattService& rhs) noexcept
     { return !(lhs == rhs); }
+
+    /**@}*/
 
 } // namespace direct_bt
 

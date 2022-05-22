@@ -30,9 +30,12 @@ import java.util.List;
 /**
  * Representing a Gatt Characteristic object from the GATT client perspective.
  *
- * BT Core Spec v5.2: Vol 3, Part G GATT: 3.3 Characteristic Definition
+ * A list of shared BTGattChar instances is available from BTGattService
+ * via BTGattService::getChars().
  *
- * handle -> CDAV value
+ * See [Direct-BT Overview](namespaceorg_1_1direct__bt.html#details).
+ *
+ * BT Core Spec v5.2: Vol 3, Part G GATT: 3.3 Characteristic Definition
  *
  * BT Core Spec v5.2: Vol 3, Part G GATT: 4.6.1 Discover All Characteristics of a Service
  *

@@ -29,8 +29,6 @@
 #include <string>
 #include <memory>
 #include <cstdint>
-#include <fstream>
-#include <iostream>
 
 #include "SMPTypes.hpp"
 #include "HCITypes.hpp"
@@ -39,6 +37,11 @@ namespace direct_bt {
 
 class BTDevice; // forward
 class BTAdapter; // forward
+
+/** \addtogroup DBTUserAPI
+ *
+ *  @{
+ */
 
 /**
  * Storage for SMP keys including required connection parameter per local adapter and remote device.
@@ -393,6 +396,8 @@ class SMPKeyBin {
 
         bool read(const std::string& fname);
 };
+
+/**@}*/
 
 } // namespace direct_bt
 

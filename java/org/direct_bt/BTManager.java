@@ -27,6 +27,11 @@ package org.direct_bt;
 
 import java.util.List;
 
+/**
+ * A thread safe singleton handler of the BTAdapter manager, e.g. Linux Kernel's BlueZ manager control channel.
+ *
+ * @see [Direct-BT Overview](namespaceorg_1_1direct__bt.html#details)
+ */
 public interface BTManager
 {
     /**
@@ -43,6 +48,7 @@ public interface BTManager
      * @since 2.0.0
      * @see BTManager#addChangedAdapterSetListener(ChangedAdapterSetListener)
      * @see BTManager#removeChangedAdapterSetListener(ChangedAdapterSetListener)
+     * @see [Direct-BT Overview](namespaceorg_1_1direct__bt.html#details)
      */
     public static interface ChangedAdapterSetListener {
         /**

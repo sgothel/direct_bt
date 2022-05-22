@@ -50,6 +50,11 @@
 
 namespace direct_bt {
 
+    /** \addtogroup DBTUserAPI
+     *
+     *  @{
+     */
+
     class BTManager; // forward
 
     /**
@@ -156,6 +161,7 @@ namespace direct_bt {
      * @see ChangedAdapterSetCallback
      * @see BTManager::addChangedAdapterSetCallback()
      * @see BTManager::removeChangedAdapterSetCallback()
+     * @see [Direct-BT Overview](namespacedirect__bt.html#details)
      */
     typedef bool (*ChangedAdapterSetFunc)(bool added, std::shared_ptr<BTAdapter>& adapter);
 
@@ -182,18 +188,19 @@ namespace direct_bt {
      * @see ChangedAdapterSetFunc
      * @see BTManager::addChangedAdapterSetCallback()
      * @see BTManager::removeChangedAdapterSetCallback()
+     * @see [Direct-BT Overview](namespacedirect__bt.html#details)
      */
     typedef jau::FunctionDef<bool, bool, std::shared_ptr<BTAdapter>&> ChangedAdapterSetCallback;
     typedef jau::cow_darray<ChangedAdapterSetCallback> ChangedAdapterSetCallbackList;
 
     /**
-     * A thread safe singleton handler of the Linux Kernel's BlueZ manager control channel.
-     * <p>
+     * A thread safe singleton handler of the BTAdapter manager, e.g. Linux Kernel's BlueZ manager control channel.
+     *
      * Implementation utilizes a lock free ringbuffer receiving data within its separate thread.
-     * </p>
-     * <p>
+     *
      * Controlling Environment variables, see {@link MgmtEnv}.
-     * </p>
+     *
+     * @see [Direct-BT Overview](namespacedirect__bt.html#details)
      */
     class BTManager : public jau::JavaUplink {
         public:
@@ -573,6 +580,8 @@ namespace direct_bt {
 
     };
     typedef std::shared_ptr<BTManager> BTManagerRef;
+
+    /**@}*/
 
 } // namespace direct_bt
 

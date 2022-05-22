@@ -87,6 +87,11 @@ extern "C" {
     #include <netinet/in.h> // Already exported named by OS
 } /* extern "C" */
 
+/** \addtogroup DBTSystemAPI
+ *
+ *  @{
+ */
+
 /**
  * Information from include/net/bluetooth/bluetooth.h
  */
@@ -195,5 +200,7 @@ enum {
 	BT_DISCONN,
 	BT_CLOSED
 };
+
+/**@}*/
 
 #endif /* BT_IOCTL_HPP_ */

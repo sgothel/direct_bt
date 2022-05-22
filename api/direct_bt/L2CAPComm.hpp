@@ -51,6 +51,11 @@ namespace direct_bt {
 
     class BTDevice; // forward
 
+    /** \addtogroup DBTSystemAPI
+     *
+     *  @{
+     */
+
     /**
      * L2CAP Singleton runtime environment properties
      * <p>
@@ -321,6 +326,8 @@ namespace direct_bt {
 
             std::string toString() const noexcept override;
     };
+
+    /**@}*/
 
 } // namespace direct_bt
 

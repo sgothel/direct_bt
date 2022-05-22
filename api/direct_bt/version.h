@@ -26,8 +26,15 @@
 #ifndef DIRECT_BT_VERSION_H_
 #define DIRECT_BT_VERSION_H_
 
+/** \addtogroup DBTUserAPI
+ *
+ *  @{
+ */
+
 extern const char* DIRECT_BT_VERSION;
 extern const char* DIRECT_BT_VERSION_SHORT;
 extern const char* DIRECT_BT_VERSION_API;
+
+/**@}*/
 
 #endif /* DIRECT_BT_VERSION_H_ */

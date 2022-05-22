@@ -68,12 +68,22 @@ namespace direct_bt {
     class BTGattCharListener; // forward
     typedef std::shared_ptr<BTGattCharListener> BTGattCharListenerRef;
 
+    /** @defgroup DBTUserClientAPI Direct-BT Central-Client User Level API
+     *  User level Direct-BT API types and functionality addressing the central-client ::GATTRole::Client perspective,
+     *  [see Direct-BT Overview](namespacedirect__bt.html#details).
+     *
+     *  @{
+     */
+
     /**
      * Representing a Gatt Characteristic object from the ::GATTRole::Client perspective.
      *
-     * BT Core Spec v5.2: Vol 3, Part G GATT: 3.3 Characteristic Definition
+     * A list of shared BTGattChar instances is available from BTGattService
+     * via BTGattService::characteristicList.
      *
-     * handle -> CDAV value
+     * See [Direct-BT Overview](namespacedirect__bt.html#details).
+     *
+     * BT Core Spec v5.2: Vol 3, Part G GATT: 3.3 Characteristic Definition
      *
      * BT Core Spec v5.2: Vol 3, Part G GATT: 4.6.1 Discover All Characteristics of a Service
      *
@@ -492,6 +502,8 @@ namespace direct_bt {
             { return !(*this == rhs); }
     };
     typedef std::shared_ptr<BTGattCharListener> BTGattCharListenerRef;
+
+    /**@}*/
 
 } // namespace direct_bt
 

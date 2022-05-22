@@ -41,6 +41,11 @@ namespace direct_bt {
     class BTAdapter; // forward
     class BTDevice; // forward
 
+    /** \addtogroup DBTUserAPI
+     *
+     *  @{
+     */
+
     class BTObject : public jau::JavaUplink
     {
         protected:
@@ -291,6 +296,8 @@ namespace direct_bt {
             }
     };
     inline std::string to_string(const AdapterInfo& a) noexcept { return a.toString(); }
+
+    /**@}*/
 
 } // namespace direct_bt
 

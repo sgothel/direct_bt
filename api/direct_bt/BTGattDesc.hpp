@@ -56,8 +56,18 @@ namespace direct_bt {
     class BTGattChar; // forward
     typedef std::shared_ptr<BTGattChar> BTGattCharRef;
 
+    /** \addtogroup DBTUserClientAPI
+     *
+     *  @{
+     */
+
     /**
      * Representing a Gatt Characteristic Descriptor object from the ::GATTRole::Client perspective.
+     *
+     * A list of shared BTGattDesc instances is available from BTGattChar
+     * via BTGattChar::descriptorList.
+     *
+     * See [Direct-BT Overview](namespacedirect__bt.html#details).
      *
      * BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3 Characteristic Descriptor
      */
@@ -184,6 +194,8 @@ namespace direct_bt {
 
     inline bool operator!=(const BTGattDesc& lhs, const BTGattDesc& rhs) noexcept
     { return !(lhs == rhs); }
+
+    /**@}*/
 
 } // namespace direct_bt
 
