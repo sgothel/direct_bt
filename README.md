@@ -381,6 +381,10 @@ The *trial* tests cover *Direct-BT*'s Bluetooth functionality,
 having its *master/client* and *slave/server peripheral* facilities communicating via actual adapter,
 supporting regression testing of the API, its implementation and adapter.
 
+The tests are implemented in both, C++ and Java. 
+The C++ unit tests are also being used for *valgrind* memory leak and data race validation. 
+At this point we are free of leaks and use-after-free issues.
+
 The *trial* tests take around 110 seconds, since `TestDBClientServer1*` performs the test twelve fold altogether:
 - Two fold between installed adapter in both directions
 - Three fold w/o encryption, in legacy mode (SC 0) and secure connections (SC 1)
