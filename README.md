@@ -139,7 +139,7 @@ systemctl mask bluetooth
 Since *Direct-BT* requires root permissions to certain Bluetooth network device facilities,
 non-root user require to be granted such permissions.
 
-For GNU/Linux, there permissions are called [capabilities](https://linux.die.net/man/7/capabilities).
+For GNU/Linux, these permissions are called [capabilities](https://linux.die.net/man/7/capabilities).
 The following capabilites are required 
 
 - *CAP_NET_RAW* (Raw HCI access)
