@@ -1184,11 +1184,11 @@ int BTManager::removeChangedAdapterSetCallback(const ChangedAdapterSetCallback &
 void BTManager::addChangedAdapterSetCallback(ChangedAdapterSetFunc f) {
     addChangedAdapterSetCallback(
             ChangedAdapterSetCallback(
-                    jau::bindPlainFunc<bool, bool, std::shared_ptr<BTAdapter>&>(f)
+                    jau::bindFreeFunc<bool, bool, std::shared_ptr<BTAdapter>&>(f)
             ) );
 }
 int BTManager::removeChangedAdapterSetCallback(ChangedAdapterSetFunc f) {
-    ChangedAdapterSetCallback l( jau::bindPlainFunc<bool, bool, std::shared_ptr<BTAdapter>&>(f) );
+    ChangedAdapterSetCallback l( jau::bindFreeFunc<bool, bool, std::shared_ptr<BTAdapter>&>(f) );
     return mgmtChangedAdapterSetCallbackList.erase_matching(l, true /* all_matching */, _changedAdapterSetCallbackEqComp);
 }
 

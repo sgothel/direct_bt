@@ -125,7 +125,7 @@ class DBTEndpoint {
         static ChangedAdapterSetCallback initChangedAdapterSetListener(const BTManagerRef& manager, std::vector<DBTEndpointRef> endpts) {
             const std::lock_guard<std::mutex> lock(mtx_cas_endpts); // RAII-style acquire and relinquish via destructor
             cas_endpts = std::move( endpts );
-            ChangedAdapterSetCallback casc = jau::bindPlainFunc(&DBTEndpoint::myChangedAdapterSetFunc);
+            ChangedAdapterSetCallback casc = jau::bindFreeFunc(&DBTEndpoint::myChangedAdapterSetFunc);
             manager->addChangedAdapterSetCallback(casc);
             for(DBTEndpointRef endpt : cas_endpts ) {
                 REQUIRE( nullptr != endpt->getAdapter() );
