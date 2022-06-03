@@ -52,8 +52,11 @@ add_custom_command (OUTPUT ${direct_bt_fat_jar_file} ${direct_bt_java_src_file}
                     COMMAND ${JAR}
                        --create --file ${direct_bt_java_src_file}
                        --no-manifest
-                       -C ${CMAKE_CURRENT_SOURCE_DIR}/../java jau
-                       -C ${CMAKE_CURRENT_SOURCE_DIR}/../java org
+                       -C ${PROJECT_SOURCE_DIR}/java jau
+                       -C ${PROJECT_SOURCE_DIR}/java org
+                       -C ${PROJECT_SOURCE_DIR}/jaulib/java_base org/jau/util/BasicTypes.java
+                       -C ${PROJECT_SOURCE_DIR}/jaulib/java_net org/jau/net/EUI48.java
+                       -C ${PROJECT_SOURCE_DIR}/jaulib/java_net org/jau/net/EUI48Sub.java
                     DEPENDS jaulib_fat_jar direct_bt direct_bt_jar javadirect_bt
                     COMMENT "producing direct_bt [fat] jar files and its java source zip"
                     VERBATIM
