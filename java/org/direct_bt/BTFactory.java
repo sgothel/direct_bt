@@ -327,9 +327,9 @@ public class BTFactory {
             APIVersion = JAPIVersion;
             ImplVersion = null != mfAttributes ? mfAttributes.getValue(Attributes.Name.IMPLEMENTATION_VERSION) : null;
             if( VERBOSE ) {
-                System.err.println("direct_bt loaded "+id);
-                System.err.println("direct_bt java api version "+JAPIVersion);
-                System.err.println("direct_bt native api version "+NAPIVersion);
+                System.err.println("Direct-BT loaded "+id);
+                System.err.println("Direct-BT java api version "+JAPIVersion);
+                System.err.println("Direct-BT native api version "+NAPIVersion);
                 if( null != mfAttributes ) {
                     final Attributes.Name[] versionAttributeNames = new Attributes.Name[] {
                             Attributes.Name.SPECIFICATION_TITLE,
