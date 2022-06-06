@@ -41,9 +41,10 @@ void resetStates() {
     jau::darray<BTAdapterRef> adapters = mngr->getAdapters();
     for(BTAdapterRef a : adapters) {
         a->removeAllStatusListener();
-        a->stopAdvertising();
-        a->stopDiscovery();
-        REQUIRE( a->setPowered(false) );
+        // test runs w/o elevated permissions
+        // a->stopAdvertising();
+        // a->stopDiscovery();
+        // REQUIRE( a->setPowered(false) );
     }
     mngr->removeAllChangedAdapterSetCallbacks();
     BTDeviceRegistry::clearWaitForDevices();
@@ -74,8 +75,9 @@ TEST_CASE( "BTManager Bringup Test 00", "[test][BTManager][bringup]" ) {
     }
     jau::fprintf_td(stderr, "Adapter: Status Checks\n");
     for(BTAdapterRef a : adapters) {
+        // test runs w/o elevated permissions
         REQUIRE( false == a->isInitialized() );
-        REQUIRE( false == a->isPowered() );
+        // REQUIRE( false == a->isPowered() );
         REQUIRE( BTRole::Master == a->getRole() ); // default role
         REQUIRE( 4 <= a->getBTMajorVersion() );
     }
