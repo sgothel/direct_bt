@@ -202,7 +202,7 @@ namespace direct_bt {
      *
      * @see [Direct-BT Overview](namespacedirect__bt.html#details)
      */
-    class BTManager : public jau::JavaUplink {
+    class BTManager : public jau::jni::JavaUplink {
         public:
             enum Defaults : int32_t {
                 /* BT Core Spec v5.2: Vol 3, Part F 3.2.8: Maximum length of an attribute value. */

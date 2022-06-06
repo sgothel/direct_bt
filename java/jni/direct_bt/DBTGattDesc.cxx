@@ -35,14 +35,14 @@
 #include "direct_bt/BTAdapter.hpp"
 
 using namespace direct_bt;
-using namespace jau;
+using namespace jau::jni;
 
 void Java_jau_direct_1bt_DBTGattDesc_deleteImpl(JNIEnv *env, jobject obj, jlong nativeInstance) {
     (void)obj;
     try {
-        jau::shared_ptr_ref<BTGattDesc> sref(nativeInstance, false /* throw_on_nullptr */); // hold copy until done
+        shared_ptr_ref<BTGattDesc> sref(nativeInstance, false /* throw_on_nullptr */); // hold copy until done
         if( nullptr != sref.pointer() ) {
-            std::shared_ptr<BTGattDesc>* sref_ptr = jau::castInstance<BTGattDesc>(nativeInstance);
+            std::shared_ptr<BTGattDesc>* sref_ptr = castInstance<BTGattDesc>(nativeInstance);
             delete sref_ptr;
         }
     } catch(...) {
@@ -54,7 +54,7 @@ jstring Java_jau_direct_1bt_DBTGattDesc_toStringImpl(JNIEnv *env, jobject obj) {
     (void)obj;
     try {
         shared_ptr_ref<BTGattDesc> descriptor(env, obj); // hold until done
-        jau::JavaAnonRef descriptor_java = descriptor->getJavaObject(); // hold until done!
+        JavaAnonRef descriptor_java = descriptor->getJavaObject(); // hold until done!
         JavaGlobalObj::check(descriptor_java, E_FILE_LINE);
         return from_string_to_jstring(env, descriptor->toString());
     } catch(...) {
@@ -66,7 +66,7 @@ jstring Java_jau_direct_1bt_DBTGattDesc_toStringImpl(JNIEnv *env, jobject obj) {
 jbyteArray Java_jau_direct_1bt_DBTGattDesc_readValueImpl(JNIEnv *env, jobject obj) {
     try {
         shared_ptr_ref<BTGattDesc> descriptor(env, obj); // hold until done
-        jau::JavaAnonRef descriptor_java = descriptor->getJavaObject(); // hold until done!
+        JavaAnonRef descriptor_java = descriptor->getJavaObject(); // hold until done!
         JavaGlobalObj::check(descriptor_java, E_FILE_LINE);
 
         if( !descriptor->readValue() ) {
@@ -88,11 +88,11 @@ jbyteArray Java_jau_direct_1bt_DBTGattDesc_readValueImpl(JNIEnv *env, jobject ob
 jboolean Java_jau_direct_1bt_DBTGattDesc_writeValueImpl(JNIEnv *env, jobject obj, jbyteArray jval) {
     try {
         shared_ptr_ref<BTGattDesc> descriptor(env, obj); // hold until done
-        jau::JavaAnonRef descriptor_java = descriptor->getJavaObject(); // hold until done!
+        JavaAnonRef descriptor_java = descriptor->getJavaObject(); // hold until done!
         JavaGlobalObj::check(descriptor_java, E_FILE_LINE);
 
         if( nullptr == jval ) {
-            throw IllegalArgumentException("byte array null", E_FILE_LINE);
+            throw jau::IllegalArgumentException("byte array null", E_FILE_LINE);
         }
         const size_t value_size = (size_t)env->GetArrayLength(jval);
         if( 0 == value_size ) {
@@ -101,9 +101,9 @@ jboolean Java_jau_direct_1bt_DBTGattDesc_writeValueImpl(JNIEnv *env, jobject obj
         JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
         uint8_t * value_ptr = criticalArray.get(jval, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
         if( NULL == value_ptr ) {
-            throw InternalError("GetPrimitiveArrayCritical(byte array) is null", E_FILE_LINE);
+            throw jau::InternalError("GetPrimitiveArrayCritical(byte array) is null", E_FILE_LINE);
         }
-        TROOctets value(value_ptr, value_size, jau::endian::little);
+        jau::TROOctets value(value_ptr, value_size, jau::endian::little);
         descriptor->value = value; // copy data
 
         if( !descriptor->writeValue() ) {

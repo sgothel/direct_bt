@@ -90,7 +90,7 @@ namespace direct_bt {
      *
      * @since 2.4.0
      */
-    class DBGattDesc : public jau::JavaUplink {
+    class DBGattDesc : public jau::jni::JavaUplink {
         private:
             friend DBGattService;
 
@@ -258,7 +258,7 @@ namespace direct_bt {
      *
      * @since 2.4.0
      */
-    class DBGattChar : public jau::JavaUplink {
+    class DBGattChar : public jau::jni::JavaUplink {
         private:
             friend DBGattService;
 
@@ -514,7 +514,7 @@ namespace direct_bt {
      *
      * @since 2.4.0
      */
-    class DBGattService : public jau::JavaUplink {
+    class DBGattService : public jau::jni::JavaUplink {
         private:
             bool primary;
 
@@ -654,7 +654,7 @@ namespace direct_bt {
      *
      * @since 2.4.0
      */
-    class DBGattServer : public jau::JavaUplink {
+    class DBGattServer : public jau::jni::JavaUplink {
         public:
             /**
              * Operating mode of a DBGattServer instance.

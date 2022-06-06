@@ -35,19 +35,23 @@
 
 #include "direct_bt/BTTypes0.hpp"
 
-void raise_java_exception(JNIEnv *env, const direct_bt::BTException &e, const char* file, int line);
+namespace direct_bt::jni {
 
-/**
- * Re-throw current exception and raise respective java exception
- * using any matching function above.
- */
-void rethrow_and_raise_java_exception_impl(JNIEnv *env, const char* file, int line);
+    void raise_java_exception(JNIEnv *env, const direct_bt::BTException &e, const char* file, int line);
 
-/**
- * Re-throw current exception and raise respective java exception
- * using any matching function above.
- */
-#define rethrow_and_raise_java_exception(E) rethrow_and_raise_java_exception_impl((E), __FILE__, __LINE__)
-// inline void rethrow_and_raise_java_exception(JNIEnv *env) { rethrow_and_raise_java_exception_impl(env, __FILE__, __LINE__); }
+    /**
+     * Re-throw current exception and raise respective java exception
+     * using any matching function above.
+     */
+    void rethrow_and_raise_java_exception_impl(JNIEnv *env, const char* file, int line);
+
+    /**
+     * Re-throw current exception and raise respective java exception
+     * using any matching function above.
+     */
+    #define rethrow_and_raise_java_exception(E) direct_bt::jni::rethrow_and_raise_java_exception_impl((E), __FILE__, __LINE__)
+    // inline void rethrow_and_raise_java_exception(JNIEnv *env) { direct_bt::jni::rethrow_and_raise_java_exception_impl(env, __FILE__, __LINE__); }
+
+} /* namespace direct_bt::jni */
 
 #endif /* HELPER_BASE_HPP_ */

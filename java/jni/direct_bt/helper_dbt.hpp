@@ -30,7 +30,7 @@
 
 #include "direct_bt/BTAddress.hpp"
 
-namespace direct_bt {
+namespace direct_bt::jni {
 
     BDAddressType fromJavaAdressTypeToBDAddressType(JNIEnv *env, jstring jAddressType);
     jstring fromBDAddressTypeToJavaAddressType(JNIEnv *env, BDAddressType bdAddressType);

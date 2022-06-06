@@ -443,7 +443,7 @@ namespace direct_bt {
      * The listener manager maintains a unique set of listener instances without duplicates.
      * </p>
      */
-    class BTGattCharListener : public jau::JavaUplink {
+    class BTGattCharListener : public jau::jni::JavaUplink {
         public:
             /**
              * Returns a unique string denominating the type of this instance.

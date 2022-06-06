@@ -34,14 +34,14 @@
 #include "direct_bt/BTAdapter.hpp"
 
 using namespace direct_bt;
-using namespace jau;
+using namespace jau::jni;
 
 void Java_jau_direct_1bt_DBTGattChar_deleteImpl(JNIEnv *env, jobject obj, jlong nativeInstance) {
     (void)obj;
     try {
-        jau::shared_ptr_ref<BTGattChar> sref(nativeInstance, false /* throw_on_nullptr */); // hold copy until done
+        shared_ptr_ref<BTGattChar> sref(nativeInstance, false /* throw_on_nullptr */); // hold copy until done
         if( nullptr != sref.pointer() ) {
-            std::shared_ptr<BTGattChar>* sref_ptr = jau::castInstance<BTGattChar>(nativeInstance);
+            std::shared_ptr<BTGattChar>* sref_ptr = castInstance<BTGattChar>(nativeInstance);
             delete sref_ptr;
         }
     } catch(...) {
@@ -52,7 +52,7 @@ void Java_jau_direct_1bt_DBTGattChar_deleteImpl(JNIEnv *env, jobject obj, jlong 
 jstring Java_jau_direct_1bt_DBTGattChar_toStringImpl(JNIEnv *env, jobject obj) {
     try {
         shared_ptr_ref<BTGattChar> characteristic(env, obj); // hold until done
-        jau::JavaAnonRef characteristic_java = characteristic->getJavaObject(); // hold until done!
+        JavaAnonRef characteristic_java = characteristic->getJavaObject(); // hold until done!
         JavaGlobalObj::check(characteristic_java, E_FILE_LINE);
         return from_string_to_jstring(env, characteristic->toString());
     } catch(...) {
@@ -66,7 +66,7 @@ static const std::string _descriptorClazzCtorArgs("(JLjau/direct_bt/DBTGattChar;
 jobject Java_jau_direct_1bt_DBTGattChar_getDescriptorsImpl(JNIEnv *env, jobject obj) {
     try {
         shared_ptr_ref<BTGattChar> characteristic(env, obj); // hold until done
-        jau::JavaAnonRef characteristic_java = characteristic->getJavaObject(); // hold until done!
+        JavaAnonRef characteristic_java = characteristic->getJavaObject(); // hold until done!
         JavaGlobalObj::check(characteristic_java, E_FILE_LINE);
 
         jau::darray<BTGattDescRef> & descriptorList = characteristic->descriptorList;
@@ -84,7 +84,7 @@ jobject Java_jau_direct_1bt_DBTGattChar_getDescriptorsImpl(JNIEnv *env, jobject 
                     if( nullptr == _characteristic ) {
                         throw jau::RuntimeException("Descriptor's characteristic null: "+descriptor->toString(), E_FILE_LINE);
                     }
-                    jau::JavaAnonRef _characteristic_java = _characteristic->getJavaObject(); // hold until done!
+                    JavaAnonRef _characteristic_java = _characteristic->getJavaObject(); // hold until done!
                     JavaGlobalObj::check(_characteristic_java, E_FILE_LINE);
                     jobject jcharacteristic = JavaGlobalObj::GetObject(_characteristic_java);
 
@@ -101,7 +101,7 @@ jobject Java_jau_direct_1bt_DBTGattChar_getDescriptorsImpl(JNIEnv *env, jobject 
                             juuid, (jshort)descriptor->handle, jval);
                     java_exception_check_and_throw(env_, E_FILE_LINE);
                     JNIGlobalRef::check(jdesc, E_FILE_LINE);
-                    jau::JavaAnonRef jDescRef = descriptor->getJavaObject(); // GlobalRef
+                    JavaAnonRef jDescRef = descriptor->getJavaObject(); // GlobalRef
                     JavaGlobalObj::check(jDescRef, E_FILE_LINE);
                     env_->DeleteLocalRef(juuid);
                     env_->DeleteLocalRef(jval);
@@ -119,10 +119,10 @@ jobject Java_jau_direct_1bt_DBTGattChar_getDescriptorsImpl(JNIEnv *env, jobject 
 jbyteArray Java_jau_direct_1bt_DBTGattChar_readValueImpl(JNIEnv *env, jobject obj) {
     try {
         shared_ptr_ref<BTGattChar> characteristic(env, obj); // hold until done
-        jau::JavaAnonRef characteristic_java = characteristic->getJavaObject(); // hold until done!
+        JavaAnonRef characteristic_java = characteristic->getJavaObject(); // hold until done!
         JavaGlobalObj::check(characteristic_java, E_FILE_LINE);
 
-        POctets res(BTGattHandler::number(BTGattHandler::Defaults::MAX_ATT_MTU), 0, jau::endian::little);
+        jau::POctets res(BTGattHandler::number(BTGattHandler::Defaults::MAX_ATT_MTU), 0, jau::endian::little);
         if( !characteristic->readValue(res) ) {
             ERR_PRINT("Characteristic readValue failed: %s", characteristic->toString().c_str());
             return env->NewByteArray((jsize)0);
@@ -143,11 +143,11 @@ jbyteArray Java_jau_direct_1bt_DBTGattChar_readValueImpl(JNIEnv *env, jobject ob
 jboolean Java_jau_direct_1bt_DBTGattChar_writeValueImpl(JNIEnv *env, jobject obj, jbyteArray jval, jboolean withResponse) {
     try {
         shared_ptr_ref<BTGattChar> characteristic(env, obj); // hold until done
-        jau::JavaAnonRef characteristic_java = characteristic->getJavaObject(); // hold until done!
+        JavaAnonRef characteristic_java = characteristic->getJavaObject(); // hold until done!
         JavaGlobalObj::check(characteristic_java, E_FILE_LINE);
 
         if( nullptr == jval ) {
-            throw IllegalArgumentException("byte array null", E_FILE_LINE);
+            throw jau::IllegalArgumentException("byte array null", E_FILE_LINE);
         }
         const int value_size = env->GetArrayLength(jval);
         if( 0 == value_size ) {
@@ -157,9 +157,9 @@ jboolean Java_jau_direct_1bt_DBTGattChar_writeValueImpl(JNIEnv *env, jobject obj
         JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
         uint8_t * value_ptr = criticalArray.get(jval, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
         if( NULL == value_ptr ) {
-            throw InternalError("GetPrimitiveArrayCritical(byte array) is null", E_FILE_LINE);
+            throw jau::InternalError("GetPrimitiveArrayCritical(byte array) is null", E_FILE_LINE);
         }
-        TROOctets value(value_ptr, value_size, jau::endian::little);
+        jau::TROOctets value(value_ptr, value_size, jau::endian::little);
         bool res;
         if( withResponse ) {
             res = characteristic->writeValue(value);
@@ -188,22 +188,22 @@ jboolean Java_jau_direct_1bt_DBTGattChar_configNotificationIndicationImpl(JNIEnv
                 DBG_PRINT("Characteristic's native instance has been deleted");
                 return false;
             }
-            throw IllegalStateException("Characteristic's native instance deleted", E_FILE_LINE);
+            throw jau::IllegalStateException("Characteristic's native instance deleted", E_FILE_LINE);
         }
-        jau::JavaAnonRef characteristic_java = characteristic->getJavaObject(); // hold until done!
+        JavaAnonRef characteristic_java = characteristic->getJavaObject(); // hold until done!
         JavaGlobalObj::check(characteristic_java, E_FILE_LINE);
 
         if( nullptr == jEnabledState ) {
-            throw IllegalArgumentException("boolean array null", E_FILE_LINE);
+            throw jau::IllegalArgumentException("boolean array null", E_FILE_LINE);
         }
         const int state_size = env->GetArrayLength(jEnabledState);
         if( 2 > state_size ) {
-            throw IllegalArgumentException("boolean array smaller than 2, length "+std::to_string(state_size), E_FILE_LINE);
+            throw jau::IllegalArgumentException("boolean array smaller than 2, length "+std::to_string(state_size), E_FILE_LINE);
         }
         JNICriticalArray<jboolean, jbooleanArray> criticalArray(env); // RAII - release
         jboolean * state_ptr = criticalArray.get(jEnabledState, criticalArray.Mode::UPDATE_AND_RELEASE);
         if( NULL == state_ptr ) {
-            throw InternalError("GetPrimitiveArrayCritical(boolean array) is null", E_FILE_LINE);
+            throw jau::InternalError("GetPrimitiveArrayCritical(boolean array) is null", E_FILE_LINE);
         }
 
         bool cccdEnableResult[2];

@@ -39,6 +39,7 @@
 #include "direct_bt/DBGattServer.hpp"
 
 using namespace direct_bt;
+using namespace jau::jni;
 
 /**
  *
@@ -55,10 +56,10 @@ static jobject _createDBGattValueFromDesc(JNIEnv *env_, jclass clazz, jmethodID 
     const jau::POctets& value = valueHolder->getValue();
     jbyteArray jval = env_->NewByteArray(value.size());
     env_->SetByteArrayRegion(jval, 0, value.size(), (const jbyte*)(value.get_ptr()));
-    jau::java_exception_check_and_throw(env_, E_FILE_LINE);
+    java_exception_check_and_throw(env_, E_FILE_LINE);
 
     jobject jDBGattValue = env_->NewObject(clazz, clazz_ctor, jval, (jint)value.capacity(), valueHolder->hasVariableLength());
-    jau::java_exception_check_and_throw(env_, E_FILE_LINE);
+    java_exception_check_and_throw(env_, E_FILE_LINE);
 
     env_->DeleteLocalRef(jval);
 
@@ -69,10 +70,10 @@ static jobject _createDBGattValueFromChar(JNIEnv *env_, jclass clazz, jmethodID 
     const jau::POctets& value = valueHolder->getValue();
     jbyteArray jval = env_->NewByteArray(value.size());
     env_->SetByteArrayRegion(jval, 0, value.size(), (const jbyte*)(value.get_ptr()));
-    jau::java_exception_check_and_throw(env_, E_FILE_LINE);
+    java_exception_check_and_throw(env_, E_FILE_LINE);
 
     jobject jDBGattValue = env_->NewObject(clazz, clazz_ctor, jval, (jint)value.capacity(), valueHolder->hasVariableLength());
-    jau::java_exception_check_and_throw(env_, E_FILE_LINE);
+    java_exception_check_and_throw(env_, E_FILE_LINE);
 
     env_->DeleteLocalRef(jval);
 
@@ -87,9 +88,9 @@ static jobject _createDBGattValueFromChar(JNIEnv *env_, jclass clazz, jmethodID 
 
 jobject Java_org_direct_1bt_DBGattDesc_getValue(JNIEnv *env, jobject obj) {
     try {
-        jau::shared_ptr_ref<DBGattDesc> ref(env, obj); // hold until done
-        jclass clazz = jau::search_class(env, _dbGattValueClazzName.c_str());
-        return jau::convert_instance_to_jobject<DBGattDesc>(env, clazz, _dbGattValueClazzCtorArgs.c_str(), _createDBGattValueFromDesc, ref.shared_ptr());
+        shared_ptr_ref<DBGattDesc> ref(env, obj); // hold until done
+        jclass clazz = search_class(env, _dbGattValueClazzName.c_str());
+        return convert_instance_to_jobject<DBGattDesc>(env, clazz, _dbGattValueClazzCtorArgs.c_str(), _createDBGattValueFromDesc, ref.shared_ptr());
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
@@ -98,7 +99,7 @@ jobject Java_org_direct_1bt_DBGattDesc_getValue(JNIEnv *env, jobject obj) {
 
 jboolean Java_org_direct_1bt_DBGattDesc_setValue(JNIEnv *env, jobject obj, jbyteArray jsource, jint jsource_pos, jint jsource_len, jint jdest_pos) {
     try {
-        jau::shared_ptr_ref<DBGattDesc> ref(env, obj); // hold until done
+        shared_ptr_ref<DBGattDesc> ref(env, obj); // hold until done
 
         if( nullptr == jsource ) {
             return JNI_FALSE;
@@ -110,7 +111,7 @@ jboolean Java_org_direct_1bt_DBGattDesc_setValue(JNIEnv *env, jobject obj, jbyte
         const jau::nsize_t dest_pos = jdest_pos;
 
         if( 0 < source_len0 && 0 < source_len1 && source_pos1 + source_len1 <= source_len0 ) {
-            jau::JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
+            JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
             const uint8_t * source = criticalArray.get(jsource, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
             if( nullptr == source ) {
                 throw jau::InternalError("GetPrimitiveArrayCritical(byte array) is null", E_FILE_LINE);
@@ -136,12 +137,12 @@ jlong Java_org_direct_1bt_DBGattDesc_ctorImpl(JNIEnv *env, jobject obj,
         if( nullptr == jvalue_ ) {
             throw jau::IllegalArgumentException("byte array null", E_FILE_LINE);
         }
-        jau::JNIGlobalRef global_obj(obj); // lock instance first (global reference), inserted below
+        JNIGlobalRef global_obj(obj); // lock instance first (global reference), inserted below
 
         // POctets value
         jau::POctets value(jcapacity_, env->GetArrayLength(jvalue_), jau::endian::little);
         if( 0 < value.size() ) {
-            jau::JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
+            JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
             const uint8_t * value_ptr = criticalArray.get(jvalue_, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
             if( nullptr == value_ptr ) {
                 throw jau::InternalError("GetPrimitiveArrayCritical(byte array) is null", E_FILE_LINE);
@@ -150,14 +151,14 @@ jlong Java_org_direct_1bt_DBGattDesc_ctorImpl(JNIEnv *env, jobject obj,
         }
 
         // uuid_t type
-        std::string stype = jau::from_jstring_to_string(env, jtype_);
+        std::string stype = from_jstring_to_string(env, jtype_);
         std::shared_ptr<const jau::uuid_t> type( jau::uuid_t::create(stype) );
 
         // new instance
-        jau::shared_ptr_ref<DBGattDesc> ref( new DBGattDesc(type, std::move(value), JNI_TRUE == jvariable_length_) );
+        shared_ptr_ref<DBGattDesc> ref( new DBGattDesc(type, std::move(value), JNI_TRUE == jvariable_length_) );
 
-        ref->setJavaObject( std::make_shared<jau::JavaGlobalObj>( std::move(global_obj), nullptr ) );
-        jau::JavaGlobalObj::check(ref->getJavaObject(), E_FILE_LINE);
+        ref->setJavaObject( std::make_shared<JavaGlobalObj>( std::move(global_obj), nullptr ) );
+        JavaGlobalObj::check(ref->getJavaObject(), E_FILE_LINE);
 
         return ref.release_to_jlong();
     } catch(...) {
@@ -169,14 +170,14 @@ jlong Java_org_direct_1bt_DBGattDesc_ctorImpl(JNIEnv *env, jobject obj,
 void Java_org_direct_1bt_DBGattDesc_dtorImpl(JNIEnv *env, jclass clazz, jlong nativeInstance) {
     (void)clazz;
     try {
-        jau::shared_ptr_ref<DBGattDesc> sref(nativeInstance, false /* throw_on_nullptr */); // hold copy until done
+        shared_ptr_ref<DBGattDesc> sref(nativeInstance, false /* throw_on_nullptr */); // hold copy until done
         if( nullptr != sref.pointer() ) {
             if( !sref.is_null() ) {
-                jau::JavaAnonRef sref_java = sref->getJavaObject(); // hold until done!
-                jau::JavaGlobalObj::check(sref_java, E_FILE_LINE);
+                JavaAnonRef sref_java = sref->getJavaObject(); // hold until done!
+                JavaGlobalObj::check(sref_java, E_FILE_LINE);
                 sref->setJavaObject();
             }
-            std::shared_ptr<DBGattDesc>* sref_ptr = jau::castInstance<DBGattDesc>(nativeInstance);
+            std::shared_ptr<DBGattDesc>* sref_ptr = castInstance<DBGattDesc>(nativeInstance);
             delete sref_ptr;
         }
     } catch(...) {
@@ -187,7 +188,7 @@ void Java_org_direct_1bt_DBGattDesc_dtorImpl(JNIEnv *env, jclass clazz, jlong na
 jshort Java_org_direct_1bt_DBGattDesc_getHandle(JNIEnv *env, jobject obj)
 {
     try {
-        jau::shared_ptr_ref<DBGattDesc> ref(env, obj); // hold until done
+        shared_ptr_ref<DBGattDesc> ref(env, obj); // hold until done
         return (jshort)( ref->getHandle() );
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -199,7 +200,7 @@ jshort Java_org_direct_1bt_DBGattDesc_getHandle(JNIEnv *env, jobject obj)
 void Java_org_direct_1bt_DBGattDesc_bzero(JNIEnv *env, jobject obj)
 {
     try {
-        jau::shared_ptr_ref<DBGattDesc> ref(env, obj); // hold until done
+        shared_ptr_ref<DBGattDesc> ref(env, obj); // hold until done
         ref->bzero();
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -208,8 +209,8 @@ void Java_org_direct_1bt_DBGattDesc_bzero(JNIEnv *env, jobject obj)
 
 jstring Java_org_direct_1bt_DBGattDesc_toString(JNIEnv *env, jobject obj) {
     try {
-        jau::shared_ptr_ref<DBGattDesc> ref(env, obj); // hold until done
-        return jau::from_string_to_jstring(env, ref->toString());
+        shared_ptr_ref<DBGattDesc> ref(env, obj); // hold until done
+        return from_string_to_jstring(env, ref->toString());
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
@@ -225,9 +226,9 @@ jstring Java_org_direct_1bt_DBGattDesc_toString(JNIEnv *env, jobject obj) {
 
 jobject Java_org_direct_1bt_DBGattChar_getValue(JNIEnv *env, jobject obj) {
     try {
-        jau::shared_ptr_ref<DBGattChar> ref(env, obj); // hold until done
-        jclass clazz = jau::search_class(env, _dbGattValueClazzName.c_str());
-        return jau::convert_instance_to_jobject<DBGattChar>(env, clazz, _dbGattValueClazzCtorArgs.c_str(), _createDBGattValueFromChar, ref.shared_ptr());
+        shared_ptr_ref<DBGattChar> ref(env, obj); // hold until done
+        jclass clazz = search_class(env, _dbGattValueClazzName.c_str());
+        return convert_instance_to_jobject<DBGattChar>(env, clazz, _dbGattValueClazzCtorArgs.c_str(), _createDBGattValueFromChar, ref.shared_ptr());
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
@@ -236,7 +237,7 @@ jobject Java_org_direct_1bt_DBGattChar_getValue(JNIEnv *env, jobject obj) {
 
 jboolean Java_org_direct_1bt_DBGattChar_setValue(JNIEnv *env, jobject obj, jbyteArray jsource, jint jsource_pos, jint jsource_len, jint jdest_pos) {
     try {
-        jau::shared_ptr_ref<DBGattChar> ref(env, obj); // hold until done
+        shared_ptr_ref<DBGattChar> ref(env, obj); // hold until done
 
         if( nullptr == jsource ) {
             return JNI_FALSE;
@@ -248,7 +249,7 @@ jboolean Java_org_direct_1bt_DBGattChar_setValue(JNIEnv *env, jobject obj, jbyte
         const jau::nsize_t dest_pos = jdest_pos;
 
         if( 0 < source_len0 && 0 < source_len1 && source_pos1 + source_len1 <= source_len0 ) {
-            jau::JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
+            JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
             const uint8_t * source = criticalArray.get(jsource, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
             if( nullptr == source ) {
                 throw jau::InternalError("GetPrimitiveArrayCritical(byte array) is null", E_FILE_LINE);
@@ -279,12 +280,12 @@ jlong Java_org_direct_1bt_DBGattChar_ctorImpl(JNIEnv *env, jobject obj,
         if( nullptr == jDescriptors ) {
             throw jau::IllegalArgumentException("descriptor array null", E_FILE_LINE);
         }
-        jau::JNIGlobalRef global_obj(obj); // lock instance first (global reference), inserted below
+        JNIGlobalRef global_obj(obj); // lock instance first (global reference), inserted below
 
         // POctets value
         jau::POctets value(jcapacity_, env->GetArrayLength(jvalue_), jau::endian::little);
         if( 0 < value.size() ) {
-            jau::JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
+            JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
             const uint8_t * value_ptr = criticalArray.get(jvalue_, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
             if( nullptr == value_ptr ) {
                 throw jau::InternalError("GetPrimitiveArrayCritical(byte array) is null", E_FILE_LINE);
@@ -296,7 +297,7 @@ jlong Java_org_direct_1bt_DBGattChar_ctorImpl(JNIEnv *env, jobject obj,
         jau::darray<DBGattDescRef> descriptors( env->GetArrayLength(jDescriptors) /* capacity */ );
         const jau::nsize_t count = descriptors.capacity();
         if( 0 < count ) {
-            jau::JNICriticalArray<jlong, jlongArray> criticalArray(env); // RAII - release
+            JNICriticalArray<jlong, jlongArray> criticalArray(env); // RAII - release
             jlong * jlong_desc_ref_array = criticalArray.get(jDescriptors, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
             if( nullptr == jlong_desc_ref_array ) {
                 throw jau::InternalError("GetPrimitiveArrayCritical(DBGattDesc* array) is null", E_FILE_LINE);
@@ -311,16 +312,16 @@ jlong Java_org_direct_1bt_DBGattChar_ctorImpl(JNIEnv *env, jobject obj,
         const BTGattChar::PropertyBitVal properties = static_cast<BTGattChar::PropertyBitVal>(jproperties);
 
         // uuid_t type
-        std::string stype = jau::from_jstring_to_string(env, jtype_);
+        std::string stype = from_jstring_to_string(env, jtype_);
         std::shared_ptr<const jau::uuid_t> type( jau::uuid_t::create(stype) );
 
         // new instance
-        jau::shared_ptr_ref<DBGattChar> ref( new DBGattChar(type, properties,
+        shared_ptr_ref<DBGattChar> ref( new DBGattChar(type, properties,
                                              std::move(descriptors),
                                              std::move(value), JNI_TRUE == jvariable_length_) );
 
-        ref->setJavaObject( std::make_shared<jau::JavaGlobalObj>( std::move(global_obj), nullptr ) );
-        jau::JavaGlobalObj::check(ref->getJavaObject(), E_FILE_LINE);
+        ref->setJavaObject( std::make_shared<JavaGlobalObj>( std::move(global_obj), nullptr ) );
+        JavaGlobalObj::check(ref->getJavaObject(), E_FILE_LINE);
 
         return ref.release_to_jlong();
     } catch(...) {
@@ -332,14 +333,14 @@ jlong Java_org_direct_1bt_DBGattChar_ctorImpl(JNIEnv *env, jobject obj,
 void Java_org_direct_1bt_DBGattChar_dtorImpl(JNIEnv *env, jclass clazz, jlong nativeInstance) {
     (void)clazz;
     try {
-        jau::shared_ptr_ref<BTGattChar> sref(nativeInstance, false /* throw_on_nullptr */); // hold copy until done
+        shared_ptr_ref<BTGattChar> sref(nativeInstance, false /* throw_on_nullptr */); // hold copy until done
         if( nullptr != sref.pointer() ) {
             if( !sref.is_null() ) {
-                jau::JavaAnonRef sref_java = sref->getJavaObject(); // hold until done!
-                jau::JavaGlobalObj::check(sref_java, E_FILE_LINE);
+                JavaAnonRef sref_java = sref->getJavaObject(); // hold until done!
+                JavaGlobalObj::check(sref_java, E_FILE_LINE);
                 sref->setJavaObject();
             }
-            std::shared_ptr<BTGattChar>* sref_ptr = jau::castInstance<BTGattChar>(nativeInstance);
+            std::shared_ptr<BTGattChar>* sref_ptr = castInstance<BTGattChar>(nativeInstance);
             delete sref_ptr;
         }
     } catch(...) {
@@ -350,7 +351,7 @@ void Java_org_direct_1bt_DBGattChar_dtorImpl(JNIEnv *env, jclass clazz, jlong na
 jshort Java_org_direct_1bt_DBGattChar_getHandle(JNIEnv *env, jobject obj)
 {
     try {
-        jau::shared_ptr_ref<DBGattChar> ref(env, obj); // hold until done
+        shared_ptr_ref<DBGattChar> ref(env, obj); // hold until done
         return (jshort)( ref->getHandle() );
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -361,7 +362,7 @@ jshort Java_org_direct_1bt_DBGattChar_getHandle(JNIEnv *env, jobject obj)
 jshort Java_org_direct_1bt_DBGattChar_getEndHandle(JNIEnv *env, jobject obj)
 {
     try {
-        jau::shared_ptr_ref<DBGattChar> ref(env, obj); // hold until done
+        shared_ptr_ref<DBGattChar> ref(env, obj); // hold until done
         return (jshort)( ref->getEndHandle() );
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -372,7 +373,7 @@ jshort Java_org_direct_1bt_DBGattChar_getEndHandle(JNIEnv *env, jobject obj)
 jshort Java_org_direct_1bt_DBGattChar_getValueHandle(JNIEnv *env, jobject obj)
 {
     try {
-        jau::shared_ptr_ref<DBGattChar> ref(env, obj); // hold until done
+        shared_ptr_ref<DBGattChar> ref(env, obj); // hold until done
         return (jshort)( ref->getValueHandle() );
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -384,7 +385,7 @@ jshort Java_org_direct_1bt_DBGattChar_getValueHandle(JNIEnv *env, jobject obj)
 void Java_org_direct_1bt_DBGattChar_bzero(JNIEnv *env, jobject obj)
 {
     try {
-        jau::shared_ptr_ref<DBGattChar> ref(env, obj); // hold until done
+        shared_ptr_ref<DBGattChar> ref(env, obj); // hold until done
         ref->bzero();
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -393,8 +394,8 @@ void Java_org_direct_1bt_DBGattChar_bzero(JNIEnv *env, jobject obj)
 
 jstring Java_org_direct_1bt_DBGattChar_toString(JNIEnv *env, jobject obj) {
     try {
-        jau::shared_ptr_ref<DBGattChar> ref(env, obj); // hold until done
-        return jau::from_string_to_jstring(env, ref->toString());
+        shared_ptr_ref<DBGattChar> ref(env, obj); // hold until done
+        return from_string_to_jstring(env, ref->toString());
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
@@ -418,13 +419,13 @@ jlong Java_org_direct_1bt_DBGattService_ctorImpl(JNIEnv *env, jobject obj,
         if( nullptr == jCharacteristics ) {
             throw jau::IllegalArgumentException("characteristics array null", E_FILE_LINE);
         }
-        jau::JNIGlobalRef global_obj(obj); // lock instance first (global reference), inserted below
+        JNIGlobalRef global_obj(obj); // lock instance first (global reference), inserted below
 
         // DBGattCharRef List
         jau::darray<DBGattCharRef> characteristics( env->GetArrayLength(jCharacteristics) /* capacity */ );
         const jau::nsize_t count = characteristics.capacity();
         if( 0 < count ) {
-            jau::JNICriticalArray<jlong, jlongArray> criticalArray(env); // RAII - release
+            JNICriticalArray<jlong, jlongArray> criticalArray(env); // RAII - release
             jlong * jlong_char_ref_array = criticalArray.get(jCharacteristics, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
             if( nullptr == jlong_char_ref_array ) {
                 throw jau::InternalError("GetPrimitiveArrayCritical(DBGattChar* array) is null", E_FILE_LINE);
@@ -436,14 +437,14 @@ jlong Java_org_direct_1bt_DBGattService_ctorImpl(JNIEnv *env, jobject obj,
         }
 
         // uuid_t type
-        std::string stype = jau::from_jstring_to_string(env, jtype_);
+        std::string stype = from_jstring_to_string(env, jtype_);
         std::shared_ptr<const jau::uuid_t> type( jau::uuid_t::create(stype) );
 
         // new instance
-        jau::shared_ptr_ref<DBGattService> ref( new DBGattService( JNI_TRUE == jprimary, type, std::move(characteristics) ) );
+        shared_ptr_ref<DBGattService> ref( new DBGattService( JNI_TRUE == jprimary, type, std::move(characteristics) ) );
 
-        ref->setJavaObject( std::make_shared<jau::JavaGlobalObj>( std::move(global_obj), nullptr ) );
-        jau::JavaGlobalObj::check(ref->getJavaObject(), E_FILE_LINE);
+        ref->setJavaObject( std::make_shared<JavaGlobalObj>( std::move(global_obj), nullptr ) );
+        JavaGlobalObj::check(ref->getJavaObject(), E_FILE_LINE);
 
         return ref.release_to_jlong();
     } catch(...) {
@@ -455,14 +456,14 @@ jlong Java_org_direct_1bt_DBGattService_ctorImpl(JNIEnv *env, jobject obj,
 void Java_org_direct_1bt_DBGattService_dtorImpl(JNIEnv *env, jclass clazz, jlong nativeInstance) {
     (void)clazz;
     try {
-        jau::shared_ptr_ref<DBGattService> sref(nativeInstance, false /* throw_on_nullptr */); // hold copy until done
+        shared_ptr_ref<DBGattService> sref(nativeInstance, false /* throw_on_nullptr */); // hold copy until done
         if( nullptr != sref.pointer() ) {
             if( !sref.is_null() ) {
-                jau::JavaAnonRef sref_java = sref->getJavaObject(); // hold until done!
-                jau::JavaGlobalObj::check(sref_java, E_FILE_LINE);
+                JavaAnonRef sref_java = sref->getJavaObject(); // hold until done!
+                JavaGlobalObj::check(sref_java, E_FILE_LINE);
                 sref->setJavaObject();
             }
-            std::shared_ptr<DBGattService>* sref_ptr = jau::castInstance<DBGattService>(nativeInstance);
+            std::shared_ptr<DBGattService>* sref_ptr = castInstance<DBGattService>(nativeInstance);
             delete sref_ptr;
         }
     } catch(...) {
@@ -473,7 +474,7 @@ void Java_org_direct_1bt_DBGattService_dtorImpl(JNIEnv *env, jclass clazz, jlong
 jshort Java_org_direct_1bt_DBGattService_getHandle(JNIEnv *env, jobject obj)
 {
     try {
-        jau::shared_ptr_ref<DBGattService> ref(env, obj); // hold until done
+        shared_ptr_ref<DBGattService> ref(env, obj); // hold until done
         return (jshort)( ref->getHandle() );
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -484,7 +485,7 @@ jshort Java_org_direct_1bt_DBGattService_getHandle(JNIEnv *env, jobject obj)
 jshort Java_org_direct_1bt_DBGattService_getEndHandle(JNIEnv *env, jobject obj)
 {
     try {
-        jau::shared_ptr_ref<DBGattService> ref(env, obj); // hold until done
+        shared_ptr_ref<DBGattService> ref(env, obj); // hold until done
         return (jshort)( ref->getEndHandle() );
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -494,8 +495,8 @@ jshort Java_org_direct_1bt_DBGattService_getEndHandle(JNIEnv *env, jobject obj)
 
 jstring Java_org_direct_1bt_DBGattService_toString(JNIEnv *env, jobject obj) {
     try {
-        jau::shared_ptr_ref<DBGattService> ref(env, obj); // hold until done
-        return jau::from_string_to_jstring(env, ref->toString());
+        shared_ptr_ref<DBGattService> ref(env, obj); // hold until done
+        return from_string_to_jstring(env, ref->toString());
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
@@ -518,13 +519,13 @@ jlong Java_org_direct_1bt_DBGattServer_ctorImpl(JNIEnv *env, jobject obj,
         if( nullptr == jService ) {
             throw jau::IllegalArgumentException("characteristics array null", E_FILE_LINE);
         }
-        jau::JNIGlobalRef global_obj(obj); // lock instance first (global reference), inserted below
+        JNIGlobalRef global_obj(obj); // lock instance first (global reference), inserted below
 
         // DBGattServiceRef List
         jau::darray<DBGattServiceRef> services( env->GetArrayLength(jService) /* capacity */ );
         const jau::nsize_t count = services.capacity();
         if( 0 < count ) {
-            jau::JNICriticalArray<jlong, jlongArray> criticalArray(env); // RAII - release
+            JNICriticalArray<jlong, jlongArray> criticalArray(env); // RAII - release
             jlong * jlong_service_ref_array = criticalArray.get(jService, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
             if( nullptr == jlong_service_ref_array ) {
                 throw jau::InternalError("GetPrimitiveArrayCritical(DBGattService* array) is null", E_FILE_LINE);
@@ -536,10 +537,10 @@ jlong Java_org_direct_1bt_DBGattServer_ctorImpl(JNIEnv *env, jobject obj,
         }
 
         // new instance
-        jau::shared_ptr_ref<DBGattServer> ref( new DBGattServer( jmax_att_mtu, std::move(services) ) );
+        shared_ptr_ref<DBGattServer> ref( new DBGattServer( jmax_att_mtu, std::move(services) ) );
 
-        ref->setJavaObject( std::make_shared<jau::JavaGlobalObj>( std::move(global_obj), nullptr ) );
-        jau::JavaGlobalObj::check(ref->getJavaObject(), E_FILE_LINE);
+        ref->setJavaObject( std::make_shared<JavaGlobalObj>( std::move(global_obj), nullptr ) );
+        JavaGlobalObj::check(ref->getJavaObject(), E_FILE_LINE);
 
         return ref.release_to_jlong();
     } catch(...) {
@@ -551,14 +552,14 @@ jlong Java_org_direct_1bt_DBGattServer_ctorImpl(JNIEnv *env, jobject obj,
 void Java_org_direct_1bt_DBGattServer_dtorImpl(JNIEnv *env, jclass clazz, jlong nativeInstance) {
     (void)clazz;
     try {
-        jau::shared_ptr_ref<DBGattServer> sref(nativeInstance, false /* throw_on_nullptr */); // hold copy until done
+        shared_ptr_ref<DBGattServer> sref(nativeInstance, false /* throw_on_nullptr */); // hold copy until done
         if( nullptr != sref.pointer() ) {
             if( !sref.is_null() ) {
-                jau::JavaAnonRef sref_java = sref->getJavaObject(); // hold until done!
-                jau::JavaGlobalObj::check(sref_java, E_FILE_LINE);
+                JavaAnonRef sref_java = sref->getJavaObject(); // hold until done!
+                JavaGlobalObj::check(sref_java, E_FILE_LINE);
                 sref->setJavaObject();
             }
-            std::shared_ptr<DBGattServer>* sref_ptr = jau::castInstance<DBGattServer>(nativeInstance);
+            std::shared_ptr<DBGattServer>* sref_ptr = castInstance<DBGattServer>(nativeInstance);
             delete sref_ptr;
         }
     } catch(...) {
@@ -569,7 +570,7 @@ void Java_org_direct_1bt_DBGattServer_dtorImpl(JNIEnv *env, jclass clazz, jlong 
 jint Java_org_direct_1bt_DBGattServer_getMaxAttMTU(JNIEnv *env, jobject obj)
 {
     try {
-        jau::shared_ptr_ref<DBGattServer> ref(env, obj); // hold until done
+        shared_ptr_ref<DBGattServer> ref(env, obj); // hold until done
         return (jint)( ref->getMaxAttMTU() );
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -580,7 +581,7 @@ jint Java_org_direct_1bt_DBGattServer_getMaxAttMTU(JNIEnv *env, jobject obj)
 void Java_org_direct_1bt_DBGattServer_setMaxAttMTU(JNIEnv *env, jobject obj, jint v)
 {
     try {
-        jau::shared_ptr_ref<DBGattServer> ref(env, obj); // hold until done
+        shared_ptr_ref<DBGattServer> ref(env, obj); // hold until done
         ref->setMaxAttMTU(v);
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -589,8 +590,8 @@ void Java_org_direct_1bt_DBGattServer_setMaxAttMTU(JNIEnv *env, jobject obj, jin
 
 jstring Java_org_direct_1bt_DBGattServer_toString(JNIEnv *env, jobject obj) {
     try {
-        jau::shared_ptr_ref<DBGattServer> ref(env, obj); // hold until done
-        return jau::from_string_to_jstring(env, ref->toString());
+        shared_ptr_ref<DBGattServer> ref(env, obj); // hold until done
+        return from_string_to_jstring(env, ref->toString());
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
@@ -606,7 +607,7 @@ jstring Java_org_direct_1bt_DBGattServer_toString(JNIEnv *env, jobject obj) {
 
 class JNIDBGattServerListener : public DBGattServer::Listener {
     private:
-        jau::JavaGlobalObj listenerObjRef;
+        JavaGlobalObj listenerObjRef;
         jmethodID  mConnected = nullptr;
         jmethodID  mDisconnected = nullptr;
         jmethodID  mMtuChanged = nullptr;
@@ -622,131 +623,131 @@ class JNIDBGattServerListener : public DBGattServer::Listener {
         JNIDBGattServerListener(JNIEnv *env, jclass clazz, jobject obj)
         : listenerObjRef(obj, nullptr)
         {
-            mConnected = jau::search_method(env, clazz, "connected", "(Lorg/direct_bt/BTDevice;I)V", false);
-            mDisconnected = jau::search_method(env, clazz, "disconnected", "(Lorg/direct_bt/BTDevice;)V", false);
-            mMtuChanged = jau::search_method(env, clazz, "mtuChanged", "(Lorg/direct_bt/BTDevice;I)V", false);
-            mReadCharValue = jau::search_method(env, clazz, "readCharValue", "(Lorg/direct_bt/BTDevice;Lorg/direct_bt/DBGattService;Lorg/direct_bt/DBGattChar;)Z", false);
-            mReadDescValue = jau::search_method(env, clazz, "readDescValue", "(Lorg/direct_bt/BTDevice;Lorg/direct_bt/DBGattService;Lorg/direct_bt/DBGattChar;Lorg/direct_bt/DBGattDesc;)Z", false);
-            mWriteCharValue = jau::search_method(env, clazz, "writeCharValue", "(Lorg/direct_bt/BTDevice;Lorg/direct_bt/DBGattService;Lorg/direct_bt/DBGattChar;[BI)Z", false);
-            mWriteCharValueDone = jau::search_method(env, clazz, "writeCharValueDone", "(Lorg/direct_bt/BTDevice;Lorg/direct_bt/DBGattService;Lorg/direct_bt/DBGattChar;)V", false);
-            mWriteDescValue = jau::search_method(env, clazz, "writeDescValue", "(Lorg/direct_bt/BTDevice;Lorg/direct_bt/DBGattService;Lorg/direct_bt/DBGattChar;Lorg/direct_bt/DBGattDesc;[BI)Z", false);
-            mWriteDescValueDone = jau::search_method(env, clazz, "writeDescValueDone", "(Lorg/direct_bt/BTDevice;Lorg/direct_bt/DBGattService;Lorg/direct_bt/DBGattChar;Lorg/direct_bt/DBGattDesc;)V", false);
-            mCCDChanged = jau::search_method(env, clazz, "clientCharConfigChanged", "(Lorg/direct_bt/BTDevice;Lorg/direct_bt/DBGattService;Lorg/direct_bt/DBGattChar;Lorg/direct_bt/DBGattDesc;ZZ)V", false);
+            mConnected = search_method(env, clazz, "connected", "(Lorg/direct_bt/BTDevice;I)V", false);
+            mDisconnected = search_method(env, clazz, "disconnected", "(Lorg/direct_bt/BTDevice;)V", false);
+            mMtuChanged = search_method(env, clazz, "mtuChanged", "(Lorg/direct_bt/BTDevice;I)V", false);
+            mReadCharValue = search_method(env, clazz, "readCharValue", "(Lorg/direct_bt/BTDevice;Lorg/direct_bt/DBGattService;Lorg/direct_bt/DBGattChar;)Z", false);
+            mReadDescValue = search_method(env, clazz, "readDescValue", "(Lorg/direct_bt/BTDevice;Lorg/direct_bt/DBGattService;Lorg/direct_bt/DBGattChar;Lorg/direct_bt/DBGattDesc;)Z", false);
+            mWriteCharValue = search_method(env, clazz, "writeCharValue", "(Lorg/direct_bt/BTDevice;Lorg/direct_bt/DBGattService;Lorg/direct_bt/DBGattChar;[BI)Z", false);
+            mWriteCharValueDone = search_method(env, clazz, "writeCharValueDone", "(Lorg/direct_bt/BTDevice;Lorg/direct_bt/DBGattService;Lorg/direct_bt/DBGattChar;)V", false);
+            mWriteDescValue = search_method(env, clazz, "writeDescValue", "(Lorg/direct_bt/BTDevice;Lorg/direct_bt/DBGattService;Lorg/direct_bt/DBGattChar;Lorg/direct_bt/DBGattDesc;[BI)Z", false);
+            mWriteDescValueDone = search_method(env, clazz, "writeDescValueDone", "(Lorg/direct_bt/BTDevice;Lorg/direct_bt/DBGattService;Lorg/direct_bt/DBGattChar;Lorg/direct_bt/DBGattDesc;)V", false);
+            mCCDChanged = search_method(env, clazz, "clientCharConfigChanged", "(Lorg/direct_bt/BTDevice;Lorg/direct_bt/DBGattService;Lorg/direct_bt/DBGattChar;Lorg/direct_bt/DBGattDesc;ZZ)V", false);
         }
 
         ~JNIDBGattServerListener() noexcept { }
 
         void connected(BTDeviceRef device, const uint16_t initialMTU) override {
-            jobject j_device = jau::JavaGlobalObj::checkAndGetObject(device->getJavaObject(), E_FILE_LINE);
-            JNIEnv *env = *jau::jni_env;
+            jobject j_device = JavaGlobalObj::checkAndGetObject(device->getJavaObject(), E_FILE_LINE);
+            JNIEnv *env = *jni_env;
 
             env->CallVoidMethod(listenerObjRef.getObject(), mConnected, j_device, (jint)initialMTU);
-            jau::java_exception_check_and_throw(env, E_FILE_LINE);
+            java_exception_check_and_throw(env, E_FILE_LINE);
         }
 
         void disconnected(BTDeviceRef device) override {
-            jobject j_device = jau::JavaGlobalObj::checkAndGetObject(device->getJavaObject(), E_FILE_LINE);
-            JNIEnv *env = *jau::jni_env;
+            jobject j_device = JavaGlobalObj::checkAndGetObject(device->getJavaObject(), E_FILE_LINE);
+            JNIEnv *env = *jni_env;
 
             env->CallVoidMethod(listenerObjRef.getObject(), mDisconnected, j_device);
-            jau::java_exception_check_and_throw(env, E_FILE_LINE);
+            java_exception_check_and_throw(env, E_FILE_LINE);
         }
 
         void mtuChanged(BTDeviceRef device, const uint16_t mtu) override {
-            jobject j_device = jau::JavaGlobalObj::checkAndGetObject(device->getJavaObject(), E_FILE_LINE);
-            JNIEnv *env = *jau::jni_env;
+            jobject j_device = JavaGlobalObj::checkAndGetObject(device->getJavaObject(), E_FILE_LINE);
+            JNIEnv *env = *jni_env;
 
             env->CallVoidMethod(listenerObjRef.getObject(), mMtuChanged, j_device, (jint)mtu);
-            jau::java_exception_check_and_throw(env, E_FILE_LINE);
+            java_exception_check_and_throw(env, E_FILE_LINE);
         }
 
         bool readCharValue(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c) override {
-            jobject j_device = jau::JavaGlobalObj::checkAndGetObject(device->getJavaObject(), E_FILE_LINE);
-            jobject j_s = jau::JavaGlobalObj::checkAndGetObject(s->getJavaObject(), E_FILE_LINE);
-            jobject j_c = jau::JavaGlobalObj::checkAndGetObject(c->getJavaObject(), E_FILE_LINE);
-            JNIEnv *env = *jau::jni_env;
+            jobject j_device = JavaGlobalObj::checkAndGetObject(device->getJavaObject(), E_FILE_LINE);
+            jobject j_s = JavaGlobalObj::checkAndGetObject(s->getJavaObject(), E_FILE_LINE);
+            jobject j_c = JavaGlobalObj::checkAndGetObject(c->getJavaObject(), E_FILE_LINE);
+            JNIEnv *env = *jni_env;
 
             jboolean res = env->CallBooleanMethod(listenerObjRef.getObject(), mReadCharValue, j_device, j_s, j_c);
-            jau::java_exception_check_and_throw(env, E_FILE_LINE);
+            java_exception_check_and_throw(env, E_FILE_LINE);
             return JNI_TRUE == res;
         }
 
         bool readDescValue(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c, DBGattDescRef d) override {
-            jobject j_device = jau::JavaGlobalObj::checkAndGetObject(device->getJavaObject(), E_FILE_LINE);
-            jobject j_s = jau::JavaGlobalObj::checkAndGetObject(s->getJavaObject(), E_FILE_LINE);
-            jobject j_c = jau::JavaGlobalObj::checkAndGetObject(c->getJavaObject(), E_FILE_LINE);
-            jobject j_d = jau::JavaGlobalObj::checkAndGetObject(d->getJavaObject(), E_FILE_LINE);
-            JNIEnv *env = *jau::jni_env;
+            jobject j_device = JavaGlobalObj::checkAndGetObject(device->getJavaObject(), E_FILE_LINE);
+            jobject j_s = JavaGlobalObj::checkAndGetObject(s->getJavaObject(), E_FILE_LINE);
+            jobject j_c = JavaGlobalObj::checkAndGetObject(c->getJavaObject(), E_FILE_LINE);
+            jobject j_d = JavaGlobalObj::checkAndGetObject(d->getJavaObject(), E_FILE_LINE);
+            JNIEnv *env = *jni_env;
 
             jboolean res = env->CallBooleanMethod(listenerObjRef.getObject(), mReadDescValue, j_device, j_s, j_c, j_d);
-            jau::java_exception_check_and_throw(env, E_FILE_LINE);
+            java_exception_check_and_throw(env, E_FILE_LINE);
             return JNI_TRUE == res;
         }
 
         bool writeCharValue(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c, const jau::TROOctets & value, const uint16_t value_offset) override {
-            jobject j_device = jau::JavaGlobalObj::checkAndGetObject(device->getJavaObject(), E_FILE_LINE);
-            jobject j_s = jau::JavaGlobalObj::checkAndGetObject(s->getJavaObject(), E_FILE_LINE);
-            jobject j_c = jau::JavaGlobalObj::checkAndGetObject(c->getJavaObject(), E_FILE_LINE);
-            JNIEnv *env = *jau::jni_env;
+            jobject j_device = JavaGlobalObj::checkAndGetObject(device->getJavaObject(), E_FILE_LINE);
+            jobject j_s = JavaGlobalObj::checkAndGetObject(s->getJavaObject(), E_FILE_LINE);
+            jobject j_c = JavaGlobalObj::checkAndGetObject(c->getJavaObject(), E_FILE_LINE);
+            JNIEnv *env = *jni_env;
 
             const size_t value_size = value.size();
             jbyteArray j_value = env->NewByteArray((jsize)value_size);
             env->SetByteArrayRegion(j_value, 0, (jsize)value_size, (const jbyte *)value.get_ptr());
-            jau::java_exception_check_and_throw(env, E_FILE_LINE);
+            java_exception_check_and_throw(env, E_FILE_LINE);
 
             jboolean res = env->CallBooleanMethod(listenerObjRef.getObject(), mWriteCharValue, j_device, j_s, j_c, j_value, (jint)value_offset);
-            jau::java_exception_check_and_throw(env, E_FILE_LINE);
+            java_exception_check_and_throw(env, E_FILE_LINE);
             env->DeleteLocalRef(j_value);
             return JNI_TRUE == res;
         }
         void writeCharValueDone(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c) override {
-            jobject j_device = jau::JavaGlobalObj::checkAndGetObject(device->getJavaObject(), E_FILE_LINE);
-            jobject j_s = jau::JavaGlobalObj::checkAndGetObject(s->getJavaObject(), E_FILE_LINE);
-            jobject j_c = jau::JavaGlobalObj::checkAndGetObject(c->getJavaObject(), E_FILE_LINE);
-            JNIEnv *env = *jau::jni_env;
+            jobject j_device = JavaGlobalObj::checkAndGetObject(device->getJavaObject(), E_FILE_LINE);
+            jobject j_s = JavaGlobalObj::checkAndGetObject(s->getJavaObject(), E_FILE_LINE);
+            jobject j_c = JavaGlobalObj::checkAndGetObject(c->getJavaObject(), E_FILE_LINE);
+            JNIEnv *env = *jni_env;
 
             env->CallVoidMethod(listenerObjRef.getObject(), mWriteCharValueDone, j_device, j_s, j_c);
-            jau::java_exception_check_and_throw(env, E_FILE_LINE);
+            java_exception_check_and_throw(env, E_FILE_LINE);
         }
 
         bool writeDescValue(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c, DBGattDescRef d, const jau::TROOctets & value, const uint16_t value_offset) override {
-            jobject j_device = jau::JavaGlobalObj::checkAndGetObject(device->getJavaObject(), E_FILE_LINE);
-            jobject j_s = jau::JavaGlobalObj::checkAndGetObject(s->getJavaObject(), E_FILE_LINE);
-            jobject j_c = jau::JavaGlobalObj::checkAndGetObject(c->getJavaObject(), E_FILE_LINE);
-            jobject j_d = jau::JavaGlobalObj::checkAndGetObject(d->getJavaObject(), E_FILE_LINE);
-            JNIEnv *env = *jau::jni_env;
+            jobject j_device = JavaGlobalObj::checkAndGetObject(device->getJavaObject(), E_FILE_LINE);
+            jobject j_s = JavaGlobalObj::checkAndGetObject(s->getJavaObject(), E_FILE_LINE);
+            jobject j_c = JavaGlobalObj::checkAndGetObject(c->getJavaObject(), E_FILE_LINE);
+            jobject j_d = JavaGlobalObj::checkAndGetObject(d->getJavaObject(), E_FILE_LINE);
+            JNIEnv *env = *jni_env;
 
             const size_t value_size = value.size();
             jbyteArray j_value = env->NewByteArray((jsize)value_size);
             env->SetByteArrayRegion(j_value, 0, (jsize)value_size, (const jbyte *)value.get_ptr());
-            jau::java_exception_check_and_throw(env, E_FILE_LINE);
+            java_exception_check_and_throw(env, E_FILE_LINE);
 
             jboolean res = env->CallBooleanMethod(listenerObjRef.getObject(), mWriteDescValue, j_device, j_s, j_c, j_d, j_value, (jint)value_offset);
-            jau::java_exception_check_and_throw(env, E_FILE_LINE);
+            java_exception_check_and_throw(env, E_FILE_LINE);
             env->DeleteLocalRef(j_value);
             return JNI_TRUE == res;
         }
         void writeDescValueDone(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c, DBGattDescRef d) override {
-            jobject j_device = jau::JavaGlobalObj::checkAndGetObject(device->getJavaObject(), E_FILE_LINE);
-            jobject j_s = jau::JavaGlobalObj::checkAndGetObject(s->getJavaObject(), E_FILE_LINE);
-            jobject j_c = jau::JavaGlobalObj::checkAndGetObject(c->getJavaObject(), E_FILE_LINE);
-            jobject j_d = jau::JavaGlobalObj::checkAndGetObject(d->getJavaObject(), E_FILE_LINE);
-            JNIEnv *env = *jau::jni_env;
+            jobject j_device = JavaGlobalObj::checkAndGetObject(device->getJavaObject(), E_FILE_LINE);
+            jobject j_s = JavaGlobalObj::checkAndGetObject(s->getJavaObject(), E_FILE_LINE);
+            jobject j_c = JavaGlobalObj::checkAndGetObject(c->getJavaObject(), E_FILE_LINE);
+            jobject j_d = JavaGlobalObj::checkAndGetObject(d->getJavaObject(), E_FILE_LINE);
+            JNIEnv *env = *jni_env;
 
             env->CallVoidMethod(listenerObjRef.getObject(), mWriteDescValueDone, j_device, j_s, j_c, j_d);
-            jau::java_exception_check_and_throw(env, E_FILE_LINE);
+            java_exception_check_and_throw(env, E_FILE_LINE);
         }
 
         void clientCharConfigChanged(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c, DBGattDescRef d, const bool notificationEnabled, const bool indicationEnabled) override {
-            jobject j_device = jau::JavaGlobalObj::checkAndGetObject(device->getJavaObject(), E_FILE_LINE);
-            jobject j_s = jau::JavaGlobalObj::checkAndGetObject(s->getJavaObject(), E_FILE_LINE);
-            jobject j_c = jau::JavaGlobalObj::checkAndGetObject(c->getJavaObject(), E_FILE_LINE);
-            jobject j_d = jau::JavaGlobalObj::checkAndGetObject(d->getJavaObject(), E_FILE_LINE);
-            JNIEnv *env = *jau::jni_env;
+            jobject j_device = JavaGlobalObj::checkAndGetObject(device->getJavaObject(), E_FILE_LINE);
+            jobject j_s = JavaGlobalObj::checkAndGetObject(s->getJavaObject(), E_FILE_LINE);
+            jobject j_c = JavaGlobalObj::checkAndGetObject(c->getJavaObject(), E_FILE_LINE);
+            jobject j_d = JavaGlobalObj::checkAndGetObject(d->getJavaObject(), E_FILE_LINE);
+            JNIEnv *env = *jni_env;
 
             env->CallVoidMethod(listenerObjRef.getObject(), mCCDChanged, j_device, j_s, j_c, j_d,
                                 notificationEnabled? JNI_TRUE : JNI_FALSE, indicationEnabled? JNI_TRUE : JNI_FALSE);
-            jau::java_exception_check_and_throw(env, E_FILE_LINE);
+            java_exception_check_and_throw(env, E_FILE_LINE);
         }
 };
 
@@ -758,8 +759,8 @@ class JNIDBGattServerListener : public DBGattServer::Listener {
  */
 jboolean Java_org_direct_1bt_DBGattServer_addListenerImpl(JNIEnv *env, jobject obj, jobject jlistener) {
     try {
-        jau::shared_ptr_ref<DBGattServer> ref(env, obj); // hold until done
-        jau::shared_ptr_ref<JNIDBGattServerListener> listener_ref(env, jlistener); // hold until done
+        shared_ptr_ref<DBGattServer> ref(env, obj); // hold until done
+        shared_ptr_ref<JNIDBGattServerListener> listener_ref(env, jlistener); // hold until done
         bool res = ref->addListener(listener_ref.shared_ptr());
         return res ? JNI_TRUE : JNI_FALSE;
     } catch(...) {
@@ -775,8 +776,8 @@ jboolean Java_org_direct_1bt_DBGattServer_addListenerImpl(JNIEnv *env, jobject o
  */
 jboolean Java_org_direct_1bt_DBGattServer_removeListenerImpl(JNIEnv *env, jobject obj, jobject jlistener) {
     try {
-        jau::shared_ptr_ref<DBGattServer> ref(env, obj); // hold until done
-        jau::shared_ptr_ref<JNIDBGattServerListener> listener_ref(env, jlistener); // hold until done
+        shared_ptr_ref<DBGattServer> ref(env, obj); // hold until done
+        shared_ptr_ref<JNIDBGattServerListener> listener_ref(env, jlistener); // hold until done
         bool res = ref->removeListener(listener_ref.shared_ptr());
         return res ? JNI_TRUE : JNI_FALSE;
     } catch(...) {
@@ -793,8 +794,8 @@ jboolean Java_org_direct_1bt_DBGattServer_removeListenerImpl(JNIEnv *env, jobjec
  */
 jlong Java_org_direct_1bt_DBGattServer_00024Listener_ctorImpl(JNIEnv *env, jobject obj) {
     try {
-        jclass clazz = jau::search_class(env, obj);
-        jau::shared_ptr_ref<JNIDBGattServerListener> ref( new JNIDBGattServerListener(env, clazz, obj) );
+        jclass clazz = search_class(env, obj);
+        shared_ptr_ref<JNIDBGattServerListener> ref( new JNIDBGattServerListener(env, clazz, obj) );
         env->DeleteLocalRef(clazz);
 
         return ref.release_to_jlong();
@@ -812,9 +813,9 @@ jlong Java_org_direct_1bt_DBGattServer_00024Listener_ctorImpl(JNIEnv *env, jobje
 void Java_org_direct_1bt_DBGattServer_00024Listener_dtorImpl(JNIEnv *env, jclass clazz, jlong nativeInstance) {
     (void)clazz;
     try {
-        jau::shared_ptr_ref<JNIDBGattServerListener> sref(nativeInstance, false /* throw_on_nullptr */); // hold copy until done
+        shared_ptr_ref<JNIDBGattServerListener> sref(nativeInstance, false /* throw_on_nullptr */); // hold copy until done
         if( nullptr != sref.pointer() ) {
-            std::shared_ptr<JNIDBGattServerListener>* sref_ptr = jau::castInstance<JNIDBGattServerListener>(nativeInstance);
+            std::shared_ptr<JNIDBGattServerListener>* sref_ptr = castInstance<JNIDBGattServerListener>(nativeInstance);
             delete sref_ptr;
         }
     } catch(...) {

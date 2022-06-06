@@ -90,12 +90,12 @@ jstring Java_org_direct_1bt_BTUtils_decodeUTF8String(JNIEnv *env, jclass clazz, 
 
     std::string sres;
     {
-        jau::JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
+        jau::jni::JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
         uint8_t * buffer_ptr = criticalArray.get(jbuffer, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
         if( NULL == buffer_ptr ) {
             throw jau::IllegalArgumentException("GetPrimitiveArrayCritical(byte array) is null", E_FILE_LINE);
         }
         sres = jau::dfa_utf8_decode(buffer_ptr+offset, static_cast<size_t>(size));
     }
-    return jau::from_string_to_jstring(env, sres);
+    return jau::jni::from_string_to_jstring(env, sres);
 }

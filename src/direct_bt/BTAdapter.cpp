@@ -850,11 +850,11 @@ bool BTAdapter::unlockConnectAny() noexcept {
 
 HCIStatusCode BTAdapter::reset() noexcept {
     if( !isValid() ) {
-        ERR_PRINT("Adapter invalid: %s, %s", to_hexstring(this).c_str(), toString().c_str());
+        ERR_PRINT("Adapter invalid: %s, %s", jau::to_hexstring(this).c_str(), toString().c_str());
         return HCIStatusCode::UNSPECIFIED_ERROR;
     }
     if( !hci.isOpen() ) {
-        ERR_PRINT("HCI closed: %s, %s", to_hexstring(this).c_str(), toString().c_str());
+        ERR_PRINT("HCI closed: %s, %s", jau::to_hexstring(this).c_str(), toString().c_str());
         return HCIStatusCode::UNSPECIFIED_ERROR;
     }
 #if 0
@@ -1177,7 +1177,7 @@ HCIStatusCode BTAdapter::stopDiscoveryImpl(const bool forceDiscoveringEvent, con
     // FIXME: Respect BTAdapter::btMode, i.e. BTMode::BREDR, BTMode::LE or BTMode::DUAL to stop BREDR, LE or DUAL scanning!
 
     if( !isValid() ) {
-        ERR_PRINT("Adapter invalid: %s, %s", to_hexstring(this).c_str(), toString().c_str());
+        ERR_PRINT("Adapter invalid: %s, %s", jau::to_hexstring(this).c_str(), toString().c_str());
         return HCIStatusCode::UNSPECIFIED_ERROR;
     }
     const std::lock_guard<std::mutex> lock(mtx_discovery); // RAII-style acquire and relinquish via destructor

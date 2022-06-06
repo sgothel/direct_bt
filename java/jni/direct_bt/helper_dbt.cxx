@@ -36,9 +36,9 @@ static std::string jStringEmpty("");
 static std::string jAddressTypePublic("public");
 static std::string jAddressTypeRandom("random");
 
-BDAddressType direct_bt::fromJavaAdressTypeToBDAddressType(JNIEnv *env, jstring jAddressType) {
+BDAddressType direct_bt::jni::fromJavaAdressTypeToBDAddressType(JNIEnv *env, jstring jAddressType) {
     if( nullptr != jAddressType ) {
-        std::string saddressType = jau::from_jstring_to_string(env, jAddressType);
+        std::string saddressType = jau::jni::from_jstring_to_string(env, jAddressType);
         if( jAddressTypePublic == saddressType ) {
             return BDAddressType::BDADDR_LE_PUBLIC;
         }
@@ -48,16 +48,16 @@ BDAddressType direct_bt::fromJavaAdressTypeToBDAddressType(JNIEnv *env, jstring 
     }
     return BDAddressType::BDADDR_BREDR;
 }
-jstring direct_bt::fromBDAddressTypeToJavaAddressType(JNIEnv *env, BDAddressType bdAddressType) {
+jstring direct_bt::jni::fromBDAddressTypeToJavaAddressType(JNIEnv *env, BDAddressType bdAddressType) {
     switch( bdAddressType ) {
         case BDAddressType::BDADDR_LE_PUBLIC:
-            return jau::from_string_to_jstring(env, jAddressTypePublic);
+            return jau::jni::from_string_to_jstring(env, jAddressTypePublic);
         case BDAddressType::BDADDR_LE_RANDOM:
-            return jau::from_string_to_jstring(env, jAddressTypeRandom);
+            return jau::jni::from_string_to_jstring(env, jAddressTypeRandom);
         case BDAddressType::BDADDR_BREDR:
             // fall through intended
         default:
-            return jau::from_string_to_jstring(env, jStringEmpty);
+            return jau::jni::from_string_to_jstring(env, jStringEmpty);
     }
 }
 

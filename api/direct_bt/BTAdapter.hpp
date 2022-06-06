@@ -123,7 +123,7 @@ namespace direct_bt {
      * The listener receiver maintains a unique set of listener instances without duplicates.
      * </p>
      */
-    class AdapterStatusListener : public jau::JavaUplink {
+    class AdapterStatusListener : public jau::jni::JavaUplink {
         public:
             /**
              * BTAdapter setting(s) changed.

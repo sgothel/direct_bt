@@ -33,7 +33,7 @@
 #include "direct_bt/BTTypes1.hpp"
 
 using namespace direct_bt;
-using namespace jau;
+using namespace jau::jni;
 
 void Java_jau_direct_1bt_DBTNativeDownlink_initNativeJavaObject(JNIEnv *env, jobject obj, jlong nativeInstance)
 {
@@ -44,14 +44,14 @@ void Java_jau_direct_1bt_DBTNativeDownlink_initNativeJavaObject(JNIEnv *env, job
         jclass javaClazz = search_class(env, global_obj.getObject());
         java_exception_check_and_throw(env, E_FILE_LINE);
         if( nullptr == javaClazz ) {
-            throw InternalError("DBTNativeDownlink class not found", E_FILE_LINE);
+            throw jau::InternalError("DBTNativeDownlink class not found", E_FILE_LINE);
         }
         jmethodID  mNotifyDeleted = search_method(env, javaClazz, "notifyDeleted", "()V", false);
         java_exception_check_and_throw(env, E_FILE_LINE);
         if( nullptr == mNotifyDeleted ) {
-            throw InternalError("DBTNativeDownlink class has no notifyDeleted() method, for "+javaUplink->toString(), E_FILE_LINE);
+            throw jau::InternalError("DBTNativeDownlink class has no notifyDeleted() method, for "+javaUplink->toString(), E_FILE_LINE);
         }
-        javaUplink->setJavaObject( std::make_shared<jau::JavaGlobalObj>( std::move(global_obj), mNotifyDeleted ) );
+        javaUplink->setJavaObject( std::make_shared<JavaGlobalObj>( std::move(global_obj), mNotifyDeleted ) );
         JavaGlobalObj::check(javaUplink->getJavaObject(), E_FILE_LINE);
         DBG_JNI_PRINT("Java_jau_direct_1bt_DBTNativeDownlink_initNativeJavaObject %p -> %s", javaUplink.shared_ptr().get(), javaUplink->toString().c_str());
     } catch(...) {

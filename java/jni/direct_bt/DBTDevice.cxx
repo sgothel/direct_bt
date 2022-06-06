@@ -38,7 +38,7 @@
 #include "direct_bt/BTGattService.hpp"
 
 using namespace direct_bt;
-using namespace jau;
+using namespace jau::jni;
 
 static const std::string _notificationReceivedMethodArgs("(Lorg/direct_bt/BTGattChar;[BJ)V");
 static const std::string _indicationReceivedMethodArgs("(Lorg/direct_bt/BTGattChar;[BJZ)V");
@@ -70,7 +70,7 @@ class JNIGattCharListener : public BTGattCharListener {
         jclass listenerClazz = search_class(env, listenerObj.getObject());
         java_exception_check_and_throw(env, E_FILE_LINE);
         if( nullptr == listenerClazz ) {
-            throw InternalError("BTGattCharListener not found", E_FILE_LINE);
+            throw jau::InternalError("BTGattCharListener not found", E_FILE_LINE);
         }
 
         mNotificationReceived = search_method(env, listenerClazz, "notificationReceived", _notificationReceivedMethodArgs.c_str(), false);
@@ -81,13 +81,13 @@ class JNIGattCharListener : public BTGattCharListener {
     }
 
     void notificationReceived(BTGattCharRef charDecl,
-                              const TROOctets& charValue, const uint64_t timestamp) override {
-        jau::JavaAnonRef jCharDeclRef = charDecl->getJavaObject();
-        if( !jau::JavaGlobalObj::isValid(jCharDeclRef) ) {
+                              const jau::TROOctets& charValue, const uint64_t timestamp) override {
+        JavaAnonRef jCharDeclRef = charDecl->getJavaObject();
+        if( !JavaGlobalObj::isValid(jCharDeclRef) ) {
             return; // java object has been pulled
         }
         JNIEnv *env = *jni_env;
-        jobject jCharDecl = jau::JavaGlobalObj::GetObject(jCharDeclRef);
+        jobject jCharDecl = JavaGlobalObj::GetObject(jCharDeclRef);
 
         const size_t value_size = charValue.size();
         jbyteArray jval = env->NewByteArray((jsize)value_size);
@@ -101,14 +101,14 @@ class JNIGattCharListener : public BTGattCharListener {
     }
 
     void indicationReceived(BTGattCharRef charDecl,
-                            const TROOctets& charValue, const uint64_t timestamp,
+                            const jau::TROOctets& charValue, const uint64_t timestamp,
                             const bool confirmationSent) override {
-        jau::JavaAnonRef jCharDeclRef = charDecl->getJavaObject();
-        if( !jau::JavaGlobalObj::isValid(jCharDeclRef) ) {
+        JavaAnonRef jCharDeclRef = charDecl->getJavaObject();
+        if( !JavaGlobalObj::isValid(jCharDeclRef) ) {
             return; // java object has been pulled
         }
         JNIEnv *env = *jni_env;
-        jobject jCharDecl = jau::JavaGlobalObj::GetObject(jCharDeclRef);
+        jobject jCharDecl = JavaGlobalObj::GetObject(jCharDeclRef);
 
         const size_t value_size = charValue.size();
         jbyteArray jval = env->NewByteArray((jsize)value_size);
@@ -130,7 +130,7 @@ class JNIGattCharListener : public BTGattCharListener {
 jlong Java_org_direct_1bt_BTGattCharListener_ctorImpl(JNIEnv *env, jobject obj) {
     try {
         // new instance
-        jau::shared_ptr_ref<JNIGattCharListener> ref( new JNIGattCharListener(env, obj) );
+        shared_ptr_ref<JNIGattCharListener> ref( new JNIGattCharListener(env, obj) );
 
         return ref.release_to_jlong();
     } catch(...) {
@@ -148,9 +148,9 @@ jlong Java_org_direct_1bt_BTGattCharListener_ctorImpl(JNIEnv *env, jobject obj) 
 void Java_org_direct_1bt_BTGattCharListener_deleteImpl(JNIEnv *env, jobject obj, jlong nativeInstance) {
     (void)obj;
     try {
-        jau::shared_ptr_ref<JNIGattCharListener> sref(nativeInstance, false /* throw_on_nullptr */); // hold copy until done
+        shared_ptr_ref<JNIGattCharListener> sref(nativeInstance, false /* throw_on_nullptr */); // hold copy until done
         if( nullptr != sref.pointer() ) {
-            std::shared_ptr<JNIGattCharListener>* sref_ptr = jau::castInstance<JNIGattCharListener>(nativeInstance);
+            std::shared_ptr<JNIGattCharListener>* sref_ptr = castInstance<JNIGattCharListener>(nativeInstance);
             delete sref_ptr;
         }
     } catch(...) {
@@ -162,7 +162,7 @@ void Java_jau_direct_1bt_DBTDevice_deleteImpl(JNIEnv *env, jobject obj, jlong na
 {
     (void)obj;
     try {
-        jau::shared_ptr_ref<BTDevice> sref(nativeInstance, false /* throw_on_nullptr */); // hold copy until done
+        shared_ptr_ref<BTDevice> sref(nativeInstance, false /* throw_on_nullptr */); // hold copy until done
         if( nullptr != sref.pointer() ) {
             if( !sref.is_null() ) {
                 DBG_PRINT("Java_jau_direct_1bt_DBTDevice_deleteImpl (w/ remove) %s", sref->toString().c_str());
@@ -170,7 +170,7 @@ void Java_jau_direct_1bt_DBTDevice_deleteImpl(JNIEnv *env, jobject obj, jlong na
             } else {
                 DBG_PRINT("Java_jau_direct_1bt_DBTDevice_deleteImpl null reference");
             }
-            std::shared_ptr<BTDevice>* sref_ptr = jau::castInstance<BTDevice>(nativeInstance);
+            std::shared_ptr<BTDevice>* sref_ptr = castInstance<BTDevice>(nativeInstance);
             delete sref_ptr;
         } else {
             DBG_PRINT("Java_jau_direct_1bt_DBTDevice_deleteImpl null reference store");
@@ -184,7 +184,7 @@ void Java_jau_direct_1bt_DBTDevice_initImpl(JNIEnv *env, jobject obj)
 {
     try {
         shared_ptr_ref<BTDevice> device(env, obj); // hold until done
-        jau::JavaAnonRef device_java = device->getJavaObject(); // hold until done!
+        JavaAnonRef device_java = device->getJavaObject(); // hold until done!
         JavaGlobalObj::check(device_java, E_FILE_LINE);
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -194,7 +194,7 @@ void Java_jau_direct_1bt_DBTDevice_initImpl(JNIEnv *env, jobject obj)
 jstring Java_jau_direct_1bt_DBTDevice_getNameImpl(JNIEnv *env, jobject obj) {
     try {
         shared_ptr_ref<BTDevice> device(env, obj); // hold until done
-        jau::JavaAnonRef device_java = device->getJavaObject(); // hold until done!
+        JavaAnonRef device_java = device->getJavaObject(); // hold until done!
         JavaGlobalObj::check(device_java, E_FILE_LINE);
         return from_string_to_jstring(env, device->getName());
     } catch(...) {
@@ -206,7 +206,7 @@ jstring Java_jau_direct_1bt_DBTDevice_getNameImpl(JNIEnv *env, jobject obj) {
 jstring Java_jau_direct_1bt_DBTDevice_toStringImpl(JNIEnv *env, jobject obj) {
     try {
         shared_ptr_ref<BTDevice> device(env, obj); // hold until done
-        jau::JavaAnonRef device_java = device->getJavaObject(); // hold until done!
+        JavaAnonRef device_java = device->getJavaObject(); // hold until done!
         JavaGlobalObj::check(device_java, E_FILE_LINE);
         return from_string_to_jstring(env, device->toString());
     } catch(...) {
@@ -223,16 +223,16 @@ jstring Java_jau_direct_1bt_DBTDevice_toStringImpl(JNIEnv *env, jobject obj) {
 jboolean Java_jau_direct_1bt_DBTDevice_addCharListenerImpl(JNIEnv *env, jobject obj, jobject jlistener, jobject jAssociatedCharacteristic) {
     try {
         shared_ptr_ref<BTDevice> device(env, obj); // hold until done
-        jau::JavaAnonRef device_java = device->getJavaObject(); // hold until done!
+        JavaAnonRef device_java = device->getJavaObject(); // hold until done!
         JavaGlobalObj::check(device_java, E_FILE_LINE);
 
-        jau::shared_ptr_ref<JNIGattCharListener> gcl(env, jlistener); // hold until done
-        jau::JavaAnonRef gcl_java = gcl->getJavaObject(); // hold until done!
-        jau::JavaGlobalObj::check(gcl_java, E_FILE_LINE);
+        shared_ptr_ref<JNIGattCharListener> gcl(env, jlistener); // hold until done
+        JavaAnonRef gcl_java = gcl->getJavaObject(); // hold until done!
+        JavaGlobalObj::check(gcl_java, E_FILE_LINE);
 
-        jau::shared_ptr_ref<BTGattChar> charMatchRef(env, jAssociatedCharacteristic, false /* throw_on_nullptr */);
+        shared_ptr_ref<BTGattChar> charMatchRef(env, jAssociatedCharacteristic, false /* throw_on_nullptr */);
         if( !charMatchRef.is_null() ) {
-            jau::JavaGlobalObj::check(charMatchRef->getJavaObject(), E_FILE_LINE);
+            JavaGlobalObj::check(charMatchRef->getJavaObject(), E_FILE_LINE);
         }
 
         std::shared_ptr<BTGattHandler> gatt = device->getGattHandler();
@@ -264,12 +264,12 @@ jboolean Java_jau_direct_1bt_DBTDevice_removeCharListener(JNIEnv *env, jobject o
             // OK to have device being deleted already @ shutdown
             return JNI_FALSE;
         }
-        jau::JavaAnonRef device_java = device->getJavaObject(); // hold until done!
+        JavaAnonRef device_java = device->getJavaObject(); // hold until done!
         JavaGlobalObj::check(device_java, E_FILE_LINE);
 
-        jau::shared_ptr_ref<JNIGattCharListener> gcl(env, jlistener); // hold until done
-        jau::JavaAnonRef gcl_java = gcl->getJavaObject(); // hold until done!
-        jau::JavaGlobalObj::check(gcl_java, E_FILE_LINE);
+        shared_ptr_ref<JNIGattCharListener> gcl(env, jlistener); // hold until done
+        JavaAnonRef gcl_java = gcl->getJavaObject(); // hold until done!
+        JavaGlobalObj::check(gcl_java, E_FILE_LINE);
 
         std::shared_ptr<BTGattHandler> gatt = device->getGattHandler();
         if( nullptr == gatt ) {
@@ -296,11 +296,11 @@ jint Java_jau_direct_1bt_DBTDevice_removeAllAssociatedCharListener(JNIEnv *env, 
             // OK to have device being deleted already @ shutdown
             return 0;
         }
-        jau::JavaAnonRef device_java = device->getJavaObject(); // hold until done!
+        JavaAnonRef device_java = device->getJavaObject(); // hold until done!
         JavaGlobalObj::check(device_java, E_FILE_LINE);
 
         shared_ptr_ref<BTGattChar> associatedCharacteristicRef(env, jAssociatedCharacteristic);
-        jau::JavaAnonRef device_gattchar = associatedCharacteristicRef->getJavaObject(); // hold until done!
+        JavaAnonRef device_gattchar = associatedCharacteristicRef->getJavaObject(); // hold until done!
         JavaGlobalObj::check(device_gattchar, E_FILE_LINE);
 
         std::shared_ptr<BTGattHandler> gatt = device->getGattHandler();
@@ -324,7 +324,7 @@ jint Java_jau_direct_1bt_DBTDevice_removeAllCharListener(JNIEnv *env, jobject ob
             // OK to have device being deleted already @ shutdown
             return 0;
         }
-        jau::JavaAnonRef device_java = device->getJavaObject(); // hold until done!
+        JavaAnonRef device_java = device->getJavaObject(); // hold until done!
         JavaGlobalObj::check(device_java, E_FILE_LINE);
 
         std::shared_ptr<BTGattHandler> gatt = device->getGattHandler();
@@ -344,7 +344,7 @@ jbyte Java_jau_direct_1bt_DBTDevice_getRoleImpl(JNIEnv *env, jobject obj)
 {
     try {
         shared_ptr_ref<BTDevice> device(env, obj); // hold until done
-        jau::JavaAnonRef device_java = device->getJavaObject(); // hold until done!
+        JavaAnonRef device_java = device->getJavaObject(); // hold until done!
         JavaGlobalObj::check(device_java, E_FILE_LINE);
         return (jbyte) number( device->getRole() );
     } catch(...) {
@@ -357,34 +357,34 @@ jbyte Java_jau_direct_1bt_DBTDevice_getConnectedLE_1PHYImpl(JNIEnv *env, jobject
                                                             jbyteArray jresTx, jbyteArray jresRx) {
     try {
         shared_ptr_ref<BTDevice> device(env, obj); // hold until done
-        jau::JavaAnonRef device_java = device->getJavaObject(); // hold until done!
+        JavaAnonRef device_java = device->getJavaObject(); // hold until done!
         JavaGlobalObj::check(device_java, E_FILE_LINE);
 
         if( nullptr == jresTx ) {
-            throw IllegalArgumentException("resTx byte array null", E_FILE_LINE);
+            throw jau::IllegalArgumentException("resTx byte array null", E_FILE_LINE);
         }
         if( nullptr == jresRx ) {
-            throw IllegalArgumentException("resRx byte array null", E_FILE_LINE);
+            throw jau::IllegalArgumentException("resRx byte array null", E_FILE_LINE);
         }
 
         const size_t resTx_size = env->GetArrayLength(jresTx);
         if( 1 > resTx_size ) {
-            throw IllegalArgumentException("resTx byte array "+std::to_string(resTx_size)+" < 1", E_FILE_LINE);
+            throw jau::IllegalArgumentException("resTx byte array "+std::to_string(resTx_size)+" < 1", E_FILE_LINE);
         }
         const size_t resRx_size = env->GetArrayLength(jresRx);
         if( 1 > resRx_size ) {
-            throw IllegalArgumentException("resRx byte array "+std::to_string(resRx_size)+" < 1", E_FILE_LINE);
+            throw jau::IllegalArgumentException("resRx byte array "+std::to_string(resRx_size)+" < 1", E_FILE_LINE);
         }
 
         JNICriticalArray<uint8_t, jbyteArray> criticalArrayTx(env); // RAII - release
         uint8_t * resTx_ptr = criticalArrayTx.get(jresTx, criticalArrayTx.Mode::UPDATE_AND_RELEASE);
         if( NULL == resTx_ptr ) {
-            throw InternalError("GetPrimitiveArrayCritical(resTx byte array) is null", E_FILE_LINE);
+            throw jau::InternalError("GetPrimitiveArrayCritical(resTx byte array) is null", E_FILE_LINE);
         }
         JNICriticalArray<uint8_t, jbyteArray> criticalArrayRx(env); // RAII - release
         uint8_t * resRx_ptr = criticalArrayRx.get(jresRx, criticalArrayTx.Mode::UPDATE_AND_RELEASE);
         if( NULL == resRx_ptr ) {
-            throw InternalError("GetPrimitiveArrayCritical(resRx byte array) is null", E_FILE_LINE);
+            throw jau::InternalError("GetPrimitiveArrayCritical(resRx byte array) is null", E_FILE_LINE);
         }
 
         LE_PHYs& resTx = *reinterpret_cast<LE_PHYs *>(resTx_ptr);
@@ -401,7 +401,7 @@ jbyte Java_jau_direct_1bt_DBTDevice_setConnectedLE_1PHYImpl(JNIEnv *env, jobject
                                                             jbyte jTx, jbyte jRx) {
     try {
         shared_ptr_ref<BTDevice> device(env, obj); // hold until done
-        jau::JavaAnonRef device_java = device->getJavaObject(); // hold until done!
+        JavaAnonRef device_java = device->getJavaObject(); // hold until done!
         JavaGlobalObj::check(device_java, E_FILE_LINE);
 
         const LE_PHYs Tx = static_cast<LE_PHYs>(jTx);
@@ -417,7 +417,7 @@ jbyte Java_jau_direct_1bt_DBTDevice_setConnectedLE_1PHYImpl(JNIEnv *env, jobject
 jbyte Java_jau_direct_1bt_DBTDevice_getTxPhysImpl(JNIEnv *env, jobject obj) {
     try {
         shared_ptr_ref<BTDevice> device(env, obj); // hold until done
-        jau::JavaAnonRef device_java = device->getJavaObject(); // hold until done!
+        JavaAnonRef device_java = device->getJavaObject(); // hold until done!
         JavaGlobalObj::check(device_java, E_FILE_LINE);
 
         return number( device->getTxPhys() );
@@ -430,7 +430,7 @@ jbyte Java_jau_direct_1bt_DBTDevice_getTxPhysImpl(JNIEnv *env, jobject obj) {
 jbyte Java_jau_direct_1bt_DBTDevice_getRxPhysImpl(JNIEnv *env, jobject obj) {
     try {
         shared_ptr_ref<BTDevice> device(env, obj); // hold until done
-        jau::JavaAnonRef device_java = device->getJavaObject(); // hold until done!
+        JavaAnonRef device_java = device->getJavaObject(); // hold until done!
         JavaGlobalObj::check(device_java, E_FILE_LINE);
 
         return number( device->getRxPhys() );
@@ -444,7 +444,7 @@ jbyte Java_jau_direct_1bt_DBTDevice_disconnectImpl(JNIEnv *env, jobject obj)
 {
     try {
         shared_ptr_ref<BTDevice> device(env, obj); // hold until done
-        jau::JavaAnonRef device_java = device->getJavaObject(); // hold until done!
+        JavaAnonRef device_java = device->getJavaObject(); // hold until done!
         JavaGlobalObj::check(device_java, E_FILE_LINE);
         return (jint) number( device->disconnect() );
     } catch(...) {
@@ -457,7 +457,7 @@ jboolean Java_jau_direct_1bt_DBTDevice_removeImpl(JNIEnv *env, jobject obj)
 {
     try {
         shared_ptr_ref<BTDevice> device(env, obj); // hold until done
-        jau::JavaAnonRef device_java = device->getJavaObject(); // hold until done!
+        JavaAnonRef device_java = device->getJavaObject(); // hold until done!
         JavaGlobalObj::check(device_java, E_FILE_LINE);
         device->remove();
     } catch(...) {
@@ -470,7 +470,7 @@ jbyte Java_jau_direct_1bt_DBTDevice_connectDefaultImpl(JNIEnv *env, jobject obj)
 {
     try {
         shared_ptr_ref<BTDevice> device(env, obj); // hold until done
-        jau::JavaAnonRef device_java = device->getJavaObject(); // hold until done!
+        JavaAnonRef device_java = device->getJavaObject(); // hold until done!
         JavaGlobalObj::check(device_java, E_FILE_LINE);
         return (jbyte) number( device->connectDefault() );
     } catch(...) {
@@ -483,7 +483,7 @@ jbyte Java_jau_direct_1bt_DBTDevice_connectLEImpl0(JNIEnv *env, jobject obj)
 {
     try {
         shared_ptr_ref<BTDevice> device(env, obj); // hold until done
-        jau::JavaAnonRef device_java = device->getJavaObject(); // hold until done!
+        JavaAnonRef device_java = device->getJavaObject(); // hold until done!
         JavaGlobalObj::check(device_java, E_FILE_LINE);
         HCIStatusCode res = device->connectLE();
         return (jbyte) number(res);
@@ -500,7 +500,7 @@ jbyte Java_jau_direct_1bt_DBTDevice_connectLEImpl1(JNIEnv *env, jobject obj,
 {
     try {
         shared_ptr_ref<BTDevice> device(env, obj); // hold until done
-        jau::JavaAnonRef device_java = device->getJavaObject(); // hold until done!
+        JavaAnonRef device_java = device->getJavaObject(); // hold until done!
         JavaGlobalObj::check(device_java, E_FILE_LINE);
         HCIStatusCode res = device->connectLE(interval, window, min_interval, max_interval, latency, timeout);
         return (jbyte) number(res);
@@ -513,7 +513,7 @@ jbyte Java_jau_direct_1bt_DBTDevice_connectLEImpl1(JNIEnv *env, jobject obj,
 jbyte Java_jau_direct_1bt_DBTDevice_getAvailableSMPKeysImpl(JNIEnv *env, jobject obj, jboolean responder) {
     try {
         shared_ptr_ref<BTDevice> device(env, obj); // hold until done
-        jau::JavaAnonRef device_java = device->getJavaObject(); // hold until done!
+        JavaAnonRef device_java = device->getJavaObject(); // hold until done!
         JavaGlobalObj::check(device_java, E_FILE_LINE);
 
         return number( device->getAvailableSMPKeys(JNI_TRUE == responder) );
@@ -526,7 +526,7 @@ jbyte Java_jau_direct_1bt_DBTDevice_getAvailableSMPKeysImpl(JNIEnv *env, jobject
 jbyte Java_jau_direct_1bt_DBTDevice_uploadKeysImpl(JNIEnv *env, jobject obj) {
     try {
         shared_ptr_ref<BTDevice> device(env, obj); // hold until done
-        jau::JavaAnonRef device_java = device->getJavaObject(); // hold until done!
+        JavaAnonRef device_java = device->getJavaObject(); // hold until done!
         JavaGlobalObj::check(device_java, E_FILE_LINE);
 
         return number( device->uploadKeys() );
@@ -539,20 +539,20 @@ jbyte Java_jau_direct_1bt_DBTDevice_uploadKeysImpl(JNIEnv *env, jobject obj) {
 void Java_jau_direct_1bt_DBTDevice_getLongTermKeyImpl(JNIEnv *env, jobject obj, jboolean responder, jbyteArray jsink) {
     try {
         shared_ptr_ref<BTDevice> device(env, obj); // hold until done
-        jau::JavaAnonRef device_java = device->getJavaObject(); // hold until done!
+        JavaAnonRef device_java = device->getJavaObject(); // hold until done!
         JavaGlobalObj::check(device_java, E_FILE_LINE);
 
         if( nullptr == jsink ) {
-            throw IllegalArgumentException("byte array null", E_FILE_LINE);
+            throw jau::IllegalArgumentException("byte array null", E_FILE_LINE);
         }
         const size_t sink_size = env->GetArrayLength(jsink);
         if( sizeof(SMPLongTermKey) > sink_size ) {
-            throw IllegalArgumentException("byte array "+std::to_string(sink_size)+" < "+std::to_string(sizeof(SMPLongTermKey)), E_FILE_LINE);
+            throw jau::IllegalArgumentException("byte array "+std::to_string(sink_size)+" < "+std::to_string(sizeof(SMPLongTermKey)), E_FILE_LINE);
         }
         JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
         uint8_t * sink_ptr = criticalArray.get(jsink, criticalArray.Mode::UPDATE_AND_RELEASE);
         if( NULL == sink_ptr ) {
-            throw InternalError("GetPrimitiveArrayCritical(byte array) is null", E_FILE_LINE);
+            throw jau::InternalError("GetPrimitiveArrayCritical(byte array) is null", E_FILE_LINE);
         }
         SMPLongTermKey& ltk_sink = *reinterpret_cast<SMPLongTermKey *>(sink_ptr);
         ltk_sink = device->getLongTermKey(JNI_TRUE == responder); // assign data of new key copy to JNI critical-array
@@ -564,20 +564,20 @@ void Java_jau_direct_1bt_DBTDevice_getLongTermKeyImpl(JNIEnv *env, jobject obj, 
 void Java_jau_direct_1bt_DBTDevice_setLongTermKeyImpl(JNIEnv *env, jobject obj, jbyteArray jsource) {
     try {
         shared_ptr_ref<BTDevice> device(env, obj); // hold until done
-        jau::JavaAnonRef device_java = device->getJavaObject(); // hold until done!
+        JavaAnonRef device_java = device->getJavaObject(); // hold until done!
         JavaGlobalObj::check(device_java, E_FILE_LINE);
 
         if( nullptr == jsource ) {
-            throw IllegalArgumentException("byte array null", E_FILE_LINE);
+            throw jau::IllegalArgumentException("byte array null", E_FILE_LINE);
         }
         const size_t source_size = env->GetArrayLength(jsource);
         if( sizeof(SMPLongTermKey) > source_size ) {
-            throw IllegalArgumentException("byte array "+std::to_string(source_size)+" < "+std::to_string(sizeof(SMPLongTermKey)), E_FILE_LINE);
+            throw jau::IllegalArgumentException("byte array "+std::to_string(source_size)+" < "+std::to_string(sizeof(SMPLongTermKey)), E_FILE_LINE);
         }
         JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
         uint8_t * source_ptr = criticalArray.get(jsource, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
         if( NULL == source_ptr ) {
-            throw InternalError("GetPrimitiveArrayCritical(byte array) is null", E_FILE_LINE);
+            throw jau::InternalError("GetPrimitiveArrayCritical(byte array) is null", E_FILE_LINE);
         }
         const SMPLongTermKey& ltk = *reinterpret_cast<SMPLongTermKey *>(source_ptr);
 
@@ -590,20 +590,20 @@ void Java_jau_direct_1bt_DBTDevice_setLongTermKeyImpl(JNIEnv *env, jobject obj, 
 void Java_jau_direct_1bt_DBTDevice_getIdentityResolvingKeyImpl(JNIEnv *env, jobject obj, jboolean responder, jbyteArray jsink) {
     try {
         shared_ptr_ref<BTDevice> device(env, obj); // hold until done
-        jau::JavaAnonRef device_java = device->getJavaObject(); // hold until done!
+        JavaAnonRef device_java = device->getJavaObject(); // hold until done!
         JavaGlobalObj::check(device_java, E_FILE_LINE);
 
         if( nullptr == jsink ) {
-            throw IllegalArgumentException("byte array null", E_FILE_LINE);
+            throw jau::IllegalArgumentException("byte array null", E_FILE_LINE);
         }
         const size_t sink_size = env->GetArrayLength(jsink);
         if( sizeof(SMPIdentityResolvingKey) > sink_size ) {
-            throw IllegalArgumentException("byte array "+std::to_string(sink_size)+" < "+std::to_string(sizeof(SMPIdentityResolvingKey)), E_FILE_LINE);
+            throw jau::IllegalArgumentException("byte array "+std::to_string(sink_size)+" < "+std::to_string(sizeof(SMPIdentityResolvingKey)), E_FILE_LINE);
         }
         JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
         uint8_t * sink_ptr = criticalArray.get(jsink, criticalArray.Mode::UPDATE_AND_RELEASE);
         if( NULL == sink_ptr ) {
-            throw InternalError("GetPrimitiveArrayCritical(byte array) is null", E_FILE_LINE);
+            throw jau::InternalError("GetPrimitiveArrayCritical(byte array) is null", E_FILE_LINE);
         }
         SMPIdentityResolvingKey& irk_sink = *reinterpret_cast<SMPIdentityResolvingKey *>(sink_ptr);
         irk_sink = device->getIdentityResolvingKey(JNI_TRUE == responder); // assign data of new key copy to JNI critical-array
@@ -615,20 +615,20 @@ void Java_jau_direct_1bt_DBTDevice_getIdentityResolvingKeyImpl(JNIEnv *env, jobj
 void Java_jau_direct_1bt_DBTDevice_setIdentityResolvingKeyImpl(JNIEnv *env, jobject obj, jbyteArray jsource) {
     try {
         shared_ptr_ref<BTDevice> device(env, obj); // hold until done
-        jau::JavaAnonRef device_java = device->getJavaObject(); // hold until done!
+        JavaAnonRef device_java = device->getJavaObject(); // hold until done!
         JavaGlobalObj::check(device_java, E_FILE_LINE);
 
         if( nullptr == jsource ) {
-            throw IllegalArgumentException("byte array null", E_FILE_LINE);
+            throw jau::IllegalArgumentException("byte array null", E_FILE_LINE);
         }
         const size_t source_size = env->GetArrayLength(jsource);
         if( sizeof(SMPIdentityResolvingKey) > source_size ) {
-            throw IllegalArgumentException("byte array "+std::to_string(source_size)+" < "+std::to_string(sizeof(SMPIdentityResolvingKey)), E_FILE_LINE);
+            throw jau::IllegalArgumentException("byte array "+std::to_string(source_size)+" < "+std::to_string(sizeof(SMPIdentityResolvingKey)), E_FILE_LINE);
         }
         JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
         uint8_t * source_ptr = criticalArray.get(jsource, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
         if( NULL == source_ptr ) {
-            throw InternalError("GetPrimitiveArrayCritical(byte array) is null", E_FILE_LINE);
+            throw jau::InternalError("GetPrimitiveArrayCritical(byte array) is null", E_FILE_LINE);
         }
         const SMPIdentityResolvingKey& irk = *reinterpret_cast<SMPIdentityResolvingKey *>(source_ptr);
 
@@ -641,20 +641,20 @@ void Java_jau_direct_1bt_DBTDevice_setIdentityResolvingKeyImpl(JNIEnv *env, jobj
 void Java_jau_direct_1bt_DBTDevice_getSignatureResolvingKeyImpl(JNIEnv *env, jobject obj, jboolean responder, jbyteArray jsink) {
     try {
         shared_ptr_ref<BTDevice> device(env, obj); // hold until done
-        jau::JavaAnonRef device_java = device->getJavaObject(); // hold until done!
+        JavaAnonRef device_java = device->getJavaObject(); // hold until done!
         JavaGlobalObj::check(device_java, E_FILE_LINE);
 
         if( nullptr == jsink ) {
-            throw IllegalArgumentException("byte array null", E_FILE_LINE);
+            throw jau::IllegalArgumentException("byte array null", E_FILE_LINE);
         }
         const size_t sink_size = env->GetArrayLength(jsink);
         if( sizeof(SMPSignatureResolvingKey) > sink_size ) {
-            throw IllegalArgumentException("byte array "+std::to_string(sink_size)+" < "+std::to_string(sizeof(SMPSignatureResolvingKey)), E_FILE_LINE);
+            throw jau::IllegalArgumentException("byte array "+std::to_string(sink_size)+" < "+std::to_string(sizeof(SMPSignatureResolvingKey)), E_FILE_LINE);
         }
         JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
         uint8_t * sink_ptr = criticalArray.get(jsink, criticalArray.Mode::UPDATE_AND_RELEASE);
         if( NULL == sink_ptr ) {
-            throw InternalError("GetPrimitiveArrayCritical(byte array) is null", E_FILE_LINE);
+            throw jau::InternalError("GetPrimitiveArrayCritical(byte array) is null", E_FILE_LINE);
         }
         SMPSignatureResolvingKey& irk_sink = *reinterpret_cast<SMPSignatureResolvingKey *>(sink_ptr);
         irk_sink = device->getSignatureResolvingKey(JNI_TRUE == responder); // assign data of new key copy to JNI critical-array
@@ -666,20 +666,20 @@ void Java_jau_direct_1bt_DBTDevice_getSignatureResolvingKeyImpl(JNIEnv *env, job
 void Java_jau_direct_1bt_DBTDevice_setSignatureResolvingKeyImpl(JNIEnv *env, jobject obj, jbyteArray jsource) {
     try {
         shared_ptr_ref<BTDevice> device(env, obj); // hold until done
-        jau::JavaAnonRef device_java = device->getJavaObject(); // hold until done!
+        JavaAnonRef device_java = device->getJavaObject(); // hold until done!
         JavaGlobalObj::check(device_java, E_FILE_LINE);
 
         if( nullptr == jsource ) {
-            throw IllegalArgumentException("byte array null", E_FILE_LINE);
+            throw jau::IllegalArgumentException("byte array null", E_FILE_LINE);
         }
         const size_t source_size = env->GetArrayLength(jsource);
         if( sizeof(SMPSignatureResolvingKey) > source_size ) {
-            throw IllegalArgumentException("byte array "+std::to_string(source_size)+" < "+std::to_string(sizeof(SMPSignatureResolvingKey)), E_FILE_LINE);
+            throw jau::IllegalArgumentException("byte array "+std::to_string(source_size)+" < "+std::to_string(sizeof(SMPSignatureResolvingKey)), E_FILE_LINE);
         }
         JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
         uint8_t * source_ptr = criticalArray.get(jsource, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
         if( NULL == source_ptr ) {
-            throw InternalError("GetPrimitiveArrayCritical(byte array) is null", E_FILE_LINE);
+            throw jau::InternalError("GetPrimitiveArrayCritical(byte array) is null", E_FILE_LINE);
         }
         const SMPSignatureResolvingKey& irk = *reinterpret_cast<SMPSignatureResolvingKey *>(source_ptr);
 
@@ -692,20 +692,20 @@ void Java_jau_direct_1bt_DBTDevice_setSignatureResolvingKeyImpl(JNIEnv *env, job
 void Java_jau_direct_1bt_DBTDevice_getLinkKeyImpl(JNIEnv *env, jobject obj, jboolean responder, jbyteArray jsink) {
     try {
         shared_ptr_ref<BTDevice> device(env, obj); // hold until done
-        jau::JavaAnonRef device_java = device->getJavaObject(); // hold until done!
+        JavaAnonRef device_java = device->getJavaObject(); // hold until done!
         JavaGlobalObj::check(device_java, E_FILE_LINE);
 
         if( nullptr == jsink ) {
-            throw IllegalArgumentException("byte array null", E_FILE_LINE);
+            throw jau::IllegalArgumentException("byte array null", E_FILE_LINE);
         }
         const size_t sink_size = env->GetArrayLength(jsink);
         if( sizeof(SMPLinkKey) > sink_size ) {
-            throw IllegalArgumentException("byte array "+std::to_string(sink_size)+" < "+std::to_string(sizeof(SMPLinkKey)), E_FILE_LINE);
+            throw jau::IllegalArgumentException("byte array "+std::to_string(sink_size)+" < "+std::to_string(sizeof(SMPLinkKey)), E_FILE_LINE);
         }
         JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
         uint8_t * sink_ptr = criticalArray.get(jsink, criticalArray.Mode::UPDATE_AND_RELEASE);
         if( NULL == sink_ptr ) {
-            throw InternalError("GetPrimitiveArrayCritical(byte array) is null", E_FILE_LINE);
+            throw jau::InternalError("GetPrimitiveArrayCritical(byte array) is null", E_FILE_LINE);
         }
         SMPLinkKey& lk_sink = *reinterpret_cast<SMPLinkKey *>(sink_ptr);
         lk_sink = device->getLinkKey(JNI_TRUE == responder); // assign data of new key copy to JNI critical-array
@@ -717,20 +717,20 @@ void Java_jau_direct_1bt_DBTDevice_getLinkKeyImpl(JNIEnv *env, jobject obj, jboo
 void Java_jau_direct_1bt_DBTDevice_setLinkKeyImpl(JNIEnv *env, jobject obj, jbyteArray jsource) {
     try {
         shared_ptr_ref<BTDevice> device(env, obj); // hold until done
-        jau::JavaAnonRef device_java = device->getJavaObject(); // hold until done!
+        JavaAnonRef device_java = device->getJavaObject(); // hold until done!
         JavaGlobalObj::check(device_java, E_FILE_LINE);
 
         if( nullptr == jsource ) {
-            throw IllegalArgumentException("byte array null", E_FILE_LINE);
+            throw jau::IllegalArgumentException("byte array null", E_FILE_LINE);
         }
         const size_t source_size = env->GetArrayLength(jsource);
         if( sizeof(SMPLinkKey) > source_size ) {
-            throw IllegalArgumentException("byte array "+std::to_string(source_size)+" < "+std::to_string(sizeof(SMPLinkKey)), E_FILE_LINE);
+            throw jau::IllegalArgumentException("byte array "+std::to_string(source_size)+" < "+std::to_string(sizeof(SMPLinkKey)), E_FILE_LINE);
         }
         JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
         uint8_t * source_ptr = criticalArray.get(jsource, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
         if( NULL == source_ptr ) {
-            throw InternalError("GetPrimitiveArrayCritical(byte array) is null", E_FILE_LINE);
+            throw jau::InternalError("GetPrimitiveArrayCritical(byte array) is null", E_FILE_LINE);
         }
         const SMPLinkKey& lk = *reinterpret_cast<SMPLinkKey *>(source_ptr);
 
@@ -743,7 +743,7 @@ void Java_jau_direct_1bt_DBTDevice_setLinkKeyImpl(JNIEnv *env, jobject obj, jbyt
 jbyte Java_jau_direct_1bt_DBTDevice_unpairImpl(JNIEnv *env, jobject obj) {
     try {
         shared_ptr_ref<BTDevice> device(env, obj); // hold until done
-        jau::JavaAnonRef device_java = device->getJavaObject(); // hold until done!
+        JavaAnonRef device_java = device->getJavaObject(); // hold until done!
         JavaGlobalObj::check(device_java, E_FILE_LINE);
         HCIStatusCode res = device->unpair();
         return (jbyte) number(res);
@@ -756,7 +756,7 @@ jbyte Java_jau_direct_1bt_DBTDevice_unpairImpl(JNIEnv *env, jobject obj) {
 jbyte Java_jau_direct_1bt_DBTDevice_getConnSecurityLevelImpl(JNIEnv *env, jobject obj) {
     try {
         shared_ptr_ref<BTDevice> device(env, obj); // hold until done
-        jau::JavaAnonRef device_java = device->getJavaObject(); // hold until done!
+        JavaAnonRef device_java = device->getJavaObject(); // hold until done!
         JavaGlobalObj::check(device_java, E_FILE_LINE);
 
         return number( device->getConnSecurityLevel() );
@@ -769,7 +769,7 @@ jbyte Java_jau_direct_1bt_DBTDevice_getConnSecurityLevelImpl(JNIEnv *env, jobjec
 jbyte Java_jau_direct_1bt_DBTDevice_getConnIOCapabilityImpl(JNIEnv *env, jobject obj) {
     try {
         shared_ptr_ref<BTDevice> device(env, obj); // hold until done
-        jau::JavaAnonRef device_java = device->getJavaObject(); // hold until done!
+        JavaAnonRef device_java = device->getJavaObject(); // hold until done!
         JavaGlobalObj::check(device_java, E_FILE_LINE);
 
         return number( device->getConnIOCapability() );
@@ -782,7 +782,7 @@ jbyte Java_jau_direct_1bt_DBTDevice_getConnIOCapabilityImpl(JNIEnv *env, jobject
 jboolean Java_jau_direct_1bt_DBTDevice_setConnSecurityImpl(JNIEnv *env, jobject obj, jbyte jsec_level, jbyte jio_cap) {
     try {
         shared_ptr_ref<BTDevice> device(env, obj); // hold until done
-        jau::JavaAnonRef device_java = device->getJavaObject(); // hold until done!
+        JavaAnonRef device_java = device->getJavaObject(); // hold until done!
         JavaGlobalObj::check(device_java, E_FILE_LINE);
 
         return device->setConnSecurity( to_BTSecurityLevel( static_cast<uint8_t>(jsec_level) ),
@@ -796,7 +796,7 @@ jboolean Java_jau_direct_1bt_DBTDevice_setConnSecurityImpl(JNIEnv *env, jobject 
 jboolean Java_jau_direct_1bt_DBTDevice_setConnSecurityAutoImpl(JNIEnv *env, jobject obj, jbyte jio_cap) {
     try {
         shared_ptr_ref<BTDevice> device(env, obj); // hold until done
-        jau::JavaAnonRef device_java = device->getJavaObject(); // hold until done!
+        JavaAnonRef device_java = device->getJavaObject(); // hold until done!
         JavaGlobalObj::check(device_java, E_FILE_LINE);
 
         return device->setConnSecurityAuto( to_SMPIOCapability( static_cast<uint8_t>(jio_cap) ) );
@@ -809,7 +809,7 @@ jboolean Java_jau_direct_1bt_DBTDevice_setConnSecurityAutoImpl(JNIEnv *env, jobj
 jboolean Java_jau_direct_1bt_DBTDevice_isConnSecurityAutoEnabled(JNIEnv *env, jobject obj) {
     try {
         shared_ptr_ref<BTDevice> device(env, obj); // hold until done
-        jau::JavaAnonRef device_java = device->getJavaObject(); // hold until done!
+        JavaAnonRef device_java = device->getJavaObject(); // hold until done!
         JavaGlobalObj::check(device_java, E_FILE_LINE);
 
         return device->isConnSecurityAutoEnabled();
@@ -822,7 +822,7 @@ jboolean Java_jau_direct_1bt_DBTDevice_isConnSecurityAutoEnabled(JNIEnv *env, jo
 jbyte Java_jau_direct_1bt_DBTDevice_getPairingModeImpl(JNIEnv *env, jobject obj) {
     try {
         shared_ptr_ref<BTDevice> device(env, obj); // hold until done
-        jau::JavaAnonRef device_java = device->getJavaObject(); // hold until done!
+        JavaAnonRef device_java = device->getJavaObject(); // hold until done!
         JavaGlobalObj::check(device_java, E_FILE_LINE);
 
         return number( device->getPairingMode() );
@@ -835,7 +835,7 @@ jbyte Java_jau_direct_1bt_DBTDevice_getPairingModeImpl(JNIEnv *env, jobject obj)
 jbyte Java_jau_direct_1bt_DBTDevice_getPairingStateImpl(JNIEnv *env, jobject obj) {
     try {
         shared_ptr_ref<BTDevice> device(env, obj); // hold until done
-        jau::JavaAnonRef device_java = device->getJavaObject(); // hold until done!
+        JavaAnonRef device_java = device->getJavaObject(); // hold until done!
         JavaGlobalObj::check(device_java, E_FILE_LINE);
 
         return static_cast<uint8_t>( device->getPairingState() );
@@ -848,7 +848,7 @@ jbyte Java_jau_direct_1bt_DBTDevice_getPairingStateImpl(JNIEnv *env, jobject obj
 jbyte Java_jau_direct_1bt_DBTDevice_setPairingPasskeyImpl(JNIEnv *env, jobject obj, jint jpasskey) {
     try {
         shared_ptr_ref<BTDevice> device(env, obj); // hold until done
-        jau::JavaAnonRef device_java = device->getJavaObject(); // hold until done!
+        JavaAnonRef device_java = device->getJavaObject(); // hold until done!
         JavaGlobalObj::check(device_java, E_FILE_LINE);
 
         return number( device->setPairingPasskey( static_cast<uint32_t>(jpasskey) ) );
@@ -861,7 +861,7 @@ jbyte Java_jau_direct_1bt_DBTDevice_setPairingPasskeyImpl(JNIEnv *env, jobject o
 jbyte Java_jau_direct_1bt_DBTDevice_setPairingPasskeyNegativeImpl(JNIEnv *env, jobject obj) {
     try {
         shared_ptr_ref<BTDevice> device(env, obj); // hold until done
-        jau::JavaAnonRef device_java = device->getJavaObject(); // hold until done!
+        JavaAnonRef device_java = device->getJavaObject(); // hold until done!
         JavaGlobalObj::check(device_java, E_FILE_LINE);
 
         return number( device->setPairingPasskeyNegative() );
@@ -874,7 +874,7 @@ jbyte Java_jau_direct_1bt_DBTDevice_setPairingPasskeyNegativeImpl(JNIEnv *env, j
 jbyte Java_jau_direct_1bt_DBTDevice_setPairingNumericComparisonImpl(JNIEnv *env, jobject obj, jboolean jequal) {
     try {
         shared_ptr_ref<BTDevice> device(env, obj); // hold until done
-        jau::JavaAnonRef device_java = device->getJavaObject(); // hold until done!
+        JavaAnonRef device_java = device->getJavaObject(); // hold until done!
         JavaGlobalObj::check(device_java, E_FILE_LINE);
 
         return number( device->setPairingNumericComparison( JNI_TRUE == jequal ? true : false ) );
@@ -893,7 +893,7 @@ static const std::string _serviceClazzCtorArgs("(JLjau/direct_bt/DBTDevice;ZLjav
 jobject Java_jau_direct_1bt_DBTDevice_getGattServicesImpl(JNIEnv *env, jobject obj) {
     try {
         shared_ptr_ref<BTDevice> device(env, obj); // hold until done
-        jau::JavaAnonRef device_java = device->getJavaObject(); // hold until done!
+        JavaAnonRef device_java = device->getJavaObject(); // hold until done!
         JavaGlobalObj::check(device_java, E_FILE_LINE);
 
         jau::darray<BTGattServiceRef> services = device->getGattServices(); // implicit GATT connect and discovery if required incl GenericAccess retrieval
@@ -911,7 +911,7 @@ jobject Java_jau_direct_1bt_DBTDevice_getGattServicesImpl(JNIEnv *env, jobject o
                     if( nullptr == _device ) {
                         throw jau::RuntimeException("Service's device null: "+service->toString(), E_FILE_LINE);
                     }
-                    jau::JavaAnonRef _device_java = _device->getJavaObject(); // hold until done!
+                    JavaAnonRef _device_java = _device->getJavaObject(); // hold until done!
                     JavaGlobalObj::check(_device_java, E_FILE_LINE);
                     jobject jdevice = JavaGlobalObj::GetObject(_device_java);
 
@@ -924,7 +924,7 @@ jobject Java_jau_direct_1bt_DBTDevice_getGattServicesImpl(JNIEnv *env, jobject o
                             juuid, service->handle, service->end_handle);
                     java_exception_check_and_throw(env_, E_FILE_LINE);
                     JNIGlobalRef::check(jservice, E_FILE_LINE);
-                    jau::JavaAnonRef jServiceRef = service->getJavaObject(); // GlobalRef
+                    JavaAnonRef jServiceRef = service->getJavaObject(); // GlobalRef
                     JavaGlobalObj::check(jServiceRef, E_FILE_LINE);
                     env_->DeleteLocalRef(juuid);
                     env_->DeleteLocalRef(jservice);
@@ -941,11 +941,11 @@ jobject Java_jau_direct_1bt_DBTDevice_getGattServicesImpl(JNIEnv *env, jobject o
 jboolean Java_jau_direct_1bt_DBTDevice_sendNotification(JNIEnv *env, jobject obj, jshort char_value_handle, jbyteArray jval) {
     try {
         shared_ptr_ref<BTDevice> device(env, obj); // hold until done
-        jau::JavaAnonRef device_java = device->getJavaObject(); // hold until done!
+        JavaAnonRef device_java = device->getJavaObject(); // hold until done!
         JavaGlobalObj::check(device_java, E_FILE_LINE);
 
         if( nullptr == jval ) {
-            throw IllegalArgumentException("byte array null", E_FILE_LINE);
+            throw jau::IllegalArgumentException("byte array null", E_FILE_LINE);
         }
         const size_t value_size = env->GetArrayLength(jval);
         if( 0 >= value_size ) {
@@ -954,9 +954,9 @@ jboolean Java_jau_direct_1bt_DBTDevice_sendNotification(JNIEnv *env, jobject obj
         JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
         uint8_t * value_ptr = criticalArray.get(jval, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
         if( NULL == value_ptr ) {
-            throw InternalError("GetPrimitiveArrayCritical(byte array) is null", E_FILE_LINE);
+            throw jau::InternalError("GetPrimitiveArrayCritical(byte array) is null", E_FILE_LINE);
         }
-        const jau::TROOctets value(value_ptr, value_size, endian::little);
+        const jau::TROOctets value(value_ptr, value_size, jau::endian::little);
         return device->sendNotification(char_value_handle, value) ? JNI_TRUE : JNI_FALSE;
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -967,11 +967,11 @@ jboolean Java_jau_direct_1bt_DBTDevice_sendNotification(JNIEnv *env, jobject obj
 jboolean Java_jau_direct_1bt_DBTDevice_sendIndication(JNIEnv *env, jobject obj, jshort char_value_handle, jbyteArray jval) {
     try {
         shared_ptr_ref<BTDevice> device(env, obj); // hold until done
-        jau::JavaAnonRef device_java = device->getJavaObject(); // hold until done!
+        JavaAnonRef device_java = device->getJavaObject(); // hold until done!
         JavaGlobalObj::check(device_java, E_FILE_LINE);
 
         if( nullptr == jval ) {
-            throw IllegalArgumentException("byte array null", E_FILE_LINE);
+            throw jau::IllegalArgumentException("byte array null", E_FILE_LINE);
         }
         const size_t value_size = env->GetArrayLength(jval);
         if( 0 >= value_size ) {
@@ -980,9 +980,9 @@ jboolean Java_jau_direct_1bt_DBTDevice_sendIndication(JNIEnv *env, jobject obj, 
         JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
         uint8_t * value_ptr = criticalArray.get(jval, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
         if( NULL == value_ptr ) {
-            throw InternalError("GetPrimitiveArrayCritical(byte array) is null", E_FILE_LINE);
+            throw jau::InternalError("GetPrimitiveArrayCritical(byte array) is null", E_FILE_LINE);
         }
-        const jau::TROOctets value(value_ptr, value_size, endian::little);
+        const jau::TROOctets value(value_ptr, value_size, jau::endian::little);
         return device->sendIndication(char_value_handle, value) ? JNI_TRUE : JNI_FALSE;
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -994,7 +994,7 @@ jboolean Java_jau_direct_1bt_DBTDevice_pingGATTImpl(JNIEnv *env, jobject obj)
 {
     try {
         shared_ptr_ref<BTDevice> device(env, obj); // hold until done
-        jau::JavaAnonRef device_java = device->getJavaObject(); // hold until done!
+        JavaAnonRef device_java = device->getJavaObject(); // hold until done!
         JavaGlobalObj::check(device_java, E_FILE_LINE);
 
         return device->pingGATT() ? JNI_TRUE : JNI_FALSE;
@@ -1008,7 +1008,7 @@ jshort Java_jau_direct_1bt_DBTDevice_getRSSI(JNIEnv *env, jobject obj)
 {
     try {
         shared_ptr_ref<BTDevice> device(env, obj); // hold until done
-        jau::JavaAnonRef device_java = device->getJavaObject(); // hold until done!
+        JavaAnonRef device_java = device->getJavaObject(); // hold until done!
         JavaGlobalObj::check(device_java, E_FILE_LINE);
         return (jshort) device->getRSSI();
     } catch(...) {
@@ -1020,7 +1020,7 @@ jshort Java_jau_direct_1bt_DBTDevice_getRSSI(JNIEnv *env, jobject obj)
 void Java_jau_direct_1bt_DBTDevice_getEIRImpl(JNIEnv *env, jobject obj, jobject jeir_sink) {
     try {
         shared_ptr_ref<BTDevice> device(env, obj); // hold until done
-        jau::JavaAnonRef device_java = device->getJavaObject(); // hold until done!
+        JavaAnonRef device_java = device->getJavaObject(); // hold until done!
         JavaGlobalObj::check(device_java, E_FILE_LINE);
 
         shared_ptr_ref<EInfoReport> eir_sink(env, jeir_sink);
@@ -1036,7 +1036,7 @@ void Java_jau_direct_1bt_DBTDevice_getEIRImpl(JNIEnv *env, jobject obj, jobject 
 void Java_jau_direct_1bt_DBTDevice_getEIRIndImpl(JNIEnv *env, jobject obj, jobject jeir_sink) {
     try {
         shared_ptr_ref<BTDevice> device(env, obj); // hold until done
-        jau::JavaAnonRef device_java = device->getJavaObject(); // hold until done!
+        JavaAnonRef device_java = device->getJavaObject(); // hold until done!
         JavaGlobalObj::check(device_java, E_FILE_LINE);
 
         shared_ptr_ref<EInfoReport> eir_sink(env, jeir_sink);
@@ -1052,7 +1052,7 @@ void Java_jau_direct_1bt_DBTDevice_getEIRIndImpl(JNIEnv *env, jobject obj, jobje
 void Java_jau_direct_1bt_DBTDevice_getEIRScanRspImpl(JNIEnv *env, jobject obj, jobject jeir_sink) {
     try {
         shared_ptr_ref<BTDevice> device(env, obj); // hold until done
-        jau::JavaAnonRef device_java = device->getJavaObject(); // hold until done!
+        JavaAnonRef device_java = device->getJavaObject(); // hold until done!
         JavaGlobalObj::check(device_java, E_FILE_LINE);
 
         shared_ptr_ref<EInfoReport> eir_sink(env, jeir_sink);
@@ -1069,7 +1069,7 @@ jshort Java_jau_direct_1bt_DBTDevice_getTxPower(JNIEnv *env, jobject obj)
 {
     try {
         shared_ptr_ref<BTDevice> device(env, obj); // hold until done
-        jau::JavaAnonRef device_java = device->getJavaObject(); // hold until done!
+        JavaAnonRef device_java = device->getJavaObject(); // hold until done!
         JavaGlobalObj::check(device_java, E_FILE_LINE);
         return (jshort) device->getTxPower();
     } catch(...) {

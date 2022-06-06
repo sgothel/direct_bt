@@ -46,7 +46,7 @@ namespace direct_bt {
      *  @{
      */
 
-    class BTObject : public jau::JavaUplink
+    class BTObject : public jau::jni::JavaUplink
     {
         protected:
             std::atomic_bool instance_valid;
@@ -54,7 +54,7 @@ namespace direct_bt {
             BTObject() noexcept : instance_valid(true) {}
 
         public:
-            std::string toString() const noexcept override { return "BTObject["+to_hexstring(this)+"]"; }
+            std::string toString() const noexcept override { return "BTObject["+jau::to_hexstring(this)+"]"; }
 
             ~BTObject() noexcept override {
                 instance_valid = false;
