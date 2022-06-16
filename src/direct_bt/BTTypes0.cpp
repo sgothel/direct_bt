@@ -705,62 +705,62 @@ EIRDataType EInfoReport::set(const EInfoReport& eir) noexcept {
     if( eir.isSet( EIRDataType::EVT_TYPE ) ) {
         if( !isSet( EIRDataType::EVT_TYPE ) || getEvtType() != eir.getEvtType() ) {
             setEvtType(eir.getEvtType());
-            setEIRDataTypeSet(res, EIRDataType::EVT_TYPE);
+            direct_bt::set(res, EIRDataType::EVT_TYPE);
         }
     }
     if( eir.isSet( EIRDataType::EXT_EVT_TYPE ) ) {
         if( !isSet( EIRDataType::EXT_EVT_TYPE ) || getExtEvtType() != eir.getExtEvtType() ) {
             setExtEvtType(eir.getExtEvtType());
-            setEIRDataTypeSet(res, EIRDataType::EXT_EVT_TYPE);
+            direct_bt::set(res, EIRDataType::EXT_EVT_TYPE);
         }
     }
     if( eir.isSet( EIRDataType::BDADDR_TYPE ) ) {
         if( !isSet( EIRDataType::BDADDR_TYPE ) || getAddressType() != eir.getAddressType() ) {
             setAddressType(eir.getAddressType());
-            setEIRDataTypeSet(res, EIRDataType::BDADDR_TYPE);
+            direct_bt::set(res, EIRDataType::BDADDR_TYPE);
         }
     }
     if( eir.isSet( EIRDataType::BDADDR ) ) {
         if( !isSet( EIRDataType::BDADDR ) || getAddress() != eir.getAddress() ) {
             setAddress(eir.getAddress());
-            setEIRDataTypeSet(res, EIRDataType::BDADDR);
+            direct_bt::set(res, EIRDataType::BDADDR);
         }
     }
     if( eir.isSet( EIRDataType::RSSI ) ) {
         if( !isSet( EIRDataType::RSSI ) || getRSSI() != eir.getRSSI() ) {
             setRSSI(eir.getRSSI());
-            setEIRDataTypeSet(res, EIRDataType::RSSI);
+            direct_bt::set(res, EIRDataType::RSSI);
         }
     }
     if( eir.isSet( EIRDataType::TX_POWER ) ) {
         if( !isSet( EIRDataType::TX_POWER ) || getTxPower() != eir.getTxPower() ) {
             setTxPower(eir.getTxPower());
-            setEIRDataTypeSet(res, EIRDataType::TX_POWER);
+            direct_bt::set(res, EIRDataType::TX_POWER);
         }
     }
     if( eir.isSet( EIRDataType::FLAGS ) ) {
         if( !isSet( EIRDataType::FLAGS ) || getFlags() != eir.getFlags() ) {
             addFlags(eir.getFlags());
-            setEIRDataTypeSet(res, EIRDataType::FLAGS);
+            direct_bt::set(res, EIRDataType::FLAGS);
         }
     }
     if( eir.isSet( EIRDataType::NAME) ) {
         if( !isSet( EIRDataType::NAME ) || getName() != eir.getName() ) {
             setName(eir.getName());
-            setEIRDataTypeSet(res, EIRDataType::NAME);
+            direct_bt::set(res, EIRDataType::NAME);
         }
     }
     if( eir.isSet( EIRDataType::NAME_SHORT) ) {
         if( !isSet( EIRDataType::NAME_SHORT ) || getShortName() != eir.getShortName() ) {
             setShortName(eir.getShortName());
-            setEIRDataTypeSet(res, EIRDataType::NAME_SHORT);
+            direct_bt::set(res, EIRDataType::NAME_SHORT);
         }
     }
     if( eir.isSet( EIRDataType::MANUF_DATA) ) {
         std::shared_ptr<ManufactureSpecificData> o_msd = eir.getManufactureSpecificData();
         if( nullptr != o_msd && ( !isSet( EIRDataType::MANUF_DATA ) || nullptr == getManufactureSpecificData() || *getManufactureSpecificData() != *o_msd ) ) {
             setManufactureSpecificData(*o_msd);
-            setEIRDataTypeSet(res, EIRDataType::MANUF_DATA);
+            direct_bt::set(res, EIRDataType::MANUF_DATA);
         }
     }
     if( eir.isSet( EIRDataType::SERVICE_UUID) ) {
@@ -772,31 +772,31 @@ EIRDataType EInfoReport::set(const EInfoReport& eir) noexcept {
         }
         if( added ) {
             setServicesComplete(eir.getServicesComplete());
-            setEIRDataTypeSet(res, EIRDataType::SERVICE_UUID);
+            direct_bt::set(res, EIRDataType::SERVICE_UUID);
         }
     }
     if( eir.isSet( EIRDataType::DEVICE_CLASS) ) {
         if( !isSet( EIRDataType::DEVICE_CLASS ) || getDeviceClass() != eir.getDeviceClass() ) {
             setDeviceClass(eir.getDeviceClass());
-            setEIRDataTypeSet(res, EIRDataType::DEVICE_CLASS);
+            direct_bt::set(res, EIRDataType::DEVICE_CLASS);
         }
     }
     if( eir.isSet( EIRDataType::APPEARANCE) ) {
         if( !isSet( EIRDataType::APPEARANCE ) || getAppearance() != eir.getAppearance() ) {
             setAppearance(eir.getAppearance());
-            setEIRDataTypeSet(res, EIRDataType::APPEARANCE);
+            direct_bt::set(res, EIRDataType::APPEARANCE);
         }
     }
     if( eir.isSet( EIRDataType::HASH) ) {
         if( !isSet( EIRDataType::HASH ) || getHash() != eir.getHash() ) {
             setHash(eir.getHash().get_ptr());
-            setEIRDataTypeSet(res, EIRDataType::HASH);
+            direct_bt::set(res, EIRDataType::HASH);
         }
     }
     if( eir.isSet( EIRDataType::RANDOMIZER) ) {
         if( !isSet( EIRDataType::RANDOMIZER ) || getRandomizer() != eir.getRandomizer() ) {
             setRandomizer(eir.getRandomizer().get_ptr());
-            setEIRDataTypeSet(res, EIRDataType::RANDOMIZER);
+            direct_bt::set(res, EIRDataType::RANDOMIZER);
         }
     }
     if( eir.isSet( EIRDataType::DEVICE_ID) ) {
@@ -806,7 +806,7 @@ EIRDataType EInfoReport::set(const EInfoReport& eir) noexcept {
             did_source != source_ || did_vendor != vendor_ || did_product != product_ || did_version != version_ )
         {
             setDeviceID(source_, vendor_, product_, version_);
-            setEIRDataTypeSet(res, EIRDataType::DEVICE_ID);
+            direct_bt::set(res, EIRDataType::DEVICE_ID);
         }
     }
     if( eir.isSet( EIRDataType::CONN_IVAL) ) {
@@ -814,7 +814,7 @@ EIRDataType EInfoReport::set(const EInfoReport& eir) noexcept {
         eir.getConnInterval(min, max);
         if( !isSet( EIRDataType::CONN_IVAL ) || conn_interval_min != min || conn_interval_max != max ) {
             setConnInterval(min, max);
-            setEIRDataTypeSet(res, EIRDataType::CONN_IVAL);
+            direct_bt::set(res, EIRDataType::CONN_IVAL);
         }
     }
     if( EIRDataType::NONE != res ) {
@@ -1229,7 +1229,7 @@ jau::nsize_t EInfoReport::write_data(EIRDataType write_mask, uint8_t * data, jau
     uint8_t * data_i = data;
     const EIRDataType mask = write_mask & eir_data_mask;
 
-    if( isEIRDataTypeSet(mask, EIRDataType::FLAGS) ) {
+    if( is_set(mask, EIRDataType::FLAGS) ) {
         const jau::nsize_t ad_sz = 2;
         if( ( count + 1 + ad_sz ) > data_length ) {
             _WARN_OOB("FLAGS");
@@ -1240,7 +1240,7 @@ jau::nsize_t EInfoReport::write_data(EIRDataType write_mask, uint8_t * data, jau
         *data_i++ = direct_bt::number( GAP_T::FLAGS );
         *data_i++ = direct_bt::number( getFlags() );
     }
-    if( isEIRDataTypeSet(mask, EIRDataType::NAME) ) {
+    if( is_set(mask, EIRDataType::NAME) ) {
         const jau::nsize_t ad_sz = 1 + name.size();
         if( ( count + 1 + ad_sz ) > data_length ) {
             _WARN_OOB("NAME");
@@ -1251,7 +1251,7 @@ jau::nsize_t EInfoReport::write_data(EIRDataType write_mask, uint8_t * data, jau
         *data_i++ = direct_bt::number( GAP_T::NAME_LOCAL_COMPLETE );
         memcpy(data_i, name.c_str(), ad_sz-1);
         data_i   += ad_sz-1;
-    } else if( isEIRDataTypeSet(mask, EIRDataType::NAME_SHORT) ) {
+    } else if( is_set(mask, EIRDataType::NAME_SHORT) ) {
         const jau::nsize_t ad_sz = 1 + name_short.size();
         if( ( count + 1 + ad_sz ) > data_length ) {
             _WARN_OOB("NAME_SHORT");
@@ -1263,7 +1263,7 @@ jau::nsize_t EInfoReport::write_data(EIRDataType write_mask, uint8_t * data, jau
         memcpy(data_i, name_short.c_str(), ad_sz-1);
         data_i   += ad_sz-1;
     }
-    if( isEIRDataTypeSet(mask, EIRDataType::MANUF_DATA) && nullptr != msd ) {
+    if( is_set(mask, EIRDataType::MANUF_DATA) && nullptr != msd ) {
         const jau::nsize_t msd_data_sz = msd->getData().size();
         const jau::nsize_t ad_sz = 1 + 2 + msd_data_sz;
         if( ( count + 1 + ad_sz ) > data_length ) {
@@ -1280,7 +1280,7 @@ jau::nsize_t EInfoReport::write_data(EIRDataType write_mask, uint8_t * data, jau
             data_i +=msd_data_sz;
         }
     }
-    if( isEIRDataTypeSet(mask, EIRDataType::SERVICE_UUID) ) {
+    if( is_set(mask, EIRDataType::SERVICE_UUID) ) {
         jau::darray<std::shared_ptr<const jau::uuid_t>> uuid16s, uuid32s, uuid128s;
         for(auto it = services.begin(); it != services.end(); it++) {
             std::shared_ptr<const jau::uuid_t> p = *it;
@@ -1341,7 +1341,7 @@ jau::nsize_t EInfoReport::write_data(EIRDataType write_mask, uint8_t * data, jau
             }
         }
     }
-    if( isEIRDataTypeSet(mask, EIRDataType::CONN_IVAL) ) {
+    if( is_set(mask, EIRDataType::CONN_IVAL) ) {
         const jau::nsize_t ad_sz = 5;
         if( ( count + 1 + ad_sz ) > data_length ) {
             _WARN_OOB("CONN_IVAL");
@@ -1354,7 +1354,7 @@ jau::nsize_t EInfoReport::write_data(EIRDataType write_mask, uint8_t * data, jau
         jau::put_uint16(data_i, 2, conn_interval_max, true /* littleEndian */);
         data_i += 4;
     }
-    if( isEIRDataTypeSet(mask, EIRDataType::TX_POWER) ) {
+    if( is_set(mask, EIRDataType::TX_POWER) ) {
         const jau::nsize_t ad_sz = 2;
         if( ( count + 1 + ad_sz ) > data_length ) {
             _WARN_OOB("TX_POWER");
@@ -1415,12 +1415,12 @@ EInfoReport::Source EInfoReport::toSource(const AD_PDU_Type type) {
 }
 
 EInfoReport::Source EInfoReport::toSource(const EAD_Event_Type type) {
-    if( isEAD_Event_TypeSet(type, EAD_Event_Type::CONN_ADV) ||
-        isEAD_Event_TypeSet(type, EAD_Event_Type::SCAN_ADV) ||
-        isEAD_Event_TypeSet(type, EAD_Event_Type::DIR_ADV) ) {
+    if( is_set(type, EAD_Event_Type::CONN_ADV) ||
+        is_set(type, EAD_Event_Type::SCAN_ADV) ||
+        is_set(type, EAD_Event_Type::DIR_ADV) ) {
         return Source::AD_IND;
     }
-    if( isEAD_Event_TypeSet(type, EAD_Event_Type::SCAN_RSP) ) {
+    if( is_set(type, EAD_Event_Type::SCAN_RSP) ) {
         return Source::AD_SCAN_RSP;
     }
     return Source::NA;
@@ -1548,7 +1548,7 @@ jau::darray<std::unique_ptr<EInfoReport>> EInfoReport::read_ext_ad_reports(uint8
             const EAD_Event_Type ead_type = static_cast<EAD_Event_Type>(jau::get_uint16(i_octets, 0, true /* littleEndian */));
             ad_reports[i]->setExtEvtType(ead_type);
             i_octets+=2;
-            if( isEAD_Event_TypeSet(ead_type, EAD_Event_Type::LEGACY_PDU) ) {
+            if( is_set(ead_type, EAD_Event_Type::LEGACY_PDU) ) {
                 const AD_PDU_Type ad_type = static_cast<AD_PDU_Type>( ::number(ead_type) );
                 ad_reports[i]->setEvtType( ad_type );
                 ad_reports[i]->setSource( toSource( ad_type ), true /* ext */);

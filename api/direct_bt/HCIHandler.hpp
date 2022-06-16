@@ -406,7 +406,7 @@ namespace direct_bt {
 
             /** Use extended advertising if LE_Features::LE_Ext_Adv is set (Bluetooth 5.0). */
             bool use_ext_adv() const noexcept {
-                return isLEFeaturesBitSet(le_ll_feats, LE_Features::LE_Ext_Adv);
+                return is_set(le_ll_feats, LE_Features::LE_Ext_Adv);
             }
 
             ScanType getCurrentScanType() const noexcept { return currentScanType.load(); }

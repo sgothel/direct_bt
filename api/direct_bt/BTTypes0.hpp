@@ -215,8 +215,8 @@ namespace direct_bt {
     constexpr bool operator !=(const LE_Features lhs, const LE_Features rhs) noexcept {
         return !( lhs == rhs );
     }
-    constexpr bool isLEFeaturesBitSet(const LE_Features mask, const LE_Features bit) noexcept {
-        return LE_Features::NONE != ( mask & bit );
+    constexpr bool is_set(const LE_Features mask, const LE_Features bit) noexcept {
+        return bit == ( mask & bit );
     }
     std::string to_string(const LE_Features mask) noexcept;
 
@@ -251,8 +251,8 @@ namespace direct_bt {
     constexpr bool operator !=(const LE_PHYs lhs, const LE_PHYs rhs) noexcept {
         return !( lhs == rhs );
     }
-    constexpr bool isLEPHYBitSet(const LE_PHYs mask, const LE_PHYs bit) noexcept {
-        return LE_PHYs::NONE != ( mask & bit );
+    constexpr bool is_set(const LE_PHYs mask, const LE_PHYs bit) noexcept {
+        return bit == ( mask & bit );
     }
     std::string to_string(const LE_PHYs mask) noexcept;
 
@@ -376,7 +376,7 @@ namespace direct_bt {
     constexpr ScanType changeScanType(const ScanType current, const ScanType changeType, const bool changeEnable) noexcept {
         return changeEnable ? ( current | changeType ) : ( current & ~changeType );
     }
-    constexpr bool hasScanType(const ScanType current, const ScanType testType) noexcept {
+    constexpr bool is_set(const ScanType current, const ScanType testType) noexcept {
         return testType == ( current & testType );
     }
 
@@ -460,8 +460,8 @@ namespace direct_bt {
     constexpr bool operator !=(const EAD_Event_Type lhs, const EAD_Event_Type rhs) noexcept {
         return !( lhs == rhs );
     }
-    constexpr bool isEAD_Event_TypeSet(const EAD_Event_Type mask, const EAD_Event_Type bit) noexcept { return EAD_Event_Type::NONE != ( mask & bit ); }
-    constexpr void setEAD_Event_TypeSet(EAD_Event_Type &mask, const EAD_Event_Type bit) noexcept { mask = mask | bit; }
+    constexpr bool is_set(const EAD_Event_Type mask, const EAD_Event_Type bit) noexcept { return bit == ( mask & bit ); }
+    constexpr void set(EAD_Event_Type &mask, const EAD_Event_Type bit) noexcept { mask = mask | bit; }
     std::string to_string(const EAD_Event_Type v) noexcept;
 
     /**
@@ -872,8 +872,8 @@ namespace direct_bt {
     constexpr bool operator !=(const EIRDataType lhs, const EIRDataType rhs) noexcept {
         return !( lhs == rhs );
     }
-    constexpr bool isEIRDataTypeSet(const EIRDataType mask, const EIRDataType bit) noexcept { return EIRDataType::NONE != ( mask & bit ); }
-    constexpr void setEIRDataTypeSet(EIRDataType &mask, const EIRDataType bit) noexcept { mask = mask | bit; }
+    constexpr bool is_set(const EIRDataType mask, const EIRDataType bit) noexcept { return bit == ( mask & bit ); }
+    constexpr void set(EIRDataType &mask, const EIRDataType bit) noexcept { mask = mask | bit; }
     std::string to_string(const EIRDataType mask) noexcept;
 
     /** Explicit mask to erase all implicit set EIRDataType fields: EVT_TYPE, EXT_EVT_TYPE, BDADDR_TYPE, BDADDR and RSSI. */

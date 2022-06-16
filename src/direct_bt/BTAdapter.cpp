@@ -1030,7 +1030,7 @@ void BTAdapter::checkDiscoveryState() noexcept {
     const ScanType currentNativeScanType = hci.getCurrentScanType();
     // Check LE scan state
     if( DiscoveryPolicy::AUTO_OFF == discovery_policy ) {
-        if( hasScanType(currentMetaScanType, ScanType::LE) != hasScanType(currentNativeScanType, ScanType::LE) ) {
+        if( is_set(currentMetaScanType, ScanType::LE) != is_set(currentNativeScanType, ScanType::LE) ) {
             std::string msg("Invalid DiscoveryState: policy "+to_string(discovery_policy)+
                     ", currentScanType*[native "+
                     to_string(currentNativeScanType)+" != meta "+
@@ -1039,7 +1039,7 @@ void BTAdapter::checkDiscoveryState() noexcept {
             // ABORT?
         }
     } else {
-        if( !hasScanType(currentMetaScanType, ScanType::LE) && hasScanType(currentNativeScanType, ScanType::LE) ) {
+        if( !is_set(currentMetaScanType, ScanType::LE) && is_set(currentNativeScanType, ScanType::LE) ) {
             std::string msg("Invalid DiscoveryState: policy "+to_string(discovery_policy)+
                     ", currentScanType*[native "+
                     to_string(currentNativeScanType)+", meta "+
@@ -1081,7 +1081,7 @@ HCIStatusCode BTAdapter::startDiscovery(const DiscoveryPolicy policy, const bool
 
     const ScanType currentNativeScanType = hci.getCurrentScanType();
 
-    if( hasScanType(currentNativeScanType, ScanType::LE) ) {
+    if( is_set(currentNativeScanType, ScanType::LE) ) {
         btRole = BTRole::Master;
         if( discovery_policy == policy ) {
             DBG_PRINT("BTAdapter::startDiscovery: Already discovering, unchanged policy %s -> %s, currentScanType[native %s, meta %s] ...\n- %s",
@@ -1138,7 +1138,7 @@ void BTAdapter::startDiscoveryBackground() noexcept {
             const std::lock_guard<std::mutex> lock(mtx_discovery); // RAII-style acquire and relinquish via destructor
             const ScanType currentNativeScanType = hci.getCurrentScanType();
 
-            if( !hasScanType(currentNativeScanType, ScanType::LE) &&
+            if( !is_set(currentNativeScanType, ScanType::LE) &&
                 DiscoveryPolicy::AUTO_OFF != discovery_policy &&
                 !hasDevicesPausingDiscovery() ) // still required to start discovery ???
             {
@@ -1197,8 +1197,8 @@ HCIStatusCode BTAdapter::stopDiscoveryImpl(const bool forceDiscoveringEvent, con
      * [4] current -> [5] post stopDiscovery == sendEvent
      */
     const ScanType currentNativeScanType = hci.getCurrentScanType();
-    const bool le_scan_temp_disabled = hasScanType(currentMetaScanType, ScanType::LE) &&    // true
-                                       !hasScanType(currentNativeScanType, ScanType::LE) && // false
+    const bool le_scan_temp_disabled = is_set(currentMetaScanType, ScanType::LE) &&    // true
+                                       !is_set(currentNativeScanType, ScanType::LE) && // false
                                        DiscoveryPolicy::AUTO_OFF != discovery_policy;       // true
 
     DBG_PRINT("BTAdapter::stopDiscovery: Start: policy %s, currentScanType[native %s, meta %s], le_scan_temp_disabled %d, forceDiscEvent %d ...",
@@ -1210,7 +1210,7 @@ HCIStatusCode BTAdapter::stopDiscoveryImpl(const bool forceDiscoveringEvent, con
         discovery_policy = DiscoveryPolicy::AUTO_OFF;
     }
 
-    if( !hasScanType(currentMetaScanType, ScanType::LE) ) {
+    if( !is_set(currentMetaScanType, ScanType::LE) ) {
         DBG_PRINT("BTAdapter::stopDiscovery: Already disabled, policy %s, currentScanType[native %s, meta %s] ...",
                 to_string(discovery_policy).c_str(),
                 to_string(currentNativeScanType).c_str(), to_string(currentMetaScanType).c_str());
@@ -1665,7 +1665,7 @@ bool BTAdapter::mgmtEvDeviceDiscoveringAny(const ScanType eventScanType, const b
         nextMetaScanType = changeScanType(currentMetaScanType, eventScanType, true);
     } else {
         // disabled eventScanType
-        if( hasScanType(eventScanType, ScanType::LE) && DiscoveryPolicy::AUTO_OFF != discovery_policy ) {
+        if( is_set(eventScanType, ScanType::LE) && DiscoveryPolicy::AUTO_OFF != discovery_policy ) {
             // Unchanged meta for disabled-LE && keep_le_scan_alive
             nextMetaScanType = currentMetaScanType;
         } else {
@@ -1707,7 +1707,7 @@ bool BTAdapter::mgmtEvDeviceDiscoveringAny(const ScanType eventScanType, const b
         i++;
     });
 
-    if( !hasScanType(currentNativeScanType, ScanType::LE) &&
+    if( !is_set(currentNativeScanType, ScanType::LE) &&
         DiscoveryPolicy::AUTO_OFF != discovery_policy &&
         !hasDevicesPausingDiscovery() )
     {

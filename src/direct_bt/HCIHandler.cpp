@@ -1089,7 +1089,7 @@ HCIStatusCode HCIHandler::le_set_scan_param(const bool le_scan_active,
         ERR_PRINT("HCIHandler::le_set_scan_param: Not connected %s", toString().c_str());
         return HCIStatusCode::DISCONNECTED;
     }
-    if( hasScanType(currentScanType, ScanType::LE) ) {
+    if( is_set(currentScanType, ScanType::LE) ) {
         WARN_PRINT("HCIHandler::le_set_scan_param: Not allowed: LE Scan Enabled: %s - tried scan [interval %.3f ms, window %.3f ms]",
                 toString().c_str(), 0.625f * (float)le_scan_interval, 0.625f * (float)le_scan_window);
         return HCIStatusCode::COMMAND_DISALLOWED;
@@ -1199,7 +1199,7 @@ HCIStatusCode HCIHandler::le_start_scan(const bool filter_dup,
         WARN_PRINT("HCIHandler::le_start_scan: Not allowed: Advertising is enabled %s", toString().c_str());
         return HCIStatusCode::COMMAND_DISALLOWED;
     }
-    if( hasScanType(currentScanType, ScanType::LE) ) {
+    if( is_set(currentScanType, ScanType::LE) ) {
         WARN_PRINT("HCIHandler::le_start_scan: Not allowed: LE Scan Enabled: %s", toString().c_str());
         return HCIStatusCode::COMMAND_DISALLOWED;
     }
@@ -1453,7 +1453,7 @@ HCIStatusCode HCIHandler::disconnect(const uint16_t conn_handle, const BDAddress
 
 HCIStatusCode HCIHandler::le_read_phy(const uint16_t conn_handle, const BDAddressAndType& peerAddressAndType,
                                       LE_PHYs& resTx, LE_PHYs& resRx) noexcept {
-    if( !isLEFeaturesBitSet(le_ll_feats, LE_Features::LE_2M_PHY) ) {
+    if( !is_set(le_ll_feats, LE_Features::LE_2M_PHY) ) {
         resTx = LE_PHYs::LE_1M;
         resRx = LE_PHYs::LE_1M;
         return HCIStatusCode::SUCCESS;
@@ -1508,12 +1508,12 @@ HCIStatusCode HCIHandler::le_read_phy(const uint16_t conn_handle, const BDAddres
 }
 
 HCIStatusCode HCIHandler::le_set_default_phy(const LE_PHYs Tx, const LE_PHYs Rx) noexcept {
-    if( !isLEFeaturesBitSet(le_ll_feats, LE_Features::LE_2M_PHY) ) {
-        if( isLEPHYBitSet(Tx, LE_PHYs::LE_2M) ) {
+    if( !is_set(le_ll_feats, LE_Features::LE_2M_PHY) ) {
+        if( is_set(Tx, LE_PHYs::LE_2M) ) {
             WARN_PRINT("HCIHandler::le_set_default_phy: LE_2M_PHY no supported, requested Tx %s", to_string(Tx).c_str());
             return HCIStatusCode::INVALID_PARAMS;
         }
-        if( isLEPHYBitSet(Rx, LE_PHYs::LE_2M) ) {
+        if( is_set(Rx, LE_PHYs::LE_2M) ) {
             WARN_PRINT("HCIHandler::le_set_default_phy: LE_2M_PHY no supported, requested Rx %s", to_string(Rx).c_str());
             return HCIStatusCode::INVALID_PARAMS;
         }
@@ -1544,12 +1544,12 @@ HCIStatusCode HCIHandler::le_set_default_phy(const LE_PHYs Tx, const LE_PHYs Rx)
 
 HCIStatusCode HCIHandler::le_set_phy(const uint16_t conn_handle, const BDAddressAndType& peerAddressAndType,
                                      const LE_PHYs Tx, const LE_PHYs Rx) noexcept {
-    if( !isLEFeaturesBitSet(le_ll_feats, LE_Features::LE_2M_PHY) ) {
-        if( isLEPHYBitSet(Tx, LE_PHYs::LE_2M) ) {
+    if( !is_set(le_ll_feats, LE_Features::LE_2M_PHY) ) {
+        if( is_set(Tx, LE_PHYs::LE_2M) ) {
             WARN_PRINT("HCIHandler::le_set_phy: LE_2M_PHY no supported, requested Tx %s", to_string(Tx).c_str());
             return HCIStatusCode::INVALID_PARAMS;
         }
-        if( isLEPHYBitSet(Rx, LE_PHYs::LE_2M) ) {
+        if( is_set(Rx, LE_PHYs::LE_2M) ) {
             WARN_PRINT("HCIHandler::le_set_phy: LE_2M_PHY no supported, requested Rx %s", to_string(Rx).c_str());
             return HCIStatusCode::INVALID_PARAMS;
         }

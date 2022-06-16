@@ -242,12 +242,12 @@ EIRDataType BTDevice::update(GattGenericAccessSvc const &data, const uint64_t ti
     if( 0 == name.length() && data.deviceName.length() > 0 ) {
         name = data.deviceName;
         eir_new->setName( name );
-        setEIRDataTypeSet(res, EIRDataType::NAME);
+        set(res, EIRDataType::NAME);
         mod = true;
     }
     if( eir_new->getAppearance() != data.appearance && AppearanceCat::UNKNOWN != data.appearance) {
         eir_new->setAppearance( data.appearance );
-        setEIRDataTypeSet(res, EIRDataType::APPEARANCE);
+        set(res, EIRDataType::APPEARANCE);
         mod = true;
     }
     if( mod ) {
@@ -271,11 +271,11 @@ std::shared_ptr<ConnectionInfo> BTDevice::getConnectionInfo() noexcept {
         EIRDataType updateMask = EIRDataType::NONE;
         if( rssi != connInfo->getRSSI() ) {
             rssi = connInfo->getRSSI();
-            setEIRDataTypeSet(updateMask, EIRDataType::RSSI);
+            set(updateMask, EIRDataType::RSSI);
         }
         if( tx_power != connInfo->getTxPower() ) {
             tx_power = connInfo->getTxPower();
-            setEIRDataTypeSet(updateMask, EIRDataType::TX_POWER);
+            set(updateMask, EIRDataType::TX_POWER);
         }
         if( EIRDataType::NONE != updateMask ) {
             std::shared_ptr<BTDevice> sharedInstance = getSharedInstance();
@@ -602,7 +602,7 @@ void BTDevice::processL2CAPSetup(std::shared_ptr<BTDevice> sthis) {
         const SMPIOCapability io_cap_conn = pairing_data.ioCap_conn;
         BTSecurityLevel sec_level { BTSecurityLevel::UNSET };
 
-        const bool responderLikesEncryption = pairing_data.res_requested_sec || isLEFeaturesBitSet(le_features, LE_Features::LE_Encryption);
+        const bool responderLikesEncryption = pairing_data.res_requested_sec || is_set(le_features, LE_Features::LE_Encryption);
         if( BTSecurityLevel::UNSET != sec_level_user ) {
             sec_level = sec_level_user;
         } else if( responderLikesEncryption && SMPIOCapability::UNSET != io_cap_conn ) {
