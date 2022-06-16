@@ -88,42 +88,42 @@ std::string direct_bt::to_string(const SMPOOBDataFlag v) noexcept {
 
 std::string direct_bt::to_string(const SMPAuthReqs mask) noexcept {
     std::string out("[");
-    if( isSMPAuthReqBitSet(mask, SMPAuthReqs::BONDING) ) {
+    if( is_set(mask, SMPAuthReqs::BONDING) ) {
         out.append("Bonding");
     } else {
         out.append("No bonding");
     }
-    if( isSMPAuthReqBitSet(mask, SMPAuthReqs::BONDING_RFU) ) {
+    if( is_set(mask, SMPAuthReqs::BONDING_RFU) ) {
         out.append(", ");
         out.append("Bonding Reserved");
     }
     out.append(", ");
-    if( isSMPAuthReqBitSet(mask, SMPAuthReqs::MITM) ) {
+    if( is_set(mask, SMPAuthReqs::MITM) ) {
         out.append("MITM");
     } else {
         out.append("No MITM");
     }
     out.append(", ");
-    if( isSMPAuthReqBitSet(mask, SMPAuthReqs::SECURE_CONNECTIONS) ) {
+    if( is_set(mask, SMPAuthReqs::SECURE_CONNECTIONS) ) {
         out.append("SC");
     } else {
         out.append("Legacy");
     }
     out.append(", ");
-    if( isSMPAuthReqBitSet(mask, SMPAuthReqs::KEYPRESS) ) {
+    if( is_set(mask, SMPAuthReqs::KEYPRESS) ) {
         out.append("Keypresses");
     } else {
         out.append("No keypresses");
     }
-    if( isSMPAuthReqBitSet(mask, SMPAuthReqs::CT2_H7_FUNC_SUPPORT) ) {
+    if( is_set(mask, SMPAuthReqs::CT2_H7_FUNC_SUPPORT) ) {
         out.append(", ");
         out.append("CT2_H7");
     }
-    if( isSMPAuthReqBitSet(mask, SMPAuthReqs::RFU_1) ) {
+    if( is_set(mask, SMPAuthReqs::RFU_1) ) {
         out.append(", ");
         out.append("RFU_1");
     }
-    if( isSMPAuthReqBitSet(mask, SMPAuthReqs::RFU_2) ) {
+    if( is_set(mask, SMPAuthReqs::RFU_2) ) {
         out.append(", ");
         out.append("RFU_2");
     }
@@ -149,8 +149,8 @@ PairingMode direct_bt::getPairingMode(const bool use_sc,
         }
 
         // Authenticated via IOCapabilities, if any of them has requested MITM
-        if( isSMPAuthReqBitSet( authReqs_ini, SMPAuthReqs::MITM ) ||
-            isSMPAuthReqBitSet( authReqs_res, SMPAuthReqs::MITM ) )
+        if( is_set( authReqs_ini, SMPAuthReqs::MITM ) ||
+            is_set( authReqs_res, SMPAuthReqs::MITM ) )
         {
             return getPairingMode(use_sc, ioCap_ini, ioCap_res);
         }
@@ -170,8 +170,8 @@ PairingMode direct_bt::getPairingMode(const bool use_sc,
         }
 
         // Authenticated via IOCapabilities, if any of them has requested MITM
-        if( isSMPAuthReqBitSet( authReqs_ini, SMPAuthReqs::MITM ) ||
-            isSMPAuthReqBitSet( authReqs_res, SMPAuthReqs::MITM ) )
+        if( is_set( authReqs_ini, SMPAuthReqs::MITM ) ||
+            is_set( authReqs_res, SMPAuthReqs::MITM ) )
         {
             return getPairingMode(use_sc, ioCap_ini, ioCap_res);
         }

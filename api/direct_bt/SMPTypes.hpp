@@ -340,8 +340,8 @@ namespace direct_bt {
     constexpr uint8_t number(const SMPAuthReqs rhs) noexcept {
         return static_cast<uint8_t>(rhs);
     }
-    constexpr bool isSMPAuthReqBitSet(const SMPAuthReqs mask, const SMPAuthReqs bit) noexcept {
-        return SMPAuthReqs::NONE != ( mask & bit );
+    constexpr bool is_set(const SMPAuthReqs mask, const SMPAuthReqs bit) noexcept {
+        return bit == ( mask & bit );
     }
     std::string to_string(const SMPAuthReqs mask) noexcept;
 
@@ -471,8 +471,8 @@ namespace direct_bt {
     constexpr uint8_t number(const SMPKeyType rhs) noexcept {
         return static_cast<uint8_t>(rhs);
     }
-    constexpr bool isKeyDistBitSet(const SMPKeyType mask, const SMPKeyType bit) noexcept {
-        return SMPKeyType::NONE != ( mask & bit );
+    constexpr bool is_set(const SMPKeyType mask, const SMPKeyType bit) noexcept {
+        return bit == ( mask & bit );
     }
     std::string to_string(const SMPKeyType mask) noexcept;
 
@@ -1123,7 +1123,7 @@ namespace direct_bt {
                 return authReqMask;
             }
             constexpr bool isAuthRequirementBitSet(const SMPAuthReqs bit) const noexcept {
-                return isSMPAuthReqBitSet(authReqMask, bit);
+                return is_set(authReqMask, bit);
             }
 
             /**
@@ -1998,7 +1998,7 @@ namespace direct_bt {
                 return authReqMask;
             }
             constexpr bool isAuthRequirementBitSet(const SMPAuthReqs bit) const noexcept {
-                return isSMPAuthReqBitSet(authReqMask, bit);
+                return is_set(authReqMask, bit);
             }
 
             constexpr_cxx20 std::string getName() const noexcept override {

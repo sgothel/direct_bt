@@ -1207,8 +1207,8 @@ void BTDevice::hciSMPMsgCallback(std::shared_ptr<BTDevice> sthis, const SMPPDUMs
                 pairing_data.keys_init_exp = msg1.getInitKeyDist(); // responding device overrides initiator's request!
                 pairing_data.keys_resp_exp = msg1.getRespKeyDist();
 
-                const bool use_sc = isSMPAuthReqBitSet( pairing_data.authReqs_init, SMPAuthReqs::SECURE_CONNECTIONS ) &&
-                                    isSMPAuthReqBitSet( pairing_data.authReqs_resp, SMPAuthReqs::SECURE_CONNECTIONS );
+                const bool use_sc = is_set( pairing_data.authReqs_init, SMPAuthReqs::SECURE_CONNECTIONS ) &&
+                                    is_set( pairing_data.authReqs_resp, SMPAuthReqs::SECURE_CONNECTIONS );
                 pairing_data.use_sc = use_sc;
 
                 pmode = ::getPairingMode(use_sc,
