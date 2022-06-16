@@ -49,8 +49,8 @@ class DBTUtils {
 
 
         static bool rmKeyFolder() {
-            if( jau::fs::remove( DBTConstants::CLIENT_KEY_PATH, true ) ) {
-                if( jau::fs::remove( DBTConstants::SERVER_KEY_PATH, true ) ) {
+            if( jau::fs::remove( DBTConstants::CLIENT_KEY_PATH, jau::fs::traverse_options::recursive ) ) {
+                if( jau::fs::remove( DBTConstants::SERVER_KEY_PATH, jau::fs::traverse_options::recursive ) ) {
                     return true;
                 }
             }
