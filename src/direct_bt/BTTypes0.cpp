@@ -39,6 +39,15 @@
 
 using namespace direct_bt;
 
+template<typename T>
+static void append_bitstr(std::string& out, T mask, T bit, const std::string& bitstr, bool& comma) {
+    if( bit == ( mask & bit ) ) {
+        if( comma ) { out.append(", "); }
+        out.append(bitstr); comma = true;
+    }
+}
+#define APPEND_BITSTR(U,V,M) append_bitstr(out, M, U::V, #V, comma);
+
 #define CASE_TO_STRING(V) case V: return #V;
 #define CASE2_TO_STRING(U,V) case U::V: return #V;
 
@@ -231,65 +240,49 @@ BTMode direct_bt::to_BTMode(const std::string & value) noexcept {
 // *************************************************
 // *************************************************
 
-#define LEFEATURES_ENUM(X) \
-    X(LE_Features,NONE) \
-    X(LE_Features,LE_Encryption) \
-    X(LE_Features,Conn_Param_Req_Proc) \
-    X(LE_Features,Ext_Rej_Ind) \
-    X(LE_Features,SlaveInit_Feat_Exchg) \
-    X(LE_Features,LE_Ping) \
-    X(LE_Features,LE_Data_Pkt_Len_Ext) \
-    X(LE_Features,LL_Privacy) \
-    X(LE_Features,Ext_Scan_Filter_Pol) \
-    X(LE_Features,LE_2M_PHY) \
-    X(LE_Features,Stable_Mod_Idx_Tx) \
-    X(LE_Features,Stable_Mod_Idx_Rx) \
-    X(LE_Features,LE_Coded_PHY) \
-    X(LE_Features,LE_Ext_Adv) \
-    X(LE_Features,LE_Per_Adv) \
-    X(LE_Features,Chan_Sel_Algo_2) \
-    X(LE_Features,LE_Pwr_Cls_1) \
-    X(LE_Features,Min_Num_Used_Chan_Proc) \
-    X(LE_Features,Conn_CTE_Req) \
-    X(LE_Features,Conn_CTE_Res) \
-    X(LE_Features,ConnLess_CTE_Tx) \
-    X(LE_Features,ConnLess_CTE_Rx) \
-    X(LE_Features,AoD) \
-    X(LE_Features,AoA) \
-    X(LE_Features,Rx_Const_Tone_Ext) \
-    X(LE_Features,Per_Adv_Sync_Tx_Sender) \
-    X(LE_Features,Per_Adv_Sync_Tx_Rec) \
-    X(LE_Features,Zzz_Clk_Acc_Upd) \
-    X(LE_Features,Rem_Pub_Key_Val) \
-    X(LE_Features,Conn_Iso_Stream_Master) \
-    X(LE_Features,Conn_Iso_Stream_Slave) \
-    X(LE_Features,Iso_Brdcst) \
-    X(LE_Features,Sync_Rx) \
-    X(LE_Features,Iso_Chan) \
-    X(LE_Features,LE_Pwr_Ctrl_Req) \
-    X(LE_Features,LE_Pwr_Chg_Ind) \
-    X(LE_Features,LE_Path_Loss_Mon)
-
-static std::string _getLEFeaturesBitStr(const LE_Features bit) noexcept {
-    switch(bit) {
-    LEFEATURES_ENUM(CASE2_TO_STRING)
-        default: ; // fall through intended
-    }
-    return "??? "+jau::to_hexstring(number(bit));
-}
+#define LEFEATURES_ENUM(X,M) \
+    X(LE_Features,NONE,M) \
+    X(LE_Features,LE_Encryption,M) \
+    X(LE_Features,Conn_Param_Req_Proc,M) \
+    X(LE_Features,Ext_Rej_Ind,M) \
+    X(LE_Features,SlaveInit_Feat_Exchg,M) \
+    X(LE_Features,LE_Ping,M) \
+    X(LE_Features,LE_Data_Pkt_Len_Ext,M) \
+    X(LE_Features,LL_Privacy,M) \
+    X(LE_Features,Ext_Scan_Filter_Pol,M) \
+    X(LE_Features,LE_2M_PHY,M) \
+    X(LE_Features,Stable_Mod_Idx_Tx,M) \
+    X(LE_Features,Stable_Mod_Idx_Rx,M) \
+    X(LE_Features,LE_Coded_PHY,M) \
+    X(LE_Features,LE_Ext_Adv,M) \
+    X(LE_Features,LE_Per_Adv,M) \
+    X(LE_Features,Chan_Sel_Algo_2,M) \
+    X(LE_Features,LE_Pwr_Cls_1,M) \
+    X(LE_Features,Min_Num_Used_Chan_Proc,M) \
+    X(LE_Features,Conn_CTE_Req,M) \
+    X(LE_Features,Conn_CTE_Res,M) \
+    X(LE_Features,ConnLess_CTE_Tx,M) \
+    X(LE_Features,ConnLess_CTE_Rx,M) \
+    X(LE_Features,AoD,M) \
+    X(LE_Features,AoA,M) \
+    X(LE_Features,Rx_Const_Tone_Ext,M) \
+    X(LE_Features,Per_Adv_Sync_Tx_Sender,M) \
+    X(LE_Features,Per_Adv_Sync_Tx_Rec,M) \
+    X(LE_Features,Zzz_Clk_Acc_Upd,M) \
+    X(LE_Features,Rem_Pub_Key_Val,M) \
+    X(LE_Features,Conn_Iso_Stream_Master,M) \
+    X(LE_Features,Conn_Iso_Stream_Slave,M) \
+    X(LE_Features,Iso_Brdcst,M) \
+    X(LE_Features,Sync_Rx,M) \
+    X(LE_Features,Iso_Chan,M) \
+    X(LE_Features,LE_Pwr_Ctrl_Req,M) \
+    X(LE_Features,LE_Pwr_Chg_Ind,M) \
+    X(LE_Features,LE_Path_Loss_Mon,M)
 
 std::string direct_bt::to_string(const LE_Features mask) noexcept {
-    const uint64_t one = 1;
-    bool has_pre = false;
     std::string out("[");
-    for(int i=0; i<36; i++) {
-        const LE_Features settingBit = static_cast<LE_Features>( one << i );
-        if( LE_Features::NONE != ( mask & settingBit ) ) {
-            if( has_pre ) { out.append(", "); }
-            out.append(_getLEFeaturesBitStr(settingBit));
-            has_pre = true;
-        }
-    }
+    bool comma = false;
+    LEFEATURES_ENUM(APPEND_BITSTR,mask)
     out.append("]");
     return out;
 }
@@ -298,32 +291,16 @@ std::string direct_bt::to_string(const LE_Features mask) noexcept {
 // *************************************************
 // *************************************************
 
-#define LE_PHYs_ENUM(X) \
-    X(LE_PHYs,NONE) \
-    X(LE_PHYs,LE_1M) \
-    X(LE_PHYs,LE_2M) \
-    X(LE_PHYs,LE_CODED)
-
-static std::string _getLE_PHYsBitStr(const LE_PHYs bit) noexcept {
-    switch(bit) {
-    LE_PHYs_ENUM(CASE2_TO_STRING)
-        default: ; // fall through intended
-    }
-    return "??? "+jau::to_hexstring(number(bit));
-}
+#define LE_PHYs_ENUM(X,M) \
+    X(LE_PHYs,NONE,M) \
+    X(LE_PHYs,LE_1M,M) \
+    X(LE_PHYs,LE_2M,M) \
+    X(LE_PHYs,LE_CODED,M)
 
 std::string direct_bt::to_string(const LE_PHYs mask) noexcept {
-    const uint8_t one = 1;
-    bool has_pre = false;
     std::string out("[");
-    for(int i=0; i<4; i++) {
-        const LE_PHYs settingBit = static_cast<LE_PHYs>( one << i );
-        if( LE_PHYs::NONE != ( mask & settingBit ) ) {
-            if( has_pre ) { out.append(", "); }
-            out.append(_getLE_PHYsBitStr(settingBit));
-            has_pre = true;
-        }
-    }
+    bool comma = false;
+    LE_PHYs_ENUM(APPEND_BITSTR,mask)
     out.append("]");
     return out;
 }
@@ -415,36 +392,20 @@ std::string direct_bt::to_string(const AD_PDU_Type v) noexcept {
 // *************************************************
 // *************************************************
 
-#define EAD_Event_Type_ENUM(X) \
-    X(EAD_Event_Type,NONE) \
-    X(EAD_Event_Type,CONN_ADV) \
-    X(EAD_Event_Type,SCAN_ADV) \
-    X(EAD_Event_Type,DIR_ADV) \
-    X(EAD_Event_Type,SCAN_RSP) \
-    X(EAD_Event_Type,LEGACY_PDU) \
-    X(EAD_Event_Type,DATA_B0) \
-    X(EAD_Event_Type,DATA_B1)
-
-static std::string _getEAD_Event_TypeBitStr(const EAD_Event_Type bit) noexcept {
-    switch(bit) {
-    EAD_Event_Type_ENUM(CASE2_TO_STRING)
-        default: ; // fall through intended
-    }
-    return "??? "+jau::to_hexstring(number(bit));
-}
+#define EAD_Event_Type_ENUM(X,M) \
+    X(EAD_Event_Type,NONE,M) \
+    X(EAD_Event_Type,CONN_ADV,M) \
+    X(EAD_Event_Type,SCAN_ADV,M) \
+    X(EAD_Event_Type,DIR_ADV,M) \
+    X(EAD_Event_Type,SCAN_RSP,M) \
+    X(EAD_Event_Type,LEGACY_PDU,M) \
+    X(EAD_Event_Type,DATA_B0,M) \
+    X(EAD_Event_Type,DATA_B1,M)
 
 std::string direct_bt::to_string(const EAD_Event_Type mask) noexcept {
-    const uint16_t one = 1;
-    bool has_pre = false;
     std::string out("[");
-    for(int i=0; i<8; i++) {
-        const EAD_Event_Type settingBit = static_cast<EAD_Event_Type>( one << i );
-        if( EAD_Event_Type::NONE != ( mask & settingBit ) ) {
-            if( has_pre ) { out.append(", "); }
-            out.append(_getEAD_Event_TypeBitStr(settingBit));
-            has_pre = true;
-        }
-    }
+    bool comma = false;
+    EAD_Event_Type_ENUM(APPEND_BITSTR,mask)
     out.append("]");
     return out;
 }
@@ -606,37 +567,21 @@ std::string ManufactureSpecificData::toString() const noexcept {
 // *************************************************
 // *************************************************
 
-#define GAPFLAGS_ENUM(X) \
-    X(GAPFlags,NONE) \
-    X(GAPFlags,LE_Ltd_Disc) \
-    X(GAPFlags,LE_Gen_Disc) \
-    X(GAPFlags,BREDR_UNSUP) \
-    X(GAPFlags,Dual_SameCtrl) \
-    X(GAPFlags,Dual_SameHost) \
-    X(GAPFlags,RESERVED1) \
-    X(GAPFlags,RESERVED2) \
-    X(GAPFlags,RESERVED3)
-
-static std::string _getGAPFlagBitStr(const GAPFlags bit) noexcept {
-    switch(bit) {
-    GAPFLAGS_ENUM(CASE2_TO_STRING)
-        default: ; // fall through intended
-    }
-    return "??? "+jau::to_hexstring(number(bit));
-}
+#define GAPFLAGS_ENUM(X,M) \
+    X(GAPFlags,NONE,M) \
+    X(GAPFlags,LE_Ltd_Disc,M) \
+    X(GAPFlags,LE_Gen_Disc,M) \
+    X(GAPFlags,BREDR_UNSUP,M) \
+    X(GAPFlags,Dual_SameCtrl,M) \
+    X(GAPFlags,Dual_SameHost,M) \
+    X(GAPFlags,RESERVED1,M) \
+    X(GAPFlags,RESERVED2,M) \
+    X(GAPFlags,RESERVED3,M)
 
 std::string direct_bt::to_string(const GAPFlags v) noexcept {
-    const int v_i = static_cast<int>(v);
-    bool has_pre = false;
     std::string out("[");
-    for(int i=0; i<8; i++) {
-        const int settingBit = ( 1 << i );
-        if( 0 != ( v_i & settingBit ) ) {
-            if( has_pre ) { out.append(", "); }
-            out.append( _getGAPFlagBitStr( static_cast<GAPFlags>(settingBit) ) );
-            has_pre = true;
-        }
-    }
+    bool comma = false;
+    GAPFLAGS_ENUM(APPEND_BITSTR,v)
     out.append("]");
     return out;
 }
@@ -645,47 +590,31 @@ std::string direct_bt::to_string(const GAPFlags v) noexcept {
 // *************************************************
 // *************************************************
 
-#define EIRDATATYPE_ENUM(X) \
-    X(EIRDataType,NONE) \
-    X(EIRDataType,EVT_TYPE) \
-    X(EIRDataType,EXT_EVT_TYPE) \
-    X(EIRDataType,BDADDR_TYPE) \
-    X(EIRDataType,BDADDR) \
-    X(EIRDataType,FLAGS) \
-    X(EIRDataType,NAME) \
-    X(EIRDataType,NAME_SHORT) \
-    X(EIRDataType,RSSI) \
-    X(EIRDataType,TX_POWER) \
-    X(EIRDataType,MANUF_DATA) \
-    X(EIRDataType,DEVICE_CLASS) \
-    X(EIRDataType,APPEARANCE) \
-    X(EIRDataType,HASH) \
-    X(EIRDataType,RANDOMIZER) \
-    X(EIRDataType,DEVICE_ID) \
-    X(EIRDataType,CONN_IVAL) \
-    X(EIRDataType,SERVICE_UUID) \
-    X(EIRDataType,ALL)
-
-static std::string _getEIRDataBitStr(const EIRDataType bit) noexcept {
-    switch(bit) {
-    EIRDATATYPE_ENUM(CASE2_TO_STRING)
-        default: ; // fall through intended
-    }
-    return "??? "+jau::to_hexstring(number(bit));
-}
+#define EIRDATATYPE_ENUM(X,M) \
+    X(EIRDataType,NONE,M) \
+    X(EIRDataType,EVT_TYPE,M) \
+    X(EIRDataType,EXT_EVT_TYPE,M) \
+    X(EIRDataType,BDADDR_TYPE,M) \
+    X(EIRDataType,BDADDR,M) \
+    X(EIRDataType,FLAGS,M) \
+    X(EIRDataType,NAME,M) \
+    X(EIRDataType,NAME_SHORT,M) \
+    X(EIRDataType,RSSI,M) \
+    X(EIRDataType,TX_POWER,M) \
+    X(EIRDataType,MANUF_DATA,M) \
+    X(EIRDataType,DEVICE_CLASS,M) \
+    X(EIRDataType,APPEARANCE,M) \
+    X(EIRDataType,HASH,M) \
+    X(EIRDataType,RANDOMIZER,M) \
+    X(EIRDataType,DEVICE_ID,M) \
+    X(EIRDataType,CONN_IVAL,M) \
+    X(EIRDataType,SERVICE_UUID,M) \
+    X(EIRDataType,ALL,M)
 
 std::string direct_bt::to_string(const EIRDataType mask) noexcept {
-    const uint32_t one = 1;
-    bool has_pre = false;
     std::string out("[");
-    for(int i=0; i<32; i++) {
-        const EIRDataType settingBit = static_cast<EIRDataType>( one << i );
-        if( EIRDataType::NONE != ( mask & settingBit ) ) {
-            if( has_pre ) { out.append(", "); }
-            out.append(_getEIRDataBitStr(settingBit));
-            has_pre = true;
-        }
-    }
+    bool comma = false;
+    EIRDATATYPE_ENUM(APPEND_BITSTR,mask)
     out.append("]");
     return out;
 }

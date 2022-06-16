@@ -49,49 +49,39 @@ using namespace direct_bt;
 // *************************************************
 // *************************************************
 
-#define CASE_TO_STRING(V) case V: return #V;
-#define CASE2_TO_STRING(U,V) case U::V: return #V;
-
-#define SETTING_ENUM(X) \
-    X(AdapterSetting,NONE) \
-    X(AdapterSetting,POWERED) \
-    X(AdapterSetting,CONNECTABLE) \
-    X(AdapterSetting,FAST_CONNECTABLE) \
-    X(AdapterSetting,DISCOVERABLE) \
-    X(AdapterSetting,BONDABLE) \
-    X(AdapterSetting,LINK_SECURITY) \
-    X(AdapterSetting,SSP) \
-    X(AdapterSetting,BREDR) \
-    X(AdapterSetting,HS) \
-    X(AdapterSetting,LE) \
-    X(AdapterSetting,ADVERTISING) \
-    X(AdapterSetting,SECURE_CONN) \
-    X(AdapterSetting,DEBUG_KEYS) \
-    X(AdapterSetting,PRIVACY) \
-    X(AdapterSetting,CONFIGURATION) \
-    X(AdapterSetting,STATIC_ADDRESS) \
-    X(AdapterSetting,PHY_CONFIGURATION)
-
-static std::string _getAdapterSettingBitStr(const AdapterSetting settingBit) noexcept {
-    switch(settingBit) {
-        SETTING_ENUM(CASE2_TO_STRING)
-        default: ; // fall through intended
+template<typename T>
+static void append_bitstr(std::string& out, T mask, T bit, const std::string& bitstr, bool& comma) {
+    if( bit == ( mask & bit ) ) {
+        if( comma ) { out.append(", "); }
+        out.append(bitstr); comma = true;
     }
-    return "Unknown Setting Bit";
 }
+#define APPEND_BITSTR(U,V,M) append_bitstr(out, M, U::V, #V, comma);
 
-std::string direct_bt::to_string(const AdapterSetting settingMask) noexcept {
-    const uint32_t one = 1;
-    bool has_pre = false;
+#define SETTING_ENUM(X,M) \
+    X(AdapterSetting,NONE,M) \
+    X(AdapterSetting,POWERED,M) \
+    X(AdapterSetting,CONNECTABLE,M) \
+    X(AdapterSetting,FAST_CONNECTABLE,M) \
+    X(AdapterSetting,DISCOVERABLE,M) \
+    X(AdapterSetting,BONDABLE,M) \
+    X(AdapterSetting,LINK_SECURITY,M) \
+    X(AdapterSetting,SSP,M) \
+    X(AdapterSetting,BREDR,M) \
+    X(AdapterSetting,HS,M) \
+    X(AdapterSetting,LE,M) \
+    X(AdapterSetting,ADVERTISING,M) \
+    X(AdapterSetting,SECURE_CONN,M) \
+    X(AdapterSetting,DEBUG_KEYS,M) \
+    X(AdapterSetting,PRIVACY,M) \
+    X(AdapterSetting,CONFIGURATION,M) \
+    X(AdapterSetting,STATIC_ADDRESS,M) \
+    X(AdapterSetting,PHY_CONFIGURATION,M)
+
+std::string direct_bt::to_string(const AdapterSetting mask) noexcept {
     std::string out("[");
-    for(int i=0; i<32; i++) {
-        const AdapterSetting settingBit = static_cast<AdapterSetting>( one << i );
-        if( AdapterSetting::NONE != ( settingMask & settingBit ) ) {
-            if( has_pre ) { out.append(", "); }
-            out.append(_getAdapterSettingBitStr(settingBit));
-            has_pre = true;
-        }
-    }
+    bool comma = false;
+    SETTING_ENUM(APPEND_BITSTR,mask)
     out.append("]");
     return out;
 }

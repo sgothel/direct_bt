@@ -36,6 +36,15 @@
 
 using namespace direct_bt;
 
+template<typename T>
+static void append_bitstr(std::string& out, T mask, T bit, const std::string& bitstr, bool& comma) {
+    if( bit == ( mask & bit ) ) {
+        if( comma ) { out.append(", "); }
+        out.append(bitstr); comma = true;
+    }
+}
+#define APPEND_BITSTR(U,V,M) append_bitstr(out, M, U::V, #V, comma);
+
 #define PAIRSTATE_ENUM(X) \
         X(NONE) \
         X(FAILED) \
@@ -241,76 +250,35 @@ PairingMode direct_bt::getPairingMode(const bool use_sc,
 }
 
 
-#define KEYDISTFMT_ENUM(X) \
-    X(NONE) \
-    X(ENC_KEY) \
-    X(ID_KEY) \
-    X(SIGN_KEY) \
-    X(LINK_KEY) \
-    X(RFU_1) \
-    X(RFU_2) \
-    X(RFU_3) \
-    X(RFU_4)
-
-#define CASE_TO_STRING_KEYDISTFMT(V) case direct_bt::SMPKeyType::V: return #V;
-
-static std::string _getSMPKeyTypeBitStr(const direct_bt::SMPKeyType bit) noexcept {
-    switch(bit) {
-        KEYDISTFMT_ENUM(CASE_TO_STRING_KEYDISTFMT)
-        default: ; // fall through intended
-    }
-    return "Unknown SMPKeyDistFormat bit";
-}
+#define KEYDISTFMT_ENUM(X,M) \
+    X(SMPKeyType,NONE,M) \
+    X(SMPKeyType,ENC_KEY,M) \
+    X(SMPKeyType,ID_KEY,M) \
+    X(SMPKeyType,SIGN_KEY,M) \
+    X(SMPKeyType,LINK_KEY,M) \
+    X(SMPKeyType,RFU_1,M) \
+    X(SMPKeyType,RFU_2,M) \
+    X(SMPKeyType,RFU_3,M) \
+    X(SMPKeyType,RFU_4,M)
 
 std::string direct_bt::to_string(const SMPKeyType mask) noexcept {
-    const uint8_t one = 1;
-    bool has_pre = false;
     std::string out("[");
-    for(int i=0; i<8; i++) {
-        const uint8_t settingBit = one << i;
-        if( 0 != ( static_cast<uint8_t>(mask) & settingBit ) ) {
-            if( has_pre ) { out.append(", "); }
-            out.append( _getSMPKeyTypeBitStr( static_cast<SMPKeyType>(settingBit) ) );
-            has_pre = true;
-        }
-    }
+    bool comma = false;
+    KEYDISTFMT_ENUM(APPEND_BITSTR,mask)
     out.append("]");
     return out;
 }
 
-#define LTKPROP_ENUM(X) \
-    X(NONE) \
-    X(RESPONDER) \
-    X(AUTH) \
-    X(SC)
-
-#define CASE_TO_STRING_LTKPROPFMT(V) case SMPLongTermKey::Property::V: return #V;
-
-static std::string _getPropertyBitStr(const SMPLongTermKey::Property bit) noexcept {
-    switch(bit) {
-        LTKPROP_ENUM(CASE_TO_STRING_LTKPROPFMT)
-        default: ; // fall through intended
-    }
-    return "Unknown SMPLongTermKey::Property bit";
-}
+#define LTKPROP_ENUM(X,M) \
+    X(SMPLongTermKey::Property,NONE,M) \
+    X(SMPLongTermKey::Property,RESPONDER,M) \
+    X(SMPLongTermKey::Property,AUTH,M) \
+    X(SMPLongTermKey::Property,SC,M)
 
 std::string SMPLongTermKey::getPropertyString(const Property mask) noexcept {
-    bool has_pre = false;
     std::string out("[");
-    if( Property::NONE != ( mask & Property::RESPONDER ) ) {
-        out.append( _getPropertyBitStr( Property::RESPONDER ) );
-        has_pre = true;
-    }
-    if( Property::NONE != ( mask & Property::AUTH ) ) {
-        if( has_pre ) { out.append(", "); }
-        out.append( _getPropertyBitStr( Property::AUTH ) );
-        has_pre = true;
-    }
-    if( Property::NONE != ( mask & Property::SC ) ) {
-        if( has_pre ) { out.append(", "); }
-        out.append( _getPropertyBitStr( Property::SC ) );
-        has_pre = true;
-    }
+    bool comma = false;
+    LTKPROP_ENUM(APPEND_BITSTR,mask)
     out.append("]");
     return out;
 }
@@ -319,33 +287,15 @@ bool SMPLongTermKey::isResponder() const noexcept {
     return ( SMPLongTermKey::Property::RESPONDER & properties ) != SMPLongTermKey::Property::NONE;
 }
 
-#define IRKPROP_ENUM(X) \
-    X(NONE) \
-    X(RESPONDER) \
-    X(AUTH)
-
-#define CASE_TO_STRING_IRKPROPFMT(V) case SMPIdentityResolvingKey::Property::V: return #V;
-
-static std::string _getPropertyBitStr(const SMPIdentityResolvingKey::Property bit) noexcept {
-    switch(bit) {
-        IRKPROP_ENUM(CASE_TO_STRING_IRKPROPFMT)
-        default: ; // fall through intended
-    }
-    return "Unknown SMPIdentityResolvingKey::Property bit";
-}
+#define IRKPROP_ENUM(X,M) \
+    X(SMPIdentityResolvingKey::Property,NONE,M) \
+    X(SMPIdentityResolvingKey::Property,RESPONDER,M) \
+    X(SMPIdentityResolvingKey::Property,AUTH,M)
 
 std::string SMPIdentityResolvingKey::getPropertyString(const Property mask) noexcept {
-    bool has_pre = false;
     std::string out("[");
-    if( Property::NONE != ( mask & Property::RESPONDER ) ) {
-        out.append( _getPropertyBitStr( Property::RESPONDER ) );
-        has_pre = true;
-    }
-    if( Property::NONE != ( mask & Property::AUTH ) ) {
-        if( has_pre ) { out.append(", "); }
-        out.append( _getPropertyBitStr( Property::AUTH ) );
-        has_pre = true;
-    }
+    bool comma = false;
+    IRKPROP_ENUM(APPEND_BITSTR,mask)
     out.append("]");
     return out;
 }
@@ -355,33 +305,15 @@ bool SMPIdentityResolvingKey::isResponder() const noexcept {
 }
 
 
-#define CSRKPROP_ENUM(X) \
-    X(NONE) \
-    X(RESPONDER) \
-    X(AUTH)
-
-#define CASE_TO_STRING_CSRKPROPFMT(V) case SMPSignatureResolvingKey::Property::V: return #V;
-
-static std::string _getPropertyBitStr(const SMPSignatureResolvingKey::Property bit) noexcept {
-    switch(bit) {
-        CSRKPROP_ENUM(CASE_TO_STRING_CSRKPROPFMT)
-        default: ; // fall through intended
-    }
-    return "Unknown SMPSignatureResolvingKey::Property bit";
-}
+#define CSRKPROP_ENUM(X,M) \
+    X(SMPSignatureResolvingKey::Property,NONE,M) \
+    X(SMPSignatureResolvingKey::Property,RESPONDER,M) \
+    X(SMPSignatureResolvingKey::Property,AUTH,M)
 
 std::string SMPSignatureResolvingKey::getPropertyString(const Property mask) noexcept {
-    bool has_pre = false;
     std::string out("[");
-    if( Property::NONE != ( mask & Property::RESPONDER ) ) {
-        out.append( _getPropertyBitStr( Property::RESPONDER ) );
-        has_pre = true;
-    }
-    if( Property::NONE != ( mask & Property::AUTH ) ) {
-        if( has_pre ) { out.append(", "); }
-        out.append( _getPropertyBitStr( Property::AUTH ) );
-        has_pre = true;
-    }
+    bool comma = false;
+    CSRKPROP_ENUM(APPEND_BITSTR,mask)
     out.append("]");
     return out;
 }
