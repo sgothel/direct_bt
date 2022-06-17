@@ -77,6 +77,7 @@ class BaseDBTClientServer {
 
     public:
         static BaseDBTClientServer& get(const bool btmanager_hold_and_close = true) {
+            MgmtEnv::get(); // initialize the environment first for 'direct_bt' key
             static BaseDBTClientServer s(btmanager_hold_and_close);
             return s;
         }
