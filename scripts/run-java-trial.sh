@@ -1,5 +1,8 @@
 #!/bin/bash
 
+#export direct_bt_debug=true
+#export direct_bt_verbose=true
+
 #
 # See scripts/scripts/run-native-example.sh for general details,
 # however, commandline arguments are not used for trials but '-log <logfile>'
@@ -78,10 +81,16 @@ test_classpath=/usr/share/java/junit4.jar:${build_dir}/java/direct_bt.jar:${buil
 do_test() {
     echo "script invocation: $0 ${script_args}"
     echo logfile $logfile
+    echo test_class ${test_class}
+
+    test_dir="${build_dir}/trial/java/"
+    echo "cd ${test_dir}"
+    cd ${test_dir}
+    pwd
 
     echo "/usr/bin/sudo" "/sbin/capsh" "--caps=cap_net_raw,cap_net_admin+eip cap_setpcap,cap_setuid,cap_setgid+ep" "--keep=1" "--user=sven" "--addamb=cap_net_raw,cap_net_admin+eip" "--" "-c" "ulimit -c unlimited; $EXE_WRAPPER ${JAVA_CMD} ${JAVA_PROPS} -cp ${test_classpath} -Djava.library.path=${rootdir}/dist-${archabi}/lib org.junit.runner.JUnitCore ${test_class} ${*@Q}"
 
-    "/usr/bin/sudo" "/sbin/capsh" "--caps=cap_net_raw,cap_net_admin+eip cap_setpcap,cap_setuid,cap_setgid+ep" "--keep=1" "--user=sven" "--addamb=cap_net_raw,cap_net_admin+eip" "--" "-c" "ulimit -c unlimited; $EXE_WRAPPER ${JAVA_CMD} ${JAVA_PROPS} -cp ${test_classpath} -Djava.library.path=${rootdir}/dist-${archabi}/lib org.junit.runner.JUnitCore ${test_class} ${*@Q}"
+    "/usr/bin/sudo" -E "/sbin/capsh" "--caps=cap_net_raw,cap_net_admin+eip cap_setpcap,cap_setuid,cap_setgid+ep" "--keep=1" "--user=sven" "--addamb=cap_net_raw,cap_net_admin+eip" "--" "-c" "ulimit -c unlimited; $EXE_WRAPPER ${JAVA_CMD} ${JAVA_PROPS} -cp ${test_classpath} -Djava.library.path=${rootdir}/dist-${archabi}/lib org.junit.runner.JUnitCore ${test_class} ${*@Q}"
     exit $?
 }
 

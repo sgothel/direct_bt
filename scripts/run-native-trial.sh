@@ -1,5 +1,8 @@
 #!/bin/bash
 
+#export direct_bt_debug=true
+#export direct_bt_verbose=true
+
 #
 # See scripts/scripts/run-native-example.sh for general details,
 # however, commandline arguments are not used for trials but '-log <logfile>'
@@ -21,7 +24,7 @@ else
     logfile=
 fi
 
-test_exe=test_client_server10_NoEnc
+test_exe=${build_dir}/trial/direct_bt/test_client_server10_NoEnc
 if [ ! -z "$1" ] ; then
     test_exe=$1
     shift 1
@@ -58,8 +61,16 @@ export LANG=en_US.UTF-8
 do_test() {
     echo "script invocation: $0 ${script_args}"
     echo logfile $logfile
+    echo test_exe ${test_exe}
+    echo test_basename ${test_basename}
+    echo direct_bt_debug ${direct_bt_debug}
 
-    "/usr/bin/sudo" "/sbin/capsh" "--caps=cap_net_raw,cap_net_admin+eip cap_setpcap,cap_setuid,cap_setgid+ep" "--keep=1" "--user=sven" "--addamb=cap_net_raw,cap_net_admin+eip" "--" "-c" "ulimit -c unlimited; $EXE_WRAPPER ${test_exe} ${*@Q}"
+    test_dir=`dirname $test_exe`
+    echo "cd ${test_dir}"
+    cd ${test_dir}
+    pwd
+
+    "/usr/bin/sudo" -E "/sbin/capsh" "--caps=cap_net_raw,cap_net_admin+eip cap_setpcap,cap_setuid,cap_setgid+ep" "--keep=1" "--user=sven" "--addamb=cap_net_raw,cap_net_admin+eip" "--" "-c" "ulimit -c unlimited; $EXE_WRAPPER ./${test_basename} ${*@Q}"
     exit $?
 }
 
