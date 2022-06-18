@@ -137,7 +137,7 @@ namespace direct_bt {
      */
     enum class HCIStatusCode : uint8_t {
         SUCCESS = 0x00,
-        UNKNOWN_HCI_COMMAND = 0x01,
+        UNKNOWN_COMMAND = 0x01,
         UNKNOWN_CONNECTION_IDENTIFIER = 0x02,
         HARDWARE_FAILURE = 0x03,
         PAGE_TIMEOUT = 0x04,

@@ -727,33 +727,43 @@ std::vector<MgmtDefaultParam> BTManager::readDefaultSysParam(const uint16_t dev_
     return std::vector<MgmtDefaultParam>();
 }
 
-bool BTManager::setDefaultConnParam(const uint16_t dev_id,
-                                    const uint16_t conn_min_interval, const uint16_t conn_max_interval,
-                                    const uint16_t conn_latency, const uint16_t supervision_timeout) noexcept {
+HCIStatusCode BTManager::setDefaultConnParam(const uint16_t dev_id,
+                                             const uint16_t conn_min_interval, const uint16_t conn_max_interval,
+                                             const uint16_t conn_latency, const uint16_t supervision_timeout) noexcept {
     MgmtSetDefaultConnParamCmd req(dev_id,
                                       conn_min_interval, conn_max_interval,
                                       conn_latency, supervision_timeout);
     std::unique_ptr<MgmtEvent> res = sendWithReply(req);
     DBG_PRINT("BTManager::setDefaultConnParam[%d]: %s, result %s", dev_id,
             req.toString().c_str(), res->toString().c_str());
-    if( nullptr != res && res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
-        const MgmtEvtCmdComplete &res1 = *static_cast<const MgmtEvtCmdComplete *>(res.get());
-        return MgmtStatus::SUCCESS == res1.getStatus();
+    if( nullptr != res ) {
+        if( res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
+            const MgmtEvtCmdComplete &res1 = *static_cast<const MgmtEvtCmdComplete *>(res.get());
+            return to_HCIStatusCode( res1.getStatus() );
+        } else if( res->getOpcode() == MgmtEvent::Opcode::CMD_STATUS ) {
+            const MgmtEvtCmdStatus &res1 = *static_cast<const MgmtEvtCmdStatus *>(res.get());
+            return to_HCIStatusCode( res1.getStatus() );
+        }
     }
-    return false;
+    return HCIStatusCode::FAILED;
 }
 
-bool BTManager::uploadConnParam(const uint16_t dev_id, const BDAddressAndType & addressAndType,
-                                 const uint16_t conn_min_interval, const uint16_t conn_max_interval,
-                                 const uint16_t conn_latency, const uint16_t supervision_timeout) noexcept {
+HCIStatusCode BTManager::uploadConnParam(const uint16_t dev_id, const BDAddressAndType & addressAndType,
+                                         const uint16_t conn_min_interval, const uint16_t conn_max_interval,
+                                         const uint16_t conn_latency, const uint16_t supervision_timeout) noexcept {
     MgmtConnParam connParam{ addressAndType.address, addressAndType.type, conn_min_interval, conn_max_interval, conn_latency, supervision_timeout };
     MgmtLoadConnParamCmd req(dev_id, connParam);
     std::unique_ptr<MgmtEvent> res = sendWithReply(req);
-    if( nullptr != res && res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
-        const MgmtEvtCmdComplete &res1 = *static_cast<const MgmtEvtCmdComplete *>(res.get());
-        return MgmtStatus::SUCCESS == res1.getStatus();
+    if( nullptr != res ) {
+        if( res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
+            const MgmtEvtCmdComplete &res1 = *static_cast<const MgmtEvtCmdComplete *>(res.get());
+            return to_HCIStatusCode( res1.getStatus() );
+        } else if( res->getOpcode() == MgmtEvent::Opcode::CMD_STATUS ) {
+            const MgmtEvtCmdStatus &res1 = *static_cast<const MgmtEvtCmdStatus *>(res.get());
+            return to_HCIStatusCode( res1.getStatus() );
+        }
     }
-    return false;
+    return HCIStatusCode::FAILED;
 }
 
 bool BTManager::isValidLongTermKeyAddressAndType(const EUI48 &address, const BDAddressType &address_type) const noexcept {
@@ -786,7 +796,7 @@ HCIStatusCode BTManager::uploadLongTermKey(const uint16_t dev_id, const jau::dar
             } else if( reply->getOpcode() == MgmtEvent::Opcode::CMD_STATUS ) {
                 res = to_HCIStatusCode( static_cast<const MgmtEvtCmdStatus *>(reply.get())->getStatus() );
             } else {
-                res = HCIStatusCode::UNKNOWN_HCI_COMMAND;
+                res = HCIStatusCode::UNKNOWN_COMMAND;
             }
         } else {
             res = HCIStatusCode::TIMEOUT;
@@ -833,7 +843,7 @@ HCIStatusCode BTManager::uploadLinkKey(const uint16_t dev_id, const MgmtLinkKeyI
             } else if( reply->getOpcode() == MgmtEvent::Opcode::CMD_STATUS ) {
                 res = to_HCIStatusCode( static_cast<const MgmtEvtCmdStatus *>(reply.get())->getStatus() );
             } else {
-                res = HCIStatusCode::UNKNOWN_HCI_COMMAND;
+                res = HCIStatusCode::UNKNOWN_COMMAND;
             }
         } else {
             res = HCIStatusCode::TIMEOUT;

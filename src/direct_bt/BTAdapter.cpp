@@ -632,8 +632,7 @@ HCIStatusCode BTAdapter::setDefaultConnParam(const uint16_t conn_interval_min, c
     if( isAdapterSettingBitSet(adapterInfo.getCurrentSettingMask(), AdapterSetting::POWERED) ) {
         return HCIStatusCode::COMMAND_DISALLOWED;
     }
-    const bool res = mgmt->setDefaultConnParam(dev_id, conn_interval_min, conn_interval_max, conn_latency, supervision_timeout);
-    return res ? HCIStatusCode::SUCCESS : HCIStatusCode::FAILED;
+    return mgmt->setDefaultConnParam(dev_id, conn_interval_min, conn_interval_max, conn_latency, supervision_timeout);
 }
 
 void BTAdapter::setServerConnSecurity(const BTSecurityLevel sec_level, const SMPIOCapability io_cap) noexcept {
@@ -902,9 +901,10 @@ bool BTAdapter::addDeviceToWhitelist(const BDAddressAndType & addressAndType, co
         return true;
     }
 
-    if( !mgmt->uploadConnParam(dev_id, addressAndType, conn_interval_min, conn_interval_max, conn_latency, timeout) ) {
-        ERR_PRINT("uploadConnParam(dev_id %d, address%s, interval[%u..%u], latency %u, timeout %u): Failed",
-                dev_id, addressAndType.toString().c_str(), conn_interval_min, conn_interval_max, conn_latency, timeout);
+    HCIStatusCode res = mgmt->uploadConnParam(dev_id, addressAndType, conn_interval_min, conn_interval_max, conn_latency, timeout);
+    if( HCIStatusCode::SUCCESS != res ) {
+        ERR_PRINT("uploadConnParam(dev_id %d, address%s, interval[%u..%u], latency %u, timeout %u): Failed %s",
+                dev_id, addressAndType.toString().c_str(), conn_interval_min, conn_interval_max, conn_latency, timeout, to_string(res).c_str());
     }
     return mgmt->addDeviceToWhitelist(dev_id, addressAndType, ctype);
 }

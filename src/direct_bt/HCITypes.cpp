@@ -52,7 +52,7 @@ namespace direct_bt {
 
 #define HCI_STATUS_CODE(X) \
         X(SUCCESS) \
-        X(UNKNOWN_HCI_COMMAND) \
+        X(UNKNOWN_COMMAND) \
         X(UNKNOWN_CONNECTION_IDENTIFIER) \
         X(HARDWARE_FAILURE) \
         X(PAGE_TIMEOUT) \

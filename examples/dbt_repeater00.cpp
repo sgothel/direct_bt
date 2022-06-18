@@ -805,8 +805,10 @@ static bool initAdapterToClient(std::shared_ptr<BTAdapter>& adapter) {
         status = adapter->setDefaultConnParam(conn_min_interval, conn_max_interval, conn_latency, supervision_timeout);
         if( HCIStatusCode::SUCCESS == status ) {
             fprintf_td(stderr, "initAdapterToClient: setDefaultConnParam OK: %s\n", adapter->toString().c_str());
+        } else if( HCIStatusCode::UNKNOWN_COMMAND == status ) {
+            fprintf_td(stderr, "initAdapterToClient: setDefaultConnParam UNKNOWN_COMMAND (ignored): %s\n", adapter->toString().c_str());
         } else {
-            fprintf_td(stderr, "initAdapterToClient: setDefaultConnParam failed: %s\n", adapter->toString().c_str());
+            fprintf_td(stderr, "initAdapterToClient: setDefaultConnParam failed: %s, %s\n", to_string(status).c_str(), adapter->toString().c_str());
             return false;
         }
 

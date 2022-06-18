@@ -33,7 +33,7 @@ package org.direct_bt;
  */
 public enum HCIStatusCode {
         SUCCESS((byte) 0x00),
-        UNKNOWN_HCI_COMMAND((byte) 0x01),
+        UNKNOWN_COMMAND((byte) 0x01),
         UNKNOWN_CONNECTION_IDENTIFIER((byte) 0x02),
         HARDWARE_FAILURE((byte) 0x03),
         PAGE_TIMEOUT((byte) 0x04),
@@ -154,7 +154,7 @@ public enum HCIStatusCode {
     public static HCIStatusCode get(final byte value) throws IllegalArgumentException {
         switch( value ) {
             case (byte) 0x00: return SUCCESS;
-            case (byte) 0x01: return UNKNOWN_HCI_COMMAND;
+            case (byte) 0x01: return UNKNOWN_COMMAND;
             case (byte) 0x02: return UNKNOWN_CONNECTION_IDENTIFIER;
             case (byte) 0x03: return HARDWARE_FAILURE;
             case (byte) 0x04: return PAGE_TIMEOUT;

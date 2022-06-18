@@ -646,7 +646,7 @@ HCIStatusCode MgmtEvtDeviceDisconnected::getHCIReason(DisconnectReason mgmtReaso
 HCIStatusCode direct_bt::to_HCIStatusCode(const MgmtStatus mstatus) noexcept {
     switch(mstatus) {
         case MgmtStatus::SUCCESS:           return HCIStatusCode::SUCCESS;
-        case MgmtStatus::UNKNOWN_COMMAND:   return HCIStatusCode::UNKNOWN_HCI_COMMAND;
+        case MgmtStatus::UNKNOWN_COMMAND:   return HCIStatusCode::UNKNOWN_COMMAND;
         case MgmtStatus::NOT_CONNECTED:     return HCIStatusCode::UNKNOWN_CONNECTION_IDENTIFIER;
         case MgmtStatus::FAILED:            return HCIStatusCode::FAILED;
         case MgmtStatus::CONNECT_FAILED:    return HCIStatusCode::CONNECT_FAILED;

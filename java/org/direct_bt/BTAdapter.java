@@ -616,6 +616,8 @@ public interface BTAdapter extends BTObject
      * - conn_latency 0
      * - supervision_timeout 42 -> 420ms
      *
+     * Supported on GNU/Linux since kernel 5.9.
+     *
      * @param dev_id
      * @param conn_interval_min in units of 1.25ms, default value 8 for 10ms; Value range [6 .. 3200] for [7.5ms .. 4000ms].
      * @param conn_interval_max in units of 1.25ms, default value 40 for 50ms; Value range [6 .. 3200] for [7.5ms .. 4000ms]

@@ -432,9 +432,9 @@ namespace direct_bt {
              * @return
              * @since 2.5.3
              */
-            bool setDefaultConnParam(const uint16_t dev_id,
-                                     const uint16_t conn_interval_min=8, const uint16_t conn_interval_max=40,
-                                     const uint16_t conn_latency=0, const uint16_t supervision_timeout=getHCIConnSupervisorTimeout(0, 50)) noexcept;
+            HCIStatusCode setDefaultConnParam(const uint16_t dev_id,
+                                              const uint16_t conn_interval_min=8, const uint16_t conn_interval_max=40,
+                                              const uint16_t conn_latency=0, const uint16_t supervision_timeout=getHCIConnSupervisorTimeout(0, 50)) noexcept;
 
             /**
              * Uploads given connection parameter for given device to the kernel.
@@ -448,9 +448,9 @@ namespace direct_bt {
              * @param supervision_timeout in units of 10ms, default value >= 10 x conn_interval_max, we use HCIConstInt::LE_CONN_MIN_TIMEOUT_MS minimum; Value range [0xA-0x0C80] for [100ms - 32s].
              * @return
              */
-            bool uploadConnParam(const uint16_t dev_id, const BDAddressAndType & addressAndType,
-                                 const uint16_t conn_interval_min=12, const uint16_t conn_interval_max=12,
-                                 const uint16_t conn_latency=0, const uint16_t supervision_timeout=getHCIConnSupervisorTimeout(0, 15)) noexcept;
+            HCIStatusCode uploadConnParam(const uint16_t dev_id, const BDAddressAndType & addressAndType,
+                                          const uint16_t conn_interval_min=12, const uint16_t conn_interval_max=12,
+                                          const uint16_t conn_latency=0, const uint16_t supervision_timeout=getHCIConnSupervisorTimeout(0, 15)) noexcept;
 
             /**
              * Returns true, if the adapter's device is already whitelisted.

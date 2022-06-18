@@ -689,8 +689,10 @@ public class DBTPeripheral00 {
             status = adapter.setDefaultConnParam(conn_min_interval, conn_max_interval, conn_latency, supervision_timeout);
             if( HCIStatusCode.SUCCESS == status ) {
                 BTUtils.fprintf_td(System.err, "initAdapter: setDefaultConnParam OK: %s\n", adapter.toString());
+            } else if( HCIStatusCode.UNKNOWN_COMMAND == status ) {
+                BTUtils.fprintf_td(System.err, "initAdapter: setDefaultConnParam UNKNOWN_COMMAND (ignored): %s\n", adapter.toString());
             } else {
-                BTUtils.fprintf_td(System.err, "initAdapter: setDefaultConnParam failed: %s\n", adapter.toString());
+                BTUtils.fprintf_td(System.err, "initAdapter: setDefaultConnParam failed: %s, %s\n", status.toString(), adapter.toString());
                 return false;
             }
 
