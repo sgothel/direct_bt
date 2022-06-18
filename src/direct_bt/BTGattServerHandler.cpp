@@ -742,6 +742,7 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
                     }
                 }
             }
+            (void)rspSize; // not yet used
             if( 0 < rspCount ) { // loop completed, elements added and all fitting in ATT_MTU
                 rsp.setElementCount(rspCount);
                 COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: TYPEVALUE.5: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), gh.toString().c_str());
