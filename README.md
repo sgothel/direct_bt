@@ -94,6 +94,9 @@ The following **platforms** are tested and hence supported
 - arm32 (validated, Raspberry Pi 3+ and 4)
 - potential issues with *capsh*, see below.
 
+**Ubuntu 22.04 (GNU/Linux)**
+- amd64 (validated, Generic)
+
 **Ubuntu 20.04 (GNU/Linux)**
 - amd64 (validated, Generic)
 
@@ -259,13 +262,12 @@ systemctl mask bluetooth
   - OpenJDK >= 11.
   - junit4 >= 4.12
 
-Installing build dependencies for Debian >= 10 and Ubuntu >= 18.04:
-
+Installing build dependencies for Debian >= 11 and Ubuntu >= 20.04:
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~{.sh}
 apt install git
 apt install build-essential g++ gcc libc-dev libpthread-stubs0-dev 
 apt install libunwind8 libunwind-dev
-apt install openjdk-11-jdk openjdk-11-jre junit4
+apt install openjdk-17-jdk openjdk-17-jre junit4
 apt install cmake cmake-extras extra-cmake-modules pkg-config
 apt install doxygen graphviz
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -317,9 +319,9 @@ Disable stripping native lib even in non debug build:
 -DUSE_STRIP=OFF
 ~~~~~~~~~~~~~
 
-Disable using `libunwind` (default: enabled for all but `arm32`, `armhf`)
+Enable using `libunwind` (default: disabled)
 ~~~~~~~~~~~~~
--DUSE_LIBUNWIND=OFF
+-DUSE_LIBUNWIND=ON
 ~~~~~~~~~~~~~
 
 Disable using `C++ Runtime Type Information` (*RTTI*) (default: disabled for *Direct-BT*)
