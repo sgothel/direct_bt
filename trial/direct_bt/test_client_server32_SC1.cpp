@@ -22,9 +22,6 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#define CATCH_CONFIG_RUNNER
-// #define CATCH_CONFIG_MAIN
-#include <catch2/catch_amalgamated.hpp>
 #include <jau/test/catch2_ext.hpp>
 
 #include "dbt_client_server1x.hpp"
