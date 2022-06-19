@@ -78,31 +78,66 @@ Please check the [Connection Paramter](doc/Connection_Parameter.md) for details.
 
 
 ## Supported Platforms
+Minimum language requirements
+- C++17
+- Java 11
+
 The following **platforms** are tested and hence supported
 
 **Debian 12 Bookworm (GNU/Linux)**
-- amd64 (validated, Generic)
+- compiler
+  - gcc 11.2.0
+  - clang 13.0.1
+  - openjdk 17
+- architectures
+  - amd64 (validated, Generic)
 
 **Debian 11 Bullseye (GNU/Linux)**
-- amd64 (validated, Generic)
-- arm64 (should work, Raspberry Pi 3+ and 4)
-- arm32 (should work, Raspberry Pi 3+ and 4)
+- compiler
+  - gcc 10.2.1
+  - clang 11.0.1
+  - openjdk 17
+- architectures
+  - amd64 (validated, Generic)
+  - arm64 (should work, Raspberry Pi 3+ and 4)
+  - arm32 (should work, Raspberry Pi 3+ and 4)
 
 **Debian 10 Buster (GNU/Linux)**
-- amd64 (validated, Generic)
-- arm64 (validated, Raspberry Pi 3+ and 4)
-- arm32 (validated, Raspberry Pi 3+ and 4)
+- *deprecated*
+- compiler
+  - gcc 8.3.0
+  - openjdk 11
+- architectures
+  - amd64 (validated, Generic)
+  - arm64 (validated, Raspberry Pi 3+ and 4)
+  - arm32 (validated, Raspberry Pi 3+ and 4)
 - potential issues with *capsh*, see below.
 
 **Ubuntu 22.04 (GNU/Linux)**
-- amd64 (validated, Generic)
+- compiler
+  - gcc 11.2.0
+  - clang 14.0.0
+  - openjdk 17
+- architectures
+  - amd64 (validated, Generic)
 
 **Ubuntu 20.04 (GNU/Linux)**
-- amd64 (validated, Generic)
+- compiler
+  - gcc 9.4.0
+  - clang 10.0.0
+  - openjdk 17
+- architectures
+  - amd64 (validated, Generic)
 
 **Ubuntu 18.04 (GNU/Linux)**
-- amd64 (validated, Generic)
+- *deprecated*
+- compiler
+  - gcc 8.3
+  - openjdk 11
+- architectures
+  - amd64 (validated, Generic)
 - potential issues with *capsh*, see below.
+
 
 ## Tested Bluetooth Adapter
 
@@ -255,12 +290,13 @@ systemctl mask bluetooth
 
 ### Build Dependencies
 - CMake 3.13+ but >= 3.18 is recommended
-- GCC >= 8.3.0 (g++)
+- gcc >= 8.3.0
   - or clang >= 10.0
-- libunwind8 >= 1.2.1
-- For Java support
-  - OpenJDK >= 11.
-  - junit4 >= 4.12
+- Optional
+  - libunwind8 >= 1.2.1
+  - For Java support
+    - OpenJDK >= 11
+    - junit4 >= 4.12
 
 Installing build dependencies for Debian >= 11 and Ubuntu >= 20.04:
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~{.sh}
