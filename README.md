@@ -101,8 +101,8 @@ The following **platforms** are tested and hence supported
   - openjdk 17
 - architectures
   - amd64 (validated, Generic)
-  - arm64 (should work, Raspberry Pi 3+ and 4)
-  - arm32 (should work, Raspberry Pi 3+ and 4)
+  - arm64 (validated, Raspberry Pi 3+ and 4)
+  - arm32 (validated, Raspberry Pi 3+ and 4)
 
 **Debian 10 Buster (GNU/Linux)**
 - *deprecated*
