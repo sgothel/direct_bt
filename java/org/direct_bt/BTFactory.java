@@ -206,7 +206,7 @@ public class BTFactory {
 
     public static void checkInitialized() {
         if( null == initializedID.get() ) {
-            throw new IllegalStateException("BluetoothFactory not initialized.");
+            throw new IllegalStateException("Direct-BT not initialized.");
         }
     }
     public static boolean isInitialized() {
@@ -216,7 +216,7 @@ public class BTFactory {
     private static synchronized void initLibrary(final ImplementationIdentifier id) {
         if( null != initializedID.get() ) {
             if( id != initializedID.get() ) {
-                throw new IllegalStateException("BluetoothFactory already initialized with "+initializedID.get()+", can't override by "+id);
+                throw new IllegalStateException("Direct-BT already initialized with "+initializedID.get()+", can't override by "+id);
             }
             return;
         }
