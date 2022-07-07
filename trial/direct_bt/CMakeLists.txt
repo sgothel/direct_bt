@@ -11,7 +11,7 @@ foreach( name ${TARGETS_IDIOMATIC_TRIALS} )
     add_executable(${name} ${name}.cpp)
     target_link_libraries(${name} direct_bt catch2)
     add_dependencies(${name} direct_bt catch2)
-    add_test (NAME ${name} COMMAND sudo /sbin/capsh --caps=cap_net_raw,cap_net_admin+eip\ cap_setpcap,cap_setuid,cap_setgid+ep
+    add_test (NAME ${name} COMMAND sudo -E /sbin/capsh --caps=cap_net_raw,cap_net_admin+eip\ cap_setpcap,cap_setuid,cap_setgid+ep
                            --keep=1 --user=$ENV{USER} --addamb=cap_net_raw,cap_net_admin+eip
                            -- -c "ulimit -c unlimited; ./${name}")
 endforeach()
