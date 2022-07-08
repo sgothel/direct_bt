@@ -34,7 +34,7 @@ import org.direct_bt.BTException;
 import org.direct_bt.BTFactory;
 import org.direct_bt.BTManager;
 import org.direct_bt.BTSecurityRegistry;
-import org.direct_bt.BTUtils;
+import org.jau.io.PrintUtil;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -61,7 +61,7 @@ public abstract class BaseDBTClientServer extends SingletonJunitCase {
         BTFactory.initDirectBTLibrary();
 
         final Class<?> ThisClazz = MethodHandles.lookup().lookupClass();
-        BTUtils.println(System.err, "++++ Test "+ThisClazz.getSimpleName()+".setupAll()");
+        PrintUtil.println(System.err, "++++ Test "+ThisClazz.getSimpleName()+".setupAll()");
 
         Assert.assertTrue( DBTUtils.rmKeyFolder() );
         Assert.assertTrue( DBTUtils.mkdirKeyFolder() );
@@ -75,7 +75,7 @@ public abstract class BaseDBTClientServer extends SingletonJunitCase {
     @AfterClass
     public static final void cleanupAll() {
         final Class<?> ThisClazz = MethodHandles.lookup().lookupClass();
-        BTUtils.println(System.err, "++++ Test "+ThisClazz.getSimpleName()+".cleanupAll()");
+        PrintUtil.println(System.err, "++++ Test "+ThisClazz.getSimpleName()+".cleanupAll()");
 
         BTManager manager = null;
         try {
@@ -84,7 +84,7 @@ public abstract class BaseDBTClientServer extends SingletonJunitCase {
                 | IllegalAccessException | IllegalArgumentException
                 | InvocationTargetException | ClassNotFoundException e) {
             e.printStackTrace();
-            BTUtils.println(System.err, "Unable to instantiate Direct-BT BluetoothManager: "+e.getMessage());
+            PrintUtil.println(System.err, "Unable to instantiate Direct-BT BluetoothManager: "+e.getMessage());
             e.printStackTrace();
         }
         if( null != manager ) {
@@ -107,7 +107,7 @@ public abstract class BaseDBTClientServer extends SingletonJunitCase {
                 | IllegalAccessException | IllegalArgumentException
                 | InvocationTargetException | ClassNotFoundException e) {
             e.printStackTrace();
-            BTUtils.println(System.err, "Unable to instantiate Direct-BT BluetoothManager: "+e.getMessage());
+            PrintUtil.println(System.err, "Unable to instantiate Direct-BT BluetoothManager: "+e.getMessage());
             e.printStackTrace();
         }
         if( null != manager ) {
@@ -132,7 +132,7 @@ public abstract class BaseDBTClientServer extends SingletonJunitCase {
     @Before
     public final void setupTest() {
         final Class<?> ThisClazz = MethodHandles.lookup().lookupClass();
-        BTUtils.println(System.err, "++++ Test "+ThisClazz.getSimpleName()+".setupTest()");
+        PrintUtil.println(System.err, "++++ Test "+ThisClazz.getSimpleName()+".setupTest()");
 
         resetStates();
     }
@@ -147,7 +147,7 @@ public abstract class BaseDBTClientServer extends SingletonJunitCase {
     @After
     public final void cleanupTest() {
         final Class<?> ThisClazz = MethodHandles.lookup().lookupClass();
-        BTUtils.println(System.err, "++++ Test "+ThisClazz.getSimpleName()+".cleanupTest()");
+        PrintUtil.println(System.err, "++++ Test "+ThisClazz.getSimpleName()+".cleanupTest()");
 
         resetStates();
     }

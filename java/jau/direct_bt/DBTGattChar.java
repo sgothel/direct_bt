@@ -32,8 +32,8 @@ import org.direct_bt.BTException;
 import org.direct_bt.BTGattChar;
 import org.direct_bt.BTGattDesc;
 import org.direct_bt.BTGattService;
-import org.direct_bt.BTUtils;
 import org.direct_bt.GattCharPropertySet;
+import org.jau.util.BasicTypes;
 import org.direct_bt.BTGattCharListener;
 
 public class DBTGattChar extends DBTObject implements BTGattChar
@@ -101,13 +101,13 @@ public class DBTGattChar extends DBTObject implements BTGattChar
                     @Override
                     public void notificationReceived(final BTGattChar charDecl, final byte[] value, final long timestamp) {
                         System.err.println("GATTCharacteristicListener.notificationReceived: "+charDecl+
-                                           ", value[len "+value.length+": "+BTUtils.bytesHexString(value, 0, -1, true)+"]");
+                                           ", value[len "+value.length+": "+BasicTypes.bytesHexString(value, 0, -1, true)+"]");
                     }
                     @Override
                     public void indicationReceived(final BTGattChar charDecl, final byte[] value, final long timestamp,
                                                    final boolean confirmationSent) {
                         System.err.println("GATTCharacteristicListener.indicationReceived: "+charDecl+
-                                           ", value[len "+value.length+": "+BTUtils.bytesHexString(value, 0, -1, true)+
+                                           ", value[len "+value.length+": "+BasicTypes.bytesHexString(value, 0, -1, true)+
                                            "], confirmationSent "+confirmationSent);
                     }
                 };

@@ -40,7 +40,6 @@ import org.direct_bt.BTException;
 import org.direct_bt.BTGattChar;
 import org.direct_bt.BTGattService;
 import org.direct_bt.BTRole;
-import org.direct_bt.BTUtils;
 import org.direct_bt.EInfoReport;
 import org.direct_bt.BTGattCharListener;
 import org.direct_bt.HCIStatusCode;
@@ -54,6 +53,7 @@ import org.direct_bt.SMPLinkKey;
 import org.direct_bt.SMPLongTermKey;
 import org.direct_bt.SMPPairingState;
 import org.direct_bt.SMPSignatureResolvingKey;
+import org.jau.io.PrintUtil;
 import org.jau.net.EUI48;
 
 public class DBTDevice extends DBTObject implements BTDevice
@@ -315,7 +315,7 @@ public class DBTDevice extends DBTObject implements BTDevice
     public final boolean setSMPKeyBin(final SMPKeyBin bin) {
         if( !isValid() ) {
             if( DEBUG ) {
-                BTUtils.fprintf_td(System.err, "BTDevice::setSMPKeyBin(): Apply SMPKeyBin failed, device invalid: %s, %s",
+                PrintUtil.fprintf_td(System.err, "BTDevice::setSMPKeyBin(): Apply SMPKeyBin failed, device invalid: %s, %s",
                     bin.toString(), toString());
             }
             return false;
@@ -323,14 +323,14 @@ public class DBTDevice extends DBTObject implements BTDevice
 
         if( !bin.getLocalAddrAndType().equals( getAdapter().getAddressAndType() ) ) {
             if( DEBUG ) {
-                BTUtils.println(System.err, "SMPKeyBin::readAndApply: Local address mismatch: Has "+getAdapter().getAddressAndType().toString()+
+                PrintUtil.println(System.err, "SMPKeyBin::readAndApply: Local address mismatch: Has "+getAdapter().getAddressAndType().toString()+
                     ", read "+bin.getLocalAddrAndType().toString()+": "+bin.toString());
             }
             return false;
         }
         if( !bin.getRemoteAddrAndType().equals( getAddressAndType() ) ) {
             if( DEBUG ) {
-                BTUtils.println(System.err, "SMPKeyBin::readAndApply: Remote address mismatch: Has "+getAddressAndType().toString()+
+                PrintUtil.println(System.err, "SMPKeyBin::readAndApply: Remote address mismatch: Has "+getAddressAndType().toString()+
                         ", read "+bin.getRemoteAddrAndType().toString()+": "+bin.toString());
             }
             return false;
@@ -339,7 +339,7 @@ public class DBTDevice extends DBTObject implements BTDevice
         // Must be a valid SMPKeyBin instance and at least one LTK key if using encryption.
         if( !bin.isValid() || ( BTSecurityLevel.NONE != bin.getSecLevel() && !bin.hasLTKInit() && !bin.hasLTKResp() ) ) {
             if( DEBUG ) {
-                BTUtils.fprintf_td(System.err, "BTDevice::setSMPKeyBin(): Apply SMPKeyBin failed, all invalid or sec level w/o LTK: %s, %s",
+                PrintUtil.fprintf_td(System.err, "BTDevice::setSMPKeyBin(): Apply SMPKeyBin failed, all invalid or sec level w/o LTK: %s, %s",
                         bin.toString(), toString());
             }
             return false;
@@ -358,7 +358,7 @@ public class DBTDevice extends DBTObject implements BTDevice
             */
             if( getConnected() ) {
                 if( DEBUG ) {
-                    BTUtils.println(System.err, "BTDevice::setSMPKeyBin: Failure, device connected: "+toString());
+                    PrintUtil.println(System.err, "BTDevice::setSMPKeyBin: Failure, device connected: "+toString());
                 }
                 return false;
             }
@@ -369,7 +369,7 @@ public class DBTDevice extends DBTObject implements BTDevice
 
             if( !setConnSecurity(applySecLevel, SMPIOCapability.NO_INPUT_NO_OUTPUT) ) {
                 if( DEBUG ) {
-                    BTUtils.println(System.err, "BTDevice::setSMPKeyBin: Apply SMPKeyBin failed: Device Connected/ing: "+bin.toString()+", "+toString());
+                    PrintUtil.println(System.err, "BTDevice::setSMPKeyBin: Apply SMPKeyBin failed: Device Connected/ing: "+bin.toString()+", "+toString());
                 }
                 return false;
             }
@@ -573,7 +573,7 @@ public class DBTDevice extends DBTObject implements BTDevice
         close();
         // return removeImpl();
         if( DBTAdapter.PRINT_DEVICE_LISTS || DEBUG ) {
-            BTUtils.fprintf_td(System.err, "BTDevice::remove: %s", toString());
+            PrintUtil.fprintf_td(System.err, "BTDevice::remove: %s", toString());
             getAdapter().printDeviceLists();
         }
         return true;

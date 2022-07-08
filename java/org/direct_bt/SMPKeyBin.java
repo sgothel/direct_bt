@@ -35,7 +35,9 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import org.direct_bt.SMPKeyMask.KeyType;
+import org.jau.io.PrintUtil;
 import org.jau.net.EUI48;
+import org.jau.sys.Clock;
 
 /**
  * Storage for SMP keys including required connection parameter per local adapter and remote device.
@@ -232,7 +234,7 @@ public class SMPKeyBin {
                 return smpKeyBin.write( path, overwrite );
             } else {
                 if( verbose_ ) {
-                    BTUtils.println(System.err, "Create SMPKeyBin: Invalid "+smpKeyBin+", "+device);
+                    PrintUtil.println(System.err, "Create SMPKeyBin: Invalid "+smpKeyBin+", "+device);
                 }
                 return false;
             }
@@ -287,7 +289,7 @@ public class SMPKeyBin {
         {
             version = VERSION;
             this.size = 0;
-            this.ts_creation_sec = BTUtils.wallClockSeconds();
+            this.ts_creation_sec = Clock.wallClockSeconds();
             this.localAddress = localAddress_;
             this.remoteAddress = remoteAddress_;
             this.sec_level = sec_level_;
@@ -533,7 +535,7 @@ public class SMPKeyBin {
             try {
                 return file.delete(); // alternative to truncate, if existing
             } catch (final Exception ex) {
-                BTUtils.println(System.err, "Remove SMPKeyBin: Failed "+fname+": "+ex.getMessage());
+                PrintUtil.println(System.err, "Remove SMPKeyBin: Failed "+fname+": "+ex.getMessage());
                 ex.printStackTrace();
                 return false;
             }
@@ -550,7 +552,7 @@ public class SMPKeyBin {
 
         final public boolean write(final String path, final boolean overwrite) {
             if( !isValid() ) {
-                BTUtils.println(System.err, "Write SMPKeyBin: Invalid (skipped) "+toString());
+                PrintUtil.println(System.err, "Write SMPKeyBin: Invalid (skipped) "+toString());
                 return false;
             }
             final String fname = getFilename(path);
@@ -560,11 +562,11 @@ public class SMPKeyBin {
                 if( file.exists() ) {
                     if( overwrite ) {
                         if( !file.delete() ) {
-                            BTUtils.println(System.err, "Write SMPKeyBin: Failed deletion of existing file "+fname+": "+toString());
+                            PrintUtil.println(System.err, "Write SMPKeyBin: Failed deletion of existing file "+fname+": "+toString());
                             return false;
                         }
                     } else {
-                        BTUtils.println(System.err, "Write SMPKeyBin: Not overwriting existing file "+fname+": "+toString());
+                        PrintUtil.println(System.err, "Write SMPKeyBin: Not overwriting existing file "+fname+": "+toString());
                         return false;
                     }
                 }
@@ -628,11 +630,11 @@ public class SMPKeyBin {
                 }
 
                 if( verbose ) {
-                    BTUtils.println(System.err, "Write SMPKeyBin: "+fname+": "+toString());
+                    PrintUtil.println(System.err, "Write SMPKeyBin: "+fname+": "+toString());
                 }
                 return true;
             } catch (final Exception ex) {
-                BTUtils.println(System.err, "Write SMPKeyBin: Failed "+fname+": "+toString()+": "+ex.getMessage());
+                PrintUtil.println(System.err, "Write SMPKeyBin: Failed "+fname+": "+toString()+": "+ex.getMessage());
                 ex.printStackTrace();
             } finally {
                 try {
@@ -654,7 +656,7 @@ public class SMPKeyBin {
             try {
                 if( !file.canRead() ) {
                     if( verbose ) {
-                        BTUtils.println(System.err, "Read SMPKeyBin: Failed "+fname+": Not existing or readable: "+toString());
+                        PrintUtil.println(System.err, "Read SMPKeyBin: Failed "+fname+": Not existing or readable: "+toString());
                     }
                     size = 0; // explicitly mark invalid
                     return false;
@@ -769,7 +771,7 @@ public class SMPKeyBin {
                     err = !isValid();
                 }
             } catch (final Exception ex) {
-                BTUtils.println(System.err, "Read SMPKeyBin: Failed "+fname+": "+toString()+": "+ex.getMessage());
+                PrintUtil.println(System.err, "Read SMPKeyBin: Failed "+fname+": "+toString()+": "+ex.getMessage());
                 ex.printStackTrace();
                 err = true;
             } finally {
@@ -784,12 +786,12 @@ public class SMPKeyBin {
             if( err ) {
                 file.delete();
                 if( verbose ) {
-                    BTUtils.println(System.err, "Read SMPKeyBin: Failed "+fname+" (removed): "+toString()+", remaining "+remaining);
+                    PrintUtil.println(System.err, "Read SMPKeyBin: Failed "+fname+" (removed): "+toString()+", remaining "+remaining);
                 }
                 size = 0; // explicitly mark invalid
             } else {
                 if( verbose ) {
-                    BTUtils.println(System.err, "Read SMPKeyBin: OK "+fname+": "+toString()+", remaining "+remaining);
+                    PrintUtil.println(System.err, "Read SMPKeyBin: OK "+fname+": "+toString()+", remaining "+remaining);
                 }
             }
             return err;

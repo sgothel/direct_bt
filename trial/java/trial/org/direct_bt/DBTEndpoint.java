@@ -30,8 +30,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.direct_bt.BTAdapter;
 import org.direct_bt.BTManager;
 import org.direct_bt.BTRole;
-import org.direct_bt.BTUtils;
 import org.direct_bt.HCIStatusCode;
+import org.jau.io.PrintUtil;
 import org.junit.Assert;
 
 public interface DBTEndpoint {
@@ -108,12 +108,12 @@ public interface DBTEndpoint {
                 if( null == endpt.getAdapter() ) {
                     if( endpt.initAdapter( adapter ) ) {
                         endpt.setAdapter(adapter);
-                        BTUtils.println(System.err, "****** Adapter-"+endpt.getClass().getSimpleName()+" ADDED__: InitOK: " + adapter);
+                        PrintUtil.println(System.err, "****** Adapter-"+endpt.getClass().getSimpleName()+" ADDED__: InitOK: " + adapter);
                         return;
                     }
                 }
             }
-            BTUtils.println(System.err, "****** Adapter ADDED__: Ignored: " + adapter);
+            PrintUtil.println(System.err, "****** Adapter ADDED__: Ignored: " + adapter);
         }
 
         @Override
@@ -121,11 +121,11 @@ public interface DBTEndpoint {
             for(final DBTEndpoint endpt : endpts ) {
                 if( null != endpt.getAdapter() && adapter.equals( endpt.getAdapter() ) ) {
                     endpt.setAdapter(null);
-                    BTUtils.println(System.err, "****** Adapter-"+endpt.getClass().getSimpleName()+" REMOVED: " + adapter);
+                    PrintUtil.println(System.err, "****** Adapter-"+endpt.getClass().getSimpleName()+" REMOVED: " + adapter);
                     return;
                 }
             }
-            BTUtils.println(System.err, "****** Adapter REMOVED: Ignored " + adapter);
+            PrintUtil.println(System.err, "****** Adapter REMOVED: Ignored " + adapter);
         }
     };
 

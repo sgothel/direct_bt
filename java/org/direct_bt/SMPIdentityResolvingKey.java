@@ -25,6 +25,8 @@
 
 package org.direct_bt;
 
+import org.jau.util.BasicTypes;
+
 /**
  * SMP Identity Resolving Key, used for platform agnostic persistence.
  * <p>
@@ -179,7 +181,7 @@ public class SMPIdentityResolvingKey {
     @Override
     public String toString() { // hex-fmt aligned with btmon
         return "IRK[props "+properties.toString()+
-               ", irk "+BTUtils.bytesHexString(irk, 0, -1, true /* lsbFirst */)+
+               ", irk "+BasicTypes.bytesHexString(irk, 0, -1, true /* lsbFirst */)+
                "]";
     }
 

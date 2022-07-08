@@ -34,8 +34,8 @@ import org.direct_bt.BTDeviceRegistry;
 import org.direct_bt.BTException;
 import org.direct_bt.BTFactory;
 import org.direct_bt.BTManager;
-import org.direct_bt.BTUtils;
 import org.direct_bt.DirectBTVersion;
+import org.jau.io.PrintUtil;
 import org.junit.Assert;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
@@ -61,7 +61,7 @@ public class TestBringup00 extends SingletonJunitCase {
                 | IllegalAccessException | IllegalArgumentException
                 | InvocationTargetException | ClassNotFoundException e) {
             e.printStackTrace();
-            BTUtils.println(System.err, "Unable to instantiate Direct-BT BluetoothManager: "+e.getMessage());
+            PrintUtil.println(System.err, "Unable to instantiate Direct-BT BluetoothManager: "+e.getMessage());
             e.printStackTrace();
         }
         if( null != manager ) {
@@ -106,9 +106,9 @@ public class TestBringup00 extends SingletonJunitCase {
             return;
         }
         final List<BTAdapter> adapters = manager.getAdapters();
-        BTUtils.println(System.err, "Adapter: Count "+adapters.size());
+        PrintUtil.println(System.err, "Adapter: Count "+adapters.size());
         for(int i=0; i<adapters.size(); i++) {
-            BTUtils.println(System.err, i+": "+adapters.get(i).toString());
+            PrintUtil.println(System.err, i+": "+adapters.get(i).toString());
         }
         for(final BTAdapter a : adapters) {
             // test runs w/o elevated permissions

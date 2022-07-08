@@ -25,6 +25,9 @@
 
 package org.direct_bt;
 
+import org.jau.io.PrintUtil;
+import org.jau.util.BasicTypes;
+
 /**
  * Class maps a GATT command and optionally its asynchronous response
  * to a synchronous atomic operation.
@@ -75,8 +78,8 @@ public class BTGattCmd implements AutoCloseable
                                          final byte[] value, final long timestamp) {
             synchronized( source.mtxRspReceived ) {
                 if( DEBUG ) {
-                    BTUtils.fprintf_td(System.err, "BTGattCmd.notificationReceived: Resp %s, value[%s]\n",
-                            charDecl.toString(), BTUtils.bytesHexString(value, 0, value.length, true /* lsbFirst */));
+                    PrintUtil.fprintf_td(System.err, "BTGattCmd.notificationReceived: Resp %s, value[%s]\n",
+                            charDecl.toString(), BasicTypes.bytesHexString(value, 0, value.length, true /* lsbFirst */));
                 }
                 source.rsp_data = value;
                 source.mtxRspReceived.notifyAll();
@@ -89,8 +92,8 @@ public class BTGattCmd implements AutoCloseable
                                        final boolean confirmationSent) {
             synchronized( source.mtxRspReceived ) {
                 if( DEBUG ) {
-                    BTUtils.fprintf_td(System.err, "BTGattCmd.indicationReceived: Resp %s, value[%s]\n",
-                            charDecl.toString(), BTUtils.bytesHexString(value, 0, value.length, true /* lsbFirst */));
+                    PrintUtil.fprintf_td(System.err, "BTGattCmd.indicationReceived: Resp %s, value[%s]\n",
+                            charDecl.toString(), BasicTypes.bytesHexString(value, 0, value.length, true /* lsbFirst */));
                 }
                 source.rsp_data = value;
                 source.mtxRspReceived.notifyAll();
@@ -117,7 +120,7 @@ public class BTGattCmd implements AutoCloseable
                                           : dev.findGattChar(cmd_uuid);
         if( null == cmdCharRef ) {
             if( verbose ) {
-                BTUtils.fprintf_td(System.err, "Command not found: service %s, char %s\n", service_uuid, cmd_uuid);
+                PrintUtil.fprintf_td(System.err, "Command not found: service %s, char %s\n", service_uuid, cmd_uuid);
             }
             return HCIStatusCode.NOT_SUPPORTED;
         }
@@ -125,7 +128,7 @@ public class BTGattCmd implements AutoCloseable
         if( !cmdCharRef.getProperties().isSet(GattCharPropertySet.Type.WriteNoAck) &&
             !cmdCharRef.getProperties().isSet(GattCharPropertySet.Type.WriteWithAck) ) {
             if( verbose ) {
-                BTUtils.fprintf_td(System.err, "Command has no write property: %s\n", cmdCharRef.toString());
+                PrintUtil.fprintf_td(System.err, "Command has no write property: %s\n", cmdCharRef.toString());
             }
             cmdCharRef = null;
             return HCIStatusCode.NOT_SUPPORTED;
@@ -136,7 +139,7 @@ public class BTGattCmd implements AutoCloseable
                                               : dev.findGattChar(rsp_uuid);
             if( null == rspCharRef ) {
                 if( verbose ) {
-                    BTUtils.fprintf_td(System.err, "Response not found: service %s, char %s\n", service_uuid, rsp_uuid);
+                    PrintUtil.fprintf_td(System.err, "Response not found: service %s, char %s\n", service_uuid, rsp_uuid);
                 }
                 cmdCharRef = null;
                 return HCIStatusCode.NOT_SUPPORTED;
@@ -147,14 +150,14 @@ public class BTGattCmd implements AutoCloseable
                     return HCIStatusCode.SUCCESS;
                 } else {
                     if( verbose ) {
-                        BTUtils.fprintf_td(System.err, "CCCD Notify/Indicate not supported on response %s\n", rspCharRef.toString());
+                        PrintUtil.fprintf_td(System.err, "CCCD Notify/Indicate not supported on response %s\n", rspCharRef.toString());
                     }
                     cmdCharRef = null;
                     rspCharRef = null;
                     return HCIStatusCode.NOT_SUPPORTED;
                 }
             } catch ( final Exception e ) {
-                BTUtils.fprintf_td(System.err, "Exception caught for %s: %s\n", e.toString(), toString());
+                PrintUtil.fprintf_td(System.err, "Exception caught for %s: %s\n", e.toString(), toString());
                 cmdCharRef = null;
                 rspCharRef = null;
                 return HCIStatusCode.TIMEOUT;
@@ -206,7 +209,7 @@ public class BTGattCmd implements AutoCloseable
                     return HCIStatusCode.FAILED;
                 }
             } catch (final Exception e ) {
-                BTUtils.fprintf_td(System.err, "Exception caught for %s: %s\n", e.toString(), toString());
+                PrintUtil.fprintf_td(System.err, "Exception caught for %s: %s\n", e.toString(), toString());
                 return HCIStatusCode.TIMEOUT;
             }
         } else {
@@ -293,7 +296,7 @@ public class BTGattCmd implements AutoCloseable
     public byte[] getResponse() { return rsp_data; }
 
     private String rspDataToString() {
-        return null == rsp_data ? "null" : BTUtils.bytesHexString(rsp_data, 0, rsp_data.length, true /* lsbFirst */);
+        return null == rsp_data ? "null" : BasicTypes.bytesHexString(rsp_data, 0, rsp_data.length, true /* lsbFirst */);
     }
 
     /**
@@ -338,7 +341,7 @@ public class BTGattCmd implements AutoCloseable
             rsp_data = null;
 
             if( DEBUG ) {
-                BTUtils.fprintf_td(System.err, "BTGattCmd.sendBlocking: Start: Cmd %s, args[%s], Resp %s, result[%s]",
+                PrintUtil.fprintf_td(System.err, "BTGattCmd.sendBlocking: Start: Cmd %s, args[%s], Resp %s, result[%s]",
                         cmdCharRef.toString(), cmd_data.toString(),
                         rspCharStr(), rspDataToString());
             }
@@ -351,29 +354,29 @@ public class BTGattCmd implements AutoCloseable
             if( prefWriteNoAck ) {
                 try {
                     if( !cmdCharRef.writeValue(cmd_data, false /* withResponse */) ) {
-                        BTUtils.fprintf_td(System.err, "Write (noAck) to command failed: Cmd %s, args[%s]\n",
-                                cmdCharRef.toString(), BTUtils.bytesHexString(cmd_data, 0, cmd_data.length, true /* lsbFirst */));
+                        PrintUtil.fprintf_td(System.err, "Write (noAck) to command failed: Cmd %s, args[%s]\n",
+                                cmdCharRef.toString(), BasicTypes.bytesHexString(cmd_data, 0, cmd_data.length, true /* lsbFirst */));
                         res = HCIStatusCode.FAILED;
                     }
                 } catch ( final Throwable t ) {
-                    BTUtils.fprintf_td(System.err, "Exception caught @ Write (noAck) to command failed: Cmd %s, args[%s]: %s\n",
-                            cmdCharRef.toString(), BTUtils.bytesHexString(cmd_data, 0, cmd_data.length, true /* lsbFirst */), t.toString());
+                    PrintUtil.fprintf_td(System.err, "Exception caught @ Write (noAck) to command failed: Cmd %s, args[%s]: %s\n",
+                            cmdCharRef.toString(), BasicTypes.bytesHexString(cmd_data, 0, cmd_data.length, true /* lsbFirst */), t.toString());
                     res = HCIStatusCode.TIMEOUT;
                 }
             } else if( hasWriteWithAck ) {
                 try {
                     if( !cmdCharRef.writeValue(cmd_data, true /* withResponse */) ) {
-                        BTUtils.fprintf_td(System.err, "Write (withAck) to command failed: Cmd %s, args[%s]\n",
-                                cmdCharRef.toString(), BTUtils.bytesHexString(cmd_data, 0, cmd_data.length, true /* lsbFirst */));
+                        PrintUtil.fprintf_td(System.err, "Write (withAck) to command failed: Cmd %s, args[%s]\n",
+                                cmdCharRef.toString(), BasicTypes.bytesHexString(cmd_data, 0, cmd_data.length, true /* lsbFirst */));
                         res = HCIStatusCode.TIMEOUT;
                     }
                 } catch ( final Throwable t ) {
-                    BTUtils.fprintf_td(System.err, "Exception caught @ Write (withAck) to command failed: Cmd %s, args[%s]: %s\n",
-                            cmdCharRef.toString(), BTUtils.bytesHexString(cmd_data, 0, cmd_data.length, true /* lsbFirst */), t.toString());
+                    PrintUtil.fprintf_td(System.err, "Exception caught @ Write (withAck) to command failed: Cmd %s, args[%s]: %s\n",
+                            cmdCharRef.toString(), BasicTypes.bytesHexString(cmd_data, 0, cmd_data.length, true /* lsbFirst */), t.toString());
                     res = HCIStatusCode.TIMEOUT;
                 }
             } else {
-                BTUtils.fprintf_td(System.err, "Command has no write property: %s\n", cmdCharRef.toString());
+                PrintUtil.fprintf_td(System.err, "Command has no write property: %s\n", cmdCharRef.toString());
                 res = HCIStatusCode.FAILED;
             }
 
@@ -388,8 +391,8 @@ public class BTGattCmd implements AutoCloseable
                             mtxRspReceived.wait(timeoutMS);
                         } catch (final Throwable t) {}
                         if( null == rsp_data ) {
-                            BTUtils.fprintf_td(System.err, "BTGattCmd.sendBlocking: Timeout: Cmd %s, args[%s]\n",
-                                    cmdCharRef.toString(), BTUtils.bytesHexString(cmd_data, 0, cmd_data.length, true /* lsbFirst */));
+                            PrintUtil.fprintf_td(System.err, "BTGattCmd.sendBlocking: Timeout: Cmd %s, args[%s]\n",
+                                    cmdCharRef.toString(), BasicTypes.bytesHexString(cmd_data, 0, cmd_data.length, true /* lsbFirst */));
                             res = HCIStatusCode.TIMEOUT;
                         }
                     }
@@ -397,8 +400,8 @@ public class BTGattCmd implements AutoCloseable
             }
         } // mtxRspReceived
         if( DEBUG && HCIStatusCode.SUCCESS == res ) {
-            BTUtils.fprintf_td(System.err, "BTGattCmd.sendBlocking: OK: Cmd %s, args[%s], Resp %s, result[%s]\n",
-                    cmdCharRef.toString(), BTUtils.bytesHexString(cmd_data, 0, cmd_data.length, true /* lsbFirst */),
+            PrintUtil.fprintf_td(System.err, "BTGattCmd.sendBlocking: OK: Cmd %s, args[%s], Resp %s, result[%s]\n",
+                    cmdCharRef.toString(), BasicTypes.bytesHexString(cmd_data, 0, cmd_data.length, true /* lsbFirst */),
                     rspCharStr(), rspDataToString());
         }
         return res;

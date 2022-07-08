@@ -35,8 +35,8 @@ import org.direct_bt.BTAdapter;
 import org.direct_bt.BTException;
 import org.direct_bt.BTFactory;
 import org.direct_bt.BTManager;
-import org.direct_bt.BTUtils;
 import org.direct_bt.DirectBTVersion;
+import org.jau.io.PrintUtil;
 import org.jau.net.EUI48;
 import org.junit.Assert;
 import org.junit.FixMethodOrder;
@@ -77,9 +77,9 @@ public class TestDBTClientServer00 extends BaseDBTClientServer {
             return;
         }
         final List<BTAdapter> adapters = manager.getAdapters();
-        BTUtils.println(System.err, "Adapter: Count "+adapters.size());
+        PrintUtil.println(System.err, "Adapter: Count "+adapters.size());
         for(int i=0; i<adapters.size(); i++) {
-            BTUtils.println(System.err, i+": "+adapters.get(i).toString());
+            PrintUtil.println(System.err, i+": "+adapters.get(i).toString());
         }
         Assert.assertTrue("Adapter count not >= 1 but "+adapters.size(), adapters.size() >= 1);
 
@@ -139,7 +139,7 @@ public class TestDBTClientServer00 extends BaseDBTClientServer {
         }
 
         final int count = manager.removeChangedAdapterSetListener(myChangedAdapterSetListener);
-        BTUtils.println(System.err, "****** EOL Removed ChangedAdapterSetCallback " + count);
+        PrintUtil.println(System.err, "****** EOL Removed ChangedAdapterSetCallback " + count);
     }
 
     public static void main(final String args[]) {

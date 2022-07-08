@@ -25,6 +25,8 @@
 
 package org.direct_bt;
 
+import org.jau.util.BasicTypes;
+
 /**
  * A copy of the native GATT value of DBGattChar or DBGattDesc.
  *
@@ -142,7 +144,7 @@ public class DBGattValue
     public String toString() {
         final String len = hasVariableLength() ? "var" : "fixed";
         return "len "+len+", size "+size()+", capacity "+capacity()+", "+
-               BTUtils.bytesHexString(value_, 0, size(), true /* lsbFirst */) +
+               BasicTypes.bytesHexString(value_, 0, size(), true /* lsbFirst */) +
                " '"+BTUtils.decodeUTF8String(value_, 0, size())+"'";
     }
 }

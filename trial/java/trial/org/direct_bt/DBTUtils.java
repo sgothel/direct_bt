@@ -28,7 +28,7 @@ import java.io.File;
 import java.nio.file.Files;
 
 import org.direct_bt.BTFactory;
-import org.direct_bt.BTUtils;
+import org.jau.io.PrintUtil;
 
 public class DBTUtils {
     public static final boolean mkdirKeyFolder() {
@@ -39,13 +39,13 @@ public class DBTUtils {
             try {
                 if( !file.isDirectory() ) {
                     final boolean res2 = file.mkdirs();
-                    BTUtils.println(System.err, "****** KEY_PATH '"+file.toString()+"': mkdir: "+res2);
+                    PrintUtil.println(System.err, "****** KEY_PATH '"+file.toString()+"': mkdir: "+res2);
                     res = res && res2;
                 } else {
-                    BTUtils.println(System.err, "****** KEY_PATH '"+file.toString()+"': already exists");
+                    PrintUtil.println(System.err, "****** KEY_PATH '"+file.toString()+"': already exists");
                 }
             } catch(final Throwable t) {
-                BTUtils.println(System.err, "****** KEY_PATH '"+file.toString()+"': Caught "+t.getMessage());
+                PrintUtil.println(System.err, "****** KEY_PATH '"+file.toString()+"': Caught "+t.getMessage());
                 res = false;
             }
         }
@@ -54,13 +54,13 @@ public class DBTUtils {
             try {
                 if( !file.isDirectory() ) {
                     final boolean res2 = file.mkdirs();
-                    BTUtils.println(System.err, "****** KEY_PATH '"+file.toString()+"': mkdir: "+res2);
+                    PrintUtil.println(System.err, "****** KEY_PATH '"+file.toString()+"': mkdir: "+res2);
                     res = res && res2;
                 } else {
-                    BTUtils.println(System.err, "****** KEY_PATH '"+file.toString()+"': already exists");
+                    PrintUtil.println(System.err, "****** KEY_PATH '"+file.toString()+"': already exists");
                 }
             } catch(final Throwable t) {
-                BTUtils.println(System.err, "****** KEY_PATH '"+file.toString()+"': Caught "+t.getMessage());
+                PrintUtil.println(System.err, "****** KEY_PATH '"+file.toString()+"': Caught "+t.getMessage());
                 res = false;
             }
         }
@@ -112,10 +112,10 @@ public class DBTUtils {
                 if( file.isDirectory() ) {
                     final boolean res2 = delete(file, false /* recursive */);
                     res = res2 && res;
-                    BTUtils.println(System.err, "****** KEY_PATH '"+file.toString()+"': delete: "+res2);
+                    PrintUtil.println(System.err, "****** KEY_PATH '"+file.toString()+"': delete: "+res2);
                 }
             } catch(final Throwable t) {
-                BTUtils.println(System.err, "****** KEY_PATH '"+file.toString()+"': Caught "+t.getMessage());
+                PrintUtil.println(System.err, "****** KEY_PATH '"+file.toString()+"': Caught "+t.getMessage());
                 res = false;
             }
         }
@@ -125,10 +125,10 @@ public class DBTUtils {
                 if( file.isDirectory() ) {
                     final boolean res2 = delete(file, false /* recursive */);
                     res = res2 && res;
-                    BTUtils.println(System.err, "****** KEY_PATH '"+file.toString()+"': delete: "+res2);
+                    PrintUtil.println(System.err, "****** KEY_PATH '"+file.toString()+"': delete: "+res2);
                 }
             } catch(final Throwable t) {
-                BTUtils.println(System.err, "****** KEY_PATH '"+file.toString()+"': Caught "+t.getMessage());
+                PrintUtil.println(System.err, "****** KEY_PATH '"+file.toString()+"': Caught "+t.getMessage());
                 res = false;
             }
         }

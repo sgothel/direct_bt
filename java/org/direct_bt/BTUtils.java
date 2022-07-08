@@ -24,9 +24,7 @@
  */
 package org.direct_bt;
 
-import java.io.PrintStream;
-
-import org.jau.util.BasicTypes;
+import java.nio.charset.StandardCharsets;
 
 public class BTUtils {
     /**
@@ -45,65 +43,6 @@ public class BTUtils {
         } else {
             return UUID128_BASE;
         }
-    }
-
-    private static long t0;
-    static {
-        t0 = startupTimeMillisImpl();
-    }
-    private static native long startupTimeMillisImpl();
-
-    /**
-     * Returns current monotonic time in milliseconds.
-     */
-    public static native long currentTimeMillis();
-
-    /**
-     * Returns current wall-clock system `time of day` in seconds since Unix Epoch
-     * `00:00:00 UTC on 1 January 1970`.
-     */
-    public static native long wallClockSeconds();
-
-    /**
-     * Returns the startup time in monotonic time in milliseconds of the native module.
-     */
-    public static long startupTimeMillis() { return t0; }
-
-    /**
-     * Returns current elapsed monotonic time in milliseconds since module startup, see {@link #startupTimeMillis()}.
-     */
-    public static long elapsedTimeMillis() { return currentTimeMillis() - t0; }
-
-    /**
-     * Returns elapsed monotonic time in milliseconds since module startup comparing against the given timestamp, see {@link #startupTimeMillis()}.
-     */
-    public static long elapsedTimeMillis(final long current_ts) { return current_ts - t0; }
-
-    /**
-     * Convenient {@link PrintStream#printf(String, Object...)} invocation, prepending the {@link #elapsedTimeMillis()} timestamp.
-     * @param out the output stream
-     * @param format the format
-     * @param args the arguments
-     */
-    public static void fprintf_td(final PrintStream out, final String format, final Object ... args) {
-        out.printf("[%,9d] ", elapsedTimeMillis());
-        out.printf(format, args);
-    }
-    /**
-     * Convenient {@link PrintStream#println(String)} invocation, prepending the {@link #elapsedTimeMillis()} timestamp.
-     * @param out the output stream
-     * @param msg the string message
-     */
-    public static void println(final PrintStream out, final String msg) {
-        out.printf("[%,9d] %s%s", elapsedTimeMillis(), msg, System.lineSeparator());
-    }
-    /**
-     * Convenient {@link PrintStream#print(String)} invocation, prepending the {@link #elapsedTimeMillis()} timestamp.
-     * @param out the output stream
-     * @param msg the string message
-     */
-    public static void print(final PrintStream out, final String msg) {
-        out.printf("[%,9d] %s", elapsedTimeMillis(), msg);
     }
 
     /**
@@ -147,63 +86,9 @@ public class BTUtils {
     }
 
     /**
-     * Converts a given hexadecimal string representation to a byte array.
-     *
-     * In case a non valid hexadecimal digit appears in the given string,
-     * conversion ends and returns the byte array up until the violation.
-     *
-     * @param hexstr the hexadecimal string representation
-     * @param lsbFirst low significant byte first
-     * @param checkLeading0x if true, checks for a leading `0x` and removes it, otherwise not.
-     * @return the matching byte array
+     * Decodes the given consecutive UTF-8 characters within buffer to String.
      */
-    public static byte[] hexStringBytes(final String hexstr, final boolean lsbFirst, final boolean checkLeading0x) {
-        return BasicTypes.hexStringBytes(hexstr, lsbFirst, checkLeading0x);
+    public static String decodeUTF8String(final byte[] buffer, final int offset, final int size) {
+        return new String(buffer, offset, size, StandardCharsets.UTF_8);
     }
-
-    /**
-     * Produce a lower-case hexadecimal string representation of the given byte values.
-     * <p>
-     * If lsbFirst is true, orders LSB left -> MSB right, usual for byte streams.<br>
-     * Otherwise orders MSB left -> LSB right, usual for readable integer values.
-     * </p>
-     * @param bytes the byte array to represent
-     * @param offset offset in byte array to the first byte to print.
-     * @param length number of bytes to print. If negative, will use {@code bytes.length - offset}.
-     * @param lsbFirst true having the least significant byte printed first (lowest addressed byte to highest),
-     *                 otherwise have the most significant byte printed first (highest addressed byte to lowest).
-     * @return the hex-string representation of the data
-     */
-    public static String bytesHexString(final byte[] bytes, final int offset, final int length,
-                                        final boolean lsbFirst)
-    {
-        return BasicTypes.bytesHexString(bytes, offset, length, lsbFirst);
-    }
-
-    /**
-     * Produce a hexadecimal string representation of the given byte value.
-     * @param sb the StringBuilder destination to append
-     * @param value the byte value to represent
-     * @param lowerCase true to use lower case hex-chars, otherwise capital letters are being used.
-     * @return the given StringBuilder for chaining
-     */
-    public static StringBuilder byteHexString(final StringBuilder sb, final byte value, final boolean lowerCase)
-    {
-        return BasicTypes.byteHexString(sb, value, lowerCase);
-    }
-
-    /**
-     * Returns all valid consecutive UTF-8 characters within buffer
-     * in the range offset -> size or until EOS.
-     * <p>
-     * In case a non UTF-8 character has been detected,
-     * the content will be cut off and the decoding loop ends.
-     * </p>
-     * <p>
-     * Method utilizes a finite state machine detecting variable length UTF-8 codes.
-     * See <a href="http://bjoern.hoehrmann.de/utf-8/decoder/dfa/">Bjoern Hoehrmann's site</a> for details.
-     * </p>
-     */
-    public static native String decodeUTF8String(final byte[] buffer, final int offset, final int size);
-
 }

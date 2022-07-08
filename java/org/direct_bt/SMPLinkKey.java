@@ -25,6 +25,7 @@
 
 package org.direct_bt;
 
+import org.jau.util.BasicTypes;
 
 /**
  * Local SMP Link Key, used for platform agnostic persistence,
@@ -186,7 +187,7 @@ public class SMPLinkKey {
     @Override
     public String toString() { // hex-fmt aligned with btmon
         return "LK[res "+responder+", type "+type.toString()+
-               ", key "+BTUtils.bytesHexString(key, 0, -1, true /* lsbFirst */)+
+               ", key "+BasicTypes.bytesHexString(key, 0, -1, true /* lsbFirst */)+
                ", plen "+pin_length+
                "]";
     }

@@ -25,6 +25,8 @@
 
 package org.direct_bt;
 
+import org.jau.util.BasicTypes;
+
 /**
  * SMP Signature Resolving Key, used for platform agnostic persistence.
  * <p>
@@ -179,7 +181,7 @@ public class SMPSignatureResolvingKey {
     @Override
     public String toString() { // hex-fmt aligned with btmon
         return "CSRK[props "+properties.toString()+
-               ", csrk "+BTUtils.bytesHexString(csrk, 0, -1, true /* lsbFirst */)+
+               ", csrk "+BasicTypes.bytesHexString(csrk, 0, -1, true /* lsbFirst */)+
                "]";
     }
 

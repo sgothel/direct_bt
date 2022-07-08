@@ -22,10 +22,10 @@ include_directories(
 set (direct_bt_JNI_SRCS
   ${PROJECT_SOURCE_DIR}/jaulib/java_jni/jni/jni_mem.cxx
   ${PROJECT_SOURCE_DIR}/jaulib/java_jni/jni/helper_jni.cxx
+  ${PROJECT_SOURCE_DIR}/jaulib/java_jni/jni/jau/jau_sys_Clock.cxx
   ${PROJECT_SOURCE_DIR}/java/jni/helper_base.cxx
   ${PROJECT_SOURCE_DIR}/java/jni/direct_bt/helper_dbt.cxx
   ${PROJECT_SOURCE_DIR}/java/jni/direct_bt/BTFactory.cxx
-  ${PROJECT_SOURCE_DIR}/java/jni/direct_bt/BTUtils.cxx
   ${PROJECT_SOURCE_DIR}/java/jni/direct_bt/DBTAdapter.cxx
   ${PROJECT_SOURCE_DIR}/java/jni/direct_bt/DBTDevice.cxx
   ${PROJECT_SOURCE_DIR}/java/jni/direct_bt/DBTGattChar.cxx

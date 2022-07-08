@@ -38,13 +38,14 @@ import org.direct_bt.BTException;
 import org.direct_bt.BTFactory;
 import org.direct_bt.BTManager;
 import org.direct_bt.BTSecurityRegistry;
-import org.direct_bt.BTUtils;
 import org.direct_bt.DiscoveryPolicy;
 import org.direct_bt.EIRDataTypeSet;
 import org.direct_bt.EInfoReport;
 import org.direct_bt.PairingMode;
 import org.direct_bt.SMPKeyBin;
+import org.jau.io.PrintUtil;
 import org.jau.net.EUI48;
+import org.jau.sys.Clock;
 import org.junit.Assert;
 
 /**
@@ -87,7 +88,7 @@ public abstract class DBTClientServer1x extends BaseDBTClientServer {
                                 final DBTServerTest server, final BTSecurityLevel secLevelServer, final ExpectedPairing serverExpPairing,
                                 final DBTClientTest client, final BTSecurityLevel secLevelClient, final ExpectedPairing clientExpPairing)
     {
-        final long t0 = BTUtils.currentTimeMillis();
+        final long t0 = Clock.currentTimeMillis();
 
         BTManager manager = null;
         try {
@@ -103,7 +104,7 @@ public abstract class DBTClientServer1x extends BaseDBTClientServer {
         }
         {
             final List<BTAdapter> adapters = manager.getAdapters();
-            BTUtils.println(System.err, "Adapter: Count "+adapters.size()+": "+adapters.toString());
+            PrintUtil.println(System.err, "Adapter: Count "+adapters.size()+": "+adapters.toString());
             Assert.assertTrue("Adapter count not >= 2 but "+adapters.size(), adapters.size() >= 2);
         }
 
@@ -138,7 +139,7 @@ public abstract class DBTClientServer1x extends BaseDBTClientServer {
                     lastCompletedDevicePairingMode = device.getPairingMode();
                     lastCompletedDeviceSecurityLevel = device.getConnSecurityLevel();
                     lastCompletedDeviceEIR = device.getEIR().clone();
-                    BTUtils.println(System.err, "XXXXXX Client Ready: "+device);
+                    PrintUtil.println(System.err, "XXXXXX Client Ready: "+device);
                 }
             }
         };
@@ -168,24 +169,24 @@ public abstract class DBTClientServer1x extends BaseDBTClientServer {
                            lastCompletedDevice.getConnected() );
             }
             max_connections_hit = ( protocolSessionCount * max_connections_per_session ) <= server.getDisconnectCount();
-            test_duration = BTUtils.currentTimeMillis() - t0;
+            test_duration = Clock.currentTimeMillis() - t0;
             timeout = 0 < timeout_value && timeout_value <= test_duration + timeout_preempt_diff; // let's timeout here before our timeout timer
             if( !done && !max_connections_hit && !timeout ) {
                 try { Thread.sleep(88); } catch (final InterruptedException e) { e.printStackTrace(); }
             }
         } while( !done && !max_connections_hit && !timeout );
-        test_duration = BTUtils.currentTimeMillis() - t0;
+        test_duration = Clock.currentTimeMillis() - t0;
 
-        BTUtils.fprintf_td(System.err, "\n\n");
-        BTUtils.fprintf_td(System.err, "****** Test Stats: duration %d ms, timeout[hit %b, value %d ms], max_connections hit %b\n",
+        PrintUtil.fprintf_td(System.err, "\n\n");
+        PrintUtil.fprintf_td(System.err, "****** Test Stats: duration %d ms, timeout[hit %b, value %d ms], max_connections hit %b\n",
                 test_duration, timeout, timeout_value, max_connections_hit);
-        BTUtils.fprintf_td(System.err, "  Server ProtocolSessions[success %d/%d total, requested %d], disconnects %d of %d max\n",
+        PrintUtil.fprintf_td(System.err, "  Server ProtocolSessions[success %d/%d total, requested %d], disconnects %d of %d max\n",
                 server.getProtocolSessionsDoneSuccess(), server.getProtocolSessionsDoneTotal(), protocolSessionCount,
                 server.getDisconnectCount(), ( protocolSessionCount * max_connections_per_session ));
-        BTUtils.fprintf_td(System.err, "  Client ProtocolSessions[success %d/%d total, requested %d], disconnects %d of %d max\n",
+        PrintUtil.fprintf_td(System.err, "  Client ProtocolSessions[success %d/%d total, requested %d], disconnects %d of %d max\n",
                 client.getProtocolSessionsDoneSuccess(), client.getProtocolSessionsDoneTotal(), protocolSessionCount,
                 client.getDisconnectCount(), ( protocolSessionCount * max_connections_per_session ));
-        BTUtils.fprintf_td(System.err, "\n\n");
+        PrintUtil.fprintf_td(System.err, "\n\n");
 
         if( expSuccess ) {
             Assert.assertFalse( max_connections_hit );
@@ -248,7 +249,7 @@ public abstract class DBTClientServer1x extends BaseDBTClientServer {
             // Validating EIR
             //
             synchronized( mtx_sync ) {
-                BTUtils.println(System.err, "lastCompletedDevice.connectedEIR: "+lastCompletedDeviceEIR.toString());
+                PrintUtil.println(System.err, "lastCompletedDevice.connectedEIR: "+lastCompletedDeviceEIR.toString());
                 Assert.assertNotEquals(0, lastCompletedDeviceEIR.getEIRDataMask().mask);
                 Assert.assertTrue( lastCompletedDeviceEIR.isSet(EIRDataTypeSet.DataType.FLAGS) );
                 Assert.assertTrue( lastCompletedDeviceEIR.isSet(EIRDataTypeSet.DataType.SERVICE_UUID) );
@@ -257,7 +258,7 @@ public abstract class DBTClientServer1x extends BaseDBTClientServer {
                 Assert.assertEquals(serverName, lastCompletedDeviceEIR.getName());
                 {
                     final EInfoReport eir = lastCompletedDevice.getEIR().clone();
-                    BTUtils.println(System.err, "lastCompletedDevice.currentEIR: "+eir.toString());
+                    PrintUtil.println(System.err, "lastCompletedDevice.currentEIR: "+eir.toString());
                     Assert.assertEquals(0, eir.getEIRDataMask().mask);
                     Assert.assertEquals(0, eir.getName().length());
                 }
@@ -278,6 +279,6 @@ public abstract class DBTClientServer1x extends BaseDBTClientServer {
             }
         }
         final int count = manager.removeChangedAdapterSetListener(myChangedAdapterSetListener);
-        BTUtils.println(System.err, "****** EOL Removed ChangedAdapterSetCallback " + count);
+        PrintUtil.println(System.err, "****** EOL Removed ChangedAdapterSetCallback " + count);
     }
 }

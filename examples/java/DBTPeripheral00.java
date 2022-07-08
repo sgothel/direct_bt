@@ -60,7 +60,10 @@ import org.direct_bt.PairingMode;
 import org.direct_bt.SMPIOCapability;
 import org.direct_bt.SMPPairingState;
 import org.direct_bt.ScanType;
+import org.jau.io.PrintUtil;
 import org.jau.net.EUI48;
+import org.jau.sys.Clock;
+import org.jau.util.BasicTypes;
 
 /**
  * This Java peripheral {@link BTRole::Slave} GATT server example uses an event driven workflow.
@@ -237,12 +240,12 @@ public class DBTPeripheral00 {
                                            final AdapterSettings newmask, final AdapterSettings changedmask, final long timestamp) {
             final boolean initialSetting = oldmask.isEmpty();
             if( initialSetting ) {
-                BTUtils.println(System.err, "****** SETTINGS: "+oldmask+" -> "+newmask+", initial "+changedmask);
+                PrintUtil.println(System.err, "****** SETTINGS: "+oldmask+" -> "+newmask+", initial "+changedmask);
             } else {
-                BTUtils.println(System.err, "****** SETTINGS: "+oldmask+" -> "+newmask+", changed "+changedmask);
+                PrintUtil.println(System.err, "****** SETTINGS: "+oldmask+" -> "+newmask+", changed "+changedmask);
             }
-            BTUtils.println(System.err, "Status Adapter:");
-            BTUtils.println(System.err, adapter.toString());
+            PrintUtil.println(System.err, "Status Adapter:");
+            PrintUtil.println(System.err, adapter.toString());
             if( !initialSetting &&
                 changedmask.isSet(AdapterSettings.SettingType.POWERED) &&
                 newmask.isSet(AdapterSettings.SettingType.POWERED) )
@@ -255,25 +258,25 @@ public class DBTPeripheral00 {
 
         @Override
         public void discoveringChanged(final BTAdapter adapter, final ScanType currentMeta, final ScanType changedType, final boolean changedEnabled, final DiscoveryPolicy policy, final long timestamp) {
-            BTUtils.println(System.err, "****** DISCOVERING: meta "+currentMeta+", changed["+changedType+", enabled "+changedEnabled+", policy "+policy+"] on "+adapter);
+            PrintUtil.println(System.err, "****** DISCOVERING: meta "+currentMeta+", changed["+changedType+", enabled "+changedEnabled+", policy "+policy+"] on "+adapter);
         }
 
         @Override
         public boolean deviceFound(final BTDevice device, final long timestamp) {
-            BTUtils.println(System.err, "****** FOUND__-1: NOP "+device.toString());
+            PrintUtil.println(System.err, "****** FOUND__-1: NOP "+device.toString());
             return false;
         }
 
         @Override
         public void deviceUpdated(final BTDevice device, final EIRDataTypeSet updateMask, final long timestamp) {
             if( SHOW_UPDATE_EVENTS ) {
-                BTUtils.println(System.err, "****** UPDATED: "+updateMask+" of "+device);
+                PrintUtil.println(System.err, "****** UPDATED: "+updateMask+" of "+device);
             }
         }
 
         @Override
         public void deviceConnected(final BTDevice device, final boolean discovered, final long timestamp) {
-            BTUtils.println(System.err, "****** CONNECTED (discovered "+discovered+"): "+device.toString());
+            PrintUtil.println(System.err, "****** CONNECTED (discovered "+discovered+"): "+device.toString());
             final boolean available = null == getDevice();
             if( available ) {
                 setDevice(device);
@@ -282,7 +285,7 @@ public class DBTPeripheral00 {
 
         @Override
         public void devicePairingState(final BTDevice device, final SMPPairingState state, final PairingMode mode, final long timestamp) {
-            BTUtils.println(System.err, "****** PAIRING_STATE: state "+state+", mode "+mode+": "+device);
+            PrintUtil.println(System.err, "****** PAIRING_STATE: state "+state+", mode "+mode+": "+device);
             switch( state ) {
                 case NONE:
                     // next: deviceReady(..)
@@ -334,13 +337,13 @@ public class DBTPeripheral00 {
 
         @Override
         public void deviceReady(final BTDevice device, final long timestamp) {
-            BTUtils.println(System.err, "****** READY-1: NOP " + device.toString());
+            PrintUtil.println(System.err, "****** READY-1: NOP " + device.toString());
         }
 
         @Override
         public void deviceDisconnected(final BTDevice device, final HCIStatusCode reason, final short handle, final long timestamp) {
             servedConnections++;
-            BTUtils.println(System.err, "****** DISCONNECTED (count "+servedConnections+"): Reason "+reason+", old handle 0x"+Integer.toHexString(handle)+": "+device+" on "+device.getAdapter());
+            PrintUtil.println(System.err, "****** DISCONNECTED (count "+servedConnections+"): Reason "+reason+", old handle 0x"+Integer.toHexString(handle)+": "+device+" on "+device.getAdapter());
             final boolean match = matches(device);
             if( match ) {
                 setDevice(null);
@@ -389,15 +392,15 @@ public class DBTPeripheral00 {
                     final BTDevice connectedDevice_ = getDevice();
                     if( null != connectedDevice_ && connectedDevice_.getConnected() ) {
                         if( 0 != handlePulseDataNotify || 0 != handlePulseDataIndicate ) {
-                            final String data = String.format("Dynamic Data Example. Elapsed Milliseconds: %,9d", BTUtils.elapsedTimeMillis());
+                            final String data = String.format("Dynamic Data Example. Elapsed Milliseconds: %,9d", Clock.elapsedTimeMillis());
                             final byte[] v = data.getBytes(StandardCharsets.UTF_8);
                             if( 0 != handlePulseDataNotify ) {
                                 final boolean res = connectedDevice_.sendNotification(handlePulseDataNotify, v);
-                                BTUtils.fprintf_td(System.err, "****** GATT::sendNotification: PULSE (res %b) to %s\n", res, connectedDevice_.toString());
+                                PrintUtil.fprintf_td(System.err, "****** GATT::sendNotification: PULSE (res %b) to %s\n", res, connectedDevice_.toString());
                             }
                             if( 0 != handlePulseDataIndicate ) {
                                 final boolean res = connectedDevice_.sendIndication(handlePulseDataIndicate, v);
-                                BTUtils.fprintf_td(System.err, "****** GATT::sendIndication: PULSE (res %b) to %s\n", res, connectedDevice_.toString());
+                                PrintUtil.fprintf_td(System.err, "****** GATT::sendIndication: PULSE (res %b) to %s\n", res, connectedDevice_.toString());
                             }
                         }
                     }
@@ -417,13 +420,13 @@ public class DBTPeripheral00 {
                 if( 0 != handleResponseDataNotify || 0 != handleResponseDataIndicate ) {
                     if( 0 != handleResponseDataNotify ) {
                         final boolean res = connectedDevice_.sendNotification(handleResponseDataNotify, data);
-                        BTUtils.fprintf_td(System.err, "****** GATT::sendNotification (res %b): %s to %s\n",
-                                res, BTUtils.bytesHexString(data, 0, data.length, true /* lsb */), connectedDevice_.toString());
+                        PrintUtil.fprintf_td(System.err, "****** GATT::sendNotification (res %b): %s to %s\n",
+                                res, BasicTypes.bytesHexString(data, 0, data.length, true /* lsb */), connectedDevice_.toString());
                     }
                     if( 0 != handleResponseDataIndicate ) {
                         final boolean res = connectedDevice_.sendIndication(handleResponseDataIndicate, data);
-                        BTUtils.fprintf_td(System.err, "****** GATT::sendIndication (res %b): %s to %s\n",
-                                res, BTUtils.bytesHexString(data, 0, data.length, true /* lsb */), connectedDevice_.toString());
+                        PrintUtil.fprintf_td(System.err, "****** GATT::sendIndication (res %b): %s to %s\n",
+                                res, BasicTypes.bytesHexString(data, 0, data.length, true /* lsb */), connectedDevice_.toString());
                     }
                 }
             }
@@ -449,7 +452,7 @@ public class DBTPeripheral00 {
         @Override
         public void connected(final BTDevice device, final int initialMTU) {
             final boolean match = matches(device);
-            BTUtils.fprintf_td(System.err, "****** GATT::connected(match %b): initMTU %d, %s\n",
+            PrintUtil.fprintf_td(System.err, "****** GATT::connected(match %b): initMTU %d, %s\n",
                     match, initialMTU, device.toString());
             if( match ) {
                 synchronized( sync_lock ) {
@@ -461,7 +464,7 @@ public class DBTPeripheral00 {
         @Override
         public void disconnected(final BTDevice device) {
             final boolean match = matches(device);
-            BTUtils.fprintf_td(System.err, "****** GATT::disconnected(match %b): %s\n", match, device.toString());
+            PrintUtil.fprintf_td(System.err, "****** GATT::disconnected(match %b): %s\n", match, device.toString());
             if( match ) {
                 clear();
             }
@@ -470,7 +473,7 @@ public class DBTPeripheral00 {
         @Override
         public void mtuChanged(final BTDevice device, final int mtu) {
             final boolean match = matches(device);
-            BTUtils.fprintf_td(System.err, "****** GATT::mtuChanged(match %b): %d -> %d, %s\n",
+            PrintUtil.fprintf_td(System.err, "****** GATT::mtuChanged(match %b): %d -> %d, %s\n",
                     match, match ? (int)usedMTU : 0, mtu, device.toString());
             if( match ) {
                 synchronized( sync_lock ) {
@@ -482,7 +485,7 @@ public class DBTPeripheral00 {
         @Override
         public boolean readCharValue(final BTDevice device, final DBGattService s, final DBGattChar c) {
             final boolean match = matches(device);
-            BTUtils.fprintf_td(System.err, "****** GATT::readCharValue(match %b): to %s, from\n  %s\n    %s\n",
+            PrintUtil.fprintf_td(System.err, "****** GATT::readCharValue(match %b): to %s, from\n  %s\n    %s\n",
                     match, device.toString(), s.toString(), c.toString());
             return match;
         }
@@ -490,7 +493,7 @@ public class DBTPeripheral00 {
         @Override
         public boolean readDescValue(final BTDevice device, final DBGattService s, final DBGattChar c, final DBGattDesc d) {
             final boolean match = matches(device);
-            BTUtils.fprintf_td(System.err, "****** GATT::readDescValue(match %b): to %s, from\n  %s\n    %s\n      %s\n",
+            PrintUtil.fprintf_td(System.err, "****** GATT::readDescValue(match %b): to %s, from\n  %s\n    %s\n      %s\n",
                     match, device.toString(), s.toString(), c.toString(), d.toString());
             return match;
         }
@@ -498,9 +501,9 @@ public class DBTPeripheral00 {
         @Override
         public boolean writeCharValue(final BTDevice device, final DBGattService s, final DBGattChar c, final byte[] value, final int value_offset) {
             final boolean match = matches(device);
-            final String value_s = BTUtils.bytesHexString(value, 0, value.length, true /* lsbFirst */)+
+            final String value_s = BasicTypes.bytesHexString(value, 0, value.length, true /* lsbFirst */)+
                                    " '"+BTUtils.decodeUTF8String(value, 0, value.length)+"'";
-            BTUtils.fprintf_td(System.err, "****** GATT::writeCharValue(match %b): %s @ %d from %s, to\n  %s\n    %s\n",
+            PrintUtil.fprintf_td(System.err, "****** GATT::writeCharValue(match %b): %s @ %d from %s, to\n  %s\n    %s\n",
                     match, value_s, value_offset,
                     device.toString(), s.toString(), c.toString());
 
@@ -511,7 +514,7 @@ public class DBTPeripheral00 {
         public void writeCharValueDone(final BTDevice device, final DBGattService s, final DBGattChar c) {
             final boolean match = matches(device);
             final DBGattValue value = c.getValue();
-            BTUtils.fprintf_td(System.err, "****** GATT::writeCharValueDone(match %b): From %s, to\n  %s\n    %s\n    Char-Value: %s\n",
+            PrintUtil.fprintf_td(System.err, "****** GATT::writeCharValueDone(match %b): From %s, to\n  %s\n    %s\n    Char-Value: %s\n",
                     match, device.toString(), s.toString(), c.toString(), value.toString());
 
             if( match &&
@@ -527,9 +530,9 @@ public class DBTPeripheral00 {
                                       final byte[] value, final int value_offset)
         {
             final boolean match = matches(device);
-            final String value_s = BTUtils.bytesHexString(value, 0, value.length, true /* lsbFirst */)+
+            final String value_s = BasicTypes.bytesHexString(value, 0, value.length, true /* lsbFirst */)+
                                    " '"+BTUtils.decodeUTF8String(value, 0, value.length)+"'";
-            BTUtils.fprintf_td(System.err, "****** GATT::writeDescValue(match %b): %s @ %d from %s\n  %s\n    %s\n      %s\n",
+            PrintUtil.fprintf_td(System.err, "****** GATT::writeDescValue(match %b): %s @ %d from %s\n  %s\n    %s\n      %s\n",
                     match, value_s, value_offset,
                     device.toString(), s.toString(), c.toString(), d.toString());
             return match;
@@ -539,7 +542,7 @@ public class DBTPeripheral00 {
         public void writeDescValueDone(final BTDevice device, final DBGattService s, final DBGattChar c, final DBGattDesc d) {
             final boolean match = matches(device);
             final DBGattValue value = d.getValue();
-            BTUtils.fprintf_td(System.err, "****** GATT::writeDescValueDone(match %b): From %s\n  %s\n    %s\n      %s\n      Desc-Value: %s\n",
+            PrintUtil.fprintf_td(System.err, "****** GATT::writeDescValueDone(match %b): From %s\n  %s\n    %s\n      %s\n      Desc-Value: %s\n",
                     match, device.toString(), s.toString(), c.toString(), d.toString(), value.toString());
         }
 
@@ -549,7 +552,7 @@ public class DBTPeripheral00 {
         {
             final boolean match = matches(device);
             final DBGattValue value = d.getValue();
-            BTUtils.fprintf_td(System.err, "****** GATT::clientCharConfigChanged(match %b): notify %b, indicate %b from %s\n  %s\n    %s\n      %s\n      Desc-Value: %s\n",
+            PrintUtil.fprintf_td(System.err, "****** GATT::clientCharConfigChanged(match %b): notify %b, indicate %b from %s\n  %s\n    %s\n      %s\n      Desc-Value: %s\n",
                     match, notificationEnabled, indicationEnabled,
                     device.toString(), s.toString(), c.toString(), d.toString(), value.toString());
 
@@ -578,17 +581,17 @@ public class DBTPeripheral00 {
 
     private boolean stopAdvertising(final BTAdapter adapter, final String msg) {
         if( !useAdapter.equals(EUI48.ALL_DEVICE) && !useAdapter.equals(adapter.getAddressAndType().address) ) {
-            BTUtils.fprintf_td(System.err, "****** Stop advertising (%s): Adapter not selected: %s\n", msg, adapter.toString());
+            PrintUtil.fprintf_td(System.err, "****** Stop advertising (%s): Adapter not selected: %s\n", msg, adapter.toString());
             return false;
         }
         final HCIStatusCode status = adapter.stopAdvertising();
-        BTUtils.println(System.err, "****** Stop advertising ("+msg+") result: "+status+": "+adapter.toString());
+        PrintUtil.println(System.err, "****** Stop advertising ("+msg+") result: "+status+": "+adapter.toString());
         return HCIStatusCode.SUCCESS == status;
     }
 
     private boolean startAdvertising(final BTAdapter adapter, final String msg) {
         if( !useAdapter.equals(EUI48.ALL_DEVICE) && !useAdapter.equals(adapter.getAddressAndType().address) ) {
-            BTUtils.fprintf_td(System.err, "****** Start advertising (%s): Adapter not selected: %s\n", msg, adapter.toString());
+            PrintUtil.fprintf_td(System.err, "****** Start advertising (%s): Adapter not selected: %s\n", msg, adapter.toString());
             return false;
         }
         final EInfoReport eir = new EInfoReport();
@@ -616,19 +619,19 @@ public class DBTPeripheral00 {
             gattDevNameChar.setValue(aname_bytes, 0, aname_bytes.length, 0);
         }
 
-        BTUtils.println(System.err, "****** Start advertising ("+msg+"): EIR "+eir.toString());
-        BTUtils.println(System.err, "****** Start advertising ("+msg+"): adv "+adv_mask.toString()+", scanrsp "+scanrsp_mask.toString());
+        PrintUtil.println(System.err, "****** Start advertising ("+msg+"): EIR "+eir.toString());
+        PrintUtil.println(System.err, "****** Start advertising ("+msg+"): adv "+adv_mask.toString()+", scanrsp "+scanrsp_mask.toString());
 
         final HCIStatusCode status = adapter.startAdvertising(dbGattServer, eir, adv_mask, scanrsp_mask,
                                                               adv_interval_min, adv_interval_max,
                                                               adv_type, adv_chan_map, filter_policy);
-        BTUtils.println(System.err, "****** Start advertising ("+msg+") result: "+status+": "+adapter.toString());
-        BTUtils.println(System.err, dbGattServer.toFullString());
+        PrintUtil.println(System.err, "****** Start advertising ("+msg+") result: "+status+": "+adapter.toString());
+        PrintUtil.println(System.err, dbGattServer.toFullString());
         return HCIStatusCode.SUCCESS == status;
     }
 
     private void processDisconnectedDevice(final BTDevice device) {
-        BTUtils.println(System.err, "****** Disconnected Device (count "+servedConnections+"): Start "+device.toString());
+        PrintUtil.println(System.err, "****** Disconnected Device (count "+servedConnections+"): Start "+device.toString());
 
         // already unpaired
         stopAdvertising(device.getAdapter(), "device-disconnected");
@@ -642,43 +645,43 @@ public class DBTPeripheral00 {
             startAdvertising(device.getAdapter(), "device-disconnected");
         }
 
-        BTUtils.println(System.err, "****** Disonnected Device: End "+device.toString());
+        PrintUtil.println(System.err, "****** Disonnected Device: End "+device.toString());
     }
 
     private boolean initAdapter(final BTAdapter adapter) {
         if( !useAdapter.equals(EUI48.ALL_DEVICE) && !useAdapter.equals(adapter.getAddressAndType().address) ) {
-            BTUtils.fprintf_td(System.err, "initAdapter: Adapter not selected: %s\n", adapter.toString());
+            PrintUtil.fprintf_td(System.err, "initAdapter: Adapter not selected: %s\n", adapter.toString());
             return false;
         }
         if( !adapter.isInitialized() ) {
             // Initialize with defaults and power-on
             final HCIStatusCode status = adapter.initialize( btMode );
             if( HCIStatusCode.SUCCESS != status ) {
-                BTUtils.fprintf_td(System.err, "initAdapter: initialization failed: %s: %s\n",
+                PrintUtil.fprintf_td(System.err, "initAdapter: initialization failed: %s: %s\n",
                         status.toString(), adapter.toString());
                 return false;
             }
         } else if( !adapter.setPowered( true ) ) {
-            BTUtils.fprintf_td(System.err, "initAdapter: setPower.1 on failed: %s\n", adapter.toString());
+            PrintUtil.fprintf_td(System.err, "initAdapter: setPower.1 on failed: %s\n", adapter.toString());
             return false;
         }
         // adapter is powered-on
-        BTUtils.println(System.err, "initAdapter.1: "+adapter.toString());
+        PrintUtil.println(System.err, "initAdapter.1: "+adapter.toString());
 
         if( adapter.setPowered(false) ) {
             HCIStatusCode status = adapter.setName(adapter_name, adapter_short_name);
             if( HCIStatusCode.SUCCESS == status ) {
-                BTUtils.fprintf_td(System.err, "initAdapter: setLocalName OK: %s\n", adapter.toString());
+                PrintUtil.fprintf_td(System.err, "initAdapter: setLocalName OK: %s\n", adapter.toString());
             } else {
-                BTUtils.fprintf_td(System.err, "initAdapter: setLocalName failed: %s\n", adapter.toString());
+                PrintUtil.fprintf_td(System.err, "initAdapter: setLocalName failed: %s\n", adapter.toString());
                 return false;
             }
 
             status = adapter.setSecureConnections( use_SC );
             if( HCIStatusCode.SUCCESS == status ) {
-                BTUtils.fprintf_td(System.err, "initAdapter: setSecureConnections OK: %s\n", adapter.toString());
+                PrintUtil.fprintf_td(System.err, "initAdapter: setSecureConnections OK: %s\n", adapter.toString());
             } else {
-                BTUtils.fprintf_td(System.err, "initAdapter: setSecureConnections failed: %s\n", adapter.toString());
+                PrintUtil.fprintf_td(System.err, "initAdapter: setSecureConnections failed: %s\n", adapter.toString());
                 return false;
             }
 
@@ -688,32 +691,32 @@ public class DBTPeripheral00 {
             final short supervision_timeout = 50; // 500ms
             status = adapter.setDefaultConnParam(conn_min_interval, conn_max_interval, conn_latency, supervision_timeout);
             if( HCIStatusCode.SUCCESS == status ) {
-                BTUtils.fprintf_td(System.err, "initAdapter: setDefaultConnParam OK: %s\n", adapter.toString());
+                PrintUtil.fprintf_td(System.err, "initAdapter: setDefaultConnParam OK: %s\n", adapter.toString());
             } else if( HCIStatusCode.UNKNOWN_COMMAND == status ) {
-                BTUtils.fprintf_td(System.err, "initAdapter: setDefaultConnParam UNKNOWN_COMMAND (ignored): %s\n", adapter.toString());
+                PrintUtil.fprintf_td(System.err, "initAdapter: setDefaultConnParam UNKNOWN_COMMAND (ignored): %s\n", adapter.toString());
             } else {
-                BTUtils.fprintf_td(System.err, "initAdapter: setDefaultConnParam failed: %s, %s\n", status.toString(), adapter.toString());
+                PrintUtil.fprintf_td(System.err, "initAdapter: setDefaultConnParam failed: %s, %s\n", status.toString(), adapter.toString());
                 return false;
             }
 
             if( !adapter.setPowered( true ) ) {
-                BTUtils.fprintf_td(System.err, "initAdapter: setPower.2 on failed: %s\n", adapter.toString());
+                PrintUtil.fprintf_td(System.err, "initAdapter: setPower.2 on failed: %s\n", adapter.toString());
                 return false;
             }
         } else {
-            BTUtils.fprintf_td(System.err, "initAdapter: setPowered.2 off failed: %s\n", adapter.toString());
+            PrintUtil.fprintf_td(System.err, "initAdapter: setPowered.2 off failed: %s\n", adapter.toString());
         }
-        BTUtils.println(System.err, "initAdapter.2: "+adapter.toString());
+        PrintUtil.println(System.err, "initAdapter.2: "+adapter.toString());
 
         {
             final LE_Features le_feats = adapter.getLEFeatures();
-            BTUtils.fprintf_td(System.err, "initAdapter: LE_Features %s\n", le_feats.toString());
+            PrintUtil.fprintf_td(System.err, "initAdapter: LE_Features %s\n", le_feats.toString());
         }
         if( adapter.getBTMajorVersion() > 4 ) {
             final LE_PHYs Tx = new LE_PHYs( LE_PHYs.PHY.LE_2M );
             final LE_PHYs Rx = new LE_PHYs( LE_PHYs.PHY.LE_2M );
             final HCIStatusCode res = adapter.setDefaultLE_PHY(Tx, Rx);
-            BTUtils.fprintf_td(System.err, "initAdapter: Set Default LE PHY: status %s: Tx %s, Rx %s\n",
+            PrintUtil.fprintf_td(System.err, "initAdapter: Set Default LE PHY: status %s: Tx %s, Rx %s\n",
                                 res.toString(), Tx.toString(), Rx.toString());
         }
         adapter.setSMPKeyPath(DBTConstants.SERVER_KEY_PATH);
@@ -738,12 +741,12 @@ public class DBTPeripheral00 {
                     if( null == chosenAdapter ) {
                         if( initAdapter( adapter ) ) {
                             chosenAdapter = adapter;
-                            BTUtils.println(System.err, "****** Adapter ADDED__: InitOK: " + adapter);
+                            PrintUtil.println(System.err, "****** Adapter ADDED__: InitOK: " + adapter);
                         } else {
-                            BTUtils.println(System.err, "****** Adapter ADDED__: Ignored: " + adapter);
+                            PrintUtil.println(System.err, "****** Adapter ADDED__: Ignored: " + adapter);
                         }
                     } else {
-                        BTUtils.println(System.err, "****** Adapter ADDED__: Ignored (other): " + adapter);
+                        PrintUtil.println(System.err, "****** Adapter ADDED__: Ignored (other): " + adapter);
                     }
                 }
 
@@ -751,17 +754,17 @@ public class DBTPeripheral00 {
                 public void adapterRemoved(final BTAdapter adapter) {
                     if( null != chosenAdapter && adapter == chosenAdapter ) {
                         chosenAdapter = null;
-                        BTUtils.println(System.err, "****** Adapter REMOVED: " + adapter);
+                        PrintUtil.println(System.err, "****** Adapter REMOVED: " + adapter);
                     } else {
-                        BTUtils.println(System.err, "****** Adapter REMOVED (other): " + adapter);
+                        PrintUtil.println(System.err, "****** Adapter REMOVED (other): " + adapter);
                     }
                 }
     };
 
     public void runTest(final BTManager manager) {
-        timestamp_t0 = BTUtils.currentTimeMillis();
+        timestamp_t0 = Clock.currentTimeMillis();
 
-        BTUtils.println(System.err, "****** Test Start");
+        PrintUtil.println(System.err, "****** Test Start");
 
         final MyGATTServerListener listener = new MyGATTServerListener();
         dbGattServer.addListener( listener );
@@ -776,18 +779,18 @@ public class DBTPeripheral00 {
             }
         }
 
-        BTUtils.println(System.err, "****** Shutdown.01 (DBGattServer.remove-listener)");
+        PrintUtil.println(System.err, "****** Shutdown.01 (DBGattServer.remove-listener)");
         dbGattServer.removeListener( listener );
 
-        BTUtils.println(System.err, "****** Test Shutdown.02 (listener.close)");
+        PrintUtil.println(System.err, "****** Test Shutdown.02 (listener.close)");
         listener.close();
 
-        BTUtils.println(System.err, "****** Test Shutdown.03 (DBGattServer.close)");
+        PrintUtil.println(System.err, "****** Test Shutdown.03 (DBGattServer.close)");
         dbGattServer.close();
 
         // chosenAdapter = null;
 
-        BTUtils.println(System.err, "****** Test End");
+        PrintUtil.println(System.err, "****** Test End");
     }
 
     public static void main(final String[] args) throws InterruptedException {
@@ -823,9 +826,9 @@ public class DBTPeripheral00 {
             System.exit(-1);
             return;
         }
-        BTUtils.println(System.err, "Direct-BT BluetoothManager initialized!");
-        BTUtils.println(System.err, "Direct-BT Native Version "+BTFactory.getNativeVersion()+" (API "+BTFactory.getNativeAPIVersion()+")");
-        BTUtils.println(System.err, "Direct-BT Java Version "+BTFactory.getImplVersion()+" (API "+BTFactory.getAPIVersion()+")");
+        PrintUtil.println(System.err, "Direct-BT BluetoothManager initialized!");
+        PrintUtil.println(System.err, "Direct-BT Native Version "+BTFactory.getNativeVersion()+" (API "+BTFactory.getNativeAPIVersion()+")");
+        PrintUtil.println(System.err, "Direct-BT Java Version "+BTFactory.getImplVersion()+" (API "+BTFactory.getAPIVersion()+")");
 
         final DBTPeripheral00 test = new DBTPeripheral00();
 
@@ -858,7 +861,7 @@ public class DBTPeripheral00 {
                     test.RUN_ONLY_ONCE = true;
                 }
             }
-            BTUtils.println(System.err, "Run with '[-btmode LE|BREDR|DUAL] [-use_sc 0|1] "+
+            PrintUtil.println(System.err, "Run with '[-btmode LE|BREDR|DUAL] [-use_sc 0|1] "+
                     "[-adapter <adapter_address>] "+
                     "[-name <adapter_name>] "+
                     "[-short_name <adapter_short_name>] "+
@@ -875,18 +878,18 @@ public class DBTPeripheral00 {
                     "[-shutdown <int>]'");
         }
 
-        BTUtils.println(System.err, "SHOW_UPDATE_EVENTS "+test.SHOW_UPDATE_EVENTS);
-        BTUtils.println(System.err, "adapter "+test.useAdapter);
-        BTUtils.println(System.err, "adapter btmode "+test.btMode.toString());
-        BTUtils.println(System.err, "adapter SC "+test.use_SC);
-        BTUtils.fprintf_td(System.err, "name %s (short %s)\n", test.adapter_name, test.adapter_short_name);
-        BTUtils.println(System.err, "adapter mtu "+test.dbGattServer.getMaxAttMTU());
-        BTUtils.println(System.err, "adapter sec_level "+test.adapter_sec_level);
-        BTUtils.println(System.err, "once "+test.RUN_ONLY_ONCE);
-        BTUtils.println(System.err, "GattServer "+test.dbGattServer.toString());
+        PrintUtil.println(System.err, "SHOW_UPDATE_EVENTS "+test.SHOW_UPDATE_EVENTS);
+        PrintUtil.println(System.err, "adapter "+test.useAdapter);
+        PrintUtil.println(System.err, "adapter btmode "+test.btMode.toString());
+        PrintUtil.println(System.err, "adapter SC "+test.use_SC);
+        PrintUtil.fprintf_td(System.err, "name %s (short %s)\n", test.adapter_name, test.adapter_short_name);
+        PrintUtil.println(System.err, "adapter mtu "+test.dbGattServer.getMaxAttMTU());
+        PrintUtil.println(System.err, "adapter sec_level "+test.adapter_sec_level);
+        PrintUtil.println(System.err, "once "+test.RUN_ONLY_ONCE);
+        PrintUtil.println(System.err, "GattServer "+test.dbGattServer.toString());
 
         if( waitForEnter ) {
-            BTUtils.println(System.err, "Press ENTER to continue\n");
+            PrintUtil.println(System.err, "Press ENTER to continue\n");
             try{ System.in.read();
             } catch(final Exception e) { }
         }

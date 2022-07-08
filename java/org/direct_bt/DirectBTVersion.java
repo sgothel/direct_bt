@@ -38,6 +38,7 @@ import java.util.jar.Manifest;
 import java.util.regex.Pattern;
 
 import org.jau.base.JaulibVersion;
+import org.jau.io.PrintUtil;
 import org.jau.pkg.TempJarSHASum;
 import org.jau.sec.SHASum;
 import org.jau.util.JauVersion;
@@ -59,17 +60,17 @@ public class DirectBTVersion extends JauVersion {
     public static final void printVersionInfo(final PrintStream out) {
         BTFactory.initDirectBTLibrary();
 
-        BTUtils.println(out, "BTFactory: Jaulib: Available "+BTFactory.JAULIB_AVAILABLE+", JarCache in use "+BTFactory.JAULIB_JARCACHE_USED);
+        PrintUtil.println(out, "BTFactory: Jaulib: Available "+BTFactory.JAULIB_AVAILABLE+", JarCache in use "+BTFactory.JAULIB_JARCACHE_USED);
         if( BTFactory.JAULIB_AVAILABLE ) {
             out.println(VersionUtil.getPlatformInfo());
-            BTUtils.println(out, "Version Info:");
+            PrintUtil.println(out, "Version Info:");
             final DirectBTVersion v = DirectBTVersion.getInstance();
             out.println(v.toString());
-            BTUtils.println(out, "");
-            BTUtils.println(out, "Full Manifest:");
+            PrintUtil.println(out, "");
+            PrintUtil.println(out, "Full Manifest:");
             out.println(v.getFullManifestInfo(null).toString());
         } else {
-            BTUtils.println(out, "Full Manifest:");
+            PrintUtil.println(out, "Full Manifest:");
             final Manifest manifest = BTFactory.getManifest(BTFactory.class.getClassLoader(), new String[] { "org.direct_bt" } );
             final Attributes attr = manifest.getMainAttributes();
             final Set<Object> keys = attr.keySet();
@@ -86,8 +87,8 @@ public class DirectBTVersion extends JauVersion {
             out.println(sb.toString());
         }
 
-        BTUtils.println(out, "Direct-BT Native Version "+BTFactory.getNativeVersion()+" (API "+BTFactory.getNativeAPIVersion()+")");
-        BTUtils.println(out, "Direct-BT Java Version   "+BTFactory.getImplVersion()+" (API "+BTFactory.getAPIVersion()+")");
+        PrintUtil.println(out, "Direct-BT Native Version "+BTFactory.getNativeVersion()+" (API "+BTFactory.getNativeAPIVersion()+")");
+        PrintUtil.println(out, "Direct-BT Java Version   "+BTFactory.getImplVersion()+" (API "+BTFactory.getAPIVersion()+")");
     }
 
     protected DirectBTVersion(final String packageName, final Manifest mf) {

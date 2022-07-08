@@ -25,6 +25,8 @@
 
 package org.direct_bt;
 
+import org.jau.util.BasicTypes;
+
 /**
  * SMP Long Term Key, used for platform agnostic persistence.
  * <p>
@@ -207,9 +209,9 @@ public class SMPLongTermKey {
     @Override
     public String toString() { // hex-fmt aligned with btmon
         return "LTK[props "+properties.toString()+", enc_size "+enc_size+
-               ", ediv "+BTUtils.bytesHexString(ediv, 0, -1, false /* lsbFirst */)+
-               ", rand "+BTUtils.bytesHexString(rand, 0, -1, false /* lsbFirst */)+
-               ", ltk "+BTUtils.bytesHexString(ltk, 0, -1, true /* lsbFirst */)+
+               ", ediv "+BasicTypes.bytesHexString(ediv, 0, -1, false /* lsbFirst */)+
+               ", rand "+BasicTypes.bytesHexString(rand, 0, -1, false /* lsbFirst */)+
+               ", ltk "+BasicTypes.bytesHexString(ltk, 0, -1, true /* lsbFirst */)+
                ", valid "+isValid()+
                "]";
     }
