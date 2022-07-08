@@ -492,6 +492,12 @@ from the year 2016.
 
 * TODO
 
+**2.8.0**
+* Misc cleanup and adoption of jaulib v0.14.0
+* Support Ubuntu 22.04 and 20.04
+* C++: Shorten `is*Set()` -> `is_set()`, fix test requiring all bits set to `bit == ( mask & bit )`
+* Fix bringup tests (C++, Java): They run w/o elevated permissions, hence don't toggle state and require nothing
+
 **2.7.0**
 * `AdapterstatusListener::deviceFound()` is only called if not already connected and if initially found.
 * Use `noexcept` where possible
