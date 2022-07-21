@@ -11,6 +11,7 @@ The following **platforms** are tested and hence supported
 
 **Debian 12 Bookworm (GNU/Linux)**
 - linux 5.18
+- glibc 2.33
 - compiler
   - gcc 11.3.0
   - clang 13.0.1
@@ -20,6 +21,7 @@ The following **platforms** are tested and hence supported
 
 **Debian 11 Bullseye (GNU/Linux)**
 - linux 5.10
+- glibc 2.31
 - compiler
   - gcc 10.2.1
   - clang 11.0.1
@@ -31,7 +33,8 @@ The following **platforms** are tested and hence supported
 
 **Debian 10 Buster (GNU/Linux)**
 - *deprecated*
-- linux 4.19
+- linux 4.19 (amd64), 5.10 (raspi)
+- glibc 2.28
 - compiler
   - gcc 8.3.0
   - openjdk 11
@@ -43,6 +46,7 @@ The following **platforms** are tested and hence supported
 
 **Ubuntu 22.04 (GNU/Linux)**
 - linux 5.15
+- glibc 2.35
 - compiler
   - gcc 11.2.0
   - clang 14.0.0
@@ -52,6 +56,7 @@ The following **platforms** are tested and hence supported
 
 **Ubuntu 20.04 (GNU/Linux)**
 - linux 5.4
+- glibc 2.31
 - compiler
   - gcc 9.4.0
   - clang 10.0.0
