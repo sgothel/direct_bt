@@ -214,7 +214,7 @@ std::string SMPKeyBin::toString() const noexcept {
            "], ";
     {
         jau::fraction_timespec t0( ts_creation_sec, 0 );
-        res += t0.to_iso8601_string(true);
+        res += t0.to_iso8601_string();
     }
     res += ", valid "+std::to_string( isValid() )+"]";
     return res;
@@ -252,12 +252,12 @@ bool SMPKeyBin::write(const std::string& path, const bool overwrite) const noexc
     if( fname_stat.exists() ) {
         if( fname_stat.is_file() && overwrite ) {
             if( !remove_impl(fname) ) {
-                jau::fprintf_td(stderr, "Write SMPKeyBin: Failed deletion of existing file %s, %s\n", fname_stat.to_string(true).c_str(), toString().c_str());
+                jau::fprintf_td(stderr, "Write SMPKeyBin: Failed deletion of existing file %s, %s\n", fname_stat.to_string().c_str(), toString().c_str());
                 return false;
             }
         } else {
             if( verbose ) {
-                jau::fprintf_td(stderr, "Write SMPKeyBin: Not overwriting existing %s, %s\n", fname_stat.to_string(true).c_str(), toString().c_str());
+                jau::fprintf_td(stderr, "Write SMPKeyBin: Not overwriting existing %s, %s\n", fname_stat.to_string().c_str(), toString().c_str());
             }
             return false;
         }
@@ -265,7 +265,7 @@ bool SMPKeyBin::write(const std::string& path, const bool overwrite) const noexc
     std::ofstream file(fname, std::ios::out | std::ios::binary);
 
     if ( !file.good() || !file.is_open() ) {
-        jau::fprintf_td(stderr, "Write SMPKeyBin: Failed: File not open %s: %s\n", fname_stat.to_string(true).c_str(), toString().c_str());
+        jau::fprintf_td(stderr, "Write SMPKeyBin: Failed: File not open %s: %s\n", fname_stat.to_string().c_str(), toString().c_str());
         file.close();
         return false;
     }
