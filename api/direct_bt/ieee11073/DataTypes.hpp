@@ -33,11 +33,6 @@
 #include <vector>
 #include <cmath>
 
-extern "C" {
-    #include <endian.h>
-    #include <byteswap.h>
-}
-
 /**
  * IEEE11073 Data Types
  * <p>

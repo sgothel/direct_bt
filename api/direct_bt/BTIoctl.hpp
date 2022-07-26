@@ -82,8 +82,6 @@
 
 extern "C" {
     #include <stdint.h>
-    #include <endian.h>
-    #include <byteswap.h>
     #include <netinet/in.h> // Already exported named by OS
 } /* extern "C" */
 

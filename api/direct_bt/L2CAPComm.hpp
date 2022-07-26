@@ -40,6 +40,10 @@
 
 #include "BTTypes0.hpp"
 
+extern "C" {
+    #include <pthread.h>
+}
+
 /**
  * - - - - - - - - - - - - - - -
  *
@@ -224,8 +228,8 @@ namespace direct_bt {
             std::recursive_mutex mtx_write;
             BDAddressAndType remoteAddressAndType;
             std::atomic<bool> has_ioerror;  // reflects state
-            std::atomic<pthread_t> tid_connect;
-            std::atomic<pthread_t> tid_read;
+            std::atomic<::pthread_t> tid_connect;
+            std::atomic<::pthread_t> tid_read;
 
         public:
             /**
@@ -308,7 +312,7 @@ namespace direct_bt {
      */
     class L2CAPServer : public L2CAPComm {
         private:
-            std::atomic<pthread_t> tid_accept;
+            std::atomic<::pthread_t> tid_accept;
 
         public:
             L2CAPServer(const uint16_t adev_id, const BDAddressAndType& localAddressAndType, const L2CAP_PSM psm, const L2CAP_CID cid) noexcept;

@@ -37,6 +37,10 @@
 
 #include "HCIIoctl.hpp"
 
+extern "C" {
+    #include <pthread.h>
+}
+
 /**
  * - - - - - - - - - - - - - - -
  *
@@ -70,7 +74,7 @@ namespace direct_bt {
             jau::relaxed_atomic_int socket_descriptor; // the hci socket
             jau::sc_atomic_bool interrupted_intern; // for forced disconnect and read interruption via close()
             get_boolean_callback_t is_interrupted_extern; // for forced disconnect and read interruption via external event
-            std::atomic<pthread_t> tid_read;
+            std::atomic<::pthread_t> tid_read;
 
         public:
             /** Constructing a newly opened HCI communication channel instance */

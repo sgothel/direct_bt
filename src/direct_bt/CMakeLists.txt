@@ -8,6 +8,7 @@ set (direct_bt_LIB_INCLUDE_DIRS
 include_directories(
   ${direct_bt_LIB_INCLUDE_DIRS}
   ${CMAKE_CURRENT_BINARY_DIR}
+  ${SYS_INCLUDE_DIRS}
 )
 
 set (direct_bt_LIB_SRCS

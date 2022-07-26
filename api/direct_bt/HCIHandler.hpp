@@ -29,6 +29,7 @@
 #include <cstring>
 #include <string>
 #include <cstdint>
+#include <array>
 
 #include <mutex>
 #include <atomic>

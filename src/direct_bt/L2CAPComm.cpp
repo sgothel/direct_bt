@@ -47,7 +47,13 @@ extern "C" {
     #include <unistd.h>
     #include <sys/socket.h>
     #include <poll.h>
+    #include <pthread.h>
     #include <signal.h>
+
+    #if defined(__FreeBSD__)
+        // FIXME
+        #define SOL_BLUETOOTH   274
+    #endif
 }
 
 using namespace direct_bt;
@@ -91,6 +97,16 @@ std::string L2CAPComm::getStateString(bool isOpen, bool irqed_int, bool irqed_ex
 int L2CAPComm::l2cap_open_dev(const BDAddressAndType & adapterAddressAndType, const L2CAP_PSM psm, const L2CAP_CID cid) noexcept {
     sockaddr_l2 a;
     int fd, err;
+
+#if defined(__linux__)
+    // OK, tested
+#elif defined(__FreeBSD__)
+    // #warning add implementation
+    ABORT("add implementation for FreeBSD");
+#else
+    #warning add implementation
+    ABORT("add implementation");
+#endif
 
     // Create a loose L2CAP socket
     fd = ::socket(AF_BLUETOOTH, // AF_BLUETOOTH == PF_BLUETOOTH
@@ -306,7 +322,7 @@ bool L2CAPClient::open(const BTDevice& device, const BTSecurityLevel sec_level) 
         }
     }
 
-    tid_connect = pthread_self(); // temporary safe tid to allow interruption
+    tid_connect = ::pthread_self(); // temporary safe tid to allow interruption
 
     // actual request to connect to remote device
     bzero((void *)&req, sizeof(req));
@@ -402,16 +418,16 @@ bool L2CAPClient::close() noexcept {
     // interrupt connect() and read(), avoiding prolonged hang
     interrupted_intern = true;
     {
-        pthread_t tid_self = pthread_self();
-        pthread_t _tid_connect = tid_connect;
-        pthread_t _tid_read = tid_read;
+        ::pthread_t tid_self = ::pthread_self();
+        ::pthread_t _tid_connect = tid_connect;
+        ::pthread_t _tid_read = tid_read;
         tid_read = 0;
         tid_connect = 0;
 
         // interrupt read(), avoiding prolonged hang
         if( 0 != _tid_read && tid_self != _tid_read ) {
             int kerr;
-            if( 0 != ( kerr = pthread_kill(_tid_read, SIGALRM) ) ) {
+            if( 0 != ( kerr = ::pthread_kill(_tid_read, SIGALRM) ) ) {
                 ERR_PRINT("L2CAPClient::close: pthread_kill read %p FAILED: %d; dev_id %u, dd %d, %s, psm %s, cid %s; %s",
                           (void*)_tid_read, kerr,
                           adev_id, socket_.load(), remoteAddressAndType.toString().c_str(),
@@ -422,7 +438,7 @@ bool L2CAPClient::close() noexcept {
         // interrupt connect(), avoiding prolonged hang
         if( 0 != _tid_connect && _tid_read != _tid_connect && tid_self != _tid_connect ) {
             int kerr;
-            if( 0 != ( kerr = pthread_kill(_tid_connect, SIGALRM) ) ) {
+            if( 0 != ( kerr = ::pthread_kill(_tid_connect, SIGALRM) ) ) {
                 ERR_PRINT("L2CAPClient::close: Start: pthread_kill connect %p FAILED: %d; dev_id %u, dd %d, %s, psm %s, cid %s; %s",
                           (void*)_tid_connect, kerr,
                           adev_id, socket_.load(), remoteAddressAndType.toString().c_str(),
@@ -523,7 +539,7 @@ jau::snsize_t L2CAPClient::read(uint8_t* buffer, const jau::nsize_t capacity) no
         goto done;
     }
 
-    tid_read = pthread_self(); // temporary safe tid to allow interruption
+    tid_read = ::pthread_self(); // temporary safe tid to allow interruption
 
     if( timeoutMS ) {
         struct pollfd p;
@@ -774,13 +790,13 @@ bool L2CAPServer::close() noexcept {
     // interrupt accept(..), avoiding prolonged hang
     interrupted_intern = true;
     {
-        pthread_t tid_self = pthread_self();
-        pthread_t _tid_accept = tid_accept;
+        ::pthread_t tid_self = ::pthread_self();
+        ::pthread_t _tid_accept = tid_accept;
         tid_accept = 0;
 
         if( 0 != _tid_accept && tid_self != _tid_accept ) {
             int kerr;
-            if( 0 != ( kerr = pthread_kill(_tid_accept, SIGALRM) ) ) {
+            if( 0 != ( kerr = ::pthread_kill(_tid_accept, SIGALRM) ) ) {
                 ERR_PRINT("L2CAPServer::close: Start: pthread_kill connect %p FAILED: %d; dev_id %u, dd %d, psm %s, cid %s, local %s",
                           (void*)_tid_accept, kerr,
                           adev_id, socket_.load(), to_string(psm).c_str(), to_string(cid).c_str(),
@@ -803,7 +819,7 @@ std::unique_ptr<L2CAPClient> L2CAPServer::accept() noexcept {
     sockaddr_l2 peer;
     int to_retry_count=0; // ETIMEDOUT retry count
 
-    tid_accept = pthread_self(); // temporary safe tid to allow interruption
+    tid_accept = ::pthread_self(); // temporary safe tid to allow interruption
 
     if( !is_open_ ) {
         ERR_PRINT("L2CAPServer::accept: Not open: dev_id %u, dd[s %d], errno 0x%X %s, psm %s, cid %s, local %s",

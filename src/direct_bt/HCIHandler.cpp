@@ -982,7 +982,7 @@ HCIStatusCode HCIHandler::startAdapter() {
         return HCIStatusCode::DISCONNECTED;
     }
     const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
-    #ifdef __linux__
+    #if defined(__linux__)
         int res;
         if( ( res = ioctl(comm.socket(), HCIDEVUP, dev_id) ) < 0 ) {
             if (errno != EALREADY) {
@@ -991,8 +991,12 @@ HCIStatusCode HCIHandler::startAdapter() {
             }
         }
         return resetAllStates(true) ? HCIStatusCode::SUCCESS : HCIStatusCode::FAILED;
+    #elif defined(__FreeBSD__)
+        // #warning add implementation
+        ABORT("add implementation for FreeBSD");
     #else
         #warning add implementation
+        ABORT("add implementation");
     #endif
     return HCIStatusCode::INTERNAL_FAILURE;
 }
@@ -1004,7 +1008,7 @@ HCIStatusCode HCIHandler::stopAdapter() {
     }
     const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
     HCIStatusCode status;
-    #ifdef __linux__
+    #if defined(__linux__)
         int res;
         if( ( res = ioctl(comm.socket(), HCIDEVDOWN, dev_id) ) < 0) {
             ERR_PRINT("HCIHandler::stopAdapter(dev_id %d): FAILED: %d - %s", dev_id, res, toString().c_str());
@@ -1012,9 +1016,14 @@ HCIStatusCode HCIHandler::stopAdapter() {
         } else {
             status = HCIStatusCode::SUCCESS;
         }
+    #elif defined(__FreeBSD__)
+        // #warning add implementation
+        status = HCIStatusCode::INTERNAL_FAILURE;
+        ABORT("add implementation for FreeBSD");
     #else
         #warning add implementation
         status = HCIStatusCode::INTERNAL_FAILURE;
+        ABORT("add implementation");
     #endif
     if( HCIStatusCode::SUCCESS == status ) {
         resetAllStates(false);
@@ -1028,12 +1037,16 @@ HCIStatusCode HCIHandler::resetAdapter() {
         return HCIStatusCode::DISCONNECTED;
     }
     const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
-    #ifdef __linux__
+    #if defined(__linux__)
         if( HCIStatusCode::SUCCESS == stopAdapter() && HCIStatusCode::SUCCESS == startAdapter() ) {
             return HCIStatusCode::SUCCESS;
         }
+    #elif defined(__FreeBSD__)
+        // #warning add implementation
+        ABORT("add implementation for FreeBSD");
     #else
         #warning add implementation
+        ABORT("add implementation");
     #endif
     return HCIStatusCode::INTERNAL_FAILURE;
 }

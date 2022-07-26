@@ -49,6 +49,8 @@ extern "C" {
     #include <sys/ioctl.h>
     #include <sys/socket.h>
     #include <poll.h>
+    #include <pthread.h>
+    #include <signal.h>
 }
 
 namespace direct_bt {
@@ -60,13 +62,15 @@ int HCIComm::hci_open_dev(const uint16_t dev_id, const uint16_t channel) noexcep
 	sockaddr_hci * ptr_hci_addr = (sockaddr_hci*)&addr_holder;
 	int fd, err;
 
-	/**
-	 * dev_id is unsigned and hence always >= 0
-	if ( 0 > dev_id ) {
-		errno = ENODEV;
-		ERR_PRINT("hci_open_dev: invalid dev_id");
-		return -1;
-	} */
+#if defined(__linux__)
+    // OK, tested
+#elif defined(__FreeBSD__)
+    // #warning add implementation
+    ABORT("add implementation for FreeBSD");
+#else
+    #warning add implementation
+    ABORT("add implementation");
+#endif
 
 	// Create a loose HCI socket
 	fd = ::socket(AF_BLUETOOTH, SOCK_RAW, BTPROTO_HCI);
@@ -122,13 +126,13 @@ void HCIComm::close() noexcept {
     // interrupt ::read(..) and , avoiding prolonged hang
     interrupted_intern = true;
     {
-        pthread_t _tid_read = tid_read;
+        ::pthread_t _tid_read = tid_read;
         tid_read = 0;
         if( 0 != _tid_read ) {
-            pthread_t tid_self = pthread_self();
+            ::pthread_t tid_self = ::pthread_self();
             if( tid_self != _tid_read ) {
                 int kerr;
-                if( 0 != ( kerr = pthread_kill(_tid_read, SIGALRM) ) ) {
+                if( 0 != ( kerr = ::pthread_kill(_tid_read, SIGALRM) ) ) {
                     ERR_PRINT("HCIComm::close: pthread_kill read %p FAILED: %d", (void*)_tid_read, kerr);
                 }
             }
