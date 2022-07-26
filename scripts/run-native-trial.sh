@@ -13,16 +13,12 @@ sdir=`dirname $(readlink -f $0)`
 rootdir=`dirname $sdir`
 bname=`basename $0 .sh`
 
-. $sdir/setup-machine-arch.sh
+. $rootdir/jaulib/scripts/setup-machine-arch.sh "-quiet"
 
-build_dir=${rootdir}/build-${archabi}
-
-if [ "$1" = "-log" ] ; then
-    logfile=$2
-    shift 2
-else
-    logfile=
-fi
+dist_dir=$rootdir/"dist-$os_name-$archabi"
+build_dir=$rootdir/"build-$os_name-$archabi"
+echo dist_dir $dist_dir
+echo build_dir $build_dir
 
 test_exe=${build_dir}/trial/direct_bt/test_client_server10_NoEnc
 if [ ! -z "$1" ] ; then
@@ -31,11 +27,16 @@ if [ ! -z "$1" ] ; then
 fi
 test_basename=`basename ${test_exe}`
 
-if [ -z "${logfile}" ] ; then
-    logfile=~/${bname}-${test_basename}-${archabi}.log
+if [ "$1" = "-log" ] ; then
+    logbasename=$2
+    shift 2
+else
+    logbasename=$bname-${test_basename}-$os_name-$archabi
 fi
+
+mkdir -p $rootdir/doc/test
+logfile=$rootdir/doc/test/$logbasename.0.log
 rm -f $logfile
-logbasename=`basename ${logfile} .log`
 
 valgrindlogfile=$logbasename-valgrind.log
 rm -f $valgrindlogfile
@@ -43,7 +44,7 @@ rm -f $valgrindlogfile
 callgrindoutfile=$logbasename-callgrind.out
 rm -f $callgrindoutfile
 
-echo 'core_%e.%p' | sudo tee /proc/sys/kernel/core_pattern
+# echo 'core_%e.%p' | sudo tee /proc/sys/kernel/core_pattern
 ulimit -c unlimited
 
 # run as root 'dpkg-reconfigure locales' enable 'en_US.UTF-8'

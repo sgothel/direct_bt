@@ -6,7 +6,7 @@ bname=`basename $0 .sh`
 logfile=$bname.log
 rm -f $logfile
 
-. $sdir/setup-machine-arch.sh
+. $rootdir/jaulib/scripts/setup-machine-arch.sh
 
 if [ -e /usr/lib/jvm/java-17-openjdk-$archabi ] ; then
     export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-$archabi

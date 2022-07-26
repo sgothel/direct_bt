@@ -7,14 +7,6 @@
 # Assuming executing dbt_scanner10:
 #
 
-# Only reliable way, but Linux specific
-THIS_SHELL=`readlink /proc/$$/exe`
-#THIS_SHELL=`ps -hp $$ | awk '{ print $5 }'`
-if [ "$(basename ${THIS_SHELL})" != "bash" ]; then
-    echo "$0 must run in bash to preserve command-line quotes, not ${THIS_SHELL}"
-    exit 1
-fi
-
 script_args="$@"
 
 username=${USER}
@@ -23,19 +15,33 @@ sdir=`dirname $(readlink -f $0)`
 rootdir=`dirname $sdir`
 bname=`basename $0 .sh`
 
-exename=`echo $bname | sed 's/^run-//g'`
+. $rootdir/jaulib/scripts/setup-machine-arch.sh "-quiet"
 
-if [ ! -e bin/${exename} -o ! -e lib/libdirect_bt.so ] ; then
-    echo run from dist directory
+dist_dir=$rootdir/"dist-$os_name-$archabi"
+build_dir=$rootdir/"build-$os_name-$archabi"
+echo dist_dir $dist_dir
+echo build_dir $build_dir
+
+if [ ! -e $dist_dir/bin/$bname ] ; then
+    echo "Not existing $dist_dir/bin/$bname"
     exit 1
 fi
 
-logbasename=~/$bname
-logfile=$logbasename.log
-rm -f $logfile
+if [ ! -e $dist_dir/lib/libdirect_bt.so ] ; then
+    echo "Not existing $dist_dir/lib/libdirect_bt.so"
+    exit 1
+fi
 
-# echo 'core_%e.%p' | sudo tee /proc/sys/kernel/core_pattern >/dev/null
-# ulimit -c unlimited
+if [ "$1" = "-log" ] ; then
+    logbasename=$2
+    shift 2
+else
+    logbasename=$bname-$os_name-$archabi
+fi
+
+mkdir -p $rootdir/doc/test
+logfile=$rootdir/doc/test/$logbasename.0.log
+rm -f $logfile
 
 # run as root 'dpkg-reconfigure locales' enable 'en_US.UTF-8'
 # perhaps run as root 'update-locale LC_MEASUREMENT=en_US.UTF-8 LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8'
@@ -55,9 +61,8 @@ runit() {
     mkdir -p client_keys
     mkdir -p server_keys
 
-    exe_file=$(readlink -f bin/${exename})
     ulimit -c unlimited
-    LD_LIBRARY_PATH=`pwd`/lib ${exe_file} "$@"
+    LD_LIBRARY_PATH=$dist_dir/lib $dist_dir/bin/${bname} "$@"
     exit $?
 }
 

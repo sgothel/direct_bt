@@ -66,14 +66,6 @@
 #     sudo YOUR FANCY direct_bt STUFF
 #
 
-# Only reliable way, but Linux specific
-THIS_SHELL=`readlink /proc/$$/exe`
-#THIS_SHELL=`ps -hp $$ | awk '{ print $5 }'`
-if [ "$(basename ${THIS_SHELL})" != "bash" ]; then
-    echo "$0 must run in bash to preserve command-line quotes, not ${THIS_SHELL}"
-    exit 1
-fi
-
 script_args="$@"
 
 username=${USER}
@@ -82,10 +74,20 @@ sdir=`dirname $(readlink -f $0)`
 rootdir=`dirname $sdir`
 bname=`basename $0 .sh`
 
-exename=`echo $bname | sed 's/^run-//g'`
+. $rootdir/jaulib/scripts/setup-machine-arch.sh "-quiet"
 
-if [ ! -e bin/${exename} -o ! -e lib/libdirect_bt.so ] ; then
-    echo run from dist directory
+dist_dir=$rootdir/"dist-$os_name-$archabi"
+build_dir=$rootdir/"build-$os_name-$archabi"
+echo dist_dir $dist_dir
+echo build_dir $build_dir
+
+if [ ! -e $dist_dir/bin/$bname ] ; then
+    echo "Not existing $dist_dir/bin/$bname"
+    exit 1
+fi
+
+if [ ! -e $dist_dir/lib/libdirect_bt.so ] ; then
+    echo "Not existing $dist_dir/lib/libdirect_bt.so"
     exit 1
 fi
 
@@ -103,10 +105,11 @@ if [ "$1" = "-log" ] ; then
     logbasename=$2
     shift 2
 else
-    logbasename=~/${bname}-${archabi}
+    logbasename=$bname-$os_name-$archabi
 fi
 
-logfile=$logbasename.log
+mkdir -p $rootdir/doc/test
+logfile=$rootdir/doc/test/$logbasename.0.log
 rm -f $logfile
 
 valgrindlogfile=$logbasename-valgrind.log
@@ -115,7 +118,6 @@ rm -f $valgrindlogfile
 callgrindoutfile=$logbasename-callgrind.out
 rm -f $callgrindoutfile
 
-echo 'core_%e.%p' | sudo tee /proc/sys/kernel/core_pattern
 ulimit -c unlimited
 
 # run as root 'dpkg-reconfigure locales' enable 'en_US.UTF-8'
@@ -132,19 +134,19 @@ export LANG=en_US.UTF-8
 
 runit_root() {
     echo "sudo ... ${*@Q}"
-    sudo -- bash -c "ulimit -c unlimited; LD_LIBRARY_PATH=`pwd`/lib $EXE_WRAPPER bin/${exename} ${*@Q}"
+    sudo -- bash -c "ulimit -c unlimited; LD_LIBRARY_PATH=$dist_dir/lib $EXE_WRAPPER $dist_dir/bin/${bname} ${*@Q}"
     exit $?
 }
 
 runit_setcap() {
     echo "sudo setcap ... " "$@"
-    exe_file=$(readlink -f bin/${exename})
+    exe_file=$(readlink -f $dist_dir/bin/${bname})
     echo "sudo setcap 'cap_net_raw,cap_net_admin+eip' ${exe_file}"
     trap 'sudo setcap -q -r '"${exe_file}"'' EXIT INT HUP QUIT TERM ALRM USR1
     sudo setcap 'cap_net_raw,cap_net_admin+eip' ${exe_file}
     sudo getcap ${exe_file}
     ulimit -c unlimited
-    LD_LIBRARY_PATH=`pwd`/lib $EXE_WRAPPER ${exe_file} "$@"
+    LD_LIBRARY_PATH=$dist_dir/lib $EXE_WRAPPER ${exe_file} "$@"
     exit $?
 }
 
@@ -152,17 +154,17 @@ runit_capsh() {
     echo "sudo capsh ... ${*@Q}"
     sudo /sbin/capsh --caps="cap_net_raw,cap_net_admin+eip cap_setpcap,cap_setuid,cap_setgid+ep" \
         --keep=1 --user=$username --addamb=cap_net_raw,cap_net_admin+eip \
-        -- -c "ulimit -c unlimited; LD_LIBRARY_PATH=`pwd`/lib $EXE_WRAPPER bin/${exename} ${*@Q}"
+        -- -c "ulimit -c unlimited; LD_LIBRARY_PATH=$dist_dir/lib $EXE_WRAPPER $dist_dir/bin/${bname} ${*@Q}"
     exit $?
 }
 
 runit() {
     echo "script invocation: $0 ${script_args}"
-    echo exename $exename
+    echo bname $bname
     echo username $username
     echo run_setcap ${run_setcap}
     echo run_root ${run_root}
-    echo ${exename} commandline "$@"
+    echo ${bname} commandline "$@"
     echo EXE_WRAPPER $EXE_WRAPPER
     echo logbasename $logbasename
     echo logfile $logfile
@@ -171,7 +173,7 @@ runit() {
     echo direct_bt_debug $direct_bt_debug
     echo direct_bt_verbose $direct_bt_verbose
 
-    echo LD_LIBRARY_PATH=`pwd`/lib $EXE_WRAPPER bin/${exename} "$@"
+    echo LD_LIBRARY_PATH=$dist_dir/lib $EXE_WRAPPER $dist_dir/bin/${bname} "$@"
     mkdir -p client_keys
     mkdir -p server_keys
 

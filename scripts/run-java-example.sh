@@ -29,9 +29,44 @@ sdir=`dirname $(readlink -f $0)`
 rootdir=`dirname $sdir`
 bname=`basename $0 .sh`
 
-exename=`echo $bname | sed 's/^run-//g'`
+. $rootdir/jaulib/scripts/setup-machine-arch.sh "-quiet"
 
-if [ ! -e lib/java/direct_bt.jar -o ! -e bin/java/${exename}.jar -o ! -e lib/libdirect_bt.so ] ; then
+dist_dir=$rootdir/"dist-$os_name-$archabi"
+build_dir=$rootdir/"build-$os_name-$archabi"
+echo dist_dir $dist_dir
+echo build_dir $build_dir
+
+if [ ! -e $dist_dir/lib/java/direct_bt-test.jar ] ; then
+    echo "test exe $dist_dir/lib/java/direct_bt-test.jar not existing"
+    exit 1
+fi
+
+if [ -z "$JAVA_HOME" -o ! -e "$JAVA_HOME" ] ; then
+    echo "ERROR: JAVA_HOME $JAVA_HOME does not exist"
+    exit 1
+else
+    echo JAVA_HOME $JAVA_HOME
+fi
+if [ -z "$JUNIT_CP" ] ; then
+    echo "ERROR: JUNIT_CP $JUNIT_CP does not exist"
+    exit 1
+else
+    echo JUNIT_CP $JUNIT_CP
+fi
+JAVA_EXE=${JAVA_HOME}/bin/java
+JAVA_CMD="${JAVA_EXE}"
+
+if [ "$1" = "-log" ] ; then
+    logfile=$2
+    shift 2
+else
+    mkdir -p $rootdir/doc/test
+    logfile=$rootdir/doc/test/${bname}-${os_name}-${archabi}.log
+fi
+rm -f $logfile
+logbasename=`basename ${logfile} .log`
+
+if [ ! -e $dist_dir/lib/java/direct_bt.jar -o ! -e $dist_dir/bin/java/${bname}.jar -o ! -e $dist_dir/lib/libdirect_bt.so ] ; then
     echo run from dist directory
     exit 1
 fi
@@ -45,16 +80,6 @@ elif [ "$1" = "-root" ] ; then
     run_root=1
     shift 1
 fi
-
-if [ "$1" = "-log" ] ; then
-    logbasename=$2
-    shift 2
-else
-    logbasename=~/${bname}-${archabi}
-fi
-
-logfile=$logbasename.log
-rm -f $logfile
 
 valgrindlogfile=$logbasename-valgrind.log
 rm -f $valgrindlogfile
@@ -82,7 +107,7 @@ JAVA_CMD="${JAVA_EXE}"
 
 runit_root() {
     echo "sudo ... ${*@Q}"
-    sudo -- bash -c "ulimit -c unlimited; $EXE_WRAPPER $JAVA_CMD $JAVA_PROPS -cp lib/java/direct_bt.jar:bin/java/${exename}.jar -Djava.library.path=`pwd`/lib ${exename} ${*@Q}"
+    sudo -- bash -c "ulimit -c unlimited; $EXE_WRAPPER $JAVA_CMD $JAVA_PROPS -cp $dist_dir/lib/java/direct_bt.jar:$dist_dir/bin/java/${bname}.jar -Djava.library.path=${dist_dir}/lib ${bname} ${*@Q}"
     exit $?
 }
 
@@ -93,7 +118,7 @@ runit_setcap() {
     sudo setcap 'cap_net_raw,cap_net_admin+eip' ${JAVA_EXE}
     sudo getcap ${JAVA_EXE}
     ulimit -c unlimited
-    $EXE_WRAPPER $JAVA_CMD $JAVA_PROPS -cp lib/java/direct_bt.jar:bin/java/${exename}.jar -Djava.library.path=`pwd`/lib ${exename} "$@"
+    $EXE_WRAPPER $JAVA_CMD $JAVA_PROPS -cp $dist_dir/lib/java/direct_bt.jar:$dist_dir/bin/java/${bname}.jar -Djava.library.path=${dist_dir}/lib ${bname} "$@"
     exit $?
 }
 
@@ -101,7 +126,7 @@ runit_capsh() {
     echo "sudo capsh ... ${*@Q}"
     sudo /sbin/capsh --caps="cap_net_raw,cap_net_admin+eip cap_setpcap,cap_setuid,cap_setgid+ep" \
         --keep=1 --user=$username --addamb=cap_net_raw,cap_net_admin+eip \
-        -- -c "ulimit -c unlimited; $EXE_WRAPPER $JAVA_CMD $JAVA_PROPS -cp lib/java/direct_bt.jar:bin/java/${exename}.jar -Djava.library.path=`pwd`/lib ${exename} ${*@Q}"
+        -- -c "ulimit -c unlimited; $EXE_WRAPPER $JAVA_CMD $JAVA_PROPS -cp $dist_dir/lib/java/direct_bt.jar:$dist_dir/bin/java/${bname}.jar -Djava.library.path=${dist_dir}/lib ${bname} ${*@Q}"
     exit $?
 }
 
@@ -110,7 +135,7 @@ runit() {
     echo username $username
     echo run_setcap ${run_setcap}
     echo run_root ${run_root}
-    echo ${exename} commandline "$@"
+    echo ${bname} commandline "$@"
     echo EXE_WRAPPER $EXE_WRAPPER
     echo logbasename $logbasename
     echo logfile $logfile
@@ -119,8 +144,8 @@ runit() {
     echo direct_bt_debug $direct_bt_debug
     echo direct_bt_verbose $direct_bt_verbose
 
-    echo $EXE_WRAPPER $JAVA_CMD -cp lib/java/direct_bt.jar:bin/java/${exename}.jar -Djava.library.path=`pwd`/lib ${exename} $*
-    # $EXE_WRAPPER $JAVA_CMD -cp lib/java/direct_bt.jar:bin/java/${exename}.jar -Djava.library.path=`pwd`/lib ${exename} $*
+    echo $EXE_WRAPPER $JAVA_CMD -cp $dist_dir/lib/java/direct_bt.jar:$dist_dir/bin/java/${bname}.jar -Djava.library.path=${dist_dir}/lib ${bname} $*
+    # $EXE_WRAPPER $JAVA_CMD -cp $dist_dir/lib/java/direct_bt.jar:$dist_dir/bin/java/${bname}.jar -Djava.library.path=${dist_dir}/lib ${bname} $*
     mkdir -p client_keys
     mkdir -p server_keys
 
