@@ -142,7 +142,7 @@ bool BTAdapter::addDevicePausingDiscovery(const BTDeviceRef & device) noexcept {
     }
     if( added_first ) {
         if constexpr ( SCAN_DISABLED_POST_CONNECT ) {
-            updateDeviceDiscoveringState(ScanType::LE, false /* eventEnabled */, true /* off_thread */);
+            updateDeviceDiscoveringState(ScanType::LE, false /* eventEnabled */);
         } else {
             std::thread bg(&BTAdapter::stopDiscoveryImpl, this, false /* forceDiscoveringEvent */, true /* temporary */); // @suppress("Invalid arguments")
             bg.detach();
@@ -1638,20 +1638,20 @@ bool BTAdapter::mgmtEvHCIAnyHCI(const MgmtEvent& e) noexcept {
 
 bool BTAdapter::mgmtEvDeviceDiscoveringHCI(const MgmtEvent& e) noexcept {
     const MgmtEvtDiscovering &event = *static_cast<const MgmtEvtDiscovering *>(&e);
-    return mgmtEvDeviceDiscoveringAny(event.getScanType(), event.getEnabled(), event.getTimestamp(), true /* hciSourced */, true /* off_thread */);
+    return mgmtEvDeviceDiscoveringAny(event.getScanType(), event.getEnabled(), event.getTimestamp(), true /* hciSourced */);
 }
 
 bool BTAdapter::mgmtEvDeviceDiscoveringMgmt(const MgmtEvent& e) noexcept {
     const MgmtEvtDiscovering &event = *static_cast<const MgmtEvtDiscovering *>(&e);
-    return mgmtEvDeviceDiscoveringAny(event.getScanType(), event.getEnabled(), event.getTimestamp(), false /* hciSourced */, true /* off_thread */);
+    return mgmtEvDeviceDiscoveringAny(event.getScanType(), event.getEnabled(), event.getTimestamp(), false /* hciSourced */);
 }
 
-void BTAdapter::updateDeviceDiscoveringState(const ScanType eventScanType, const bool eventEnabled, const bool off_thread) noexcept {
-    mgmtEvDeviceDiscoveringAny(eventScanType, eventEnabled, jau::getCurrentMilliseconds(), false /* hciSourced */, off_thread);
+void BTAdapter::updateDeviceDiscoveringState(const ScanType eventScanType, const bool eventEnabled) noexcept {
+    mgmtEvDeviceDiscoveringAny(eventScanType, eventEnabled, jau::getCurrentMilliseconds(), false /* hciSourced */);
 }
 
 bool BTAdapter::mgmtEvDeviceDiscoveringAny(const ScanType eventScanType, const bool eventEnabled, const uint64_t eventTimestamp,
-                                           const bool hciSourced, const bool off_thread) noexcept {
+                                           const bool hciSourced) noexcept {
     const std::string srctkn = hciSourced ? "hci" : "mgmt";
     ScanType currentNativeScanType = hci.getCurrentScanType();
 
@@ -1712,12 +1712,8 @@ bool BTAdapter::mgmtEvDeviceDiscoveringAny(const ScanType eventScanType, const b
         DiscoveryPolicy::AUTO_OFF != discovery_policy &&
         !hasDevicesPausingDiscovery() )
     {
-        if( off_thread ) {
-            std::thread bg(&BTAdapter::startDiscoveryBackground, this); // @suppress("Invalid arguments")
-            bg.detach();
-        } else {
-            startDiscoveryBackground();
-        }
+        std::thread bg(&BTAdapter::startDiscoveryBackground, this); // @suppress("Invalid arguments")
+        bg.detach();
     }
     return true;
 }
@@ -2081,14 +2077,14 @@ bool BTAdapter::mgmtEvHCILERemoteUserFeaturesHCI(const MgmtEvent& e) noexcept {
             const DiscoveryPolicy policy = discovery_policy;
             if( DiscoveryPolicy::AUTO_OFF == policy ) {
                 if constexpr ( SCAN_DISABLED_POST_CONNECT ) {
-                    updateDeviceDiscoveringState(ScanType::LE, false /* eventEnabled */, true /* off_thread */);
+                    updateDeviceDiscoveringState(ScanType::LE, false /* eventEnabled */);
                 } else {
                     std::thread bg(&BTAdapter::stopDiscoveryImpl, this, false /* forceDiscoveringEvent */, true /* temporary */); // @suppress("Invalid arguments")
                     bg.detach();
                 }
             } else if( DiscoveryPolicy::ALWAYS_ON == policy ) {
                 if constexpr ( SCAN_DISABLED_POST_CONNECT ) {
-                    updateDeviceDiscoveringState(ScanType::LE, false /* eventEnabled */, true /* off_thread */);
+                    updateDeviceDiscoveringState(ScanType::LE, false /* eventEnabled */);
                 } else {
                     std::thread bg(&BTAdapter::startDiscoveryBackground, this); // @suppress("Invalid arguments")
                     bg.detach();

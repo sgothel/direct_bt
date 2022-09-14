@@ -544,9 +544,9 @@ namespace direct_bt {
             bool mgmtEvHCIEncryptionChangedHCI(const MgmtEvent& e) noexcept;
             bool mgmtEvHCIEncryptionKeyRefreshCompleteHCI(const MgmtEvent& e) noexcept;
 
-            void updateDeviceDiscoveringState(const ScanType eventScanType, const bool eventEnabled, const bool off_thread) noexcept;
+            void updateDeviceDiscoveringState(const ScanType eventScanType, const bool eventEnabled) noexcept;
             bool mgmtEvDeviceDiscoveringAny(const ScanType eventScanType, const bool eventEnabled, const uint64_t eventTimestamp,
-                                            const bool hciSourced, const bool off_thread) noexcept;
+                                            const bool hciSourced) noexcept;
 
             bool mgmtEvPinCodeRequestMgmt(const MgmtEvent& e) noexcept;
             bool mgmtEvUserConfirmRequestMgmt(const MgmtEvent& e) noexcept;
