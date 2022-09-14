@@ -1127,13 +1127,14 @@ HCIStatusCode BTAdapter::startDiscovery(const DiscoveryPolicy policy, const bool
 
 void BTAdapter::startDiscoveryBackground() noexcept {
     jau::nsize_t trial_count = 0;
-    bool retry = false;
+    bool retry;
     do {
         // FIXME: Respect BTAdapter::btMode, i.e. BTMode::BREDR, BTMode::LE or BTMode::DUAL to setup BREDR, LE or DUAL scanning!
         if( !isPowered() ) { // isValid() && hci.isOpen() && POWERED
             poweredOff(false /* active */);
             return;
         }
+        retry = false;
         {
             const std::lock_guard<std::mutex> lock(mtx_discovery); // RAII-style acquire and relinquish via destructor
             const ScanType currentNativeScanType = hci.getCurrentScanType();
