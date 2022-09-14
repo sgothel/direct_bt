@@ -511,9 +511,9 @@ namespace direct_bt {
             std::unique_ptr<L2CAPClient> l2cap_att;
             std::mutex mtx_l2cap_att;
             std::condition_variable cv_l2cap_att;
-            void l2capServerWork(jau::service_runner& sr);
-            void l2capServerInit(jau::service_runner& sr);
-            void l2capServerEnd(jau::service_runner& sr);
+            void l2capServerWork(jau::service_runner& sr) noexcept;
+            void l2capServerInit(jau::service_runner& sr) noexcept;
+            void l2capServerEnd(jau::service_runner& sr) noexcept;
             std::unique_ptr<L2CAPClient> get_l2cap_connection(std::shared_ptr<BTDevice> device);
 
             bool mgmtEvNewSettingsMgmt(const MgmtEvent& e) noexcept;

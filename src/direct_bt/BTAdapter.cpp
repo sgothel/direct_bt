@@ -1789,7 +1789,7 @@ bool BTAdapter::mgmtEvLocalNameChangedMgmt(const MgmtEvent& e) noexcept {
     return true;
 }
 
-void BTAdapter::l2capServerInit(jau::service_runner& sr0) {
+void BTAdapter::l2capServerInit(jau::service_runner& sr0) noexcept {
     (void)sr0;
 
     l2cap_att_srv.set_interrupted_query( jau::bindMemberFunc(&l2cap_service, &jau::service_runner::shall_stop2) );
@@ -1799,14 +1799,14 @@ void BTAdapter::l2capServerInit(jau::service_runner& sr0) {
     }
 }
 
-void BTAdapter::l2capServerEnd(jau::service_runner& sr) {
+void BTAdapter::l2capServerEnd(jau::service_runner& sr) noexcept {
     (void)sr;
     if( !l2cap_att_srv.close() ) {
         ERR_PRINT("Adapter[%d]: L2CAP ATT close failed: %s", dev_id, l2cap_att_srv.toString().c_str());
     }
 }
 
-void BTAdapter::l2capServerWork(jau::service_runner& sr) {
+void BTAdapter::l2capServerWork(jau::service_runner& sr) noexcept {
     (void)sr;
     std::unique_ptr<L2CAPClient> l2cap_att_ = l2cap_att_srv.accept();
     if( BTRole::Slave == getRole() && nullptr != l2cap_att_ ) {
