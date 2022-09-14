@@ -173,8 +173,7 @@ bool BTAdapter::removeDevicePausingDiscovery(const BTDevice & device) noexcept {
         }
     }
     if( removed_last ) {
-        std::thread bg(&BTAdapter::startDiscoveryBackground, this); // @suppress("Invalid arguments")
-        bg.detach();
+        discovery_service.start();
         return true;
     } else {
         return false;
@@ -391,7 +390,10 @@ BTAdapter::BTAdapter(const BTAdapter::ctor_cookie& cc, const BTManagerRef& mgmt_
   l2cap_service("BTAdapter::l2capServer", THREAD_SHUTDOWN_TIMEOUT_MS,
                 jau::bindMemberFunc(this, &BTAdapter::l2capServerWork),
                 jau::bindMemberFunc(this, &BTAdapter::l2capServerInit),
-                jau::bindMemberFunc(this, &BTAdapter::l2capServerEnd))
+                jau::bindMemberFunc(this, &BTAdapter::l2capServerEnd)),
+  discovery_service("BTAdapter::discoveryServer", 400_ms,
+                jau::bindMemberFunc(this, &BTAdapter::discoveryServerWork))
+
 {
     (void)cc;
 
@@ -449,7 +451,8 @@ void BTAdapter::close() noexcept {
     hci.close();
     l2cap_service.stop();
     l2cap_att_srv.close();
-    DBG_PRINT("BTAdapter::close: close[HCI, l2cap_srv]: XXX");
+    discovery_service.stop();
+    DBG_PRINT("BTAdapter::close: close[HCI, l2cap_srv, discovery_srv]: XXX");
 
     {
         const std::lock_guard<std::mutex> lock(mtx_discoveredDevices); // RAII-style acquire and relinquish via destructor
@@ -1121,16 +1124,14 @@ HCIStatusCode BTAdapter::startDiscovery(const DiscoveryPolicy policy, const bool
     return status;
 }
 
-void BTAdapter::startDiscoveryBackground() noexcept {
-    jau::nsize_t trial_count = 0;
-    bool retry;
-    do {
-        // FIXME: Respect BTAdapter::btMode, i.e. BTMode::BREDR, BTMode::LE or BTMode::DUAL to setup BREDR, LE or DUAL scanning!
-        if( !isPowered() ) { // isValid() && hci.isOpen() && POWERED
-            poweredOff(false /* active */);
-            return;
-        }
-        retry = false;
+void BTAdapter::discoveryServerWork(jau::service_runner& sr) noexcept {
+    static jau::nsize_t trial_count = 0;
+    bool retry = false;
+
+    // FIXME: Respect BTAdapter::btMode, i.e. BTMode::BREDR, BTMode::LE or BTMode::DUAL to setup BREDR, LE or DUAL scanning!
+    if( !isPowered() ) { // isValid() && hci.isOpen() && POWERED
+        poweredOff(false /* active */);
+    } else {
         {
             const std::lock_guard<std::mutex> lock(mtx_discovery); // RAII-style acquire and relinquish via destructor
             const ScanType currentNativeScanType = hci.getCurrentScanType();
@@ -1157,10 +1158,14 @@ void BTAdapter::startDiscoveryBackground() noexcept {
                 checkDiscoveryState();
             }
         }
-        if( retry ) {
+        if( retry && !sr.shall_stop() ) {
             std::this_thread::sleep_for(std::chrono::milliseconds(100)); // wait a little (FIXME)
         }
-    } while( retry );
+    }
+    if( !retry ) {
+        trial_count=0;
+        sr.set_shall_stop();
+    }
 }
 
 HCIStatusCode BTAdapter::stopDiscovery() noexcept {
@@ -1708,8 +1713,7 @@ bool BTAdapter::mgmtEvDeviceDiscoveringAny(const ScanType eventScanType, const b
         DiscoveryPolicy::AUTO_OFF != discovery_policy &&
         !hasDevicesPausingDiscovery() )
     {
-        std::thread bg(&BTAdapter::startDiscoveryBackground, this); // @suppress("Invalid arguments")
-        bg.detach();
+        discovery_service.start();
     }
     return true;
 }
@@ -2082,8 +2086,7 @@ bool BTAdapter::mgmtEvHCILERemoteUserFeaturesHCI(const MgmtEvent& e) noexcept {
                 if constexpr ( SCAN_DISABLED_POST_CONNECT ) {
                     updateDeviceDiscoveringState(ScanType::LE, false /* eventEnabled */);
                 } else {
-                    std::thread bg(&BTAdapter::startDiscoveryBackground, this); // @suppress("Invalid arguments")
-                    bg.detach();
+                    discovery_service.start();
                 }
             } else {
                 addDevicePausingDiscovery(device);

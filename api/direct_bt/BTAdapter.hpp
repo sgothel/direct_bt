@@ -559,7 +559,8 @@ namespace direct_bt {
             void notifyPairingStageDone(BTDeviceRef device, uint64_t timestamp) noexcept;
             void sendDeviceReady(BTDeviceRef device, uint64_t timestamp) noexcept;
 
-            void startDiscoveryBackground() noexcept;
+            jau::service_runner discovery_service;
+            void discoveryServerWork(jau::service_runner& sr) noexcept;
             void checkDiscoveryState() noexcept;
 
             void sendAdapterSettingsChanged(const AdapterSetting old_settings_, const AdapterSetting current_settings, AdapterSetting changes,
