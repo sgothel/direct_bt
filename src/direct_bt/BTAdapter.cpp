@@ -153,7 +153,7 @@ bool BTAdapter::addDevicePausingDiscovery(const BTDeviceRef & device) noexcept {
     }
 }
 
-bool BTAdapter::removeDevicePausingDiscovery(const BTDevice & device, const bool off_thread_enable) noexcept {
+bool BTAdapter::removeDevicePausingDiscovery(const BTDevice & device) noexcept {
     bool removed_last = false;
     {
         const std::lock_guard<std::mutex> lock(mtx_pausingDiscoveryDevices); // RAII-style acquire and relinquish via destructor
@@ -173,12 +173,8 @@ bool BTAdapter::removeDevicePausingDiscovery(const BTDevice & device, const bool
         }
     }
     if( removed_last ) {
-        if( off_thread_enable ) {
-            std::thread bg(&BTAdapter::startDiscoveryBackground, this); // @suppress("Invalid arguments")
-            bg.detach();
-        } else {
-            startDiscoveryBackground();
-        }
+        std::thread bg(&BTAdapter::startDiscoveryBackground, this); // @suppress("Invalid arguments")
+        bg.detach();
         return true;
     } else {
         return false;
@@ -1373,7 +1369,7 @@ void BTAdapter::removeDevice(BTDevice & device) noexcept {
     unlockConnect(device);
     removeConnectedDevice(device); // usually done in BTAdapter::mgmtEvDeviceDisconnectedHCI
     removeDiscoveredDevice(device.addressAndType); // usually done in BTAdapter::mgmtEvDeviceDisconnectedHCI
-    removeDevicePausingDiscovery(device, true /* off_thread_enable */);
+    removeDevicePausingDiscovery(device);
     removeSharedDevice(device);
 
     if( _print_device_lists || jau::environment::get().verbose ) {
@@ -2187,13 +2183,13 @@ bool BTAdapter::mgmtEvDeviceDisconnectedHCI(const MgmtEvent& e) noexcept {
                 }
             }
         }
-        removeDevicePausingDiscovery(*device, true /* off_thread_enable */);
+        removeDevicePausingDiscovery(*device);
     } else {
         DBG_PRINT("BTAdapter::hci:DeviceDisconnected(dev_id %d): Device not connected: %s",
             dev_id, event.toString().c_str());
         device = findDevicePausingDiscovery(event.getAddress(), event.getAddressType());
         if( nullptr != device ) {
-            removeDevicePausingDiscovery(*device, true /* off_thread_enable */);
+            removeDevicePausingDiscovery(*device);
         }
     }
     return true;
@@ -2633,14 +2629,14 @@ void BTAdapter::sendDevicePairingState(BTDeviceRef device, const SMPPairingState
 
 void BTAdapter::notifyPairingStageDone(BTDeviceRef device, uint64_t timestamp) noexcept {
     if( DiscoveryPolicy::PAUSE_CONNECTED_UNTIL_PAIRED == discovery_policy ) {
-        removeDevicePausingDiscovery(*device, true /* off_thread_enable */);
+        removeDevicePausingDiscovery(*device);
     }
     (void)timestamp;
 }
 
 void BTAdapter::sendDeviceReady(BTDeviceRef device, uint64_t timestamp) noexcept {
     if( DiscoveryPolicy::PAUSE_CONNECTED_UNTIL_READY == discovery_policy ) {
-        removeDevicePausingDiscovery(*device, false /* off_thread_enable */);
+        removeDevicePausingDiscovery(*device);
     }
     int i=0;
     jau::for_each_fidelity(statusListenerList, [&](StatusListenerPair &p) {

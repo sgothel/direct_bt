@@ -480,7 +480,6 @@ namespace direct_bt {
             bool unlockConnectAny() noexcept;
 
             bool addDevicePausingDiscovery(const BTDeviceRef & device) noexcept;
-            bool removeDevicePausingDiscovery(const BTDevice & device, const bool off_thread_enable) noexcept;
             BTDeviceRef findDevicePausingDiscovery (const EUI48 & address, const BDAddressType & addressType) noexcept;
             void clearDevicesPausingDiscovery() noexcept;
             bool hasDevicesPausingDiscovery() noexcept;
@@ -1097,9 +1096,7 @@ namespace direct_bt {
              * @return true if this was the last BTDevice, re-enabling discovery. Otherwise false.
              * @since 2.5.1
              */
-            bool removeDevicePausingDiscovery(const BTDevice & device) noexcept {
-                return removeDevicePausingDiscovery(device, false /* off_thread_enable */);
-            }
+            bool removeDevicePausingDiscovery(const BTDevice & device) noexcept;
 
             /**
              * Returns the current meta discovering ScanType. It can be modified through startDiscovery(..) and stopDiscovery().
