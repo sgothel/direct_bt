@@ -185,9 +185,9 @@ void BTAdapter::clearDevicesPausingDiscovery() noexcept {
     pausing_discovery_devices.clear();
 }
 
-bool BTAdapter::hasDevicesPausingDiscovery() noexcept {
+jau::nsize_t BTAdapter::getDevicesPausingDiscoveryCount() noexcept {
     const std::lock_guard<std::mutex> lock(mtx_pausingDiscoveryDevices); // RAII-style acquire and relinquish via destructor
-    return pausing_discovery_devices.size() > 0;
+    return pausing_discovery_devices.size();
 }
 
 bool BTAdapter::addConnectedDevice(const BTDeviceRef & device) noexcept {
@@ -232,7 +232,7 @@ BTDeviceRef BTAdapter::findConnectedDevice (const EUI48 & address, const BDAddre
     return findDevice(connectedDevices, address, addressType);
 }
 
-int BTAdapter::getConnectedDeviceCount() const noexcept {
+jau::nsize_t BTAdapter::getConnectedDeviceCount() const noexcept {
     jau::sc_atomic_critical sync(sync_data); // SC-DRF via atomic acquire & release
     return connectedDevices.size();
 }
@@ -1133,7 +1133,7 @@ void BTAdapter::discoveryServerWork(jau::service_runner& sr) noexcept {
 
             if( !is_set(currentNativeScanType, ScanType::LE) &&
                 DiscoveryPolicy::AUTO_OFF != discovery_policy &&
-                !hasDevicesPausingDiscovery() ) // still required to start discovery ???
+                0 == getDevicesPausingDiscoveryCount() ) // still required to start discovery ???
             {
                 // if le_enable_scan(..) is successful, it will issue 'mgmtEvDeviceDiscoveringHCI(..)' immediately, which updates currentMetaScanType.
                 DBG_PRINT("BTAdapter::startDiscoveryBackground[%u/%u]: Policy %s, currentScanType[native %s, meta %s] ... %s",
@@ -1447,7 +1447,7 @@ HCIStatusCode BTAdapter::startAdvertising(DBGattServerRef gattServerData_,
         WARN_PRINT("Not allowed (scan enabled): %s", toString(true).c_str());
         return HCIStatusCode::COMMAND_DISALLOWED;
     }
-    const int connCount = getConnectedDeviceCount();
+    const jau::nsize_t connCount = getConnectedDeviceCount();
     if( 0 < connCount ) { // FIXME: May shall not be a restriction
         WARN_PRINT("Not allowed (%d connections open/pending): %s", connCount, toString(true).c_str());
         return HCIStatusCode::COMMAND_DISALLOWED;
@@ -1706,7 +1706,7 @@ bool BTAdapter::mgmtEvDeviceDiscoveringAny(const ScanType eventScanType, const b
 
     if( !is_set(currentNativeScanType, ScanType::LE) &&
         DiscoveryPolicy::AUTO_OFF != discovery_policy &&
-        !hasDevicesPausingDiscovery() )
+        0 == getDevicesPausingDiscoveryCount() )
     {
         discovery_service.start();
     }

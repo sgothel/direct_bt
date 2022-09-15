@@ -482,13 +482,13 @@ namespace direct_bt {
             bool addDevicePausingDiscovery(const BTDeviceRef & device) noexcept;
             BTDeviceRef findDevicePausingDiscovery (const EUI48 & address, const BDAddressType & addressType) noexcept;
             void clearDevicesPausingDiscovery() noexcept;
-            bool hasDevicesPausingDiscovery() noexcept;
+            jau::nsize_t getDevicesPausingDiscoveryCount() noexcept;
 
             bool addConnectedDevice(const BTDeviceRef & device) noexcept;
             bool removeConnectedDevice(const BTDevice & device) noexcept;
             int disconnectAllDevices(const HCIStatusCode reason=HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION ) noexcept;
             BTDeviceRef findConnectedDevice (const EUI48 & address, const BDAddressType & addressType) noexcept;
-            int getConnectedDeviceCount() const noexcept;
+            jau::nsize_t getConnectedDeviceCount() const noexcept;
 
             bool addDiscoveredDevice(BTDeviceRef const &device) noexcept;
 
