@@ -968,19 +968,25 @@ std::string HCIHandler::toString() const noexcept {
 
 HCIStatusCode HCIHandler::startAdapter() {
     if( !isOpen() ) {
-        ERR_PRINT("HCIHandler::startAdapter: Not connected %s", toString().c_str());
+        ERR_PRINT("Not connected %s", toString().c_str());
         return HCIStatusCode::DISCONNECTED;
     }
+    HCIStatusCode res = HCIStatusCode::INTERNAL_FAILURE;
+
     const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
+    DBG_PRINT("HCIHandler<%u>::startAdapter.0: %s", dev_id, toString().c_str());
+
     #if defined(__linux__)
-        int res;
-        if( ( res = ioctl(comm.socket(), HCIDEVUP, dev_id) ) < 0 ) {
+        int res_ioctl;
+        if( ( res_ioctl = ioctl(comm.socket(), HCIDEVUP, dev_id) ) < 0 ) {
             if (errno != EALREADY) {
-                ERR_PRINT("HCIHandler::startAdapter(dev_id %d): FAILED: %d - %s", dev_id, res, toString().c_str());
-                return HCIStatusCode::INTERNAL_FAILURE;
+                ERR_PRINT("FAILED: %d - %s", res_ioctl, toString().c_str());
+            } else {
+                res = HCIStatusCode::SUCCESS;
             }
+        } else {
+            res = HCIStatusCode::SUCCESS;
         }
-        return resetAllStates(true) ? HCIStatusCode::SUCCESS : HCIStatusCode::FAILED;
     #elif defined(__FreeBSD__)
         // #warning add implementation
         ABORT("add implementation for FreeBSD");
@@ -988,48 +994,58 @@ HCIStatusCode HCIHandler::startAdapter() {
         #warning add implementation
         ABORT("add implementation");
     #endif
-    return HCIStatusCode::INTERNAL_FAILURE;
+    if( HCIStatusCode::SUCCESS == res ) {
+        res = resetAllStates(true) ? HCIStatusCode::SUCCESS : HCIStatusCode::FAILED;
+    }
+    DBG_PRINT("HCIHandler<%u>::startAdapter.X: %s - %s", dev_id, to_string(res).c_str(), toString().c_str());
+    return res;
 }
 
 HCIStatusCode HCIHandler::stopAdapter() {
     if( !isOpen() ) {
-        ERR_PRINT("HCIHandler::stopAdapter: Not connected %s", toString().c_str());
+        ERR_PRINT("Not connected %s", toString().c_str());
         return HCIStatusCode::DISCONNECTED;
     }
+    HCIStatusCode res = HCIStatusCode::INTERNAL_FAILURE;
+
     const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
-    HCIStatusCode status;
+    DBG_PRINT("HCIHandler<%u>::stopAdapter.0: %s", dev_id, toString().c_str());
+
     #if defined(__linux__)
-        int res;
-        if( ( res = ioctl(comm.socket(), HCIDEVDOWN, dev_id) ) < 0) {
-            ERR_PRINT("HCIHandler::stopAdapter(dev_id %d): FAILED: %d - %s", dev_id, res, toString().c_str());
-            status = HCIStatusCode::INTERNAL_FAILURE;
+        int res_ioctl;
+        if( ( res_ioctl = ioctl(comm.socket(), HCIDEVDOWN, dev_id) ) < 0) {
+            ERR_PRINT("FAILED: %d - %s", res_ioctl, toString().c_str());
         } else {
-            status = HCIStatusCode::SUCCESS;
+            res = HCIStatusCode::SUCCESS;
         }
     #elif defined(__FreeBSD__)
         // #warning add implementation
-        status = HCIStatusCode::INTERNAL_FAILURE;
         ABORT("add implementation for FreeBSD");
     #else
         #warning add implementation
-        status = HCIStatusCode::INTERNAL_FAILURE;
         ABORT("add implementation");
     #endif
-    if( HCIStatusCode::SUCCESS == status ) {
+    if( HCIStatusCode::SUCCESS == res ) {
         resetAllStates(false);
     }
-    return status;
+    DBG_PRINT("HCIHandler<%u>::stopAdapter.X: %s - %s", dev_id, to_string(res).c_str(), toString().c_str());
+    return res;
 }
 
 HCIStatusCode HCIHandler::resetAdapter() {
     if( !isOpen() ) {
-        ERR_PRINT("HCIHandler::resetAdapter: Not connected %s", toString().c_str());
+        ERR_PRINT("Not connected %s", toString().c_str());
         return HCIStatusCode::DISCONNECTED;
     }
+    HCIStatusCode res = HCIStatusCode::INTERNAL_FAILURE;
+
     const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
+    DBG_PRINT("HCIHandler<%u>::resetAdapter.0: %s", dev_id, toString().c_str());
+
     #if defined(__linux__)
-        if( HCIStatusCode::SUCCESS == stopAdapter() && HCIStatusCode::SUCCESS == startAdapter() ) {
-            return HCIStatusCode::SUCCESS;
+        res = stopAdapter();
+        if( HCIStatusCode::SUCCESS == res ) {
+            res = startAdapter();
         }
     #elif defined(__FreeBSD__)
         // #warning add implementation
@@ -1038,27 +1054,32 @@ HCIStatusCode HCIHandler::resetAdapter() {
         #warning add implementation
         ABORT("add implementation");
     #endif
-    return HCIStatusCode::INTERNAL_FAILURE;
+    DBG_PRINT("HCIHandler<%u>::resetAdapter.X: %s - %s", dev_id, to_string(res).c_str(), toString().c_str());
+    return res;
 }
 
 HCIStatusCode HCIHandler::reset() noexcept {
     if( !isOpen() ) {
-        ERR_PRINT("HCIHandler::reset: Not connected %s", toString().c_str());
+        ERR_PRINT("Not connected %s", toString().c_str());
         return HCIStatusCode::DISCONNECTED;
     }
+    HCIStatusCode res = HCIStatusCode::INTERNAL_FAILURE;
+
     const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
+    DBG_PRINT("HCIHandler<%u>::reset.0: %s", dev_id, toString().c_str());
+
     HCICommand req0(HCIOpcode::RESET, 0);
 
     const hci_rp_status * ev_status;
-    HCIStatusCode status;
-    std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_status, &status);
+    std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_status, &res);
     if( nullptr == ev ) {
         return HCIStatusCode::INTERNAL_TIMEOUT; // timeout
     }
-    if( HCIStatusCode::SUCCESS == status ) {
-        status = resetAllStates(true) ? HCIStatusCode::SUCCESS : HCIStatusCode::FAILED;
+    if( HCIStatusCode::SUCCESS == res ) {
+        res = resetAllStates(true) ? HCIStatusCode::SUCCESS : HCIStatusCode::FAILED;
     }
-    return status;
+    DBG_PRINT("HCIHandler<%u>::reset.X: %s - %s", dev_id, to_string(res).c_str(), toString().c_str());
+    return res;
 }
 
 HCIStatusCode HCIHandler::getLocalVersion(HCILocalVersion &version) noexcept {
