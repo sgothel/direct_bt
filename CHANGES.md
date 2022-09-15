@@ -4,7 +4,15 @@
 
 ## Changes
 
-**2.8.1 *Direct-BT* Maturity (Bluetooth LE)**
+**2.8.2 *Direct-BT* Maturity (Bluetooth LE) _TODO_**
+* Fix BTAdapter::reset() 
+  - BTAdapter::poweredOff(): Always use disconnectAllDevices() for proper device pull-down to clear all its states 
+    - was just deleting all refs if !active
+  - Waiting until all devices are disconnected after shutdown and before bringup
+  - Added trial unit test
+* Fix BTAdapter's background discovery
+  - Use `jau::service_runner` to ensure singleton pattern on background discovery, avoiding multiple threads
+  - Fix previous `retry==true` endless thread
 
 **2.8.0**
 * Misc cleanup and adoption of jaulib v0.14.0
