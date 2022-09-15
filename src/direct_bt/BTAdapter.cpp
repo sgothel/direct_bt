@@ -1559,9 +1559,8 @@ HCIStatusCode BTAdapter::stopAdvertising() noexcept {
 
 std::string BTAdapter::toString(bool includeDiscoveredDevices) const noexcept {
     std::string random_address_info = adapterInfo.addressAndType != visibleAddressAndType ? " ("+visibleAddressAndType.toString()+")" : "";
-    std::string out("Adapter[BT "+std::to_string(getBTMajorVersion())+", BTMode "+to_string(getBTMode())+", "+to_string(getRole())+", "+adapterInfo.addressAndType.toString()+random_address_info+
-                    ", '"+getName()+"', id "+std::to_string(dev_id)+
-                    ", curSettings"+to_string(adapterInfo.getCurrentSettingMask())+
+    std::string out("Adapter["+std::to_string(dev_id)+", BT "+std::to_string(getBTMajorVersion())+", BTMode "+to_string(getBTMode())+", "+to_string(getRole())+", "+adapterInfo.addressAndType.toString()+random_address_info+
+                    ", '"+getName()+"', curSettings"+to_string(adapterInfo.getCurrentSettingMask())+
                     ", valid "+std::to_string(isValid())+
                     ", adv "+std::to_string(hci.isAdvertising())+
                     ", scanType[native "+to_string(hci.getCurrentScanType())+", meta "+to_string(currentMetaScanType)+"]"

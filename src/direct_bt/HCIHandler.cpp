@@ -960,7 +960,7 @@ void HCIHandler::close() noexcept {
 }
 
 std::string HCIHandler::toString() const noexcept {
-    return "HCIHandler[dev_id "+std::to_string(dev_id)+", BTMode "+to_string(btMode)+", open "+std::to_string(isOpen())+
+    return "HCIHandler["+std::to_string(dev_id)+", BTMode "+to_string(btMode)+", open "+std::to_string(isOpen())+
             ", adv "+std::to_string(advertisingEnabled)+", scan "+to_string(currentScanType)+
             ", ext[init "+std::to_string(sup_commands_set)+", adv "+std::to_string(use_ext_adv())+", scan "+std::to_string(use_ext_scan())+", conn "+std::to_string(use_ext_conn())+
             "], ring[entries "+std::to_string(hciEventRing.size())+"]]";
