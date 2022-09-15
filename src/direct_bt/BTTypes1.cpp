@@ -59,7 +59,6 @@ static void append_bitstr(std::string& out, T mask, T bit, const std::string& bi
 #define APPEND_BITSTR(U,V,M) append_bitstr(out, M, U::V, #V, comma);
 
 #define SETTING_ENUM(X,M) \
-    X(AdapterSetting,NONE,M) \
     X(AdapterSetting,POWERED,M) \
     X(AdapterSetting,CONNECTABLE,M) \
     X(AdapterSetting,FAST_CONNECTABLE,M) \

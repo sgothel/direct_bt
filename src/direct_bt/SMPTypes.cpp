@@ -251,7 +251,6 @@ PairingMode direct_bt::getPairingMode(const bool use_sc,
 
 
 #define KEYDISTFMT_ENUM(X,M) \
-    X(SMPKeyType,NONE,M) \
     X(SMPKeyType,ENC_KEY,M) \
     X(SMPKeyType,ID_KEY,M) \
     X(SMPKeyType,SIGN_KEY,M) \
@@ -270,7 +269,6 @@ std::string direct_bt::to_string(const SMPKeyType mask) noexcept {
 }
 
 #define LTKPROP_ENUM(X,M) \
-    X(SMPLongTermKey::Property,NONE,M) \
     X(SMPLongTermKey::Property,RESPONDER,M) \
     X(SMPLongTermKey::Property,AUTH,M) \
     X(SMPLongTermKey::Property,SC,M)
@@ -288,7 +286,6 @@ bool SMPLongTermKey::isResponder() const noexcept {
 }
 
 #define IRKPROP_ENUM(X,M) \
-    X(SMPIdentityResolvingKey::Property,NONE,M) \
     X(SMPIdentityResolvingKey::Property,RESPONDER,M) \
     X(SMPIdentityResolvingKey::Property,AUTH,M)
 
@@ -306,7 +303,6 @@ bool SMPIdentityResolvingKey::isResponder() const noexcept {
 
 
 #define CSRKPROP_ENUM(X,M) \
-    X(SMPSignatureResolvingKey::Property,NONE,M) \
     X(SMPSignatureResolvingKey::Property,RESPONDER,M) \
     X(SMPSignatureResolvingKey::Property,AUTH,M)
 

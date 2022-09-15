@@ -241,7 +241,6 @@ BTMode direct_bt::to_BTMode(const std::string & value) noexcept {
 // *************************************************
 
 #define LEFEATURES_ENUM(X,M) \
-    X(LE_Features,NONE,M) \
     X(LE_Features,LE_Encryption,M) \
     X(LE_Features,Conn_Param_Req_Proc,M) \
     X(LE_Features,Ext_Rej_Ind,M) \
@@ -292,7 +291,6 @@ std::string direct_bt::to_string(const LE_Features mask) noexcept {
 // *************************************************
 
 #define LE_PHYs_ENUM(X,M) \
-    X(LE_PHYs,NONE,M) \
     X(LE_PHYs,LE_1M,M) \
     X(LE_PHYs,LE_2M,M) \
     X(LE_PHYs,LE_CODED,M)
@@ -393,7 +391,6 @@ std::string direct_bt::to_string(const AD_PDU_Type v) noexcept {
 // *************************************************
 
 #define EAD_Event_Type_ENUM(X,M) \
-    X(EAD_Event_Type,NONE,M) \
     X(EAD_Event_Type,CONN_ADV,M) \
     X(EAD_Event_Type,SCAN_ADV,M) \
     X(EAD_Event_Type,DIR_ADV,M) \
@@ -568,7 +565,6 @@ std::string ManufactureSpecificData::toString() const noexcept {
 // *************************************************
 
 #define GAPFLAGS_ENUM(X,M) \
-    X(GAPFlags,NONE,M) \
     X(GAPFlags,LE_Ltd_Disc,M) \
     X(GAPFlags,LE_Gen_Disc,M) \
     X(GAPFlags,BREDR_UNSUP,M) \
@@ -591,7 +587,6 @@ std::string direct_bt::to_string(const GAPFlags v) noexcept {
 // *************************************************
 
 #define EIRDATATYPE_ENUM(X,M) \
-    X(EIRDataType,NONE,M) \
     X(EIRDataType,EVT_TYPE,M) \
     X(EIRDataType,EXT_EVT_TYPE,M) \
     X(EIRDataType,BDADDR_TYPE,M) \
