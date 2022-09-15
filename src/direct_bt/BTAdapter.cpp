@@ -500,12 +500,7 @@ void BTAdapter::poweredOff(bool active, const std::string& msg) noexcept {
     }
 
     // Removes all device references from the lists: connectedDevices, discoveredDevices, sharedDevices
-    if( active ) {
-        disconnectAllDevices();
-    } else {
-        const std::lock_guard<std::mutex> lock(mtx_connectedDevices); // RAII-style acquire and relinquish via destructor
-        connectedDevices.clear();;
-    }
+    disconnectAllDevices();
     removeDiscoveredDevices();
 
     // ensure all hci states are reset.
