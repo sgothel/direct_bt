@@ -2190,6 +2190,9 @@ bool BTAdapter::mgmtEvDeviceDisconnectedHCI(const MgmtEvent& e) noexcept {
     } else {
         DBG_PRINT("BTAdapter::hci:DeviceDisconnected(dev_id %d): Device not connected: %s",
             dev_id, event.toString().c_str());
+        if( _print_device_lists || jau::environment::get().verbose ) {
+            printDeviceLists();
+        }
         device = findDevicePausingDiscovery(event.getAddress(), event.getAddressType());
         if( nullptr != device ) {
             removeDevicePausingDiscovery(*device);
