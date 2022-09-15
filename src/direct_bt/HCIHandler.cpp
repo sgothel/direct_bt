@@ -201,8 +201,7 @@ std::unique_ptr<MgmtEvent> HCIHandler::translate(HCIEvent& ev) noexcept {
                 HCIStatusCode status;
                 const hci_ev_le_conn_complete * ev_cc = getMetaReplyStruct<hci_ev_le_conn_complete>(ev, mevt, &status);
                 if( nullptr == ev_cc ) {
-                    ERR_PRINT("HCIHandler<%u>::translate(mevt): LE_CONN_COMPLETE: Null reply-struct: %s - %s",
-                            dev_id, ev.toString().c_str(), toString().c_str());
+                    ERR_PRINT("LE_CONN_COMPLETE: Null reply-struct: %s - %s", ev.toString().c_str(), toString().c_str());
                     return nullptr;
                 }
                 const HCILEPeerAddressType hciAddrType = static_cast<HCILEPeerAddressType>(ev_cc->bdaddr_type);
@@ -230,8 +229,7 @@ std::unique_ptr<MgmtEvent> HCIHandler::translate(HCIEvent& ev) noexcept {
                 HCIStatusCode status;
                 const hci_ev_le_enh_conn_complete * ev_cc = getMetaReplyStruct<hci_ev_le_enh_conn_complete>(ev, mevt, &status);
                 if( nullptr == ev_cc ) {
-                    ERR_PRINT("HCIHandler<%u>::translate(mevt): LE_EXT_CONN_COMPLETE: Null reply-struct: %s - %s",
-                            dev_id, ev.toString().c_str(), toString().c_str());
+                    ERR_PRINT("LE_EXT_CONN_COMPLETE: Null reply-struct: %s - %s", ev.toString().c_str(), toString().c_str());
                     return nullptr;
                 }
                 const HCILEPeerAddressType hciAddrType = static_cast<HCILEPeerAddressType>(ev_cc->bdaddr_type);
@@ -250,8 +248,7 @@ std::unique_ptr<MgmtEvent> HCIHandler::translate(HCIEvent& ev) noexcept {
                 HCIStatusCode status;
                 const hci_ev_le_remote_feat_complete * ev_cc = getMetaReplyStruct<hci_ev_le_remote_feat_complete>(ev, mevt, &status);
                 if( nullptr == ev_cc ) {
-                    ERR_PRINT("HCIHandler<%u>::translate(mevt): LE_REMOTE_FEAT_COMPLETE: Null reply-struct: %s - %s",
-                            dev_id, ev.toString().c_str(), toString().c_str());
+                    ERR_PRINT("LE_REMOTE_FEAT_COMPLETE: Null reply-struct: %s - %s", ev.toString().c_str(), toString().c_str());
                     return nullptr;
                 }
                 const uint16_t handle = jau::le_to_cpu(ev_cc->handle);
@@ -274,8 +271,7 @@ std::unique_ptr<MgmtEvent> HCIHandler::translate(HCIEvent& ev) noexcept {
                 } __packed;
                 const le_phy_update_complete * ev_cc = getMetaReplyStruct<le_phy_update_complete>(ev, mevt, &status);
                 if( nullptr == ev_cc ) {
-                    ERR_PRINT("HCIHandler<%u>::translate(mevt): LE_PHY_UPDATE_COMPLETE: Null reply-struct: %s - %s",
-                            dev_id, ev.toString().c_str(), toString().c_str());
+                    ERR_PRINT("LE_PHY_UPDATE_COMPLETE: Null reply-struct: %s - %s", ev.toString().c_str(), toString().c_str());
                     return nullptr;
                 }
                 const uint16_t handle = jau::le_to_cpu(ev_cc->handle);
@@ -298,8 +294,7 @@ std::unique_ptr<MgmtEvent> HCIHandler::translate(HCIEvent& ev) noexcept {
             HCIStatusCode status;
             const hci_ev_conn_complete * ev_cc = getReplyStruct<hci_ev_conn_complete>(ev, evt, &status);
             if( nullptr == ev_cc ) {
-                ERR_PRINT("HCIHandler<%u>::translate(evt): CONN_COMPLETE: Null reply-struct: %s - %s",
-                        dev_id, ev.toString().c_str(), toString().c_str());
+                ERR_PRINT("CONN_COMPLETE: Null reply-struct: %s - %s", ev.toString().c_str(), toString().c_str());
                 return nullptr;
             }
             const BDAddressAndType addressAndType(jau::le_to_cpu(ev_cc->bdaddr), BDAddressType::BDADDR_BREDR);
@@ -317,8 +312,7 @@ std::unique_ptr<MgmtEvent> HCIHandler::translate(HCIEvent& ev) noexcept {
             HCIStatusCode status;
             const hci_ev_disconn_complete * ev_cc = getReplyStruct<hci_ev_disconn_complete>(ev, evt, &status);
             if( nullptr == ev_cc ) {
-                ERR_PRINT("HCIHandler<%u>::translate(evt): DISCONN_COMPLETE: Null reply-struct: %s - %s",
-                        dev_id, ev.toString().c_str(), toString().c_str());
+                ERR_PRINT("DISCONN_COMPLETE: Null reply-struct: %s - %s", ev.toString().c_str(), toString().c_str());
                 return nullptr;
             }
             removeDisconnectCmd(ev_cc->handle);
@@ -330,8 +324,8 @@ std::unique_ptr<MgmtEvent> HCIHandler::translate(HCIEvent& ev) noexcept {
             } else {
                 if( HCIStatusCode::SUCCESS != status ) {
                     // FIXME: Ever occuring? Still sending out essential disconnect event!
-                    ERR_PRINT("HCIHandler<%u>::translate(evt): DISCONN_COMPLETE: !SUCCESS[%s, %s], %s: %s - %s",
-                            dev_id, jau::to_hexstring(static_cast<uint8_t>(status)).c_str(), to_string(status).c_str(),
+                    ERR_PRINT("DISCONN_COMPLETE: !SUCCESS[%s, %s], %s: %s - %s",
+                            jau::to_hexstring(static_cast<uint8_t>(status)).c_str(), to_string(status).c_str(),
                             conn->toString().c_str(), ev.toString().c_str(), toString().c_str());
                 }
                 const HCIStatusCode hciRootReason = static_cast<HCIStatusCode>(ev_cc->reason);
@@ -342,8 +336,7 @@ std::unique_ptr<MgmtEvent> HCIHandler::translate(HCIEvent& ev) noexcept {
             HCIStatusCode status;
             const hci_ev_encrypt_change * ev_cc = getReplyStruct<hci_ev_encrypt_change>(ev, evt, &status);
             if( nullptr == ev_cc ) {
-                ERR_PRINT("HCIHandler<%u>::translate(evt): ENCRYPT_CHANGE: Null reply-struct: %s - %s",
-                        dev_id, ev.toString().c_str(), toString().c_str());
+                ERR_PRINT("ENCRYPT_CHANGE: Null reply-struct: %s - %s", ev.toString().c_str(), toString().c_str());
                 return nullptr;
             }
             const uint16_t handle = jau::le_to_cpu(ev_cc->handle);
@@ -359,8 +352,7 @@ std::unique_ptr<MgmtEvent> HCIHandler::translate(HCIEvent& ev) noexcept {
             HCIStatusCode status;
             const hci_ev_key_refresh_complete * ev_cc = getReplyStruct<hci_ev_key_refresh_complete>(ev, evt, &status);
             if( nullptr == ev_cc ) {
-                ERR_PRINT("HCIHandler<%u>::translate(evt): ENCRYPT_KEY_REFRESH_COMPLETE: Null reply-struct: %s - %s",
-                        dev_id, ev.toString().c_str(), toString().c_str());
+                ERR_PRINT("ENCRYPT_KEY_REFRESH_COMPLETE: Null reply-struct: %s - %s", ev.toString().c_str(), toString().c_str());
                 return nullptr;
             }
             const uint16_t handle = jau::le_to_cpu(ev_cc->handle);
@@ -427,7 +419,7 @@ void HCIHandler::hciReaderWork(jau::service_runner& sr) noexcept {
     jau::snsize_t len;
     if( !isOpen() ) {
         // not open
-        ERR_PRINT("HCIHandler<%u>::reader: Not connected %s", dev_id, toString().c_str());
+        ERR_PRINT("Not connected %s", toString().c_str());
         sr.set_shall_stop();
         return;
     }
@@ -477,8 +469,8 @@ void HCIHandler::hciReaderWork(jau::service_runner& sr) noexcept {
             std::unique_ptr<HCICommand> event = HCICommand::getSpecialized(rbuffer.get_ptr(), len2);
             if( nullptr == event ) {
                 // not a valid event ...
-                ERR_PRINT("HCIHandler<%u>-IO RECV CMD Drop (non-command) %s - %s",
-                        dev_id, jau::bytesHexString(rbuffer.get_ptr(), 0, len2, true /* lsbFirst*/).c_str(), toString().c_str());
+                ERR_PRINT("IO RECV CMD Drop (non-command) %s - %s",
+                        jau::bytesHexString(rbuffer.get_ptr(), 0, len2, true /* lsbFirst*/).c_str(), toString().c_str());
                 return;
             }
             std::unique_ptr<MgmtEvent> mevent = translate(*event);
@@ -501,8 +493,8 @@ void HCIHandler::hciReaderWork(jau::service_runner& sr) noexcept {
         std::unique_ptr<HCIEvent> event = HCIEvent::getSpecialized(rbuffer.get_ptr(), len2);
         if( nullptr == event ) {
             // not a valid event ...
-            ERR_PRINT("HCIHandler<%u>-IO RECV EVT Drop (non-event) %s - %s",
-                    dev_id, jau::bytesHexString(rbuffer.get_ptr(), 0, len2, true /* lsbFirst*/).c_str(), toString().c_str());
+            ERR_PRINT("IO RECV EVT Drop (non-event) %s - %s",
+                    jau::bytesHexString(rbuffer.get_ptr(), 0, len2, true /* lsbFirst*/).c_str(), toString().c_str());
             return;
         }
 
@@ -552,7 +544,7 @@ void HCIHandler::hciReaderWork(jau::service_runner& sr) noexcept {
             }
         }
     } else if( 0 > len && ETIMEDOUT != errno && !comm.interrupted() ) { // expected exits
-        ERR_PRINT("HCIHandler<%u>::reader: HCIComm read: Error res %d, %s", dev_id, len, toString().c_str());
+        ERR_PRINT("HCIComm read: Error res %d, %s", len, toString().c_str());
         // Keep alive - sr.set_shall_stop();
     } else if( ETIMEDOUT != errno && !comm.interrupted() ) { // expected TIMEOUT if idle
         WORDY_PRINT("HCIHandler<%u>::reader: HCIComm read: IRQed res %d, %s", dev_id, len, toString().c_str());
@@ -574,8 +566,8 @@ void HCIHandler::sendMgmtEvent(const MgmtEvent& event) noexcept {
         try {
             cb(event);
         } catch (std::exception &e) {
-            ERR_PRINT("HCIHandler<%u>::sendMgmtEvent-CBs %d/%zd: MgmtEventCallback %s : Caught exception %s - %s",
-                    dev_id, invokeCount+1, mgmtEventCallbackList.size(),
+            ERR_PRINT("CBs %d/%zd: MgmtEventCallback %s : Caught exception %s - %s",
+                    invokeCount+1, mgmtEventCallbackList.size(),
                     cb.toString().c_str(), e.what(), toString().c_str());
         }
         invokeCount++;
@@ -592,8 +584,7 @@ bool HCIHandler::sendCommand(HCICommand &req, const bool quiet) noexcept {
     jau::TROOctets & pdu = req.getPDU();
     if ( comm.write( pdu.get_ptr(), pdu.size() ) < 0 ) {
         if( !quiet || jau::environment::get().verbose ) {
-            ERR_PRINT("HCIHandler<%u>::sendCommand: HCIComm write error, req %s - %s",
-                    dev_id, req.toString().c_str(), toString().c_str());
+            ERR_PRINT("HCIComm write error, req %s - %s", req.toString().c_str(), toString().c_str());
         }
         return false;
     }
@@ -607,8 +598,7 @@ std::unique_ptr<HCIEvent> HCIHandler::getNextReply(HCICommand &req, int32_t & re
         std::unique_ptr<HCIEvent> ev;
         if( !hciEventRing.getBlocking(ev, replyTimeout) || nullptr == ev ) {
             errno = ETIMEDOUT;
-            ERR_PRINT("HCIHandler<%u>::getNextReply: nullptr result (timeout %" PRIi64 " ms -> abort): req %s - %s",
-                    dev_id, replyTimeout.to_ms(), req.toString().c_str(), toString().c_str());
+            ERR_PRINT("nullptr result (timeout %" PRIi64 " ms -> abort): req %s - %s", replyTimeout.to_ms(), req.toString().c_str(), toString().c_str());
             return nullptr;
         } else if( !ev->validate(req) ) {
             // This could occur due to an earlier timeout w/ a nullptr == res (see above),
@@ -687,7 +677,7 @@ HCIHandler::HCIHandler(const uint16_t dev_id_, const BTMode btMode_) noexcept
 
     WORDY_PRINT("HCIHandler<%u>.ctor: Start %s", dev_id, toString().c_str());
     if( !allowClose ) {
-        ERR_PRINT("HCIHandler<%u>::ctor: Could not open hci control channel %s", dev_id, toString().c_str());
+        ERR_PRINT("Could not open hci control channel %s", toString().c_str());
         return;
     }
 
@@ -700,12 +690,12 @@ HCIHandler::HCIHandler(const uint16_t dev_id_, const BTMode btMode_) noexcept
     {
         int opt = 1;
         if (setsockopt(comm.socket(), SOL_SOCKET, SO_TIMESTAMP, &opt, sizeof(opt)) < 0) {
-            ERR_PRINT("HCIHandler::ctor: setsockopt SO_TIMESTAMP %s", toString().c_str());
+            ERR_PRINT("setsockopt SO_TIMESTAMP %s", toString().c_str());
             goto fail;
         }
 
         if (setsockopt(comm.socket(), SOL_SOCKET, SO_PASSCRED, &opt, sizeof(opt)) < 0) {
-            ERR_PRINT("HCIHandler::ctor: setsockopt SO_PASSCRED %s", toString().c_str());
+            ERR_PRINT("setsockopt SO_PASSCRED %s", toString().c_str());
             goto fail;
         }
     }
@@ -722,7 +712,7 @@ HCIHandler::HCIHandler(const uint16_t dev_id_, const BTMode btMode_) noexcept
 
         olen = sizeof(of);
         if (getsockopt(comm.socket(), SOL_HCI, HCI_FILTER, &of, &olen) < 0) {
-            ERR_PRINT("HCIHandler::ctor: getsockopt %s", toString().c_str());
+            ERR_PRINT("getsockopt %s", toString().c_str());
             goto fail;
         }
 #endif
@@ -755,7 +745,7 @@ HCIHandler::HCIHandler(const uint16_t dev_id_, const BTMode btMode_) noexcept
         HCIComm::filter_set_opcode(0, &filter_mask); // all opcode
 
         if (setsockopt(comm.socket(), SOL_HCI, HCI_FILTER, &filter_mask, sizeof(filter_mask)) < 0) {
-            ERR_PRINT("HCIHandler::ctor: setsockopt HCI_FILTER %s", toString().c_str());
+            ERR_PRINT("setsockopt HCI_FILTER %s", toString().c_str());
             goto fail;
         }
     }
@@ -873,11 +863,11 @@ HCIStatusCode HCIHandler::check_open_connection(const std::string& caller,
                                                 const uint16_t conn_handle, const BDAddressAndType& peerAddressAndType,
                                                 const bool addUntrackedConn) {
     if( !isOpen() ) {
-        ERR_PRINT("HCIHandler::%s: Not connected %s", caller.c_str(), toString().c_str());
+        ERR_PRINT("%s: Not connected %s", caller.c_str(), toString().c_str());
         return HCIStatusCode::DISCONNECTED;
     }
     if( 0 == conn_handle ) {
-        ERR_PRINT("HCIHandler::%s: Null conn_handle given address%s (drop) - %s",
+        ERR_PRINT("%s: Null conn_handle given address%s (drop) - %s",
                 caller.c_str(), peerAddressAndType.toString().c_str(), toString().c_str());
         return HCIStatusCode::INVALID_HCI_COMMAND_PARAMETERS;
     }
@@ -892,13 +882,13 @@ HCIStatusCode HCIHandler::check_open_connection(const std::string& caller,
                        caller.c_str(), peerAddressAndType.toString().c_str(),
                        conn->toString().c_str(), toString().c_str());
         } else {
-            ERR_PRINT("HCIHandler::%s: Not tracked handle %s (address%s) (drop) - %s",
+            ERR_PRINT("%s: Not tracked handle %s (address%s) (drop) - %s",
                        caller.c_str(), jau::to_hexstring(conn_handle).c_str(),
                        peerAddressAndType.toString().c_str(), toString().c_str());
             return HCIStatusCode::INVALID_HCI_COMMAND_PARAMETERS;
         }
     } else if( !conn->equals(peerAddressAndType) ) {
-        ERR_PRINT("HCIHandler::%s: Mismatch given address%s and tracked %s (drop) - %s",
+        ERR_PRINT("%s: Mismatch given address%s and tracked %s (drop) - %s",
                    caller.c_str(), peerAddressAndType.toString().c_str(),
                    conn->toString().c_str(), toString().c_str());
         return HCIStatusCode::INVALID_HCI_COMMAND_PARAMETERS;
@@ -922,7 +912,7 @@ HCIStatusCode HCIHandler::le_read_remote_features(const uint16_t conn_handle, co
     std::unique_ptr<HCIEvent> ev = processCommandStatus(req0, &status);
 
     if( nullptr == ev || HCIStatusCode::SUCCESS != status ) {
-        ERR_PRINT("HCIHandler::le_read_remote_features: LE_READ_PHY: 0x%x (%s) - %s",
+        ERR_PRINT("le_read_remote_features: LE_READ_PHY: 0x%x (%s) - %s",
                 number(status), to_string(status).c_str(), toString().c_str());
     }
     return status;
@@ -1073,7 +1063,7 @@ HCIStatusCode HCIHandler::reset() noexcept {
 
 HCIStatusCode HCIHandler::getLocalVersion(HCILocalVersion &version) noexcept {
     if( !isOpen() ) {
-        ERR_PRINT("HCIHandler::getLocalVersion: Not connected %s", toString().c_str());
+        ERR_PRINT("Not connected %s", toString().c_str());
         return HCIStatusCode::DISCONNECTED;
     }
     HCICommand req0(HCIOpcode::READ_LOCAL_VERSION, 0);
@@ -1081,7 +1071,7 @@ HCIStatusCode HCIHandler::getLocalVersion(HCILocalVersion &version) noexcept {
     HCIStatusCode status;
     std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_lv, &status);
     if( nullptr == ev || nullptr == ev_lv || HCIStatusCode::SUCCESS != status ) {
-        ERR_PRINT("HCIHandler::getLocalVersion: READ_LOCAL_VERSION: 0x%x (%s) - %s",
+        ERR_PRINT("READ_LOCAL_VERSION: 0x%x (%s) - %s",
                 number(status), to_string(status).c_str(), toString().c_str());
         bzero(&version, sizeof(version));
     } else {
@@ -1099,7 +1089,7 @@ HCIStatusCode HCIHandler::le_set_scan_param(const bool le_scan_active,
                                             const uint16_t le_scan_interval, const uint16_t le_scan_window,
                                             const uint8_t filter_policy) noexcept {
     if( !isOpen() ) {
-        ERR_PRINT("HCIHandler::le_set_scan_param: Not connected %s", toString().c_str());
+        ERR_PRINT("Not connected %s", toString().c_str());
         return HCIStatusCode::DISCONNECTED;
     }
     if( is_set(currentScanType, ScanType::LE) ) {
@@ -1151,7 +1141,7 @@ HCIStatusCode HCIHandler::le_set_scan_param(const bool le_scan_active,
 
 HCIStatusCode HCIHandler::le_enable_scan(const bool enable, const bool filter_dup) noexcept {
     if( !isOpen() ) {
-        ERR_PRINT("HCIHandler::le_enable_scan: Not connected %s", toString().c_str());
+        ERR_PRINT("Not connected %s", toString().c_str());
         return HCIStatusCode::DISCONNECTED;
     }
     const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
@@ -1203,7 +1193,7 @@ HCIStatusCode HCIHandler::le_start_scan(const bool filter_dup,
                                         const uint16_t le_scan_interval, const uint16_t le_scan_window,
                                         const uint8_t filter_policy) noexcept {
     if( !isOpen() ) {
-        ERR_PRINT("HCIHandler::le_start_scan: Not connected %s", toString().c_str());
+        ERR_PRINT("Not connected %s", toString().c_str());
         return HCIStatusCode::DISCONNECTED;
     }
     const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
@@ -1374,7 +1364,7 @@ HCIStatusCode HCIHandler::create_conn(const EUI48 &bdaddr,
     const std::lock_guard<std::mutex> lock(mtx_connect_cmd); // RAII-style acquire and relinquish via destructor
 
     if( !isOpen() ) {
-        ERR_PRINT("HCIHandler::create_conn: Not connected %s", toString().c_str());
+        ERR_PRINT("Not connected %s", toString().c_str());
         return HCIStatusCode::DISCONNECTED;
     }
     if( advertisingEnabled ) {
@@ -1496,12 +1486,12 @@ HCIStatusCode HCIHandler::le_read_phy(const uint16_t conn_handle, const BDAddres
     std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_phy, &status);
 
     if( nullptr == ev || nullptr == ev_phy || HCIStatusCode::SUCCESS != status ) {
-        ERR_PRINT("HCIHandler<%u>::le_read_phy: LE_READ_PHY: 0x%x (%s) - %s",
-                dev_id, number(status), to_string(status).c_str(), toString().c_str());
+        ERR_PRINT("LE_READ_PHY: 0x%x (%s) - %s",
+                number(status), to_string(status).c_str(), toString().c_str());
     } else {
         const uint16_t conn_handle_rcvd = jau::le_to_cpu(ev_phy->handle);
         if( conn_handle != conn_handle_rcvd ) {
-            ERR_PRINT("HCIHandler::le_read_phy: Mismatch given address%s conn_handle (req) %s != %s (res) (drop) - %s",
+            ERR_PRINT("Mismatch given address%s conn_handle (req) %s != %s (res) (drop) - %s",
                        peerAddressAndType.toString().c_str(),
                        jau::to_hexstring(conn_handle).c_str(), jau::to_hexstring(conn_handle_rcvd).c_str(), toString().c_str());
             return HCIStatusCode::INTERNAL_FAILURE;
@@ -1533,7 +1523,7 @@ HCIStatusCode HCIHandler::le_set_default_phy(const LE_PHYs Tx, const LE_PHYs Rx)
     }
 
     if( !isOpen() ) {
-        ERR_PRINT("HCIHandler::set_default_phy: Not connected %s", toString().c_str());
+        ERR_PRINT("Not connected %s", toString().c_str());
         return HCIStatusCode::DISCONNECTED;
     }
 
@@ -1549,8 +1539,7 @@ HCIStatusCode HCIHandler::le_set_default_phy(const LE_PHYs Tx, const LE_PHYs Rx)
     std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_status, &status);
 
     if( nullptr == ev || nullptr == ev || HCIStatusCode::SUCCESS != status ) {
-        ERR_PRINT("HCIHandler::le_set_default_phy: LE_SET_PHY: 0x%x (%s) - %s",
-                number(status), to_string(status).c_str(), toString().c_str());
+        ERR_PRINT("LE_SET_PHY: 0x%x (%s) - %s", number(status), to_string(status).c_str(), toString().c_str());
     }
     return status;
 }
@@ -1593,8 +1582,7 @@ HCIStatusCode HCIHandler::le_set_phy(const uint16_t conn_handle, const BDAddress
     std::unique_ptr<HCIEvent> ev = processCommandStatus(req0, &status);
 
     if( nullptr == ev || nullptr == ev || HCIStatusCode::SUCCESS != status ) {
-        ERR_PRINT("HCIHandler::le_set_phy: LE_SET_PHY: 0x%x (%s) - %s",
-                number(status), to_string(status).c_str(), toString().c_str());
+        ERR_PRINT("LE_SET_PHY: 0x%x (%s) - %s", number(status), to_string(status).c_str(), toString().c_str());
     }
     return status;
 }
@@ -1746,7 +1734,7 @@ HCIStatusCode HCIHandler::le_set_scanrsp_data(const EInfoReport &eir, const EIRD
 
 HCIStatusCode HCIHandler::le_enable_adv(const bool enable) noexcept {
     if( !isOpen() ) {
-        ERR_PRINT("HCIHandler::le_enable_adv: Not connected %s", toString().c_str());
+        ERR_PRINT("Not connected %s", toString().c_str());
         return HCIStatusCode::DISCONNECTED;
     }
     const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
@@ -1825,7 +1813,7 @@ HCIStatusCode HCIHandler::le_start_adv(const EInfoReport &eir,
                                        const uint8_t filter_policy) noexcept
 {
     if( !isOpen() ) {
-        ERR_PRINT("HCIHandler::le_start_adv: Not connected %s", toString().c_str());
+        ERR_PRINT("Not connected %s", toString().c_str());
         return HCIStatusCode::DISCONNECTED;
     }
     const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
