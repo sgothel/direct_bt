@@ -191,6 +191,12 @@ class DBTServer01 : public DBTServerTest {
                 } else {
                     fprintf_td(stderr, "****** Server SETTINGS_CHANGED: %s -> %s, changed %s\n", to_string(oldmask).c_str(),
                             to_string(newmask).c_str(), to_string(changedmask).c_str());
+
+                    const bool justPoweredOn = isAdapterSettingBitSet(changedmask, AdapterSetting::POWERED) &&
+                                               isAdapterSettingBitSet(newmask, AdapterSetting::POWERED);
+                    if( justPoweredOn && *parent.serverAdapter == a ) {
+                        parent.startAdvertising("powered_on");
+                    }
                 }
                 fprintf_td(stderr, "Server Status BTAdapter:\n");
                 fprintf_td(stderr, "%s\n", a.toString().c_str());

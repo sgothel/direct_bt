@@ -57,8 +57,17 @@ class DBTClientServer1x {
     PairingMode lastCompletedDevicePairingMode = PairingMode::NONE;
     BTSecurityLevel lastCompletedDeviceSecurityLevel = BTSecurityLevel::NONE;
     EInfoReport lastCompletedDeviceEIR;
+    int client_power_down_count = 0;
+    int client_power_up_count = 0;
+    bool client_reset_at_ready = false;
+    bool server_reset_at_ready = false;
+    bool client_reset_test = false;
+    bool server_reset_test = false;
 
   public:
+    void set_client_reset_at_ready(const bool v) noexcept { client_reset_at_ready = v; client_reset_test = v; }
+    void set_server_reset_at_ready(const bool v) noexcept { server_reset_at_ready = v; server_reset_test = v; }
+
     void test8x_fullCycle(const std::string& suffix, const int protocolSessionCount, const bool server_client_order,
                           const bool serverSC, const BTSecurityLevel secLevelServer, const ExpectedPairing serverExpPairing,
                           const BTSecurityLevel secLevelClient, const ExpectedPairing clientExpPairing)
@@ -127,6 +136,21 @@ class DBTClientServer1x {
           public:
             MyAdapterStatusListener(DBTClientServer1x& p) : parent(p) {}
 
+            void adapterSettingsChanged(BTAdapter &a, const AdapterSetting oldmask, const AdapterSetting newmask,
+                                        const AdapterSetting changedmask, const uint64_t timestamp) override {
+                const bool initialSetting = AdapterSetting::NONE == oldmask;
+                if( !initialSetting && isAdapterSettingBitSet(changedmask, AdapterSetting::POWERED) ) {
+                    const std::lock_guard<std::mutex> lock(parent.mtx_sync); // RAII-style acquire and relinquish via destructor
+                    if( isAdapterSettingBitSet(newmask, AdapterSetting::POWERED) ) {
+                        ++parent.client_power_up_count;
+                    } else {
+                        ++parent.client_power_down_count;
+                    }
+                }
+                (void)timestamp;
+                (void)a;
+            }
+
             void deviceReady(BTDeviceRef device, const uint64_t timestamp) override {
                 (void)timestamp;
                 const std::lock_guard<std::mutex> lock(parent.mtx_sync); // RAII-style acquire and relinquish via destructor
@@ -135,6 +159,12 @@ class DBTClientServer1x {
                 parent.lastCompletedDeviceSecurityLevel = device->getConnSecurityLevel();
                 parent.lastCompletedDeviceEIR = *device->getEIR();
                 fprintf_td(stderr, "XXXXXX Client Ready: %s\n", device->toString(true).c_str());
+                if( parent.client_reset_at_ready ) {
+                    parent.client_reset_at_ready = false;
+                    fprintf_td(stderr, "XXXXXX Client Reset.0: %s\n", device->toString(true).c_str());
+                    const HCIStatusCode rr = device->getAdapter().reset();
+                    fprintf_td(stderr, "XXXXXX Client Reset.X: %s: %s\n", direct_bt::to_string(rr).c_str(), device->toString(true).c_str());
+                }
             }
 
             std::string toString() const noexcept override { return "DBTClientServer1x::Client"; }
@@ -184,9 +214,10 @@ class DBTClientServer1x {
         fprintf_td(stderr, "  Server ProtocolSessions[success %d/%d total, requested %d], disconnects %d of %d max\n",
                 server->getProtocolSessionsDoneSuccess(), server->getProtocolSessionsDoneTotal(), protocolSessionCount,
                 server->getDisconnectCount(), ( protocolSessionCount * max_connections_per_session ));
-        fprintf_td(stderr, "  Client ProtocolSessions[success %d/%d total, requested %d], disconnects %d of %d max\n",
+        fprintf_td(stderr, "  Client ProtocolSessions[success %d/%d total, requested %d], disconnects %d of %d max, power[down %d, up %d]\n",
                 client->getProtocolSessionsDoneSuccess(), client->getProtocolSessionsDoneTotal(), protocolSessionCount,
-                client->getDisconnectCount(), ( protocolSessionCount * max_connections_per_session ));
+                client->getDisconnectCount(), ( protocolSessionCount * max_connections_per_session ),
+                client_power_down_count, client_power_up_count);
         fprintf_td(stderr, "\n\n");
 
         if( expSuccess ) {
@@ -202,6 +233,13 @@ class DBTClientServer1x {
                 REQUIRE( EIRDataType::NONE != lastCompletedDeviceEIR.getEIRDataMask() );
                 REQUIRE( false == lastCompletedDevice->getConnected() );
                 REQUIRE( ( protocolSessionCount * max_connections_per_session ) > server->getDisconnectCount() );
+                if( client_reset_test ) {
+                    REQUIRE( 1 == client_power_down_count );
+                    REQUIRE( 1 == client_power_up_count );
+                } else {
+                    REQUIRE( 0 == client_power_down_count );
+                    REQUIRE( 0 == client_power_up_count );
+                }
             }
         }
 

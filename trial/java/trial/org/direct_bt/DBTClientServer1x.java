@@ -69,6 +69,15 @@ public abstract class DBTClientServer1x extends BaseDBTClientServer {
     PairingMode lastCompletedDevicePairingMode = PairingMode.NONE;
     BTSecurityLevel lastCompletedDeviceSecurityLevel = BTSecurityLevel.NONE;
     EInfoReport lastCompletedDeviceEIR = null;
+    int client_power_down_count = 0;
+    int client_power_up_count = 0;
+    boolean client_reset_at_ready = false;
+    boolean server_reset_at_ready = false;
+    boolean client_reset_test = false;
+    boolean server_reset_test = false;
+
+    final void set_client_reset_at_ready(final boolean v) { client_reset_at_ready = v; client_reset_test = v; }
+    final void set_server_reset_at_ready(final boolean v) { server_reset_at_ready = v; server_reset_test = v; }
 
     final void test8x_fullCycle(final long timeout_value,
                                 final String suffix, final int protocolSessionCount, final boolean server_client_order,
@@ -137,6 +146,21 @@ public abstract class DBTClientServer1x extends BaseDBTClientServer {
         }
         final AdapterStatusListener clientAdapterStatusListener = new AdapterStatusListener() {
             @Override
+            public void adapterSettingsChanged(final BTAdapter adapter, final AdapterSettings oldmask,
+                                               final AdapterSettings newmask, final AdapterSettings changedmask, final long timestamp) {
+                final boolean initialSetting = oldmask.isEmpty();
+                if( !initialSetting && changedmask.isSet(AdapterSettings.SettingType.POWERED) ) {
+                    synchronized( mtx_sync ) {
+                        if( newmask.isSet(AdapterSettings.SettingType.POWERED) ) {
+                            ++client_power_up_count;
+                        } else {
+                            ++client_power_down_count;
+                        }
+                    }
+                }
+            }
+
+            @Override
             public void deviceReady(final BTDevice device, final long timestamp) {
                 synchronized( mtx_sync ) {
                     lastCompletedDevice = device;
@@ -144,6 +168,12 @@ public abstract class DBTClientServer1x extends BaseDBTClientServer {
                     lastCompletedDeviceSecurityLevel = device.getConnSecurityLevel();
                     lastCompletedDeviceEIR = device.getEIR().clone();
                     PrintUtil.println(System.err, "XXXXXX Client Ready: "+device);
+                    if( client_reset_at_ready ) {
+                        client_reset_at_ready = false;
+                        PrintUtil.fprintf_td(System.err, "XXXXXX Client Reset.0: %s\n", device.toString());
+                        final HCIStatusCode rr = device.getAdapter().reset();
+                        PrintUtil.fprintf_td(System.err, "XXXXXX Client Reset.X: %s: %s\n", rr.toString(), device.toString());
+                    }
                 }
             }
         };
@@ -187,9 +217,10 @@ public abstract class DBTClientServer1x extends BaseDBTClientServer {
         PrintUtil.fprintf_td(System.err, "  Server ProtocolSessions[success %d/%d total, requested %d], disconnects %d of %d max\n",
                 server.getProtocolSessionsDoneSuccess(), server.getProtocolSessionsDoneTotal(), protocolSessionCount,
                 server.getDisconnectCount(), ( protocolSessionCount * max_connections_per_session ));
-        PrintUtil.fprintf_td(System.err, "  Client ProtocolSessions[success %d/%d total, requested %d], disconnects %d of %d max\n",
+        PrintUtil.fprintf_td(System.err, "  Client ProtocolSessions[success %d/%d total, requested %d], disconnects %d of %d max, power[down %d, up %d]\n",
                 client.getProtocolSessionsDoneSuccess(), client.getProtocolSessionsDoneTotal(), protocolSessionCount,
-                client.getDisconnectCount(), ( protocolSessionCount * max_connections_per_session ));
+                client.getDisconnectCount(), ( protocolSessionCount * max_connections_per_session ),
+                client_power_down_count, client_power_up_count);
         PrintUtil.fprintf_td(System.err, "\n\n");
 
         if( expSuccess ) {
@@ -205,6 +236,13 @@ public abstract class DBTClientServer1x extends BaseDBTClientServer {
                 Assert.assertNotNull(lastCompletedDeviceEIR);
                 Assert.assertFalse(lastCompletedDevice.getConnected());
                 Assert.assertTrue( ( 1 * max_connections_per_session ) > server.getDisconnectCount() );
+                if( client_reset_test ) {
+                    Assert.assertEquals( 1, client_power_down_count );
+                    Assert.assertEquals( 1, client_power_up_count );
+                } else {
+                    Assert.assertEquals( 0, client_power_down_count );
+                    Assert.assertEquals( 0, client_power_up_count );
+                }
             }
         }
 

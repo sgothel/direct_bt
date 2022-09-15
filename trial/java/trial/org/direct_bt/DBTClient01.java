@@ -178,6 +178,13 @@ public class DBTClient01 implements DBTClientTest {
                 PrintUtil.println(System.err, "****** Client SETTINGS_INITIAL: "+oldmask+" -> "+newmask+", changed "+changedmask);
             } else {
                 PrintUtil.println(System.err, "****** Client SETTINGS_CHANGED: "+oldmask+" -> "+newmask+", changed "+changedmask);
+
+                final boolean justPoweredOn = changedmask.isSet(AdapterSettings.SettingType.POWERED) &&
+                                              newmask.isSet(AdapterSettings.SettingType.POWERED);
+                if( justPoweredOn && DiscoveryPolicy.AUTO_OFF != discoveryPolicy && clientAdapter.equals(adapter) ) {
+                    executeOffThread( () -> { startDiscovery("powered_on"); },
+                                  "Client DBT-StartDiscovery-"+adapter.getAddressAndType(), true /* detach */);
+                }
             }
             PrintUtil.println(System.err, "Client Status Adapter:");
             PrintUtil.println(System.err, adapter.toString());

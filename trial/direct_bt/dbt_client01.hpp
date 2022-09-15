@@ -83,6 +83,13 @@ class DBTClient01 : public DBTClientTest {
                 } else {
                     fprintf_td(stderr, "****** Client SETTINGS_CHANGED: %s -> %s, changed %s\n", to_string(oldmask).c_str(),
                             to_string(newmask).c_str(), to_string(changedmask).c_str());
+
+                    const bool justPoweredOn = isAdapterSettingBitSet(changedmask, AdapterSetting::POWERED) &&
+                                               isAdapterSettingBitSet(newmask, AdapterSetting::POWERED);
+                    if( justPoweredOn && DiscoveryPolicy::AUTO_OFF != parent.discoveryPolicy && *parent.clientAdapter == a ) {
+                        std::thread dc(&DBTClient01::startDiscovery, &parent, "powered_on"); // @suppress("Invalid arguments")
+                        dc.detach();
+                    }
                 }
                 fprintf_td(stderr, "Client Status BTAdapter:\n");
                 fprintf_td(stderr, "%s\n", a.toString().c_str());

@@ -275,6 +275,13 @@ public class DBTServer01 implements DBTServerTest {
                 PrintUtil.println(System.err, "****** Server SETTINGS_INITIAL: "+oldmask+" -> "+newmask+", changed "+changedmask);
             } else {
                 PrintUtil.println(System.err, "****** Server SETTINGS_CHANGED: "+oldmask+" -> "+newmask+", changed "+changedmask);
+
+                final boolean justPoweredOn = changedmask.isSet(AdapterSettings.SettingType.POWERED) &&
+                                              newmask.isSet(AdapterSettings.SettingType.POWERED);
+                if( justPoweredOn && serverAdapter.equals(adapter) ) {
+                    executeOffThread( () -> { startAdvertising("powered_on"); },
+                                  "Server DBT-StartAdvertising-"+adapter.getAddressAndType(), true /* detach */);
+                }
             }
             PrintUtil.println(System.err, "Server Status Adapter:");
             PrintUtil.println(System.err, adapter.toString());
