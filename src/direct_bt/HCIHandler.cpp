@@ -1032,12 +1032,14 @@ HCIStatusCode HCIHandler::stopAdapter() {
     return res;
 }
 
-HCIStatusCode HCIHandler::resetAdapter() {
+HCIStatusCode HCIHandler::resetAdapter(HCIHandler::PostShutdownFunc user_post_shutdown) {
     if( !isOpen() ) {
         ERR_PRINT("Not connected %s", toString().c_str());
         return HCIStatusCode::DISCONNECTED;
     }
     HCIStatusCode res = HCIStatusCode::INTERNAL_FAILURE;
+    bool user_called = false;
+    bool user_abort = false;
 
     const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
     DBG_PRINT("HCIHandler<%u>::resetAdapter.0: %s", dev_id, toString().c_str());
@@ -1045,16 +1047,25 @@ HCIStatusCode HCIHandler::resetAdapter() {
     #if defined(__linux__)
         res = stopAdapter();
         if( HCIStatusCode::SUCCESS == res ) {
-            res = startAdapter();
+            if( nullptr != user_post_shutdown ) {
+                user_called = true;
+                res = user_post_shutdown();
+                user_abort = HCIStatusCode::SUCCESS != res;
+            }
+            if( !user_abort ) {
+                res = startAdapter();
+            }
         }
     #elif defined(__FreeBSD__)
         // #warning add implementation
+        (void)user_post_shutdown;
         ABORT("add implementation for FreeBSD");
     #else
         #warning add implementation
+        (void)user_post_shutdown;
         ABORT("add implementation");
     #endif
-    DBG_PRINT("HCIHandler<%u>::resetAdapter.X: %s - %s", dev_id, to_string(res).c_str(), toString().c_str());
+    DBG_PRINT("HCIHandler<%u>::resetAdapter.X: %s user[called %d, abort %d] - %s", dev_id, to_string(res).c_str(), user_called, user_abort, toString().c_str());
     return res;
 }
 

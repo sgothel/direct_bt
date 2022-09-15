@@ -480,7 +480,7 @@ void BTAdapter::poweredOff(bool active, const std::string& msg) noexcept {
         ERR_PRINT("BTAdapter invalid: dev_id %d, %p", dev_id, this);
         return;
     }
-    DBG_PRINT("BTAdapter::poweredOff(active %d, %s): ... %p, %s", active, msg.c_str(), this, toString().c_str());
+    DBG_PRINT("BTAdapter::poweredOff(active %d, %s).0: ... %p, %s", active, msg.c_str(), this, toString().c_str());
     if( jau::environment::get().debug ) {
         if( !active ) {
             jau::print_backtrace(true /* skip_anon_frames */, 4 /* max_frames */, 2 /* skip_frames: print_b*() + get_b*() */);
@@ -511,7 +511,7 @@ void BTAdapter::poweredOff(bool active, const std::string& msg) noexcept {
 
     unlockConnectAny();
 
-    DBG_PRINT("BTAdapter::poweredOff(active %d, %s): XXX %s", active, msg.c_str(), toString().c_str());
+    DBG_PRINT("BTAdapter::poweredOff(active %d, %s).X: %s", active, msg.c_str(), toString().c_str());
 }
 
 void BTAdapter::printDeviceList(const std::string& prefix, const BTAdapter::device_list_t& list) noexcept {
@@ -850,24 +850,29 @@ HCIStatusCode BTAdapter::reset() noexcept {
         ERR_PRINT("HCI closed: %s, %s", jau::to_hexstring(this).c_str(), toString().c_str());
         return HCIStatusCode::UNSPECIFIED_ERROR;
     }
-#if 0
-    const bool wasPowered = isPowered();
-    // Adapter will be reset, close connections and cleanup off-thread.
-    preReset();
-
-    HCIStatusCode status = hci->reset();
-    if( HCIStatusCode::SUCCESS != status ) {
-        ERR_PRINT("reset failed: %s", to_string(status).c_str());
-    } else if( wasPowered ) {
-        if( !setPowered(true) ) {
-            ERR_PRINT("setPowered(true) failed");
-            status = HCIStatusCode::UNSPECIFIED_ERROR;
+    DBG_PRINT("BTAdapter::reset.0: %s", toString().c_str());
+    HCIStatusCode res = hci.resetAdapter( [&]() noexcept -> HCIStatusCode {
+        jau::nsize_t connCount = getConnectedDeviceCount();
+        if( 0 < connCount ) {
+            const jau::fraction_i64 timeout = hci.env.HCI_COMMAND_COMPLETE_REPLY_TIMEOUT;
+            const jau::fraction_i64 poll_period = hci.env.HCI_COMMAND_POLL_PERIOD;
+            DBG_PRINT("BTAdapter::reset: %d connections pending - %s", connCount, toString().c_str());
+            jau::fraction_i64 td = 0_s;
+            while( timeout > td && 0 < connCount ) {
+                sleep_for( poll_period );
+                td += poll_period;
+                connCount = getConnectedDeviceCount();
+            }
+            if( 0 < connCount ) {
+                WARN_PRINT("%d connections pending after %" PRIi64 " ms - %s", connCount, td.to_ms(), toString().c_str());
+            } else {
+                DBG_PRINT("BTAdapter::reset: pending connections resolved after %" PRIi64 " ms - %s", td.to_ms(), toString().c_str());
+            }
         }
-    }
-    return status;
-#else
-    return hci.resetAdapter();
-#endif
+        return HCIStatusCode::SUCCESS; // keep going
+    });
+    DBG_PRINT("BTAdapter::reset.X: %s - %s", to_string(res).c_str(), toString().c_str());
+    return res;
 }
 
 

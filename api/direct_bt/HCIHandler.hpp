@@ -30,6 +30,7 @@
 #include <string>
 #include <cstdint>
 #include <array>
+#include <functional>
 
 #include <mutex>
 #include <atomic>
@@ -430,6 +431,7 @@ namespace direct_bt {
              * <p>
              * Currently used in resetAdapter() only.
              * </p>
+             * @return HCIStatusCode
              */
             HCIStatusCode startAdapter();
 
@@ -445,28 +447,49 @@ namespace direct_bt {
              * <p>
              * Currently used in resetAdapter() only.
              * </p>
+             * @return HCIStatusCode
              */
             HCIStatusCode stopAdapter();
 
         public:
             /**
-             * Reset the adapter.
-             * <p>
+             * Use post shutdown function, considered to be `noexcept`.
+             *
+             * `HCIStatusCode post_shutdown() noexcept`
+             *
+             * @return HCIStatusCode::SUCCESS to continue the process, otherwise to abort process.
+             */
+            typedef std::function<HCIStatusCode() /* noexcept */> PostShutdownFunc;
+
+            /**
+             * Complete adapter reset.
+             *
              * The semantics are specific to the HCI host implementation,
-             * however, it shall comply at least with the HCI Reset command
-             * and bring up the device from standby into a POWERED functional state afterwards.
-             * </p>
+             * however, it shall comply at least with the HCI Reset command.
+             *
+             * The adapter shall be shutdown into standby first, i.e. POWERED off,
+             * then the adapter should be brought up into a POWERED functional state afterwards.
+             *
              * <pre>
              * BT Core Spec v5.2: Vol 4, Part E HCI: 7.3.2 Reset command
              * </pre>
+             *
+             * @param user_post_shutdown optional custom user function to be executed after successful adapter shutdown.
+             *                           If function is not null and returns false, the adapter will not be brought up again.
+             *
+             * @return HCIStatusCode
              */
-            HCIStatusCode resetAdapter();
+            HCIStatusCode resetAdapter(PostShutdownFunc user_post_shutdown);
 
             /**
              * HCI Reset Command
+             *
+             * Consider using resetAdapter().
+             *
              * <pre>
              * BT Core Spec v5.2: Vol 4, Part E HCI: 7.3.2 Reset command
              * </pre>
+             * @see resetAdapter()
              */
             HCIStatusCode reset() noexcept;
 
@@ -497,7 +520,7 @@ namespace direct_bt {
              * @param peerAddressAndType
              * @param addUntrackedConn true adds connection if not tracked,
              *                         otherwise return HCIStatusCode::INVALID_HCI_COMMAND_PARAMETERS (default)
-             * @return
+             * @return HCIStatusCode
              */
             HCIStatusCode check_open_connection(const std::string& caller,
                                                 const uint16_t conn_handle, const BDAddressAndType& peerAddressAndType,
@@ -518,8 +541,6 @@ namespace direct_bt {
              * <pre>
              * BT Core Spec v5.2: Vol 4, Part E, 7.7.65.4 LE Read Remote Features Complete event
              * </pre>
-             *
-             *
              * @return HCIStatusCode
              */
             HCIStatusCode le_read_remote_features(const uint16_t conn_handle, const BDAddressAndType& peerAddressAndType) noexcept;
