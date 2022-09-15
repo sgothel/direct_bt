@@ -455,7 +455,7 @@ namespace direct_bt {
              * </p>
              * @param active true if still powered and actively stopDiscovery and disconnect devices, otherwise this is a passive operation
              */
-            void poweredOff(bool active) noexcept;
+            void poweredOff(bool active, const std::string& msg) noexcept;
 
             friend BTDeviceRef BTDevice::getSharedInstance() const noexcept;
             friend void BTDevice::remove() noexcept;

@@ -438,7 +438,7 @@ void BTAdapter::close() noexcept {
     hci.clearAllCallbacks();
     statusListenerList.clear();
 
-    poweredOff(true /* active */);
+    poweredOff(true /* active */, "close");
 
     if( adapter_poweredon_at_init ) {
         adapter_poweredon_at_init = false;
@@ -475,12 +475,12 @@ void BTAdapter::close() noexcept {
     DBG_PRINT("BTAdapter::close: XXX");
 }
 
-void BTAdapter::poweredOff(bool active) noexcept {
+void BTAdapter::poweredOff(bool active, const std::string& msg) noexcept {
     if( !isValid() ) {
         ERR_PRINT("BTAdapter invalid: dev_id %d, %p", dev_id, this);
         return;
     }
-    DBG_PRINT("BTAdapter::poweredOff(active %d): ... %p, %s", active, this, toString().c_str());
+    DBG_PRINT("BTAdapter::poweredOff(active %d, %s): ... %p, %s", active, msg.c_str(), this, toString().c_str());
     if( jau::environment::get().debug ) {
         if( !active ) {
             jau::print_backtrace(true /* skip_anon_frames */, 4 /* max_frames */, 2 /* skip_frames: print_b*() + get_b*() */);
@@ -516,7 +516,7 @@ void BTAdapter::poweredOff(bool active) noexcept {
 
     unlockConnectAny();
 
-    DBG_PRINT("BTAdapter::poweredOff(active %d): XXX %s", active, toString().c_str());
+    DBG_PRINT("BTAdapter::poweredOff(active %d, %s): XXX %s", active, msg.c_str(), toString().c_str());
 }
 
 void BTAdapter::printDeviceList(const std::string& prefix, const BTAdapter::device_list_t& list) noexcept {
@@ -878,7 +878,7 @@ HCIStatusCode BTAdapter::reset() noexcept {
 
 HCIStatusCode BTAdapter::setDefaultLE_PHY(const LE_PHYs Tx, const LE_PHYs Rx) noexcept {
     if( !isPowered() ) { // isValid() && hci.isOpen() && POWERED
-        poweredOff(false /* active */);
+        poweredOff(false /* active */, "setDefaultLE_PHY.np");
         return HCIStatusCode::NOT_POWERED;
     }
     return hci.le_set_default_phy(Tx, Rx);
@@ -892,7 +892,7 @@ bool BTAdapter::addDeviceToWhitelist(const BDAddressAndType & addressAndType, co
                                       const uint16_t conn_interval_min, const uint16_t conn_interval_max,
                                       const uint16_t conn_latency, const uint16_t timeout) {
     if( !isPowered() ) { // isValid() && hci.isOpen() && POWERED
-        poweredOff(false /* active */);
+        poweredOff(false /* active */, "addDeviceToWhitelist.np");
         return false;
     }
     if( mgmt->isDeviceWhitelisted(dev_id, addressAndType) ) {
@@ -1061,7 +1061,7 @@ HCIStatusCode BTAdapter::startDiscovery(const DiscoveryPolicy policy, const bool
     clearDevicesPausingDiscovery();
 
     if( !isPowered() ) { // isValid() && hci.isOpen() && POWERED
-        poweredOff(false /* active */);
+        poweredOff(false /* active */, "startDiscovery.np");
         return HCIStatusCode::NOT_POWERED;
     }
 
@@ -1130,7 +1130,7 @@ void BTAdapter::discoveryServerWork(jau::service_runner& sr) noexcept {
 
     // FIXME: Respect BTAdapter::btMode, i.e. BTMode::BREDR, BTMode::LE or BTMode::DUAL to setup BREDR, LE or DUAL scanning!
     if( !isPowered() ) { // isValid() && hci.isOpen() && POWERED
-        poweredOff(false /* active */);
+        poweredOff(false /* active */, "discoveryServerWork.np");
     } else {
         {
             const std::lock_guard<std::mutex> lock(mtx_discovery); // RAII-style acquire and relinquish via destructor
@@ -1222,7 +1222,7 @@ HCIStatusCode BTAdapter::stopDiscoveryImpl(const bool forceDiscoveringEvent, con
 
     HCIStatusCode status;
     if( !isPowered() ) { // isValid() && hci.isOpen() && POWERED
-        poweredOff(false /* active */);
+        poweredOff(false /* active */, "stopDiscoveryImpl.np");
         status = HCIStatusCode::NOT_POWERED;
         goto exit;
     }
@@ -1444,7 +1444,7 @@ HCIStatusCode BTAdapter::startAdvertising(DBGattServerRef gattServerData_,
                                const uint8_t adv_chan_map,
                                const uint8_t filter_policy) noexcept {
     if( !isPowered() ) { // isValid() && hci.isOpen() && POWERED
-        poweredOff(false /* active */);
+        poweredOff(false /* active */, "startAdvertising.np");
         return HCIStatusCode::NOT_POWERED;
     }
 
@@ -1542,7 +1542,7 @@ HCIStatusCode BTAdapter::startAdvertising(DBGattServerRef gattServerData_,
  */
 HCIStatusCode BTAdapter::stopAdvertising() noexcept {
     if( !isPowered() ) { // isValid() && hci.isOpen() && POWERED
-        poweredOff(false /* active */);
+        poweredOff(false /* active */, "stopAdvertising.np");
         return HCIStatusCode::NOT_POWERED;
     }
 
@@ -1760,10 +1760,10 @@ void BTAdapter::updateAdapterSettings(const bool off_thread, const AdapterSettin
     if( justPoweredOff ) {
         // Adapter has been powered off, close connections and cleanup off-thread.
         if( off_thread ) {
-            std::thread bg(&BTAdapter::poweredOff, this, false); // @suppress("Invalid arguments")
+            std::thread bg(&BTAdapter::poweredOff, this, false, "powered_off.0"); // @suppress("Invalid arguments")
             bg.detach();
         } else {
-            poweredOff(false);
+            poweredOff(false, "powered_off.1");
         }
     }
 }
