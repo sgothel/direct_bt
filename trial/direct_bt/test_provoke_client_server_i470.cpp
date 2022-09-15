@@ -56,14 +56,21 @@ class TestDBTClientServer_i470 : public DBTClientServer1x {
                 const BTSecurityLevel secLevelClient = BTSecurityLevel::ENC_ONLY;
                 const ExpectedPairing serverExpPairing = ExpectedPairing::DONT_CARE;
                 const ExpectedPairing clientExpPairing = ExpectedPairing::DONT_CARE;
-                const bool client_do_disconnect = true;
-                const bool server_do_disconnect = false;
+                const bool client_do_disconnect_random = true;
+                const bool server_do_disconnect_random = false;
 
-                std::shared_ptr<DBTServerTest> server = std::make_shared<DBTServer01>("S-"+suffix, EUI48::ALL_DEVICE, BTMode::DUAL, serverSC, secLevelServer, server_do_disconnect);
-                std::shared_ptr<DBTClientTest> client = std::make_shared<DBTClient01>("C-"+suffix, EUI48::ALL_DEVICE, BTMode::DUAL, client_do_disconnect);
+                std::shared_ptr<DBTServerTest> server = std::make_shared<DBTServer01>("S-"+suffix, EUI48::ALL_DEVICE, BTMode::DUAL, serverSC, secLevelServer, server_do_disconnect_random);
+                std::shared_ptr<DBTClientTest> client = std::make_shared<DBTClient01>("C-"+suffix, EUI48::ALL_DEVICE, BTMode::DUAL, client_do_disconnect_random);
+
+                server->setProtocolSessionsLeft( protocolSessionCount );
+
+                client->setProtocolSessionsLeft( protocolSessionCount );
+                client->setDisconnectDevice( true ); // default, auto-disconnect after work is done
+                client->setRemoveDevice( false ); // default, test side-effects
+                client->setDiscoveryPolicy( DiscoveryPolicy::PAUSE_CONNECTED_UNTIL_DISCONNECTED );
 
                 test8x_fullCycle(suffix,
-                                 protocolSessionCount, max_connections_per_session, expSuccess,
+                                 max_connections_per_session, expSuccess,
                                  server_client_order,
                                  server, secLevelServer, serverExpPairing,
                                  client, secLevelClient, clientExpPairing);
@@ -84,14 +91,21 @@ class TestDBTClientServer_i470 : public DBTClientServer1x {
                 const BTSecurityLevel secLevelClient = BTSecurityLevel::ENC_ONLY;
                 const ExpectedPairing serverExpPairing = ExpectedPairing::DONT_CARE;
                 const ExpectedPairing clientExpPairing = ExpectedPairing::DONT_CARE;
-                const bool client_do_disconnect = false;
-                const bool server_do_disconnect = true;
+                const bool client_do_disconnect_random = false;
+                const bool server_do_disconnect_random = true;
 
-                std::shared_ptr<DBTServerTest> server = std::make_shared<DBTServer01>("S-"+suffix, EUI48::ALL_DEVICE, BTMode::DUAL, serverSC, secLevelServer, server_do_disconnect);
-                std::shared_ptr<DBTClientTest> client = std::make_shared<DBTClient01>("C-"+suffix, EUI48::ALL_DEVICE, BTMode::DUAL, client_do_disconnect);
+                std::shared_ptr<DBTServerTest> server = std::make_shared<DBTServer01>("S-"+suffix, EUI48::ALL_DEVICE, BTMode::DUAL, serverSC, secLevelServer, server_do_disconnect_random);
+                std::shared_ptr<DBTClientTest> client = std::make_shared<DBTClient01>("C-"+suffix, EUI48::ALL_DEVICE, BTMode::DUAL, client_do_disconnect_random);
+
+                server->setProtocolSessionsLeft( protocolSessionCount );
+
+                client->setProtocolSessionsLeft( protocolSessionCount );
+                client->setDisconnectDevice( true ); // default, auto-disconnect after work is done
+                client->setRemoveDevice( false ); // default, test side-effects
+                client->setDiscoveryPolicy( DiscoveryPolicy::PAUSE_CONNECTED_UNTIL_DISCONNECTED );
 
                 test8x_fullCycle(suffix,
-                                 protocolSessionCount, max_connections_per_session, expSuccess,
+                                 max_connections_per_session, expSuccess,
                                  server_client_order,
                                  server, secLevelServer, serverExpPairing,
                                  client, secLevelClient, clientExpPairing);

@@ -64,17 +64,25 @@ class DBTClientServer1x {
                           const BTSecurityLevel secLevelClient, const ExpectedPairing clientExpPairing)
     {
         std::shared_ptr<DBTServer01> server = std::make_shared<DBTServer01>("S-"+suffix, EUI48::ALL_DEVICE, BTMode::DUAL,
-                                                                            serverSC, secLevelServer, false /* do_disconnect_ */);
-        std::shared_ptr<DBTClient01> client = std::make_shared<DBTClient01>("C-"+suffix, EUI48::ALL_DEVICE, BTMode::DUAL, false /* do_disconnect_ */);
+                                                                            serverSC, secLevelServer);
+        std::shared_ptr<DBTClient01> client = std::make_shared<DBTClient01>("C-"+suffix, EUI48::ALL_DEVICE, BTMode::DUAL);
+
+        server->setProtocolSessionsLeft( protocolSessionCount );
+
+        client->setProtocolSessionsLeft( protocolSessionCount );
+        client->setDisconnectDevice( true ); // default, auto-disconnect after work is done
+        client->setRemoveDevice( false ); // default, test side-effects
+        client->setDiscoveryPolicy( DiscoveryPolicy::PAUSE_CONNECTED_UNTIL_DISCONNECTED );
+
         test8x_fullCycle(suffix,
-                         protocolSessionCount, DBTConstants::max_connections_per_session, true /* expSuccess */,
+                         DBTConstants::max_connections_per_session, true /* expSuccess */,
                          server_client_order,
                          server, secLevelServer, serverExpPairing,
                          client, secLevelClient, clientExpPairing);
     }
 
     void test8x_fullCycle(const std::string& suffix,
-                          const int protocolSessionCount, const int max_connections_per_session, const bool expSuccess,
+                          const int max_connections_per_session, const bool expSuccess,
                           const bool server_client_order,
                           std::shared_ptr<DBTServerTest> server, const BTSecurityLevel secLevelServer, const ExpectedPairing serverExpPairing,
                           std::shared_ptr<DBTClientTest> client, const BTSecurityLevel secLevelClient, const ExpectedPairing clientExpPairing)
@@ -82,6 +90,7 @@ class DBTClientServer1x {
         (void)secLevelServer;
         (void)serverExpPairing;
 
+        const int protocolSessionCount = std::min(server->getProtocolSessionsLeft(), client->getProtocolSessionsLeft());
         const jau::fraction_timespec t0 = jau::getMonotonicTime();
 
         std::shared_ptr<BTManager> manager = BTManager::get();
@@ -94,13 +103,6 @@ class DBTClientServer1x {
             }
             REQUIRE( adapters.size() >= 2 );
         }
-
-        server->setProtocolSessionsLeft(protocolSessionCount);
-
-        client->setProtocolSessionsLeft( protocolSessionCount );
-        client->setKeepConnected( false ); // default, auto-disconnect after work is done
-        client->setRemoveDevice( false ); // default, test side-effects
-        client->setDiscoveryPolicy( DiscoveryPolicy::PAUSE_CONNECTED_UNTIL_DISCONNECTED );
 
         ChangedAdapterSetCallback myChangedAdapterSetFunc = DBTEndpoint::initChangedAdapterSetListener(manager,
                 server_client_order ? std::vector<DBTEndpointRef>{ server, client } : std::vector<DBTEndpointRef>{ client, server } );

@@ -81,9 +81,9 @@ public class DBTClient01 implements DBTClientTest {
     private BTMode btMode = BTMode.DUAL;
     private BTAdapter clientAdapter = null;
 
-    private boolean KEEP_CONNECTED = false;
+    private boolean do_disconnect = true;
 
-    private boolean REMOVE_DEVICE = false;
+    private boolean do_remove_device = false;
 
     private DiscoveryPolicy discoveryPolicy = DiscoveryPolicy.PAUSE_CONNECTED_UNTIL_READY; // default value
 
@@ -96,13 +96,16 @@ public class DBTClient01 implements DBTClientTest {
     private final AtomicInteger completedMeasurementsTotal = new AtomicInteger(0);
     private final AtomicInteger completedMeasurementsSuccess = new AtomicInteger(0);
 
-    private final boolean do_disconnect;
+    private final boolean do_disconnect_randomly;
 
-    public DBTClient01(final String adapterName, final EUI48 useAdapter, final BTMode btMode, final boolean do_disconnect) {
+    public DBTClient01(final String adapterName, final EUI48 useAdapter, final BTMode btMode, final boolean do_disconnect_randomly) {
         this.adapterName = adapterName;
         this.useAdapter = useAdapter;
         this.btMode = btMode;
-        this.do_disconnect = do_disconnect;
+        this.do_disconnect_randomly = do_disconnect_randomly;
+    }
+    public DBTClient01(final String adapterName, final EUI48 useAdapter, final BTMode btMode) {
+        this(adapterName, useAdapter, btMode, false /* do_disconnect_randomly */);
     }
 
     @Override
@@ -141,12 +144,12 @@ public class DBTClient01 implements DBTClientTest {
         discoveryPolicy = v;
     }
     @Override
-    public void setKeepConnected(final boolean v) {
-        KEEP_CONNECTED = v;
+    public void setDisconnectDeviceed(final boolean v) {
+        do_disconnect = v;
     }
     @Override
     public void setRemoveDevice(final boolean v) {
-        REMOVE_DEVICE = v;
+        do_remove_device = v;
     }
 
     static void executeOffThread(final Runnable runobj, final String threadName, final boolean detach) {
@@ -172,9 +175,9 @@ public class DBTClient01 implements DBTClientTest {
                                            final AdapterSettings newmask, final AdapterSettings changedmask, final long timestamp) {
             final boolean initialSetting = oldmask.isEmpty();
             if( initialSetting ) {
-                PrintUtil.println(System.err, "****** Client SETTINGS: "+oldmask+" -> "+newmask+", initial "+changedmask);
+                PrintUtil.println(System.err, "****** Client SETTINGS_INITIAL: "+oldmask+" -> "+newmask+", changed "+changedmask);
             } else {
-                PrintUtil.println(System.err, "****** Client SETTINGS: "+oldmask+" -> "+newmask+", changed "+changedmask);
+                PrintUtil.println(System.err, "****** Client SETTINGS_CHANGED: "+oldmask+" -> "+newmask+", changed "+changedmask);
             }
             PrintUtil.println(System.err, "Client Status Adapter:");
             PrintUtil.println(System.err, adapter.toString());
@@ -268,7 +271,7 @@ public class DBTClient01 implements DBTClientTest {
             }
         }
 
-        private void disconnectDevice(final BTDevice device) {
+        private void disconnectDeviceRandomly(final BTDevice device) {
             // sleep range: 100 - 1500 ms
             final int sleep_min = 100;
             final int sleep_max = 1500;
@@ -296,8 +299,8 @@ public class DBTClient01 implements DBTClientTest {
                         "DBT-Process1-"+device.getAddressAndType(), true /* detach */);
                 // processReadyDevice(device); // AdapterStatusListener::deviceReady() explicitly allows prolonged and complex code execution!
 
-                if( do_disconnect ) {
-                    executeOffThread( () -> { disconnectDevice(device); },
+                if( do_disconnect_randomly ) {
+                    executeOffThread( () -> { disconnectDeviceRandomly(device); },
                             "DBT-Disconnect-"+device.getAddressAndType(), true /* detach */);
                 }
             }
@@ -599,8 +602,8 @@ public class DBTClient01 implements DBTClientTest {
         PrintUtil.println(System.err, "****** Client Processing Ready Device: End-2: Success " + success + " on " + device.toString());
         device.removeAllCharListener();
 
-        if( !KEEP_CONNECTED ) {
-            if( REMOVE_DEVICE ) {
+        if( do_disconnect ) {
+            if( do_remove_device ) {
                 device.remove();
             } else {
                 device.disconnect();
@@ -625,7 +628,7 @@ public class DBTClient01 implements DBTClientTest {
     private void removeDevice(final BTDevice device) {
         PrintUtil.println(System.err, "****** Client Remove Device: removing: "+device.getAddressAndType());
 
-        if( REMOVE_DEVICE ) {
+        if( do_remove_device ) {
             device.remove();
         }
     }

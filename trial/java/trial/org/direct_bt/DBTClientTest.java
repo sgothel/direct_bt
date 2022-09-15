@@ -41,9 +41,9 @@ public interface DBTClientTest extends DBTEndpoint {
     /**
      * Set disconnect after processing.
      *
-     * Default is `false`.
+     * Default is `true`.
      */
-    void setKeepConnected(final boolean v);
+    void setDisconnectDeviceed(final boolean v);
 
     /**
      * Set remove device when disconnecting.

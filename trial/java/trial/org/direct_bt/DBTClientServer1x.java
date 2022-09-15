@@ -30,6 +30,7 @@ import java.util.List;
 
 import org.direct_bt.BTMode;
 import org.direct_bt.BTSecurityLevel;
+import org.direct_bt.AdapterSettings;
 import org.direct_bt.AdapterStatusListener;
 import org.direct_bt.BTAdapter;
 import org.direct_bt.BTDevice;
@@ -41,6 +42,7 @@ import org.direct_bt.BTSecurityRegistry;
 import org.direct_bt.DiscoveryPolicy;
 import org.direct_bt.EIRDataTypeSet;
 import org.direct_bt.EInfoReport;
+import org.direct_bt.HCIStatusCode;
 import org.direct_bt.PairingMode;
 import org.direct_bt.SMPKeyBin;
 import org.jau.io.PrintUtil;
@@ -73,21 +75,30 @@ public abstract class DBTClientServer1x extends BaseDBTClientServer {
                                 final boolean serverSC, final BTSecurityLevel secLevelServer, final ExpectedPairing serverExpPairing,
                                 final BTSecurityLevel secLevelClient, final ExpectedPairing clientExpPairing)
     {
-        final DBTServer01 server = new DBTServer01("S-"+suffix, EUI48.ALL_DEVICE, BTMode.DUAL, serverSC, secLevelServer, false /* do_disconnect */);
-        final DBTClient01 client = new DBTClient01("C-"+suffix, EUI48.ALL_DEVICE, BTMode.DUAL, false /* do_disconnect */);
+        final DBTServer01 server = new DBTServer01("S-"+suffix, EUI48.ALL_DEVICE, BTMode.DUAL, serverSC, secLevelServer);
+        final DBTClient01 client = new DBTClient01("C-"+suffix, EUI48.ALL_DEVICE, BTMode.DUAL);
+
+        server.setProtocolSessionsLeft( protocolSessionCount );
+
+        client.setProtocolSessionsLeft( protocolSessionCount );
+        client.setDisconnectDeviceed( true ); // default, auto-disconnect after work is done
+        client.setRemoveDevice( false ); // default, test side-effects
+        client.setDiscoveryPolicy( DiscoveryPolicy.PAUSE_CONNECTED_UNTIL_DISCONNECTED );
+
         test8x_fullCycle(timeout_value, suffix,
-                         protocolSessionCount, DBTConstants.max_connections_per_session, true /* expSuccess */,
-                         server_client_order,
-                         server, secLevelServer, serverExpPairing,
-                         client, secLevelClient, clientExpPairing);
+                         DBTConstants.max_connections_per_session, true /* expSuccess */, server_client_order,
+                         server,
+                         secLevelServer, serverExpPairing, client,
+                         secLevelClient, clientExpPairing);
     }
 
     final void test8x_fullCycle(final long timeout_value, final String suffix,
-                                final int protocolSessionCount, final int max_connections_per_session, final boolean expSuccess,
-                                final boolean server_client_order,
-                                final DBTServerTest server, final BTSecurityLevel secLevelServer, final ExpectedPairing serverExpPairing,
-                                final DBTClientTest client, final BTSecurityLevel secLevelClient, final ExpectedPairing clientExpPairing)
+                                final int max_connections_per_session, final boolean expSuccess, final boolean server_client_order,
+                                final DBTServerTest server,
+                                final BTSecurityLevel secLevelServer, final ExpectedPairing serverExpPairing, final DBTClientTest client,
+                                final BTSecurityLevel secLevelClient, final ExpectedPairing clientExpPairing)
     {
+        final int protocolSessionCount = Math.min(server.getProtocolSessionsLeft(), client.getProtocolSessionsLeft());
         final long t0 = Clock.currentTimeMillis();
 
         BTManager manager = null;
@@ -107,13 +118,6 @@ public abstract class DBTClientServer1x extends BaseDBTClientServer {
             PrintUtil.println(System.err, "Adapter: Count "+adapters.size()+": "+adapters.toString());
             Assert.assertTrue("Adapter count not >= 2 but "+adapters.size(), adapters.size() >= 2);
         }
-
-        server.setProtocolSessionsLeft( protocolSessionCount );
-
-        client.setProtocolSessionsLeft( protocolSessionCount );
-        client.setKeepConnected( false ); // default, auto-disconnect after work is done
-        client.setRemoveDevice( false ); // default, test side-effects
-        client.setDiscoveryPolicy( DiscoveryPolicy.PAUSE_CONNECTED_UNTIL_DISCONNECTED );
 
         final DBTEndpoint.ChangedAdapterSetListener myChangedAdapterSetListener =
                 DBTEndpoint.initChangedAdapterSetListener(manager, server_client_order ? Arrays.asList(server, client) : Arrays.asList(client, server));

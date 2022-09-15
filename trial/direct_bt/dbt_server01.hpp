@@ -80,7 +80,7 @@ class DBTServer01 : public DBTServerTest {
         jau::sc_atomic_int servedProtocolSessionsSuccess = 0;
         jau::sc_atomic_int servingProtocolSessionsLeft = 1;
 
-        bool do_disconnect = false;
+        bool do_disconnect_randomly = false;
 
         DBGattServerRef dbGattServer = std::make_shared<DBGattServer>(
                 /* services: */
@@ -383,7 +383,7 @@ class DBTServer01 : public DBTServerTest {
                     parent.running_threads.count_down();
                 }
 
-                void disconnectDevice() {
+                void disconnectDeviceRandomly() {
                     // sleep range: 100 - 1500 ms
                     // sleep range: 100 - 1500 ms
                     static const int sleep_min = 100;
@@ -463,9 +463,9 @@ class DBTServer01 : public DBTServerTest {
                     fprintf_td(stderr, "****** Server GATT::mtuChanged(match %d, served %zu, left %zu): %d -> %d, %s\n",
                             match, parent.servedProtocolSessionsTotal.load(), parent.servingProtocolSessionsLeft.load(),
                             match ? (int)usedMTU_old : 0, (int)mtu, device->toString().c_str());
-                    if( parent.do_disconnect ) {
+                    if( parent.do_disconnect_randomly ) {
                         parent.running_threads.count_up();
-                        std::thread disconnectThread(&MyGATTServerListener::disconnectDevice, this);
+                        std::thread disconnectThread(&MyGATTServerListener::disconnectDeviceRandomly, this);
                         disconnectThread.detach();
                     }
                 }
@@ -585,14 +585,14 @@ class DBTServer01 : public DBTServerTest {
     public:
 
         DBTServer01(const std::string& adapterName_, const jau::EUI48& useAdapter_, const BTMode btMode_,
-                    const bool use_SC_, const BTSecurityLevel adapterSecurityLevel_, const bool do_disconnect_)
+                    const bool use_SC_, const BTSecurityLevel adapterSecurityLevel_, const bool do_disconnect_randomly_=false)
         {
             this->adapterName = adapterName_;
             this->useAdapter = useAdapter_;
             this->btMode = btMode_;
             this->use_SC = use_SC_;
             this->adapterSecurityLevel = adapterSecurityLevel_;
-            this->do_disconnect = do_disconnect_;
+            this->do_disconnect_randomly = do_disconnect_randomly_;
 
             dbGattServer->addListener( gattServerListener );
         }

@@ -42,9 +42,10 @@ using namespace jau::fractions_i64_literals;
  */
 class DBTClient01 : public DBTClientTest {
     private:
-        bool KEEP_CONNECTED = false;
+        bool do_disconnect = true;
+        bool do_disconnect_randomly = false;
 
-        bool REMOVE_DEVICE = false;
+        bool do_remove_device = false;
 
         DiscoveryPolicy discoveryPolicy = DiscoveryPolicy::PAUSE_CONNECTED_UNTIL_READY; // default value
 
@@ -61,8 +62,6 @@ class DBTClient01 : public DBTClientTest {
         jau::sc_atomic_int completedMeasurementsTotal = 0;
         jau::sc_atomic_int completedMeasurementsSuccess = 0;
         jau::sc_atomic_int measurementsLeft = 0;
-
-        bool do_disconnect = false;
 
         const uint64_t timestamp_t0 = getCurrentMilliseconds();
         // const fraction_i64 timestamp_t0 = jau::getMonotonicMicroseconds();
@@ -189,7 +188,7 @@ class DBTClient01 : public DBTClientTest {
                 }
             }
 
-            void disconnectDevice(BTDeviceRef device) {
+            void disconnectDeviceRandomly(BTDeviceRef device) {
                 // sleep range: 100 - 1500 ms
                 // sleep range: 100 - 1500 ms
                 static const int sleep_min = 100;
@@ -219,9 +218,9 @@ class DBTClient01 : public DBTClientTest {
                     dc.detach();
                     // processReadyDevice(device); // AdapterStatusListener::deviceReady() explicitly allows prolonged and complex code execution!
 
-                    if( parent.do_disconnect ) {
+                    if( parent.do_disconnect_randomly ) {
                         parent.running_threads.count_up();
-                        std::thread disconnectThread(&MyAdapterStatusListener::disconnectDevice, this, device);
+                        std::thread disconnectThread(&MyAdapterStatusListener::disconnectDeviceRandomly, this, device);
                         disconnectThread.detach();
                     }
                 }
@@ -289,11 +288,11 @@ class DBTClient01 : public DBTClientTest {
         std::shared_ptr<AdapterStatusListener> myAdapterStatusListener = std::make_shared<MyAdapterStatusListener>(*this);
 
     public:
-        DBTClient01(const std::string& adapterName_, const EUI48 useAdapter_, const BTMode btMode_, const bool do_disconnect_) {
+        DBTClient01(const std::string& adapterName_, const EUI48 useAdapter_, const BTMode btMode_, const bool do_disconnect_randomly_=false) {
             this->adapterName = adapterName_;
             this->useAdapter = useAdapter_;
             this->btMode = btMode_;
-            this->do_disconnect = do_disconnect_;
+            this->do_disconnect_randomly = do_disconnect_randomly_;
         }
 
         ~DBTClient01() {
@@ -328,11 +327,11 @@ class DBTClient01 : public DBTClientTest {
         void setDiscoveryPolicy(const DiscoveryPolicy v) override {
             discoveryPolicy = v;
         }
-        void setKeepConnected(const bool v) override {
-            KEEP_CONNECTED = v;
+        void setDisconnectDevice(const bool v) override {
+            do_disconnect = v;
         }
         void setRemoveDevice(const bool v) override {
-            REMOVE_DEVICE = v;
+            do_remove_device = v;
         }
 
     private:
@@ -416,7 +415,7 @@ class DBTClient01 : public DBTClientTest {
             try {
                 jau::darray<BTGattServiceRef> primServices = device->getGattServices();
                 if( 0 == primServices.size() ) {
-                    fprintf_td(stderr, "****** Clinet Processing Ready Device: getServices() failed %s\n", device->toString().c_str());
+                    fprintf_td(stderr, "****** Client Processing Ready Device: getServices() failed %s\n", device->toString().c_str());
                     goto exit;
                 }
 
@@ -597,8 +596,8 @@ class DBTClient01 : public DBTClientTest {
 
             device->removeAllCharListener();
 
-            if( !KEEP_CONNECTED ) {
-                if( REMOVE_DEVICE ) {
+            if( do_disconnect ) {
+                if( do_remove_device ) {
                     device->remove();
                 } else {
                     device->disconnect();
@@ -624,7 +623,7 @@ class DBTClient01 : public DBTClientTest {
         void removeDevice(BTDeviceRef device) {
             fprintf_td(stderr, "****** Client Remove Device: removing: %s\n", device->getAddressAndType().toString().c_str());
 
-            if( REMOVE_DEVICE ) {
+            if( do_remove_device ) {
                 device->remove();
             }
             running_threads.count_down();

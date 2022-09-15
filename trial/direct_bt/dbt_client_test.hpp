@@ -43,9 +43,9 @@ class DBTClientTest : public DBTEndpoint {
         /**
          * Set disconnect after processing.
          *
-         * Default is `false`.
+         * Default is `true`.
          */
-        virtual void setKeepConnected(const bool v) = 0;
+        virtual void setDisconnectDevice(const bool v) = 0;
 
         /**
          * Set remove device when disconnecting.

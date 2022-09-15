@@ -26,6 +26,7 @@ package trial.org.direct_bt;
 
 import org.direct_bt.BTMode;
 import org.direct_bt.BTSecurityLevel;
+import org.direct_bt.DiscoveryPolicy;
 import org.jau.net.EUI48;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
@@ -55,17 +56,24 @@ public class TestDBTProvokeClientServer_i470 extends DBTClientServer1x {
         final boolean server_client_order = true;
         final ExpectedPairing serverExpPairing = ExpectedPairing.DONT_CARE;
         final ExpectedPairing clientExpPairing = ExpectedPairing.DONT_CARE;
-        final boolean client_do_disconnect = true;
-        final boolean server_do_disconnect = false;
+        final boolean client_do_disconnect_randomly = true;
+        final boolean server_do_disconnect_randomly = false;
 
-        final DBTServerTest server = new DBTServer01("S-"+suffix, EUI48.ALL_DEVICE, BTMode.DUAL, serverSC, BTSecurityLevel.ENC_ONLY, server_do_disconnect);
-        final DBTClientTest client = new DBTClient01("C-"+suffix, EUI48.ALL_DEVICE, BTMode.DUAL, client_do_disconnect);
+        final DBTServerTest server = new DBTServer01("S-"+suffix, EUI48.ALL_DEVICE, BTMode.DUAL, serverSC, BTSecurityLevel.ENC_ONLY, server_do_disconnect_randomly);
+        final DBTClientTest client = new DBTClient01("C-"+suffix, EUI48.ALL_DEVICE, BTMode.DUAL, client_do_disconnect_randomly);
+
+        server.setProtocolSessionsLeft( protocolSessionCount );
+
+        client.setProtocolSessionsLeft( protocolSessionCount );
+        client.setDisconnectDeviceed( true ); // default, auto-disconnect after work is done
+        client.setRemoveDevice( false ); // default, test side-effects
+        client.setDiscoveryPolicy( DiscoveryPolicy.PAUSE_CONNECTED_UNTIL_DISCONNECTED );
 
         test8x_fullCycle(10000, suffix,
-                         protocolSessionCount, max_connections_per_session, expSuccess,
-                         server_client_order,
-                         server, BTSecurityLevel.ENC_ONLY, serverExpPairing,
-                         client, BTSecurityLevel.ENC_ONLY, clientExpPairing);
+                         max_connections_per_session, expSuccess, server_client_order,
+                         server,
+                         BTSecurityLevel.ENC_ONLY, serverExpPairing, client,
+                         BTSecurityLevel.ENC_ONLY, clientExpPairing);
     }
 
     @Test(timeout = 10000)
@@ -79,17 +87,24 @@ public class TestDBTProvokeClientServer_i470 extends DBTClientServer1x {
         final boolean server_client_order = true;
         final ExpectedPairing serverExpPairing = ExpectedPairing.DONT_CARE;
         final ExpectedPairing clientExpPairing = ExpectedPairing.DONT_CARE;
-        final boolean client_do_disconnect = false;
-        final boolean server_do_disconnect = true;
+        final boolean client_do_disconnect_randomly = false;
+        final boolean server_do_disconnect_randomly = true;
 
-        final DBTServerTest server = new DBTServer01("S-"+suffix, EUI48.ALL_DEVICE, BTMode.DUAL, serverSC, BTSecurityLevel.ENC_ONLY, server_do_disconnect);
-        final DBTClientTest client = new DBTClient01("C-"+suffix, EUI48.ALL_DEVICE, BTMode.DUAL, client_do_disconnect);
+        final DBTServerTest server = new DBTServer01("S-"+suffix, EUI48.ALL_DEVICE, BTMode.DUAL, serverSC, BTSecurityLevel.ENC_ONLY, server_do_disconnect_randomly);
+        final DBTClientTest client = new DBTClient01("C-"+suffix, EUI48.ALL_DEVICE, BTMode.DUAL, client_do_disconnect_randomly);
+
+        server.setProtocolSessionsLeft( protocolSessionCount );
+
+        client.setProtocolSessionsLeft( protocolSessionCount );
+        client.setDisconnectDeviceed( true ); // default, auto-disconnect after work is done
+        client.setRemoveDevice( false ); // default, test side-effects
+        client.setDiscoveryPolicy( DiscoveryPolicy.PAUSE_CONNECTED_UNTIL_DISCONNECTED );
 
         test8x_fullCycle(10000, suffix,
-                         protocolSessionCount, max_connections_per_session, expSuccess,
-                         server_client_order,
-                         server, BTSecurityLevel.ENC_ONLY, serverExpPairing,
-                         client, BTSecurityLevel.ENC_ONLY, clientExpPairing);
+                         max_connections_per_session, expSuccess, server_client_order,
+                         server,
+                         BTSecurityLevel.ENC_ONLY, serverExpPairing, client,
+                         BTSecurityLevel.ENC_ONLY, clientExpPairing);
     }
 
     public static void main(final String args[]) {

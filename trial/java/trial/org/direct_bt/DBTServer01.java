@@ -89,17 +89,20 @@ public class DBTServer01 implements DBTServerTest {
     private final AtomicInteger servedProtocolSessionsSuccess = new AtomicInteger(0);
     private final AtomicInteger servingProtocolSessionsLeft = new AtomicInteger(1);
 
-    private final boolean do_disconnect;
+    private final boolean do_disconnect_randomly;
 
-    public DBTServer01(final String adapterName, final EUI48 useAdapter, final BTMode btMode, final boolean use_SC, final BTSecurityLevel adapterSecurityLevel, final boolean do_disconnect) {
+    public DBTServer01(final String adapterName, final EUI48 useAdapter, final BTMode btMode, final boolean use_SC, final BTSecurityLevel adapterSecurityLevel, final boolean do_disconnect_randomly) {
         this.adapterName = adapterName;
         this.useAdapter = useAdapter;
         this.btMode = btMode;
         this.use_SC = use_SC;
         this.adapterSecurityLevel = adapterSecurityLevel;
-        this.do_disconnect = do_disconnect;
+        this.do_disconnect_randomly = do_disconnect_randomly;
 
         dbGattServer.addListener( gattServerListener );
+    }
+    public DBTServer01(final String adapterName, final EUI48 useAdapter, final BTMode btMode, final boolean use_SC, final BTSecurityLevel adapterSecurityLevel) {
+        this(adapterName, useAdapter, btMode, use_SC, adapterSecurityLevel, false /* do_disconnect_randomly */);
     }
 
     @Override
@@ -269,9 +272,9 @@ public class DBTServer01 implements DBTServerTest {
                                            final AdapterSettings newmask, final AdapterSettings changedmask, final long timestamp) {
             final boolean initialSetting = oldmask.isEmpty();
             if( initialSetting ) {
-                PrintUtil.println(System.err, "****** Server SETTINGS: "+oldmask+" -> "+newmask+", initial "+changedmask);
+                PrintUtil.println(System.err, "****** Server SETTINGS_INITIAL: "+oldmask+" -> "+newmask+", changed "+changedmask);
             } else {
-                PrintUtil.println(System.err, "****** Server SETTINGS: "+oldmask+" -> "+newmask+", changed "+changedmask);
+                PrintUtil.println(System.err, "****** Server SETTINGS_CHANGED: "+oldmask+" -> "+newmask+", changed "+changedmask);
             }
             PrintUtil.println(System.err, "Server Status Adapter:");
             PrintUtil.println(System.err, adapter.toString());
@@ -467,7 +470,7 @@ public class DBTServer01 implements DBTServerTest {
             }
         }
 
-        private void disconnectDevice() {
+        private void disconnectDeviceRandomly() {
             // sleep range: 100 - 1500 ms
             final int sleep_min = 100;
             final int sleep_max = 1500;
@@ -534,8 +537,8 @@ public class DBTServer01 implements DBTServerTest {
             PrintUtil.fprintf_td(System.err, "****** Server GATT::mtuChanged(match %b, served %d, left %d): %d -> %d, %s\n",
                     match, servedProtocolSessionsTotal.get(), servingProtocolSessionsLeft.get(),
                     match ? usedMTU_old : 0, mtu, device.toString());
-            if( do_disconnect ) {
-                executeOffThread( () -> { disconnectDevice(); }, "GattServer-DisconnectDevice", true /* detach */);
+            if( do_disconnect_randomly ) {
+                executeOffThread( () -> { disconnectDeviceRandomly(); }, "GattServer-DisconnectDevice", true /* detach */);
             }
         }
 
