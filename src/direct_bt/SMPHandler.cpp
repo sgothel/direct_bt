@@ -169,9 +169,9 @@ SMPHandler::SMPHandler(const std::shared_ptr<BTDevice> &device) noexcept
   l2cap(device->getAdapter().dev_id, device->getAdapter().getAddressAndType(), L2CAP_PSM::UNDEFINED, L2CAP_CID::SMP),
   is_connected(l2cap.open(*device)), has_ioerror(false),
   smp_reader_service("SMPHandler::reader", THREAD_SHUTDOWN_TIMEOUT_MS,
-                     jau::bindMemberFunc(this, &SMPHandler::smpReaderWork),
+                     jau::bind_member(this, &SMPHandler::smpReaderWork),
                      jau::service_runner::Callback() /* init */,
-                     jau::bindMemberFunc(this, &SMPHandler::smpReaderEndLocked)),
+                     jau::bind_member(this, &SMPHandler::smpReaderEndLocked)),
   smpPDURing(env.SMPPDU_RING_CAPACITY),
   mtu(number(Defaults::MIN_SMP_MTU))
 {
@@ -181,7 +181,7 @@ SMPHandler::SMPHandler(const std::shared_ptr<BTDevice> &device) noexcept
         return;
     }
 
-    l2cap.set_interrupted_query( jau::bindMemberFunc(&smp_reader_service, &jau::service_runner::shall_stop2) );
+    l2cap.set_interrupted_query( jau::bind_member(&smp_reader_service, &jau::service_runner::shall_stop2) );
     smp_reader_service.start();
 
     DBG_PRINT("SMPHandler::ctor: Started: SMPHandler[%s], l2cap[%s]: %s",

@@ -101,8 +101,8 @@ static void _addMgmtCBOnce(JNIEnv *env, BTManager & mgmt, JNIGlobalRef jmgmtRef,
             throw jau::InternalError("BTManager has no "+jmethodName+"."+jmethodArgs+" method, for "+mgmt.toString(), E_FILE_LINE);
         }
 
-        // move BooleanDeviceCBContextRef into CaptureValueInvocationFunc and operator== includes javaCallback comparison
-        jau::FunctionDef<bool, const MgmtEvent&> funcDef = jau::bindCaptureValueFunc(std::make_shared<BooleanMgmtCBContext>(opc, jmgmtRef, mid), nativeCallback);
+        // move BooleanDeviceCBContextRef into jau::func::capval_target_t and operator== includes javaCallback comparison
+        jau::function<bool(const MgmtEvent&)> funcDef = jau::bind_capval(std::make_shared<BooleanMgmtCBContext>(opc, jmgmtRef, mid), nativeCallback);
         mgmt.addMgmtEventCallback(-1, opc, funcDef);
     } catch(...) {
         rethrow_and_raise_java_exception(env);

@@ -32,7 +32,7 @@
 
 #include <mutex>
 
-#include <jau/function_def.hpp>
+#include <jau/functional.hpp>
 #include <jau/cow_darray.hpp>
 #include <jau/octets.hpp>
 #include <jau/packed_attribute.hpp>
@@ -2774,7 +2774,7 @@ namespace direct_bt {
             bool updateAdapterInfo(AdapterInfo& info) const noexcept;
     };
 
-    typedef jau::FunctionDef<bool, const MgmtEvent&> MgmtEventCallback;
+    typedef jau::function<bool(const MgmtEvent&)> MgmtEventCallback;
     typedef jau::cow_darray<MgmtEventCallback> MgmtEventCallbackList;
 
     class MgmtAdapterEventCallback {

@@ -119,7 +119,7 @@ class BaseDBTClientServer {
             test_timeout = timeout;
             resetStates();
             if( !timeout.is_zero() ) {
-                timeout_timer.start(timeout, jau::bindMemberFunc(this, &BaseDBTClientServer::timeout_func));
+                timeout_timer.start(timeout, jau::bind_member(this, &BaseDBTClientServer::timeout_func));
             }
         }
 

@@ -662,9 +662,9 @@ HCIHandler::HCIHandler(const uint16_t dev_id_, const BTMode btMode_) noexcept
   rbuffer(HCI_MAX_MTU, jau::endian::little),
   comm(dev_id_, HCI_CHANNEL_RAW),
   hci_reader_service("HCIHandler::reader", THREAD_SHUTDOWN_TIMEOUT_MS,
-                     jau::bindMemberFunc(this, &HCIHandler::hciReaderWork),
+                     jau::bind_member(this, &HCIHandler::hciReaderWork),
                      jau::service_runner::Callback() /* init */,
-                     jau::bindMemberFunc(this, &HCIHandler::hciReaderEndLocked)),
+                     jau::bind_member(this, &HCIHandler::hciReaderEndLocked)),
   hciEventRing(env.HCI_EVT_RING_CAPACITY),
   le_ll_feats( LE_Features::NONE ),
   sup_commands_set( false ),
@@ -681,7 +681,7 @@ HCIHandler::HCIHandler(const uint16_t dev_id_, const BTMode btMode_) noexcept
         return;
     }
 
-    comm.set_interrupted_query( jau::bindMemberFunc(&hci_reader_service, &jau::service_runner::shall_stop2) );
+    comm.set_interrupted_query( jau::bind_member(&hci_reader_service, &jau::service_runner::shall_stop2) );
     hci_reader_service.start();
 
     PERF_TS_T0();

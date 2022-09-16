@@ -599,9 +599,9 @@ BTGattHandler::BTGattHandler(const BTDeviceRef &device, L2CAPClient& l2cap_att, 
   rbuffer(number(Defaults::MAX_ATT_MTU), jau::endian::little),
   is_connected(l2cap.is_open()), has_ioerror(false),
   l2cap_reader_service("GATTHandler::reader_"+deviceString, THREAD_SHUTDOWN_TIMEOUT_MS,
-                       jau::bindMemberFunc(this, &BTGattHandler::l2capReaderWork),
+                       jau::bind_member(this, &BTGattHandler::l2capReaderWork),
                        jau::service_runner::Callback() /* init */,
-                       jau::bindMemberFunc(this, &BTGattHandler::l2capReaderEndLocked)),
+                       jau::bind_member(this, &BTGattHandler::l2capReaderEndLocked)),
   attPDURing(env.ATTPDU_RING_CAPACITY),
   serverMTU(number(Defaults::MIN_ATT_MTU)), usedMTU(number(Defaults::MIN_ATT_MTU)), clientMTUExchanged(false),
   gattServerData( GATTRole::Server == role ? device->getAdapter().getGATTServerData() : nullptr ),
@@ -617,8 +617,8 @@ BTGattHandler::BTGattHandler(const BTDeviceRef &device, L2CAPClient& l2cap_att, 
      * We utilize DBTManager's mgmthandler_sigaction SIGALRM handler,
      * as we only can install one handler.
      */
-    // l2cap.set_interrupted_query( jau::bindMemberFunc(&l2cap_reader_service, &jau::service_runner::shall_stop2) );
-    l2cap.set_interrupted_query( jau::bindMemberFunc(this, &BTGattHandler::l2capReaderInterrupted) );
+    // l2cap.set_interrupted_query( jau::bind_member(&l2cap_reader_service, &jau::service_runner::shall_stop2) );
+    l2cap.set_interrupted_query( jau::bind_member(this, &BTGattHandler::l2capReaderInterrupted) );
     l2cap_reader_service.start();
 
     DBG_PRINT("GATTHandler::ctor: Started: GattHandler[%s], l2cap[%s]: %s",

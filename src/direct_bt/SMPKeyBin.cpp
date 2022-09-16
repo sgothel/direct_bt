@@ -41,7 +41,7 @@ using namespace direct_bt;
 
 static std::vector<std::string> get_file_list(const std::string& dname) {
     std::vector<std::string> res;
-    const jau::fs::consume_dir_item cs = jau::bindCaptureRefFunc(&res,
+    const jau::fs::consume_dir_item cs = jau::bind_capref(&res,
             ( void(*)(std::vector<std::string>*, const jau::fs::dir_item&) ) /* help template type deduction of function-ptr */
                 ( [](std::vector<std::string>* receiver, const jau::fs::dir_item& item) -> void {
                     if( 0 == item.basename().find("bd_") ) { // prefix checl

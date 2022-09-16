@@ -33,7 +33,7 @@
 #include <mutex>
 
 #include <jau/basic_types.hpp>
-#include <jau/function_def.hpp>
+#include <jau/functional.hpp>
 
 #include "HCIIoctl.hpp"
 
@@ -61,7 +61,7 @@ namespace direct_bt {
     class HCIComm {
         public:
             /** Utilized to query for external interruption, whether device is still connected etc. */
-            typedef jau::FunctionDef<bool, int /* dummy*/> get_boolean_callback_t;
+            typedef jau::function<bool(int /* dummy*/)> get_boolean_callback_t;
 
             const uint16_t dev_id;
             const uint16_t channel;
@@ -94,7 +94,7 @@ namespace direct_bt {
             void set_interrupted_query(get_boolean_callback_t is_interrupted_cb) { is_interrupted_extern = is_interrupted_cb; }
 
             /** Returns true if interrupted by internal or external cause, hence shall stop connecting and reading. */
-            bool interrupted() const noexcept { return interrupted_intern || ( !is_interrupted_extern.isNullType() && is_interrupted_extern(0/*dummy*/) ); }
+            bool interrupted() const noexcept { return interrupted_intern || ( !is_interrupted_extern.is_null() && is_interrupted_extern(0/*dummy*/) ); }
 
             /** Closing the HCI channel, locking {@link #mutex_write()}. */
             void close() noexcept;

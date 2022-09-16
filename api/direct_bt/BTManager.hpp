@@ -166,7 +166,7 @@ namespace direct_bt {
     typedef bool (*ChangedAdapterSetFunc)(bool added, std::shared_ptr<BTAdapter>& adapter);
 
     /**
-     * Callback jau::FunctionDef to receive change events regarding the system's adapter set,
+     * Callback jau::function to receive change events regarding the system's adapter set,
      * e.g. a removed or added adapter due to user interaction or 'cold reset'.
      * <p>
      * When a new callback is added, all available adapter's will be reported as added,
@@ -190,7 +190,7 @@ namespace direct_bt {
      * @see BTManager::removeChangedAdapterSetCallback()
      * @see [Direct-BT Overview](namespacedirect__bt.html#details)
      */
-    typedef jau::FunctionDef<bool, bool, std::shared_ptr<BTAdapter>&> ChangedAdapterSetCallback;
+    typedef jau::function<bool(bool, std::shared_ptr<BTAdapter>&)> ChangedAdapterSetCallback;
     typedef jau::cow_darray<ChangedAdapterSetCallback> ChangedAdapterSetCallbackList;
 
     /**

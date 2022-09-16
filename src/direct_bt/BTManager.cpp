@@ -140,7 +140,7 @@ void BTManager::sendMgmtEvent(const MgmtEvent& event) noexcept {
     jau::for_each_fidelity(mgmtEventCallbackList, [&](MgmtAdapterEventCallback &cb) {
         if( 0 > cb.getDevID() || dev_id == cb.getDevID() ) {
             try {
-                cb.getCallback().invoke(event);
+                cb.getCallback()(event);
             } catch (std::exception &e) {
                 ERR_PRINT("BTManager::sendMgmtEvent-CBs %d/%zd: MgmtAdapterEventCallback %s : Caught exception %s",
                         invokeCount+1, mgmtEventCallbackList.size(),
@@ -364,9 +364,9 @@ BTManager::BTManager() noexcept
 : env(MgmtEnv::get()),
   rbuffer(ClientMaxMTU, jau::endian::little), comm(HCI_DEV_NONE, HCI_CHANNEL_CONTROL),
   mgmt_reader_service("HCIHandler::reader", THREAD_SHUTDOWN_TIMEOUT_MS,
-                      jau::bindMemberFunc(this, &BTManager::mgmtReaderWork),
+                      jau::bind_member(this, &BTManager::mgmtReaderWork),
                       jau::service_runner::Callback() /* init */,
-                      jau::bindMemberFunc(this, &BTManager::mgmtReaderEndLocked)),
+                      jau::bind_member(this, &BTManager::mgmtReaderEndLocked)),
   mgmtEventRing(env.MGMT_EVT_RING_CAPACITY),
   allowClose( comm.is_open() )
 {
@@ -381,7 +381,7 @@ BTManager::BTManager() noexcept
 }
 
 bool BTManager::initialize(const std::shared_ptr<BTManager>& self) noexcept {
-    comm.set_interrupted_query( jau::bindMemberFunc(&mgmt_reader_service, &jau::service_runner::shall_stop2) );
+    comm.set_interrupted_query( jau::bind_member(&mgmt_reader_service, &jau::service_runner::shall_stop2) );
     mgmt_reader_service.start();
 
     PERF_TS_T0();
@@ -465,34 +465,34 @@ next1:
         }
     }
 
-    addMgmtEventCallback(-1, MgmtEvent::Opcode::NEW_SETTINGS,  jau::bindMemberFunc(this, &BTManager::mgmtEvNewSettingsCB));
+    addMgmtEventCallback(-1, MgmtEvent::Opcode::NEW_SETTINGS,  jau::bind_member(this, &BTManager::mgmtEvNewSettingsCB));
 
     if( jau::environment::get().debug ) {
-        addMgmtEventCallback(-1, MgmtEvent::Opcode::CONTROLLER_ERROR, jau::bindMemberFunc(this, &BTManager::mgmtEventAnyCB));
-        addMgmtEventCallback(-1, MgmtEvent::Opcode::CLASS_OF_DEV_CHANGED, jau::bindMemberFunc(this, &BTManager::mgmtEventAnyCB));
-        addMgmtEventCallback(-1, MgmtEvent::Opcode::NEW_LINK_KEY, jau::bindMemberFunc(this, &BTManager::mgmtEventAnyCB));
-        addMgmtEventCallback(-1, MgmtEvent::Opcode::NEW_LONG_TERM_KEY, jau::bindMemberFunc(this, &BTManager::mgmtEventAnyCB));
-        addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_CONNECTED, jau::bindMemberFunc(this, &BTManager::mgmtEventAnyCB));
-        addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_DISCONNECTED, jau::bindMemberFunc(this, &BTManager::mgmtEventAnyCB));
-        addMgmtEventCallback(-1, MgmtEvent::Opcode::CONNECT_FAILED, jau::bindMemberFunc(this, &BTManager::mgmtEventAnyCB));
-        addMgmtEventCallback(-1, MgmtEvent::Opcode::PIN_CODE_REQUEST, jau::bindMemberFunc(this, &BTManager::mgmtEventAnyCB));
-        addMgmtEventCallback(-1, MgmtEvent::Opcode::USER_CONFIRM_REQUEST, jau::bindMemberFunc(this, &BTManager::mgmtEventAnyCB));
-        addMgmtEventCallback(-1, MgmtEvent::Opcode::USER_PASSKEY_REQUEST, jau::bindMemberFunc(this, &BTManager::mgmtEventAnyCB));
-        addMgmtEventCallback(-1, MgmtEvent::Opcode::AUTH_FAILED, jau::bindMemberFunc(this, &BTManager::mgmtEventAnyCB));
-        addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_FOUND, jau::bindMemberFunc(this, &BTManager::mgmtEventAnyCB));
-        addMgmtEventCallback(-1, MgmtEvent::Opcode::DISCOVERING, jau::bindMemberFunc(this, &BTManager::mgmtEventAnyCB));
-        addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_BLOCKED, jau::bindMemberFunc(this, &BTManager::mgmtEventAnyCB));
-        addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_UNBLOCKED, jau::bindMemberFunc(this, &BTManager::mgmtEventAnyCB));
-        addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_UNPAIRED, jau::bindMemberFunc(this, &BTManager::mgmtEventAnyCB));
-        addMgmtEventCallback(-1, MgmtEvent::Opcode::PASSKEY_NOTIFY, jau::bindMemberFunc(this, &BTManager::mgmtEventAnyCB));
-        addMgmtEventCallback(-1, MgmtEvent::Opcode::NEW_IRK, jau::bindMemberFunc(this, &BTManager::mgmtEventAnyCB));
-        addMgmtEventCallback(-1, MgmtEvent::Opcode::NEW_CSRK, jau::bindMemberFunc(this, &BTManager::mgmtEventAnyCB));
-        addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_WHITELIST_ADDED, jau::bindMemberFunc(this, &BTManager::mgmtEventAnyCB));
-        addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_WHITELIST_REMOVED, jau::bindMemberFunc(this, &BTManager::mgmtEventAnyCB));
-        addMgmtEventCallback(-1, MgmtEvent::Opcode::NEW_CONN_PARAM, jau::bindMemberFunc(this, &BTManager::mgmtEventAnyCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::CONTROLLER_ERROR, jau::bind_member(this, &BTManager::mgmtEventAnyCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::CLASS_OF_DEV_CHANGED, jau::bind_member(this, &BTManager::mgmtEventAnyCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::NEW_LINK_KEY, jau::bind_member(this, &BTManager::mgmtEventAnyCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::NEW_LONG_TERM_KEY, jau::bind_member(this, &BTManager::mgmtEventAnyCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_CONNECTED, jau::bind_member(this, &BTManager::mgmtEventAnyCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_DISCONNECTED, jau::bind_member(this, &BTManager::mgmtEventAnyCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::CONNECT_FAILED, jau::bind_member(this, &BTManager::mgmtEventAnyCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::PIN_CODE_REQUEST, jau::bind_member(this, &BTManager::mgmtEventAnyCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::USER_CONFIRM_REQUEST, jau::bind_member(this, &BTManager::mgmtEventAnyCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::USER_PASSKEY_REQUEST, jau::bind_member(this, &BTManager::mgmtEventAnyCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::AUTH_FAILED, jau::bind_member(this, &BTManager::mgmtEventAnyCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_FOUND, jau::bind_member(this, &BTManager::mgmtEventAnyCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::DISCOVERING, jau::bind_member(this, &BTManager::mgmtEventAnyCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_BLOCKED, jau::bind_member(this, &BTManager::mgmtEventAnyCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_UNBLOCKED, jau::bind_member(this, &BTManager::mgmtEventAnyCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_UNPAIRED, jau::bind_member(this, &BTManager::mgmtEventAnyCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::PASSKEY_NOTIFY, jau::bind_member(this, &BTManager::mgmtEventAnyCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::NEW_IRK, jau::bind_member(this, &BTManager::mgmtEventAnyCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::NEW_CSRK, jau::bind_member(this, &BTManager::mgmtEventAnyCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_WHITELIST_ADDED, jau::bind_member(this, &BTManager::mgmtEventAnyCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_WHITELIST_REMOVED, jau::bind_member(this, &BTManager::mgmtEventAnyCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::NEW_CONN_PARAM, jau::bind_member(this, &BTManager::mgmtEventAnyCB));
 
-        addMgmtEventCallback(-1, MgmtEvent::Opcode::LOCAL_OOB_DATA_UPDATED, jau::bindMemberFunc(this, &BTManager::mgmtEventAnyCB));
-        addMgmtEventCallback(-1, MgmtEvent::Opcode::PAIR_DEVICE_COMPLETE, jau::bindMemberFunc(this, &BTManager::mgmtEventAnyCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::LOCAL_OOB_DATA_UPDATED, jau::bind_member(this, &BTManager::mgmtEventAnyCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::PAIR_DEVICE_COMPLETE, jau::bind_member(this, &BTManager::mgmtEventAnyCB));
     }
     PERF_TS_TD("BTManager::ctor.ok");
     DBG_PRINT("BTManager::ctor: OK");
@@ -1184,7 +1184,7 @@ void BTManager::addChangedAdapterSetCallback(const ChangedAdapterSetCallback & l
     mgmtChangedAdapterSetCallbackList.push_back(l);
 
     jau::for_each_fidelity(adapters, [&](std::shared_ptr<BTAdapter>& ai) {
-        l_p->invoke(true /* added */, ai);
+        (*l_p)(true /* added */, ai);
     });
 }
 int BTManager::removeChangedAdapterSetCallback(const ChangedAdapterSetCallback & l) {
@@ -1193,12 +1193,10 @@ int BTManager::removeChangedAdapterSetCallback(const ChangedAdapterSetCallback &
 
 void BTManager::addChangedAdapterSetCallback(ChangedAdapterSetFunc f) {
     addChangedAdapterSetCallback(
-            ChangedAdapterSetCallback(
-                    jau::bindFreeFunc<bool, bool, std::shared_ptr<BTAdapter>&>(f)
-            ) );
+            ChangedAdapterSetCallback( jau::bind_free(f) ) );
 }
 int BTManager::removeChangedAdapterSetCallback(ChangedAdapterSetFunc f) {
-    ChangedAdapterSetCallback l( jau::bindFreeFunc<bool, bool, std::shared_ptr<BTAdapter>&>(f) );
+    ChangedAdapterSetCallback l( jau::bind_free(f) );
     return mgmtChangedAdapterSetCallbackList.erase_matching(l, true /* all_matching */, _changedAdapterSetCallbackEqComp);
 }
 

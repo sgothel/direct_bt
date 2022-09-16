@@ -319,17 +319,17 @@ bool BTAdapter::enableListening(const bool enable) noexcept {
         hci.clearAllCallbacks();
 
         bool ok = true;
-        ok = mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::DISCOVERING, jau::bindMemberFunc(this, &BTAdapter::mgmtEvDeviceDiscoveringMgmt)) && ok;
-        ok = mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::NEW_SETTINGS, jau::bindMemberFunc(this, &BTAdapter::mgmtEvNewSettingsMgmt)) && ok;
-        ok = mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::LOCAL_NAME_CHANGED, jau::bindMemberFunc(this, &BTAdapter::mgmtEvLocalNameChangedMgmt)) && ok;
-        ok = mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::PIN_CODE_REQUEST, jau::bindMemberFunc(this, &BTAdapter::mgmtEvPinCodeRequestMgmt));
-        ok = mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::USER_CONFIRM_REQUEST, jau::bindMemberFunc(this, &BTAdapter::mgmtEvUserConfirmRequestMgmt));
-        ok = mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::USER_PASSKEY_REQUEST, jau::bindMemberFunc(this, &BTAdapter::mgmtEvUserPasskeyRequestMgmt));
-        ok = mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::AUTH_FAILED, jau::bindMemberFunc(this, &BTAdapter::mgmtEvAuthFailedMgmt));
-        ok = mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::DEVICE_UNPAIRED, jau::bindMemberFunc(this, &BTAdapter::mgmtEvDeviceUnpairedMgmt));
-        ok = mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::PAIR_DEVICE_COMPLETE, jau::bindMemberFunc(this, &BTAdapter::mgmtEvPairDeviceCompleteMgmt));
-        ok = mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::NEW_LONG_TERM_KEY, jau::bindMemberFunc(this, &BTAdapter::mgmtEvNewLongTermKeyMgmt));
-        ok = mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::NEW_LINK_KEY, jau::bindMemberFunc(this, &BTAdapter::mgmtEvNewLinkKeyMgmt));
+        ok = mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::DISCOVERING, jau::bind_member(this, &BTAdapter::mgmtEvDeviceDiscoveringMgmt)) && ok;
+        ok = mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::NEW_SETTINGS, jau::bind_member(this, &BTAdapter::mgmtEvNewSettingsMgmt)) && ok;
+        ok = mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::LOCAL_NAME_CHANGED, jau::bind_member(this, &BTAdapter::mgmtEvLocalNameChangedMgmt)) && ok;
+        ok = mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::PIN_CODE_REQUEST, jau::bind_member(this, &BTAdapter::mgmtEvPinCodeRequestMgmt));
+        ok = mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::USER_CONFIRM_REQUEST, jau::bind_member(this, &BTAdapter::mgmtEvUserConfirmRequestMgmt));
+        ok = mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::USER_PASSKEY_REQUEST, jau::bind_member(this, &BTAdapter::mgmtEvUserPasskeyRequestMgmt));
+        ok = mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::AUTH_FAILED, jau::bind_member(this, &BTAdapter::mgmtEvAuthFailedMgmt));
+        ok = mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::DEVICE_UNPAIRED, jau::bind_member(this, &BTAdapter::mgmtEvDeviceUnpairedMgmt));
+        ok = mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::PAIR_DEVICE_COMPLETE, jau::bind_member(this, &BTAdapter::mgmtEvPairDeviceCompleteMgmt));
+        ok = mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::NEW_LONG_TERM_KEY, jau::bind_member(this, &BTAdapter::mgmtEvNewLongTermKeyMgmt));
+        ok = mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::NEW_LINK_KEY, jau::bind_member(this, &BTAdapter::mgmtEvNewLinkKeyMgmt));
 
         if( !ok ) {
             ERR_PRINT("Could not add all required MgmtEventCallbacks to DBTManager: %s", toString().c_str());
@@ -337,30 +337,30 @@ bool BTAdapter::enableListening(const bool enable) noexcept {
         }
 
     #if 0
-        mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::DEVICE_DISCONNECTED, bindMemberFunc(this, &BTAdapter::mgmtEvDeviceDisconnectedMgmt));
+        mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::DEVICE_DISCONNECTED, bind_member(this, &BTAdapter::mgmtEvDeviceDisconnectedMgmt));
     #endif
 
-        ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::DISCOVERING, jau::bindMemberFunc(this, &BTAdapter::mgmtEvDeviceDiscoveringHCI)) && ok;
-        ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_CONNECTED, jau::bindMemberFunc(this, &BTAdapter::mgmtEvDeviceConnectedHCI)) && ok;
-        ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::CONNECT_FAILED, jau::bindMemberFunc(this, &BTAdapter::mgmtEvConnectFailedHCI)) && ok;
-        ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_DISCONNECTED, jau::bindMemberFunc(this, &BTAdapter::mgmtEvDeviceDisconnectedHCI)) && ok;
-        ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_FOUND, jau::bindMemberFunc(this, &BTAdapter::mgmtEvDeviceFoundHCI)) && ok;
-        ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::HCI_LE_REMOTE_FEATURES, jau::bindMemberFunc(this, &BTAdapter::mgmtEvHCILERemoteUserFeaturesHCI)) && ok;
-        ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::HCI_LE_PHY_UPDATE_COMPLETE, jau::bindMemberFunc(this, &BTAdapter::mgmtEvHCILEPhyUpdateCompleteHCI)) && ok;
+        ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::DISCOVERING, jau::bind_member(this, &BTAdapter::mgmtEvDeviceDiscoveringHCI)) && ok;
+        ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_CONNECTED, jau::bind_member(this, &BTAdapter::mgmtEvDeviceConnectedHCI)) && ok;
+        ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::CONNECT_FAILED, jau::bind_member(this, &BTAdapter::mgmtEvConnectFailedHCI)) && ok;
+        ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_DISCONNECTED, jau::bind_member(this, &BTAdapter::mgmtEvDeviceDisconnectedHCI)) && ok;
+        ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_FOUND, jau::bind_member(this, &BTAdapter::mgmtEvDeviceFoundHCI)) && ok;
+        ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::HCI_LE_REMOTE_FEATURES, jau::bind_member(this, &BTAdapter::mgmtEvHCILERemoteUserFeaturesHCI)) && ok;
+        ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::HCI_LE_PHY_UPDATE_COMPLETE, jau::bind_member(this, &BTAdapter::mgmtEvHCILEPhyUpdateCompleteHCI)) && ok;
 
-        ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::HCI_ENC_CHANGED, jau::bindMemberFunc(this, &BTAdapter::mgmtEvHCIEncryptionChangedHCI)) && ok;
-        ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::HCI_ENC_KEY_REFRESH_COMPLETE, jau::bindMemberFunc(this, &BTAdapter::mgmtEvHCIEncryptionKeyRefreshCompleteHCI)) && ok;
+        ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::HCI_ENC_CHANGED, jau::bind_member(this, &BTAdapter::mgmtEvHCIEncryptionChangedHCI)) && ok;
+        ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::HCI_ENC_KEY_REFRESH_COMPLETE, jau::bind_member(this, &BTAdapter::mgmtEvHCIEncryptionKeyRefreshCompleteHCI)) && ok;
         if constexpr ( CONSIDER_HCI_CMD_FOR_SMP_STATE ) {
-            ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::HCI_LE_LTK_REQUEST, jau::bindMemberFunc(this, &BTAdapter::mgmtEvLELTKReqEventHCI)) && ok;
-            ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::HCI_LE_LTK_REPLY_ACK, jau::bindMemberFunc(this, &BTAdapter::mgmtEvLELTKReplyAckCmdHCI)) && ok;
-            ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::HCI_LE_LTK_REPLY_REJ, jau::bindMemberFunc(this, &BTAdapter::mgmtEvLELTKReplyRejCmdHCI)) && ok;
-            ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::HCI_LE_ENABLE_ENC, jau::bindMemberFunc(this, &BTAdapter::mgmtEvLEEnableEncryptionCmdHCI)) && ok;
+            ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::HCI_LE_LTK_REQUEST, jau::bind_member(this, &BTAdapter::mgmtEvLELTKReqEventHCI)) && ok;
+            ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::HCI_LE_LTK_REPLY_ACK, jau::bind_member(this, &BTAdapter::mgmtEvLELTKReplyAckCmdHCI)) && ok;
+            ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::HCI_LE_LTK_REPLY_REJ, jau::bind_member(this, &BTAdapter::mgmtEvLELTKReplyRejCmdHCI)) && ok;
+            ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::HCI_LE_ENABLE_ENC, jau::bind_member(this, &BTAdapter::mgmtEvLEEnableEncryptionCmdHCI)) && ok;
         }
         if( !ok ) {
             ERR_PRINT("Could not add all required MgmtEventCallbacks to HCIHandler: %s of %s", hci.toString().c_str(), toString().c_str());
             return false; // dtor local HCIHandler w/ closing
         }
-        hci.addSMPMsgCallback(jau::bindMemberFunc(this, &BTAdapter::hciSMPMsgCallback));
+        hci.addSMPMsgCallback(jau::bind_member(this, &BTAdapter::hciSMPMsgCallback));
     } else {
         mgmt->removeMgmtEventCallback(dev_id);
         hci.clearAllCallbacks();
@@ -388,18 +388,18 @@ BTAdapter::BTAdapter(const BTAdapter::ctor_cookie& cc, const BTManagerRef& mgmt_
   smp_watchdog("adapter"+std::to_string(dev_id)+"_smp_watchdog", THREAD_SHUTDOWN_TIMEOUT_MS),
   l2cap_att_srv(dev_id, adapterInfo_.addressAndType, L2CAP_PSM::UNDEFINED, L2CAP_CID::ATT),
   l2cap_service("BTAdapter::l2capServer", THREAD_SHUTDOWN_TIMEOUT_MS,
-                jau::bindMemberFunc(this, &BTAdapter::l2capServerWork),
-                jau::bindMemberFunc(this, &BTAdapter::l2capServerInit),
-                jau::bindMemberFunc(this, &BTAdapter::l2capServerEnd)),
+                jau::bind_member(this, &BTAdapter::l2capServerWork),
+                jau::bind_member(this, &BTAdapter::l2capServerInit),
+                jau::bind_member(this, &BTAdapter::l2capServerEnd)),
   discovery_service("BTAdapter::discoveryServer", 400_ms,
-                jau::bindMemberFunc(this, &BTAdapter::discoveryServerWork))
+                jau::bind_member(this, &BTAdapter::discoveryServerWork))
 
 {
     (void)cc;
 
     adapter_operational = initialSetup();
     if( isValid() ) {
-        const bool r = smp_watchdog.start(SMP_NEXT_EVENT_TIMEOUT_MS, jau::bindMemberFunc(this, &BTAdapter::smp_timeoutfunc));
+        const bool r = smp_watchdog.start(SMP_NEXT_EVENT_TIMEOUT_MS, jau::bind_member(this, &BTAdapter::smp_timeoutfunc));
         DBG_PRINT("BTAdapter::ctor: dev_id %d: smp_watchdog.smp_timeoutfunc started %d", dev_id, r);
     }
 }
@@ -1791,7 +1791,7 @@ bool BTAdapter::mgmtEvLocalNameChangedMgmt(const MgmtEvent& e) noexcept {
 void BTAdapter::l2capServerInit(jau::service_runner& sr0) noexcept {
     (void)sr0;
 
-    l2cap_att_srv.set_interrupted_query( jau::bindMemberFunc(&l2cap_service, &jau::service_runner::shall_stop2) );
+    l2cap_att_srv.set_interrupted_query( jau::bind_member(&l2cap_service, &jau::service_runner::shall_stop2) );
 
     if( !l2cap_att_srv.open() ) {
         ERR_PRINT("Adapter[%d]: L2CAP ATT open failed: %s", dev_id, l2cap_att_srv.toString().c_str());

@@ -36,7 +36,7 @@
 
 #include <jau/environment.hpp>
 #include <jau/uuid.hpp>
-#include <jau/function_def.hpp>
+#include <jau/functional.hpp>
 
 #include "BTTypes0.hpp"
 
@@ -127,7 +127,7 @@ namespace direct_bt {
             static std::string getStateString(bool isOpen, bool irqed_int, bool irqed_ext, bool hasIOError) noexcept;
 
             /** Utilized to query for external interruption, whether device is still connected etc. */
-            typedef jau::FunctionDef<bool, int /* dummy*/> get_boolean_callback_t;
+            typedef jau::function<bool(int /* dummy*/)> get_boolean_callback_t;
 
         protected:
             static int l2cap_open_dev(const BDAddressAndType & adapterAddressAndType, const L2CAP_PSM psm, const L2CAP_CID cid) noexcept;
@@ -159,7 +159,7 @@ namespace direct_bt {
             bool interrupted_int() const noexcept { return interrupted_intern; }
 
             /** Returns true if interrupted by external cause. */
-            bool interrupted_ext() const noexcept { return !is_interrupted_extern.isNullType() && is_interrupted_extern(0/*dummy*/); }
+            bool interrupted_ext() const noexcept { return !is_interrupted_extern.is_null() && is_interrupted_extern(0/*dummy*/); }
 
         public:
             L2CAPComm(const uint16_t adev_id, const BDAddressAndType& localAddressAndType, const L2CAP_PSM psm, const L2CAP_CID cid) noexcept;

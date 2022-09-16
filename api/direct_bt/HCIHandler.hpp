@@ -163,8 +163,8 @@ namespace direct_bt {
             }
     };
 
-    typedef jau::FunctionDef<bool, const BDAddressAndType& /* addressAndType */,
-                                   const SMPPDUMsg&, const HCIACLData::l2cap_frame& /* source */> HCISMPMsgCallback;
+    typedef jau::function<bool(const BDAddressAndType& /* addressAndType */,
+                               const SMPPDUMsg&, const HCIACLData::l2cap_frame& /* source */)> HCISMPMsgCallback;
     typedef jau::cow_darray<HCISMPMsgCallback> HCISMPMsgCallbackList;
 
     /**

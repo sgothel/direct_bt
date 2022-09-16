@@ -413,9 +413,9 @@ class DBTServer01 : public DBTServerTest {
                 MyGATTServerListener(DBTServer01& p)
                 : parent(p),
                   pulse_service("MyGATTServerListener::pulse", THREAD_SHUTDOWN_TIMEOUT_MS,
-                                       jau::bindMemberFunc(this, &MyGATTServerListener::pulse_worker),
-                                       jau::bindMemberFunc(this, &MyGATTServerListener::pulse_worker_init),
-                                       jau::bindMemberFunc(this, &MyGATTServerListener::pulse_worker_end))
+                                       jau::bind_member(this, &MyGATTServerListener::pulse_worker),
+                                       jau::bind_member(this, &MyGATTServerListener::pulse_worker_init),
+                                       jau::bind_member(this, &MyGATTServerListener::pulse_worker_end))
                 {
                     pulse_service.start();
                 }

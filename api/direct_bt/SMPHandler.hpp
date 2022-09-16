@@ -36,7 +36,7 @@
 
 #include <jau/environment.hpp>
 #include <jau/ringbuffer.hpp>
-#include <jau/function_def.hpp>
+#include <jau/functional.hpp>
 #include <jau/darray.hpp>
 #include <jau/cow_darray.hpp>
 #include <jau/uuid.hpp>
@@ -146,7 +146,7 @@ namespace direct_bt {
     };
 
 
-    typedef jau::FunctionDef<bool, const SMPPDUMsg&> SMPSecurityReqCallback;
+    typedef jau::function<bool(const SMPPDUMsg&)> SMPSecurityReqCallback;
     typedef jau::cow_darray<SMPSecurityReqCallback> SMPSecurityReqCallbackList;
 
     /**
