@@ -5,6 +5,7 @@
 ## Changes
 
 **2.8.2 *Direct-BT* Maturity (Bluetooth LE) _TODO_**
+* Change all callback return type: dummy 'bool' -> 'void', now enabled by `jau::function<void(A...)>`
 * Fix BTAdapter::reset() 
   - BTAdapter::poweredOff(): Always use disconnectAllDevices() for proper device pull-down to clear all its states 
     - was just deleting all refs if !active
