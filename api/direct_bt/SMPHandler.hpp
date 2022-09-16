@@ -146,7 +146,7 @@ namespace direct_bt {
     };
 
 
-    typedef jau::function<bool(const SMPPDUMsg&)> SMPSecurityReqCallback;
+    typedef jau::function<void(const SMPPDUMsg&)> SMPSecurityReqCallback;
     typedef jau::cow_darray<SMPSecurityReqCallback> SMPSecurityReqCallbackList;
 
     /**

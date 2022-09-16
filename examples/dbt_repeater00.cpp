@@ -846,20 +846,20 @@ static bool initAdapterToClient(std::shared_ptr<BTAdapter>& adapter) {
 // Common: To Server and Client
 //
 
-static bool myChangedAdapterSetFunc(const bool added, std::shared_ptr<BTAdapter>& adapter) {
+static void myChangedAdapterSetFunc(const bool added, std::shared_ptr<BTAdapter>& adapter) {
     if( added ) {
         if( nullptr == adapterToServer ) {
             if( initAdapterToServer( adapter ) ) {
                 adapterToServer = adapter;
                 fprintf_td(stderr, "****** AdapterToServer ADDED__: InitOK: %s\n", adapter->toString().c_str());
-                return true;
+                return;
             }
         }
         if( nullptr == adapterToClient ) {
             if( initAdapterToClient( adapter ) ) {
                 adapterToClient = adapter;
                 fprintf_td(stderr, "****** AdapterToClient ADDED__: InitOK: %s\n", adapter->toString().c_str());
-                return true;
+                return;
             }
         }
         fprintf_td(stderr, "****** Adapter ADDED__: Ignored: %s\n", adapter->toString().c_str());
@@ -867,16 +867,15 @@ static bool myChangedAdapterSetFunc(const bool added, std::shared_ptr<BTAdapter>
         if( nullptr != adapterToServer && adapter == adapterToServer ) {
             adapterToServer = nullptr;
             fprintf_td(stderr, "****** AdapterToServer REMOVED: %s\n", adapter->toString().c_str());
-            return true;
+            return;
         }
         if( nullptr != adapterToClient && adapter == adapterToClient ) {
             adapterToClient = nullptr;
             fprintf_td(stderr, "****** AdapterToClient REMOVED: %s\n", adapter->toString().c_str());
-            return true;
+            return;
         }
         fprintf_td(stderr, "****** Adapter REMOVED: Ignored %s\n", adapter->toString().c_str());
     }
-    return true;
 }
 
 void test() {

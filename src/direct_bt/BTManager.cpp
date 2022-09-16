@@ -1145,7 +1145,7 @@ void BTManager::processAdapterRemoved(std::unique_ptr<MgmtEvent> e) noexcept {
         DBG_PRINT("BTManager::Adapter[%d] Removed: RemoveAI failed", dev_id);
     }
 }
-bool BTManager::mgmtEvNewSettingsCB(const MgmtEvent& e) noexcept {
+void BTManager::mgmtEvNewSettingsCB(const MgmtEvent& e) noexcept {
     const MgmtEvtNewSettings &event = *static_cast<const MgmtEvtNewSettings *>(&e);
     std::shared_ptr<BTAdapter> adapter = getAdapter(event.getDevID());
     if( nullptr != adapter ) {
@@ -1162,13 +1162,11 @@ bool BTManager::mgmtEvNewSettingsCB(const MgmtEvent& e) noexcept {
                 to_string(event.getSettings()).c_str(),
                 e.toString().c_str());
     }
-    return true;
 }
 
-bool BTManager::mgmtEventAnyCB(const MgmtEvent& e) noexcept {
+void BTManager::mgmtEventAnyCB(const MgmtEvent& e) noexcept {
     DBG_PRINT("BTManager:mgmt:Any: %s", e.toString().c_str());
     (void)e;
-    return true;
 }
 
 /**

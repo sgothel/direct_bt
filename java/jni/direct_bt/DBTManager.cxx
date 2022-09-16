@@ -70,8 +70,8 @@ static void _addMgmtCBOnce(JNIEnv *env, BTManager & mgmt, JNIGlobalRef jmgmtRef,
                            const std::string &jmethodName, const std::string &jmethodArgs)
 {
     try {
-        bool(*nativeCallback)(BooleanMgmtCBContextRef&, const MgmtEvent&) =
-                [](BooleanMgmtCBContextRef& ctx_ref, const MgmtEvent& e)->bool {
+        void(*nativeCallback)(BooleanMgmtCBContextRef&, const MgmtEvent&) =
+                [](BooleanMgmtCBContextRef& ctx_ref, const MgmtEvent& e)->void {
             JNIEnv *env_ = *jni_env;
             const int dev_id = e.getDevID();
 
@@ -86,7 +86,6 @@ static void _addMgmtCBOnce(JNIEnv *env, BTManager & mgmt, JNIGlobalRef jmgmtRef,
                     env_->CallVoidMethod(*(ctx_ref->jmgmtRef), ctx_ref->mid, dev_id, ctx_ref->opc); // updated
                 }
             }
-            return true;
         };
 
 
@@ -102,7 +101,7 @@ static void _addMgmtCBOnce(JNIEnv *env, BTManager & mgmt, JNIGlobalRef jmgmtRef,
         }
 
         // move BooleanDeviceCBContextRef into jau::func::capval_target_t and operator== includes javaCallback comparison
-        jau::function<bool(const MgmtEvent&)> funcDef = jau::bind_capval(std::make_shared<BooleanMgmtCBContext>(opc, jmgmtRef, mid), nativeCallback);
+        jau::function<void(const MgmtEvent&)> funcDef = jau::bind_capval(std::make_shared<BooleanMgmtCBContext>(opc, jmgmtRef, mid), nativeCallback);
         mgmt.addMgmtEventCallback(-1, opc, funcDef);
     } catch(...) {
         rethrow_and_raise_java_exception(env);

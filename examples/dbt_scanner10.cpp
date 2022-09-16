@@ -663,7 +663,7 @@ static bool initAdapter(std::shared_ptr<BTAdapter>& adapter) {
     return true;
 }
 
-static bool myChangedAdapterSetFunc(const bool added, std::shared_ptr<BTAdapter>& adapter) {
+static void myChangedAdapterSetFunc(const bool added, std::shared_ptr<BTAdapter>& adapter) {
     if( added ) {
         if( nullptr == chosenAdapter ) {
             if( initAdapter( adapter ) ) {
@@ -683,7 +683,6 @@ static bool myChangedAdapterSetFunc(const bool added, std::shared_ptr<BTAdapter>
             fprintf_td(stderr, "****** Adapter REMOVED (other): %s\n", adapter->toString().c_str());
         }
     }
-    return true;
 }
 
 void test() {

@@ -157,13 +157,12 @@ namespace direct_bt {
      *
      * @param added true if adapter was newly added, otherwise removed from system
      * @param adapter the shared DBTAdapter reference
-     * @return ignored
      * @see ChangedAdapterSetCallback
      * @see BTManager::addChangedAdapterSetCallback()
      * @see BTManager::removeChangedAdapterSetCallback()
      * @see [Direct-BT Overview](namespacedirect__bt.html#details)
      */
-    typedef bool (*ChangedAdapterSetFunc)(bool added, std::shared_ptr<BTAdapter>& adapter);
+    typedef void (*ChangedAdapterSetFunc)(bool added, std::shared_ptr<BTAdapter>& adapter);
 
     /**
      * Callback jau::function to receive change events regarding the system's adapter set,
@@ -184,13 +183,12 @@ namespace direct_bt {
      *
      * @param added true if adapter was newly added, otherwise removed from system
      * @param adapter the shared DBTAdapter reference
-     * @return ignored
      * @see ChangedAdapterSetFunc
      * @see BTManager::addChangedAdapterSetCallback()
      * @see BTManager::removeChangedAdapterSetCallback()
      * @see [Direct-BT Overview](namespacedirect__bt.html#details)
      */
-    typedef jau::function<bool(bool, std::shared_ptr<BTAdapter>&)> ChangedAdapterSetCallback;
+    typedef jau::function<void(bool, std::shared_ptr<BTAdapter>&)> ChangedAdapterSetCallback;
     typedef jau::cow_darray<ChangedAdapterSetCallback> ChangedAdapterSetCallbackList;
 
     /**
@@ -302,8 +300,8 @@ namespace direct_bt {
 
             void processAdapterAdded(std::unique_ptr<MgmtEvent> e) noexcept;
             void processAdapterRemoved(std::unique_ptr<MgmtEvent> e) noexcept;
-            bool mgmtEvNewSettingsCB(const MgmtEvent& e) noexcept;
-            bool mgmtEventAnyCB(const MgmtEvent& e) noexcept;
+            void mgmtEvNewSettingsCB(const MgmtEvent& e) noexcept;
+            void mgmtEventAnyCB(const MgmtEvent& e) noexcept;
 
             std::shared_ptr<BTAdapter> addAdapter(const AdapterInfo& ai) noexcept;
 

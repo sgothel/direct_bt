@@ -2774,7 +2774,7 @@ namespace direct_bt {
             bool updateAdapterInfo(AdapterInfo& info) const noexcept;
     };
 
-    typedef jau::function<bool(const MgmtEvent&)> MgmtEventCallback;
+    typedef jau::function<void(const MgmtEvent&)> MgmtEventCallback;
     typedef jau::cow_darray<MgmtEventCallback> MgmtEventCallbackList;
 
     class MgmtAdapterEventCallback {

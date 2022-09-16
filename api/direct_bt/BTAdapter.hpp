@@ -515,45 +515,45 @@ namespace direct_bt {
             void l2capServerEnd(jau::service_runner& sr) noexcept;
             std::unique_ptr<L2CAPClient> get_l2cap_connection(std::shared_ptr<BTDevice> device);
 
-            bool mgmtEvNewSettingsMgmt(const MgmtEvent& e) noexcept;
+            void mgmtEvNewSettingsMgmt(const MgmtEvent& e) noexcept;
             void updateAdapterSettings(const bool off_thread, const AdapterSetting new_settings, const bool sendEvent, const uint64_t timestamp) noexcept;
-            bool mgmtEvDeviceDiscoveringMgmt(const MgmtEvent& e) noexcept;
-            bool mgmtEvLocalNameChangedMgmt(const MgmtEvent& e) noexcept;
-            bool mgmtEvDeviceFoundHCI(const MgmtEvent& e) noexcept;
-            bool mgmtEvPairDeviceCompleteMgmt(const MgmtEvent& e) noexcept;
-            bool mgmtEvNewLongTermKeyMgmt(const MgmtEvent& e) noexcept;
-            bool mgmtEvNewLinkKeyMgmt(const MgmtEvent& e) noexcept;
+            void mgmtEvDeviceDiscoveringMgmt(const MgmtEvent& e) noexcept;
+            void mgmtEvLocalNameChangedMgmt(const MgmtEvent& e) noexcept;
+            void mgmtEvDeviceFoundHCI(const MgmtEvent& e) noexcept;
+            void mgmtEvPairDeviceCompleteMgmt(const MgmtEvent& e) noexcept;
+            void mgmtEvNewLongTermKeyMgmt(const MgmtEvent& e) noexcept;
+            void mgmtEvNewLinkKeyMgmt(const MgmtEvent& e) noexcept;
 
-            bool mgmtEvHCIAnyHCI(const MgmtEvent& e) noexcept;
-            bool mgmtEvDeviceDiscoveringHCI(const MgmtEvent& e) noexcept;
-            bool mgmtEvDeviceConnectedHCI(const MgmtEvent& e) noexcept;
+            void mgmtEvHCIAnyHCI(const MgmtEvent& e) noexcept;
+            void mgmtEvDeviceDiscoveringHCI(const MgmtEvent& e) noexcept;
+            void mgmtEvDeviceConnectedHCI(const MgmtEvent& e) noexcept;
 
-            bool mgmtEvConnectFailedHCI(const MgmtEvent& e) noexcept;
-            bool mgmtEvHCILERemoteUserFeaturesHCI(const MgmtEvent& e) noexcept;
-            bool mgmtEvHCILEPhyUpdateCompleteHCI(const MgmtEvent& e) noexcept;
-            bool mgmtEvDeviceDisconnectedHCI(const MgmtEvent& e) noexcept;
+            void mgmtEvConnectFailedHCI(const MgmtEvent& e) noexcept;
+            void mgmtEvHCILERemoteUserFeaturesHCI(const MgmtEvent& e) noexcept;
+            void mgmtEvHCILEPhyUpdateCompleteHCI(const MgmtEvent& e) noexcept;
+            void mgmtEvDeviceDisconnectedHCI(const MgmtEvent& e) noexcept;
 
             // Local BTRole::Slave
-            bool mgmtEvLELTKReqEventHCI(const MgmtEvent& e) noexcept;
-            bool mgmtEvLELTKReplyAckCmdHCI(const MgmtEvent& e) noexcept;
-            bool mgmtEvLELTKReplyRejCmdHCI(const MgmtEvent& e) noexcept;
+            void mgmtEvLELTKReqEventHCI(const MgmtEvent& e) noexcept;
+            void mgmtEvLELTKReplyAckCmdHCI(const MgmtEvent& e) noexcept;
+            void mgmtEvLELTKReplyRejCmdHCI(const MgmtEvent& e) noexcept;
 
             // Local BTRole::Master
-            bool mgmtEvLEEnableEncryptionCmdHCI(const MgmtEvent& e) noexcept;
-            bool mgmtEvHCIEncryptionChangedHCI(const MgmtEvent& e) noexcept;
-            bool mgmtEvHCIEncryptionKeyRefreshCompleteHCI(const MgmtEvent& e) noexcept;
+            void mgmtEvLEEnableEncryptionCmdHCI(const MgmtEvent& e) noexcept;
+            void mgmtEvHCIEncryptionChangedHCI(const MgmtEvent& e) noexcept;
+            void mgmtEvHCIEncryptionKeyRefreshCompleteHCI(const MgmtEvent& e) noexcept;
 
             void updateDeviceDiscoveringState(const ScanType eventScanType, const bool eventEnabled) noexcept;
-            bool mgmtEvDeviceDiscoveringAny(const ScanType eventScanType, const bool eventEnabled, const uint64_t eventTimestamp,
+            void mgmtEvDeviceDiscoveringAny(const ScanType eventScanType, const bool eventEnabled, const uint64_t eventTimestamp,
                                             const bool hciSourced) noexcept;
 
-            bool mgmtEvPinCodeRequestMgmt(const MgmtEvent& e) noexcept;
-            bool mgmtEvUserConfirmRequestMgmt(const MgmtEvent& e) noexcept;
-            bool mgmtEvUserPasskeyRequestMgmt(const MgmtEvent& e) noexcept;
-            bool mgmtEvAuthFailedMgmt(const MgmtEvent& e) noexcept;
-            bool mgmtEvDeviceUnpairedMgmt(const MgmtEvent& e) noexcept;
+            void mgmtEvPinCodeRequestMgmt(const MgmtEvent& e) noexcept;
+            void mgmtEvUserConfirmRequestMgmt(const MgmtEvent& e) noexcept;
+            void mgmtEvUserPasskeyRequestMgmt(const MgmtEvent& e) noexcept;
+            void mgmtEvAuthFailedMgmt(const MgmtEvent& e) noexcept;
+            void mgmtEvDeviceUnpairedMgmt(const MgmtEvent& e) noexcept;
 
-            bool hciSMPMsgCallback(const BDAddressAndType & addressAndType,
+            void hciSMPMsgCallback(const BDAddressAndType & addressAndType,
                                    const SMPPDUMsg& msg, const HCIACLData::l2cap_frame& source) noexcept;
             void sendDevicePairingState(BTDeviceRef device, const SMPPairingState state, const PairingMode mode, uint64_t timestamp) noexcept;
             void notifyPairingStageDone(BTDeviceRef device, uint64_t timestamp) noexcept;

@@ -1630,27 +1630,26 @@ void BTAdapter::sendDeviceUpdated(std::string cause, BTDeviceRef device, uint64_
 
 // *************************************************
 
-bool BTAdapter::mgmtEvHCIAnyHCI(const MgmtEvent& e) noexcept {
+void BTAdapter::mgmtEvHCIAnyHCI(const MgmtEvent& e) noexcept {
     DBG_PRINT("BTAdapter:hci::Any: %s", e.toString().c_str());
     (void)e;
-    return true;
 }
 
-bool BTAdapter::mgmtEvDeviceDiscoveringHCI(const MgmtEvent& e) noexcept {
+void BTAdapter::mgmtEvDeviceDiscoveringHCI(const MgmtEvent& e) noexcept {
     const MgmtEvtDiscovering &event = *static_cast<const MgmtEvtDiscovering *>(&e);
-    return mgmtEvDeviceDiscoveringAny(event.getScanType(), event.getEnabled(), event.getTimestamp(), true /* hciSourced */);
+    mgmtEvDeviceDiscoveringAny(event.getScanType(), event.getEnabled(), event.getTimestamp(), true /* hciSourced */);
 }
 
-bool BTAdapter::mgmtEvDeviceDiscoveringMgmt(const MgmtEvent& e) noexcept {
+void BTAdapter::mgmtEvDeviceDiscoveringMgmt(const MgmtEvent& e) noexcept {
     const MgmtEvtDiscovering &event = *static_cast<const MgmtEvtDiscovering *>(&e);
-    return mgmtEvDeviceDiscoveringAny(event.getScanType(), event.getEnabled(), event.getTimestamp(), false /* hciSourced */);
+    mgmtEvDeviceDiscoveringAny(event.getScanType(), event.getEnabled(), event.getTimestamp(), false /* hciSourced */);
 }
 
 void BTAdapter::updateDeviceDiscoveringState(const ScanType eventScanType, const bool eventEnabled) noexcept {
     mgmtEvDeviceDiscoveringAny(eventScanType, eventEnabled, jau::getCurrentMilliseconds(), false /* hciSourced */);
 }
 
-bool BTAdapter::mgmtEvDeviceDiscoveringAny(const ScanType eventScanType, const bool eventEnabled, const uint64_t eventTimestamp,
+void BTAdapter::mgmtEvDeviceDiscoveringAny(const ScanType eventScanType, const bool eventEnabled, const uint64_t eventTimestamp,
                                            const bool hciSourced) noexcept {
     const std::string srctkn = hciSourced ? "hci" : "mgmt";
     ScanType currentNativeScanType = hci.getCurrentScanType();
@@ -1714,16 +1713,14 @@ bool BTAdapter::mgmtEvDeviceDiscoveringAny(const ScanType eventScanType, const b
     {
         discovery_service.start();
     }
-    return true;
 }
 
-bool BTAdapter::mgmtEvNewSettingsMgmt(const MgmtEvent& e) noexcept {
+void BTAdapter::mgmtEvNewSettingsMgmt(const MgmtEvent& e) noexcept {
     COND_PRINT(debug_event, "BTAdapter:mgmt:NewSettings: %s", e.toString().c_str());
     const MgmtEvtNewSettings &event = *static_cast<const MgmtEvtNewSettings *>(&e);
     const AdapterSetting new_settings = adapterInfo.setCurrentSettingMask(event.getSettings()); // probably done by mgmt callback already
 
     updateAdapterSettings(true /* off_thread */, new_settings, true /* sendEvent */, event.getTimestamp());
-    return true;
 }
 
 void BTAdapter::updateAdapterSettings(const bool off_thread, const AdapterSetting new_settings, const bool sendEvent, const uint64_t timestamp) noexcept {
@@ -1767,7 +1764,7 @@ void BTAdapter::updateAdapterSettings(const bool off_thread, const AdapterSettin
     }
 }
 
-bool BTAdapter::mgmtEvLocalNameChangedMgmt(const MgmtEvent& e) noexcept {
+void BTAdapter::mgmtEvLocalNameChangedMgmt(const MgmtEvent& e) noexcept {
     COND_PRINT(debug_event, "BTAdapter:mgmt:LocalNameChanged: %s", e.toString().c_str());
     const MgmtEvtLocalNameChanged &event = *static_cast<const MgmtEvtLocalNameChanged *>(&e);
     std::string old_name = getName();
@@ -1785,7 +1782,6 @@ bool BTAdapter::mgmtEvLocalNameChangedMgmt(const MgmtEvent& e) noexcept {
             shortNameChanged, old_shortName.c_str(), getShortName().c_str());
     (void)nameChanged;
     (void)shortNameChanged;
-    return true;
 }
 
 void BTAdapter::l2capServerInit(jau::service_runner& sr0) noexcept {
@@ -1894,7 +1890,7 @@ jau::fraction_i64 BTAdapter::smp_timeoutfunc(jau::simple_timer& timer) {
     return timer.shall_stop() ? 0_s : SMP_NEXT_EVENT_TIMEOUT_MS; // keep going until BTAdapter closes
 }
 
-bool BTAdapter::mgmtEvDeviceConnectedHCI(const MgmtEvent& e) noexcept {
+void BTAdapter::mgmtEvDeviceConnectedHCI(const MgmtEvent& e) noexcept {
     const MgmtEvtDeviceConnected &event = *static_cast<const MgmtEvtDeviceConnected *>(&e);
     EInfoReport ad_report;
     {
@@ -2023,10 +2019,9 @@ bool BTAdapter::mgmtEvDeviceConnectedHCI(const MgmtEvent& e) noexcept {
         // Hence .. induce it right after connect
         device->notifyLEFeatures(device, LE_Features::LE_Encryption);
     }
-    return true;
 }
 
-bool BTAdapter::mgmtEvConnectFailedHCI(const MgmtEvent& e) noexcept {
+void BTAdapter::mgmtEvConnectFailedHCI(const MgmtEvent& e) noexcept {
     const MgmtEvtDeviceConnectFailed &event = *static_cast<const MgmtEvtDeviceConnectFailed *>(&e);
 
     BTDeviceRef device = findConnectedDevice(event.getAddress(), event.getAddressType());
@@ -2061,10 +2056,9 @@ bool BTAdapter::mgmtEvConnectFailedHCI(const MgmtEvent& e) noexcept {
         WORDY_PRINT("BTAdapter::hci:DeviceDisconnected(dev_id %d): Device not tracked: %s",
             dev_id, event.toString().c_str());
     }
-    return true;
 }
 
-bool BTAdapter::mgmtEvHCILERemoteUserFeaturesHCI(const MgmtEvent& e) noexcept {
+void BTAdapter::mgmtEvHCILERemoteUserFeaturesHCI(const MgmtEvent& e) noexcept {
     const MgmtEvtHCILERemoteFeatures &event = *static_cast<const MgmtEvtHCILERemoteFeatures *>(&e);
 
     BTDeviceRef device = findConnectedDevice(event.getAddress(), event.getAddressType());
@@ -2101,10 +2095,9 @@ bool BTAdapter::mgmtEvHCILERemoteUserFeaturesHCI(const MgmtEvent& e) noexcept {
         WORDY_PRINT("BTAdapter::hci:LERemoteUserFeatures(dev_id %d): Device not tracked: %s",
             dev_id, event.toString().c_str());
     }
-    return true;
 }
 
-bool BTAdapter::mgmtEvHCILEPhyUpdateCompleteHCI(const MgmtEvent& e) noexcept {
+void BTAdapter::mgmtEvHCILEPhyUpdateCompleteHCI(const MgmtEvent& e) noexcept {
     const MgmtEvtHCILEPhyUpdateComplete &event = *static_cast<const MgmtEvtHCILEPhyUpdateComplete *>(&e);
 
     BTDeviceRef device = findConnectedDevice(event.getAddress(), event.getAddressType());
@@ -2117,10 +2110,9 @@ bool BTAdapter::mgmtEvHCILEPhyUpdateCompleteHCI(const MgmtEvent& e) noexcept {
         WORDY_PRINT("BTAdapter::hci:LEPhyUpdateComplete(dev_id %d): Device not tracked: %s",
             dev_id, event.toString().c_str());
     }
-    return true;
 }
 
-bool BTAdapter::mgmtEvDeviceDisconnectedHCI(const MgmtEvent& e) noexcept {
+void BTAdapter::mgmtEvDeviceDisconnectedHCI(const MgmtEvent& e) noexcept {
     const MgmtEvtDeviceDisconnected &event = *static_cast<const MgmtEvtDeviceDisconnected *>(&e);
 
     BTDeviceRef device = findConnectedDevice(event.getAddress(), event.getAddressType());
@@ -2128,7 +2120,7 @@ bool BTAdapter::mgmtEvDeviceDisconnectedHCI(const MgmtEvent& e) noexcept {
         if( device->getConnectionHandle() != event.getHCIHandle() ) {
             WORDY_PRINT("BTAdapter::hci:DeviceDisconnected(dev_id %d): ConnHandle mismatch %s\n    -> %s",
                 dev_id, event.toString().c_str(), device->toString().c_str());
-            return true;
+            return;
         }
         DBG_PRINT("BTAdapter::hci:DeviceDisconnected(dev_id %d): %s, handle %s -> zero,\n    -> %s",
             dev_id, event.toString().c_str(), jau::to_hexstring(event.getHCIHandle()).c_str(),
@@ -2197,11 +2189,10 @@ bool BTAdapter::mgmtEvDeviceDisconnectedHCI(const MgmtEvent& e) noexcept {
             removeDevicePausingDiscovery(*device);
         }
     }
-    return true;
 }
 
 // Local BTRole::Slave
-bool BTAdapter::mgmtEvLELTKReqEventHCI(const MgmtEvent& e) noexcept {
+void BTAdapter::mgmtEvLELTKReqEventHCI(const MgmtEvent& e) noexcept {
     const MgmtEvtHCILELTKReq &event = *static_cast<const MgmtEvtHCILELTKReq *>(&e);
 
     BTDeviceRef device = findConnectedDevice(event.getAddress(), event.getAddressType());
@@ -2212,9 +2203,8 @@ bool BTAdapter::mgmtEvLELTKReqEventHCI(const MgmtEvent& e) noexcept {
         WORDY_PRINT("BTAdapter::hci:LE_LTK_Request(dev_id %d): Device not tracked: %s",
             dev_id, event.toString().c_str());
     }
-    return true;
 }
-bool BTAdapter::mgmtEvLELTKReplyAckCmdHCI(const MgmtEvent& e) noexcept {
+void BTAdapter::mgmtEvLELTKReplyAckCmdHCI(const MgmtEvent& e) noexcept {
     const MgmtEvtHCILELTKReplyAckCmd &event = *static_cast<const MgmtEvtHCILELTKReplyAckCmd *>(&e);
 
     BTDeviceRef device = findConnectedDevice(event.getAddress(), event.getAddressType());
@@ -2225,19 +2215,17 @@ bool BTAdapter::mgmtEvLELTKReplyAckCmdHCI(const MgmtEvent& e) noexcept {
         WORDY_PRINT("BTAdapter::hci:LE_LTK_REPLY_ACK(dev_id %d): Device not tracked: %s",
             dev_id, event.toString().c_str());
     }
-    return true;
 }
-bool BTAdapter::mgmtEvLELTKReplyRejCmdHCI(const MgmtEvent& e) noexcept {
+void BTAdapter::mgmtEvLELTKReplyRejCmdHCI(const MgmtEvent& e) noexcept {
     const MgmtEvtHCILELTKReplyRejCmd &event = *static_cast<const MgmtEvtHCILELTKReplyRejCmd *>(&e);
 
     BTDeviceRef device = findConnectedDevice(event.getAddress(), event.getAddressType());
     DBG_PRINT("BTAdapter::hci:LE_LTK_REPLY_REJ(dev_id %d): Ignored: %s (tracked %d)",
             dev_id, event.toString().c_str(), (nullptr!=device));
-    return true;
 }
 
 // Local BTRole::Master
-bool BTAdapter::mgmtEvLEEnableEncryptionCmdHCI(const MgmtEvent& e) noexcept {
+void BTAdapter::mgmtEvLEEnableEncryptionCmdHCI(const MgmtEvent& e) noexcept {
     const MgmtEvtHCILEEnableEncryptionCmd &event = *static_cast<const MgmtEvtHCILEEnableEncryptionCmd *>(&e);
 
     BTDeviceRef device = findConnectedDevice(event.getAddress(), event.getAddressType());
@@ -2248,10 +2236,9 @@ bool BTAdapter::mgmtEvLEEnableEncryptionCmdHCI(const MgmtEvent& e) noexcept {
         WORDY_PRINT("BTAdapter::hci:LE_ENABLE_ENC(dev_id %d): Device not tracked: %s",
             dev_id, event.toString().c_str());
     }
-    return true;
 }
 // On BTRole::Master (reply to MgmtEvtHCILEEnableEncryptionCmd) and BTRole::Slave
-bool BTAdapter::mgmtEvHCIEncryptionChangedHCI(const MgmtEvent& e) noexcept {
+void BTAdapter::mgmtEvHCIEncryptionChangedHCI(const MgmtEvent& e) noexcept {
     const MgmtEvtHCIEncryptionChanged &event = *static_cast<const MgmtEvtHCIEncryptionChanged *>(&e);
 
     BTDeviceRef device = findConnectedDevice(event.getAddress(), event.getAddressType());
@@ -2265,10 +2252,9 @@ bool BTAdapter::mgmtEvHCIEncryptionChangedHCI(const MgmtEvent& e) noexcept {
         WORDY_PRINT("BTAdapter::hci:ENC_CHANGED(dev_id %d): Device not tracked: %s",
             dev_id, event.toString().c_str());
     }
-    return true;
 }
 // On BTRole::Master (reply to MgmtEvtHCILEEnableEncryptionCmd) and BTRole::Slave
-bool BTAdapter::mgmtEvHCIEncryptionKeyRefreshCompleteHCI(const MgmtEvent& e) noexcept {
+void BTAdapter::mgmtEvHCIEncryptionKeyRefreshCompleteHCI(const MgmtEvent& e) noexcept {
     const MgmtEvtHCIEncryptionKeyRefreshComplete &event = *static_cast<const MgmtEvtHCIEncryptionKeyRefreshComplete *>(&e);
 
     BTDeviceRef device = findConnectedDevice(event.getAddress(), event.getAddressType());
@@ -2282,10 +2268,9 @@ bool BTAdapter::mgmtEvHCIEncryptionKeyRefreshCompleteHCI(const MgmtEvent& e) noe
         WORDY_PRINT("BTAdapter::hci:ENC_KEY_REFRESH_COMPLETE(dev_id %d): Device not tracked: %s",
             dev_id, event.toString().c_str());
     }
-    return true;
 }
 
-bool BTAdapter::mgmtEvPairDeviceCompleteMgmt(const MgmtEvent& e) noexcept {
+void BTAdapter::mgmtEvPairDeviceCompleteMgmt(const MgmtEvent& e) noexcept {
     const MgmtEvtPairDeviceComplete &event = *static_cast<const MgmtEvtPairDeviceComplete *>(&e);
 
     BTDeviceRef device = findConnectedDevice(event.getAddress(), event.getAddressType());
@@ -2298,10 +2283,9 @@ bool BTAdapter::mgmtEvPairDeviceCompleteMgmt(const MgmtEvent& e) noexcept {
         WORDY_PRINT("BTAdapter::mgmt:PairDeviceComplete(dev_id %d): Device not tracked: %s",
             dev_id, event.toString().c_str());
     }
-    return true;
 }
 
-bool BTAdapter::mgmtEvNewLongTermKeyMgmt(const MgmtEvent& e) noexcept {
+void BTAdapter::mgmtEvNewLongTermKeyMgmt(const MgmtEvent& e) noexcept {
     const MgmtEvtNewLongTermKey& event = *static_cast<const MgmtEvtNewLongTermKey *>(&e);
     const MgmtLongTermKeyInfo& ltk_info = event.getLongTermKey();
     BTDeviceRef device = findConnectedDevice(ltk_info.address, ltk_info.address_type);
@@ -2317,10 +2301,9 @@ bool BTAdapter::mgmtEvNewLongTermKeyMgmt(const MgmtEvent& e) noexcept {
         WORDY_PRINT("BTAdapter::mgmt:NewLongTermKey(dev_id %d): Device not tracked: %s",
             dev_id, event.toString().c_str());
     }
-    return true;
 }
 
-bool BTAdapter::mgmtEvNewLinkKeyMgmt(const MgmtEvent& e) noexcept {
+void BTAdapter::mgmtEvNewLinkKeyMgmt(const MgmtEvent& e) noexcept {
     const MgmtEvtNewLinkKey& event = *static_cast<const MgmtEvtNewLinkKey *>(&e);
     const MgmtLinkKeyInfo& lk_info = event.getLinkKey();
     // lk_info.address_type might be wrongly reported by mgmt, i.e. BDADDR_BREDR, use any.
@@ -2337,10 +2320,9 @@ bool BTAdapter::mgmtEvNewLinkKeyMgmt(const MgmtEvent& e) noexcept {
         WORDY_PRINT("BTAdapter::mgmt:NewLinkKey(dev_id %d): Device not tracked: %s",
             dev_id, event.toString().c_str());
     }
-    return true;
 }
 
-bool BTAdapter::mgmtEvDeviceFoundHCI(const MgmtEvent& e) noexcept {
+void BTAdapter::mgmtEvDeviceFoundHCI(const MgmtEvent& e) noexcept {
     // COND_PRINT(debug_event, "BTAdapter:hci:DeviceFound(dev_id %d): %s", dev_id, e.toString().c_str());
     const MgmtEvtDeviceFound &deviceFoundEvent = *static_cast<const MgmtEvtDeviceFound *>(&e);
 
@@ -2509,20 +2491,17 @@ bool BTAdapter::mgmtEvDeviceFoundHCI(const MgmtEvent& e) noexcept {
             }
         }
     }
-    return true;
 }
 
-bool BTAdapter::mgmtEvDeviceUnpairedMgmt(const MgmtEvent& e) noexcept {
+void BTAdapter::mgmtEvDeviceUnpairedMgmt(const MgmtEvent& e) noexcept {
     const MgmtEvtDeviceUnpaired &event = *static_cast<const MgmtEvtDeviceUnpaired *>(&e);
     DBG_PRINT("BTAdapter:mgmt:DeviceUnpaired: %s", event.toString().c_str());
-    return true;
 }
-bool BTAdapter::mgmtEvPinCodeRequestMgmt(const MgmtEvent& e) noexcept {
+void BTAdapter::mgmtEvPinCodeRequestMgmt(const MgmtEvent& e) noexcept {
     const MgmtEvtPinCodeRequest &event = *static_cast<const MgmtEvtPinCodeRequest *>(&e);
     DBG_PRINT("BTAdapter:mgmt:PinCodeRequest: %s", event.toString().c_str());
-    return true;
 }
-bool BTAdapter::mgmtEvAuthFailedMgmt(const MgmtEvent& e) noexcept {
+void BTAdapter::mgmtEvAuthFailedMgmt(const MgmtEvent& e) noexcept {
     const MgmtEvtAuthFailed &event = *static_cast<const MgmtEvtAuthFailed *>(&e);
 
     BTDeviceRef device = findConnectedDevice(event.getAddress(), event.getAddressType());
@@ -2530,13 +2509,12 @@ bool BTAdapter::mgmtEvAuthFailedMgmt(const MgmtEvent& e) noexcept {
         WORDY_PRINT("BTAdapter:hci:SMP: dev_id %d: Device not tracked: address[%s, %s], %s",
                 dev_id, event.getAddress().toString().c_str(), to_string(event.getAddressType()).c_str(),
                 event.toString().c_str());
-        return true;
+        return;
     }
     const HCIStatusCode evtStatus = to_HCIStatusCode( event.getStatus() );
     device->updatePairingState(device, e, evtStatus, SMPPairingState::FAILED);
-    return true;
 }
-bool BTAdapter::mgmtEvUserConfirmRequestMgmt(const MgmtEvent& e) noexcept {
+void BTAdapter::mgmtEvUserConfirmRequestMgmt(const MgmtEvent& e) noexcept {
     const MgmtEvtUserConfirmRequest &event = *static_cast<const MgmtEvtUserConfirmRequest *>(&e);
 
     BTDeviceRef device = findConnectedDevice(event.getAddress(), event.getAddressType());
@@ -2544,13 +2522,12 @@ bool BTAdapter::mgmtEvUserConfirmRequestMgmt(const MgmtEvent& e) noexcept {
         WORDY_PRINT("BTAdapter:hci:SMP: dev_id %d: Device not tracked: address[%s, %s], %s",
                 dev_id, event.getAddress().toString().c_str(), to_string(event.getAddressType()).c_str(),
                 event.toString().c_str());
-        return true;
+        return;
     }
     // FIXME: Pass confirm_hint and value?
     device->updatePairingState(device, e, HCIStatusCode::SUCCESS, SMPPairingState::NUMERIC_COMPARE_EXPECTED);
-    return true;
 }
-bool BTAdapter::mgmtEvUserPasskeyRequestMgmt(const MgmtEvent& e) noexcept {
+void BTAdapter::mgmtEvUserPasskeyRequestMgmt(const MgmtEvent& e) noexcept {
     const MgmtEvtUserPasskeyRequest &event = *static_cast<const MgmtEvtUserPasskeyRequest *>(&e);
 
     BTDeviceRef device = findConnectedDevice(event.getAddress(), event.getAddressType());
@@ -2558,31 +2535,28 @@ bool BTAdapter::mgmtEvUserPasskeyRequestMgmt(const MgmtEvent& e) noexcept {
         WORDY_PRINT("BTAdapter:hci:SMP: dev_id %d: Device not tracked: address[%s, %s], %s",
                 dev_id, event.getAddress().toString().c_str(), to_string(event.getAddressType()).c_str(),
                 event.toString().c_str());
-        return true;
+        return;
     }
     device->updatePairingState(device, e, HCIStatusCode::SUCCESS, SMPPairingState::PASSKEY_EXPECTED);
-    return true;
 }
 
-bool BTAdapter::hciSMPMsgCallback(const BDAddressAndType & addressAndType,
+void BTAdapter::hciSMPMsgCallback(const BDAddressAndType & addressAndType,
                                    const SMPPDUMsg& msg, const HCIACLData::l2cap_frame& source) noexcept {
     BTDeviceRef device = findConnectedDevice(addressAndType.address, addressAndType.type);
     if( nullptr == device ) {
         WORDY_PRINT("BTAdapter:hci:SMP: dev_id %d: Device not tracked: address%s: %s, %s",
                 dev_id, addressAndType.toString().c_str(),
                 msg.toString().c_str(), source.toString().c_str());
-        return true;
+        return;
     }
     if( device->getConnectionHandle() != source.handle ) {
         WORDY_PRINT("BTAdapter:hci:SMP: dev_id %d: ConnHandle mismatch address%s: %s, %s\n    -> %s",
                 dev_id, addressAndType.toString().c_str(),
                 msg.toString().c_str(), source.toString().c_str(), device->toString().c_str());
-        return true;
+        return;
     }
 
     device->hciSMPMsgCallback(device, msg, source);
-
-    return true;
 }
 
 void BTAdapter::sendDevicePairingState(BTDeviceRef device, const SMPPairingState state, const PairingMode mode, uint64_t timestamp) noexcept

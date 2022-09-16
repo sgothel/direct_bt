@@ -97,14 +97,14 @@ class DBTEndpoint {
         static std::mutex mtx_cas_endpts;
         static std::vector<DBTEndpointRef> cas_endpts;
 
-        static bool myChangedAdapterSetFunc(const bool added, BTAdapterRef& adapter) {
+        static void myChangedAdapterSetFunc(const bool added, BTAdapterRef& adapter) {
             if( added ) {
                 for(DBTEndpointRef endpt : cas_endpts ) {
                     if( nullptr == endpt->getAdapter() ) {
                         if( endpt->initAdapter( adapter ) ) {
                             endpt->setAdapter(adapter);
                             jau::fprintf_td(stderr, "****** Adapter ADDED__: InitOK: %s\n", adapter->toString().c_str());
-                            return true;
+                            return;
                         }
                     }
                 }
@@ -114,12 +114,11 @@ class DBTEndpoint {
                     if( nullptr != endpt->getAdapter() && *adapter == *endpt->getAdapter() ) {
                         endpt->setAdapter(nullptr);
                         jau::fprintf_td(stderr, "****** Adapter REMOVED: %s\n", adapter->toString().c_str());
-                        return true;
+                        return;
                     }
                 }
                 jau::fprintf_td(stderr, "****** Adapter REMOVED: Ignored: %s\n", adapter->toString().c_str());
             }
-            return true;
         }
 
         static ChangedAdapterSetCallback initChangedAdapterSetListener(const BTManagerRef& manager, std::vector<DBTEndpointRef> endpts) {
