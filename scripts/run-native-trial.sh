@@ -38,10 +38,10 @@ mkdir -p $rootdir/doc/test
 logfile=$rootdir/doc/test/$logbasename.0.log
 rm -f $logfile
 
-valgrindlogfile=$logbasename-valgrind.log
+valgrindlogfile=$rootdir/doc/test/$logbasename-valgrind.log
 rm -f $valgrindlogfile
 
-callgrindoutfile=$logbasename-callgrind.out
+callgrindoutfile=$rootdir/doc/test/$logbasename-callgrind.out
 rm -f $callgrindoutfile
 
 # echo 'core_%e.%p' | sudo tee /proc/sys/kernel/core_pattern
@@ -59,9 +59,13 @@ export LANG=en_US.UTF-8
 # export EXE_WRAPPER="valgrind --tool=drd --segment-merging=no --ignore-thread-creation=yes --trace-barrier=no --trace-cond=no --trace-fork-join=no --trace-mutex=no --trace-rwlock=no --trace-semaphore=no --default-suppressions=yes --suppressions=$sdir/valgrind.supp --gen-suppressions=all -s --log-file=$valgrindlogfile"
 # export EXE_WRAPPER="valgrind --tool=callgrind --instr-atstart=yes --collect-atstart=yes --collect-systime=yes --combine-dumps=yes --separate-threads=no --callgrind-out-file=$callgrindoutfile --log-file=$valgrindlogfile"
 
+set -o pipefail
+
 do_test() {
     echo "script invocation: $0 ${script_args}"
     echo logfile $logfile
+    echo valgrindlog $valgrindlogfile
+    echo callgrindlog $callgrindoutfile
     echo test_exe ${test_exe}
     echo test_basename ${test_basename}
     echo direct_bt_debug ${direct_bt_debug}
@@ -76,4 +80,5 @@ do_test() {
 }
 
 do_test "$@" 2>&1 | tee $logfile
+exit $?
 
