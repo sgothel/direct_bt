@@ -4,9 +4,16 @@
 
 ## Changes
 
-**2.9.0** *WIP*
+**2.9.0**
 * Add support for *Alpine Linux* using [musl](https://musl.libc.org/) C library
-  - Since `jaulib` v0.18.0
+* Passed [platforms](PLATFORMS.md) testing:
+  - Debian 11
+  - Debian 12
+      - gcc 12.2.0
+      - clang 14.0.6
+  - Ubuntu 22.04
+  - FreeBSD 13.1
+  - Alpine Linux 3.16
 
 **2.8.2 *Direct-BT* Maturity (Bluetooth LE)**
 * Change all callback return type: dummy 'bool' -> 'void', now enabled by `jau::function<void(A...)>`
