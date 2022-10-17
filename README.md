@@ -80,6 +80,10 @@ Please check the [Connection Paramter](doc/Connection_Parameter.md) for details.
 ## Supported Platforms
 Minimum language requirements
 - C++17
+- Standard C Libraries
+  - [FreeBSD libc](https://www.freebsd.org/)
+  - [GNU glibc](https://www.gnu.org/software/libc/)
+  - [musl](https://musl.libc.org/)
 - Java 11 (optional)
 
 See [supported platforms](PLATFORMS.md) for details.

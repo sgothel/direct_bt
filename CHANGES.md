@@ -4,6 +4,10 @@
 
 ## Changes
 
+**2.9.0** *WIP*
+* Add support for *Alpine Linux* using [musl](https://musl.libc.org/) C library
+  - Since `jaulib` v0.18.0
+
 **2.8.2 *Direct-BT* Maturity (Bluetooth LE)**
 * Change all callback return type: dummy 'bool' -> 'void', now enabled by `jau::function<void(A...)>`
 * Fix BTAdapter::reset() 
