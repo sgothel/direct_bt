@@ -519,15 +519,33 @@ void BTAdapter::printDeviceList(const std::string& prefix, const BTAdapter::devi
     jau::PLAIN_PRINT(true, "- BTAdapter::%s: %zu elements", prefix.c_str(), sz);
     int idx = 0;
     for (auto it = list.begin(); it != list.end(); ++idx, ++it) {
+        /**
+         * TODO
+         *
+         * g++ (Debian 12.2.0-3) 12.2.0, Debian 12 Bookworm 2022-10-17
+         * g++ bug: False positive of '-Werror=stringop-overflow=' using std::atomic_bool::load()
+         *
+ In member function ‘std::__atomic_base<_IntTp>::__int_type std::__atomic_base<_IntTp>::load(std::memory_order) const [with _ITp = bool]’,
+    inlined from ‘bool std::atomic<bool>::load(std::memory_order) const’ at /usr/include/c++/12/atomic:112:26,
+    inlined from ‘bool direct_bt::BTObject::isValidInstance() const’ at direct_bt/api/direct_bt/BTTypes1.hpp:66:86,
+    inlined from ‘static void direct_bt::BTAdapter::printDeviceList(const std::string&, const device_list_t&)’ at direct_bt/BTAdapter.cpp:526:42:
+/usr/include/c++/12/bits/atomic_base.h:488:31: error:
+ *     ‘unsigned char __atomic_load_1(const volatile void*, int)’ writing 1 byte into a region of size 0 overflows the destination [-Werror=stringop-overflow=]
+  488 |         return __atomic_load_n(&_M_i, int(__m));
+      |                ~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~
+         */
+        PRAGMA_DISABLE_WARNING_PUSH
+        PRAGMA_DISABLE_WARNING_STRINGOP_OVERFLOW
         if( nullptr != (*it) ) {
             jau::PLAIN_PRINT(true, "  - %d / %zu: null", (idx+1), sz);
-        } else if( (*it)->isValidInstance() ) {
+        } else if( (*it)->isValidInstance() /** TODO: See above */ ) {
             jau::PLAIN_PRINT(true, "  - %d / %zu: invalid", (idx+1), sz);
         } else {
             jau::PLAIN_PRINT(true, "  - %d / %zu: %s, name '%s'", (idx+1), sz,
                     (*it)->getAddressAndType().toString().c_str(),
                     (*it)->getName().c_str() );
         }
+        PRAGMA_DISABLE_WARNING_POP
     }
 }
 void BTAdapter::printWeakDeviceList(const std::string& prefix, BTAdapter::weak_device_list_t& list) noexcept {
