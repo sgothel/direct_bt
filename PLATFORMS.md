@@ -33,11 +33,11 @@ The following **platforms** are tested and hence supported
   - amd64 (validated, Generic)
 
 **Debian 12 Bookworm (GNU/Linux)**
-- linux 5.18
-- glibc 2.33
+- linux 5.19
+- glibc 2.35
 - compiler
-  - gcc 11.3.0
-  - clang 13.0.1
+  - gcc 12.2.0
+  - clang 14.0.6
   - openjdk 17
 - architectures
   - amd64 (validated, Generic)
