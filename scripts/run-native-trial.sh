@@ -75,7 +75,7 @@ do_test() {
     cd ${test_dir}
     pwd
 
-    "/usr/bin/sudo" -E "/sbin/capsh" "--caps=cap_net_raw,cap_net_admin+eip cap_setpcap,cap_setuid,cap_setgid+ep" "--keep=1" "--user=sven" "--addamb=cap_net_raw,cap_net_admin+eip" "--" "-c" "ulimit -c unlimited; $EXE_WRAPPER ./${test_basename} ${*@Q}"
+    "/usr/bin/sudo" -E "/sbin/capsh" "--caps=cap_net_raw,cap_net_admin+eip cap_setpcap,cap_setuid,cap_setgid+ep" "--keep=1" "--user=${USER}" "--addamb=cap_net_raw,cap_net_admin+eip" "--" "-c" "ulimit -c unlimited; $EXE_WRAPPER ./${test_basename} ${*@Q}"
     exit $?
 }
 
