@@ -24,6 +24,13 @@ The [Jau C++ and Java support library](https://jausoft.com/cgit/jaulib.git/about
 
 Below you can find a few notes about [*Direct-BT* Origins](#direct_bt_origins).
 
+### Further Reading
+
+- [S. Gothel, *Direct-BT: BLE Programming with C++ & Java*, Nov 2022](https://jausoft.com/Files/direct_bt/doc/direct_bt-jughh2022.pdf) (pdf slides)
+- [S. Gothel, *Direct-BT, Bluetooth Server and Client Programming in C++ and Java (Part 1)*, May 2022](https://jausoft.com/blog/2022/05/22/direct-bt-bluetooth-server-and-client-programming-in-cpp-and-java_pt1/)
+- [S. Gothel, *Direct-BT C++ Implementation Details (Part 1)*, May 2022](https://jausoft.com/blog/2022/05/22/direct-bt-implementation-details-pt1/)
+
+
 ## Details
 You will find a [detailed overview of *Direct-BT*](https://jausoft.com/projects/direct_bt/build/documentation/cpp/html/namespacedirect__bt.html#details) (C++)
 and the [same in the Java API](https://jausoft.com/projects/direct_bt/build/documentation/java/html/namespaceorg_1_1direct__bt.html#details).<br/>
