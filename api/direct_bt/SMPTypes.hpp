@@ -29,6 +29,7 @@
 #include <cstring>
 #include <string>
 #include <cstdint>
+#include <cmath>
 
 #include <algorithm>
 #include <mutex>
@@ -847,6 +848,10 @@ namespace direct_bt {
         protected:
             friend class SMPHandler;
 
+            void check_range() {
+                pdu.check_range(0, getDataOffset()+getDataSize(), E_FILE_LINE);
+            }
+
             void checkOpcode(const Opcode expected) const
             {
                 const Opcode has = getOpcode();
@@ -893,8 +898,14 @@ namespace direct_bt {
             SMPPDUMsg(const uint8_t* source, const jau::nsize_t size)
                 : pdu(source, std::max<jau::nsize_t>(1, size), jau::endian::little),
                   ts_creation(jau::getCurrentMilliseconds())
-            {
-                pdu.check_range(0, getDataOffset()+getDataSize());
+            { }
+
+            /** Persistent memory, w/ ownership ..*/
+            SMPPDUMsg(const uint8_t* source, const jau::nsize_t size, const jau::nsize_t min_size)
+                : pdu(source, std::max<jau::nsize_t>(1, size), jau::endian::little),
+                  ts_creation(jau::getCurrentMilliseconds())
+            { 
+                pdu.check_range(0, std::max<jau::nsize_t>(1, min_size), E_FILE_LINE);
             }
 
             /** Persistent memory, w/ ownership ..*/
@@ -903,10 +914,9 @@ namespace direct_bt {
                   ts_creation(jau::getCurrentMilliseconds())
             {
                 pdu.put_uint8_nc(0, number(opc));
-                pdu.check_range(0, getDataOffset()+getDataSize());
             }
 
-            virtual ~SMPPDUMsg() noexcept {}
+            virtual ~SMPPDUMsg() noexcept = default;
 
             /**
              * Clone template for convenience, based on derived class's copy-constructor.
@@ -994,7 +1004,7 @@ namespace direct_bt {
             SMPEncKeyByteStream(const Opcode opc, const jau::nsize_t size)
             : SMPPDUMsg(opc, size) { }
 
-            virtual ~SMPEncKeyByteStream() noexcept {}
+            ~SMPEncKeyByteStream() noexcept override = default;
     };
 
     /**
@@ -1049,7 +1059,7 @@ namespace direct_bt {
      * are defined in Vol 3, Part C (GAP): 14.2 BRD/EDR/LE security aspects - Collision Handling.
      * </p>
      */
-    class SMPPairingMsg : public SMPPDUMsg
+    class SMPPairingMsg final : public SMPPDUMsg
     {
         private:
             const bool request;
@@ -1059,13 +1069,14 @@ namespace direct_bt {
 
         public:
             SMPPairingMsg(const bool request_, const uint8_t* source, const jau::nsize_t length)
-            : SMPPDUMsg(source, length),
+            : SMPPDUMsg(source, length, 7),
               request(request_),
               authReqMask(static_cast<SMPAuthReqs>( pdu.get_uint8_nc(3) )),
               initiator_key_dist(static_cast<SMPKeyType>(pdu.get_uint8_nc(5))),
               responder_key_dist(static_cast<SMPKeyType>(pdu.get_uint8_nc(6)))
             {
                 checkOpcode(request? Opcode::PAIRING_REQUEST : Opcode::PAIRING_RESPONSE);
+                check_range();
             }
 
             SMPPairingMsg(const bool request_,
@@ -1077,12 +1088,13 @@ namespace direct_bt {
               request(request_),
               authReqMask(auth_req_mask), initiator_key_dist(initiator_key_dist_), responder_key_dist(responder_key_dist_)
             {
-                pdu.put_uint8_nc(1, direct_bt::number(ioc));
-                pdu.put_uint8_nc(2, direct_bt::number(odf));
-                pdu.put_uint8_nc(3, direct_bt::number(authReqMask));
-                pdu.put_uint8_nc(4, maxEncKeySize);
-                pdu.put_uint8_nc(5, direct_bt::number(initiator_key_dist));
-                pdu.put_uint8_nc(6, direct_bt::number(responder_key_dist));
+                pdu.put_uint8(1, direct_bt::number(ioc));
+                pdu.put_uint8(2, direct_bt::number(odf));
+                pdu.put_uint8(3, direct_bt::number(authReqMask));
+                pdu.put_uint8(4, maxEncKeySize);
+                pdu.put_uint8(5, direct_bt::number(initiator_key_dist));
+                pdu.put_uint8(6, direct_bt::number(responder_key_dist));
+                check_range();
             }
 
             constexpr_cxx20 jau::nsize_t getDataSize() const noexcept override {
@@ -1209,12 +1221,13 @@ namespace direct_bt {
      *          since the encryption values are interpreted as little-endian or as a byte stream.
      * </p>
      */
-    class SMPPairConfirmMsg : public SMPEncKeyByteStream
+    class SMPPairConfirmMsg final : public SMPEncKeyByteStream
     {
         public:
             SMPPairConfirmMsg(const uint8_t* source, const jau::nsize_t length)
             : SMPEncKeyByteStream(source, length)
             {
+                check_range();
                 checkOpcode(Opcode::PAIRING_CONFIRM);
             }
 
@@ -1222,6 +1235,7 @@ namespace direct_bt {
             : SMPEncKeyByteStream(Opcode::PAIRING_CONFIRM, 1+16)
             {
                 jau::put_uint128(pdu.get_wptr(), 1, confirm_value);
+                check_range();
             }
 
             constexpr_cxx20 jau::nsize_t getDataSize() const noexcept override {
@@ -1304,12 +1318,13 @@ namespace direct_bt {
      *          since the encryption values are interpreted as little-endian or as a byte stream.
      * </p>
      */
-    class SMPPairRandMsg : public SMPEncKeyByteStream
+    class SMPPairRandMsg final : public SMPEncKeyByteStream
     {
         public:
             SMPPairRandMsg(const uint8_t* source, const jau::nsize_t length)
             : SMPEncKeyByteStream(source, length)
             {
+                check_range();
                 checkOpcode(Opcode::PAIRING_RANDOM);
             }
 
@@ -1317,6 +1332,7 @@ namespace direct_bt {
             : SMPEncKeyByteStream(Opcode::PAIRING_RANDOM, 1+16)
             {
                 jau::put_uint128(pdu.get_wptr(), 1, random_value);
+                check_range();
             }
 
             constexpr_cxx20 jau::nsize_t getDataSize() const noexcept override {
@@ -1361,7 +1377,7 @@ namespace direct_bt {
      * uint8_t reason_code
      * </pre>
      */
-    class SMPPairFailedMsg: public SMPPDUMsg
+    class SMPPairFailedMsg final : public SMPPDUMsg
     {
         public:
             enum class ReasonCode : uint8_t {
@@ -1386,14 +1402,18 @@ namespace direct_bt {
             }
             static std::string getReasonCodeString(const ReasonCode reasonCode) noexcept;
 
-            SMPPairFailedMsg(const uint8_t* source, const jau::nsize_t length) : SMPPDUMsg(source, length) {
+            SMPPairFailedMsg(const uint8_t* source, const jau::nsize_t length) 
+            : SMPPDUMsg(source, length) 
+            {
+                check_range();
                 checkOpcode(Opcode::PAIRING_FAILED);
             }
 
             SMPPairFailedMsg(const ReasonCode rc)
             : SMPPDUMsg(Opcode::PAIRING_FAILED, 1+1)
             {
-                pdu.put_uint8_nc(1, number(rc));
+                pdu.put_uint8(1, number(rc));
+                check_range();
             }
 
             constexpr_cxx20 jau::nsize_t getDataSize() const noexcept override {
@@ -1438,12 +1458,13 @@ namespace direct_bt {
      *          since the encryption values are interpreted as little-endian or as a byte stream.
      * </p>
      */
-    class SMPPairPubKeyMsg : public SMPEncKeyByteStream
+    class SMPPairPubKeyMsg final : public SMPEncKeyByteStream
     {
         public:
             SMPPairPubKeyMsg(const uint8_t* source, const jau::nsize_t length)
             : SMPEncKeyByteStream(source, length)
             {
+                check_range();
                 checkOpcode(Opcode::PAIRING_PUBLIC_KEY);
             }
 
@@ -1452,6 +1473,7 @@ namespace direct_bt {
             {
                 jau::put_uint256(pdu.get_wptr(), 1,    pub_key_x);
                 jau::put_uint256(pdu.get_wptr(), 1+32, pub_key_y);
+                check_range();
             }
 
             constexpr_cxx20 jau::nsize_t getDataSize() const noexcept override {
@@ -1502,12 +1524,13 @@ namespace direct_bt {
      *          since the encryption values are interpreted as little-endian or as a byte stream.
      * </p>
      */
-    class SMPPairDHKeyCheckMsg : public SMPEncKeyByteStream
+    class SMPPairDHKeyCheckMsg final : public SMPEncKeyByteStream
     {
         public:
             SMPPairDHKeyCheckMsg(const uint8_t* source, const jau::nsize_t length)
             : SMPEncKeyByteStream(source, length)
             {
+                check_range();
                 checkOpcode(Opcode::PAIRING_DHKEY_CHECK);
             }
 
@@ -1515,6 +1538,7 @@ namespace direct_bt {
             : SMPEncKeyByteStream(Opcode::PAIRING_DHKEY_CHECK, 1+16)
             {
                 jau::put_uint128(pdu.get_wptr(), 1, dhkey_check_values);
+                check_range();
             }
 
             constexpr_cxx20 jau::nsize_t getDataSize() const noexcept override {
@@ -1553,7 +1577,7 @@ namespace direct_bt {
      * Message is used during the Passkey Entry protocol by a device with KeyboardOnly IO capabilities
      * to inform the remote device when keys have been entered or erased.
      */
-    class SMPPasskeyNotification: public SMPPDUMsg
+    class SMPPasskeyNotification final : public SMPPDUMsg
     {
         public:
             enum class TypeCode : uint8_t {
@@ -1568,7 +1592,10 @@ namespace direct_bt {
             }
             static std::string getTypeCodeString(const TypeCode tc) noexcept;
 
-            SMPPasskeyNotification(const uint8_t* source, const jau::nsize_t length) : SMPPDUMsg(source, length) {
+            SMPPasskeyNotification(const uint8_t* source, const jau::nsize_t length) 
+            : SMPPDUMsg(source, length) 
+            {
+                check_range();
                 checkOpcode(Opcode::PAIRING_KEYPRESS_NOTIFICATION);
             }
 
@@ -1576,6 +1603,7 @@ namespace direct_bt {
             : SMPPDUMsg(Opcode::PAIRING_KEYPRESS_NOTIFICATION, 1+1)
             {
                 pdu.put_uint8_nc(1, number(tc));
+                check_range();
             }
 
             constexpr_cxx20 jau::nsize_t getDataSize() const noexcept override {
@@ -1625,12 +1653,13 @@ namespace direct_bt {
      *          since the encryption values are interpreted as little-endian or as a byte stream.
      * </p>
      */
-    class SMPEncInfoMsg : public SMPEncKeyByteStream
+    class SMPEncInfoMsg final : public SMPEncKeyByteStream
     {
         public:
             SMPEncInfoMsg(const uint8_t* source, const jau::nsize_t length)
             : SMPEncKeyByteStream(source, length)
             {
+                check_range();
                 checkOpcode(Opcode::ENCRYPTION_INFORMATION);
             }
 
@@ -1638,6 +1667,7 @@ namespace direct_bt {
             : SMPEncKeyByteStream(Opcode::ENCRYPTION_INFORMATION, 1+16)
             {
                 jau::put_uint128(pdu.get_wptr(), 1, long_term_key);
+                check_range();
             }
 
             constexpr_cxx20 jau::nsize_t getDataSize() const noexcept override {
@@ -1694,12 +1724,13 @@ namespace direct_bt {
      *          since the encryption values are interpreted as little-endian or as a byte stream.
      * </p>
      */
-    class SMPMasterIdentMsg : public SMPEncKeyByteStream
+    class SMPMasterIdentMsg final : public SMPEncKeyByteStream
     {
         public:
             SMPMasterIdentMsg(const uint8_t* source, const jau::nsize_t length)
             : SMPEncKeyByteStream(source, length)
             {
+                check_range();
                 checkOpcode(Opcode::MASTER_IDENTIFICATION);
             }
 
@@ -1708,6 +1739,7 @@ namespace direct_bt {
             {
                 jau::put_uint16(pdu.get_wptr(), 1, ediv);
                 jau::put_uint64(pdu.get_wptr(), 1+2, rand);
+                check_range();
             }
 
             constexpr_cxx20 jau::nsize_t getDataSize() const noexcept override {
@@ -1772,12 +1804,13 @@ namespace direct_bt {
      *          since the encryption values are interpreted as little-endian or as a byte stream.
      * </p>
      */
-    class SMPIdentInfoMsg : public SMPEncKeyByteStream
+    class SMPIdentInfoMsg final : public SMPEncKeyByteStream
     {
         public:
             SMPIdentInfoMsg(const uint8_t* source, const jau::nsize_t length)
             : SMPEncKeyByteStream(source, length)
             {
+                check_range();
                 checkOpcode(Opcode::IDENTITY_INFORMATION);
             }
 
@@ -1785,6 +1818,7 @@ namespace direct_bt {
             : SMPEncKeyByteStream(Opcode::IDENTITY_INFORMATION, 1+16)
             {
                 jau::put_uint128(pdu.get_wptr(), 1, identity_resolving_key);
+                check_range();
             }
 
             constexpr_cxx20 jau::nsize_t getDataSize() const noexcept override {
@@ -1837,20 +1871,22 @@ namespace direct_bt {
      * Secure Connection: #2 in distribution
      * </p>
      */
-    class SMPIdentAddrInfoMsg : public SMPPDUMsg
+    class SMPIdentAddrInfoMsg final : public SMPPDUMsg
     {
         public:
             SMPIdentAddrInfoMsg(const uint8_t* source, const jau::nsize_t length)
             : SMPPDUMsg(source, length)
             {
+                check_range();
                 checkOpcode(Opcode::IDENTITY_ADDRESS_INFORMATION);
             }
 
             SMPIdentAddrInfoMsg(const bool addrIsStaticRandom, const EUI48 & addr)
             : SMPPDUMsg(Opcode::IDENTITY_ADDRESS_INFORMATION, 1+1+6)
             {
-                pdu.put_uint8_nc(1, addrIsStaticRandom ? 0x01 : 0x00);
-                pdu.put_eui48_nc(1+1, addr);
+                pdu.put_uint8(1, addrIsStaticRandom ? 0x01 : 0x00);
+                pdu.put_eui48(1+1, addr);
+                check_range();
             }
 
             constexpr_cxx20 jau::nsize_t getDataSize() const noexcept override {
@@ -1908,12 +1944,13 @@ namespace direct_bt {
      *          since the encryption values are interpreted as little-endian or as a byte stream.
      * </p>
      */
-    class SMPSignInfoMsg : public SMPEncKeyByteStream
+    class SMPSignInfoMsg final : public SMPEncKeyByteStream
     {
         public:
             SMPSignInfoMsg(const uint8_t* source, const jau::nsize_t length)
             : SMPEncKeyByteStream(source, length)
             {
+                check_range();
                 checkOpcode(Opcode::SIGNING_INFORMATION);
             }
 
@@ -1921,6 +1958,7 @@ namespace direct_bt {
             : SMPEncKeyByteStream(Opcode::SIGNING_INFORMATION, 1+16)
             {
                 jau::put_uint128(pdu.get_wptr(), 1, signature_key);
+                check_range();
             }
 
             constexpr_cxx20 jau::nsize_t getDataSize() const noexcept override {
@@ -1963,22 +2001,24 @@ namespace direct_bt {
      * Message is used by the slave to request that the master initiates security with the requested security properties,<br>
      * see Vol 3 (Host), Part H (SM): 2 (SM), 2.4 SECURITY IN BLUETOOTH LOW ENERGY, 2.4.6 Slave Security Request
      */
-    class SMPSecurityReqMsg : public SMPPDUMsg
+    class SMPSecurityReqMsg final : public SMPPDUMsg
     {
         private:
             SMPAuthReqs authReqMask;
         public:
             SMPSecurityReqMsg(const uint8_t* source, const jau::nsize_t length)
-            : SMPPDUMsg(source, length),
+            : SMPPDUMsg(source, length, 2),
               authReqMask(static_cast<SMPAuthReqs>( pdu.get_uint8_nc(1) ))
             {
+                check_range();
                 checkOpcode(Opcode::SECURITY_REQUEST);
             }
 
             SMPSecurityReqMsg(const SMPAuthReqs auth_req_mask)
             : SMPPDUMsg(Opcode::SECURITY_REQUEST, 1+1), authReqMask(auth_req_mask)
             {
-                pdu.put_uint8_nc(1, direct_bt::number(authReqMask));
+                pdu.put_uint8(1, direct_bt::number(authReqMask));
+                check_range();
             }
 
             constexpr_cxx20 jau::nsize_t getDataSize() const noexcept override {
