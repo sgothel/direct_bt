@@ -1,0 +1,21 @@
+#ClangTidy config is merged w/ .clang-tidy where this file takes precedence
+#Diagnostics:
+#  ClangTidy:
+#    Add: [clang-diagnostic-*, clang-analyzer-*, modernize-*, bugprone-*]
+#
+#    Remove: [modernize-use-auto, modernize-use-nodiscard, modernize-use-using, modernize-use-trailing-return-type, 
+#             modernize-avoid-c-arrays, modernize-use-default-member-init, modernize-return-braced-init-list, 
+#             modernize-avoid-bind, modernize-use-transparent-functors,
+#             bugprone-reserved-identifier, bugprone-easily-swappable-parameters, bugprone-assignment-in-if-condition,
+#             bugprone-misplaced-widening-cast, bugprone-branch-clone]
+#
+#    CheckOptions:
+#        modernize-use-default-member-init.UseAssignment: true
+
+InlayHints:
+  Enabled: Yes
+  ParameterNames: Yes
+  DeducedTypes: Yes
+
+Hover:
+  ShowAKA: Yes

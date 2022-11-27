@@ -39,8 +39,10 @@ buildit() {
     mkdir -p $build_dir
     cd $build_dir
     # CLANG_ARGS="-DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_CXX_COMPILER=/usr/bin/clang++"
+    # CLANG_ARGS="-DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -DCMAKE_CXX_CLANG_TIDY=/usr/bin/clang-tidy;-p;$rootdir/$build_dir"
 
     cmake $CLANG_ARGS -DCMAKE_INSTALL_PREFIX=$rootdir/$dist_dir -DBUILDJAVA=ON -DBUILDEXAMPLES=ON -DBUILD_TRIAL=ON ..
+
     # cmake $CLANG_ARGS -DCMAKE_INSTALL_PREFIX=$rootdir/$dist_dir -DBUILDJAVA=ON -DBUILDEXAMPLES=ON -DBUILD_TRIAL=ON -DDEBUG=ON ..
 
     # cmake $CLANG_ARGS -DCMAKE_INSTALL_PREFIX=$rootdir/$dist_dir -DBUILDJAVA=ON -DBUILDEXAMPLES=ON -DBUILD_TRIAL=ON -DUSE_LIBUNWIND=ON ..
@@ -53,7 +55,7 @@ buildit() {
     # cmake $CLANG_ARGS -DCMAKE_INSTALL_PREFIX=$rootdir/$dist_dir -DBUILDJAVA=ON -DBUILDEXAMPLES=ON -DBUILD_TRIAL=ON -DDEBUG=ON -DINSTRUMENTATION=ON ..
     # cmake $CLANG_ARGS -DCMAKE_INSTALL_PREFIX=$rootdir/$dist_dir -DBUILDJAVA=ON -DBUILDEXAMPLES=ON -DBUILD_TRIAL=ON -DDEBUG=ON -DINSTRUMENTATION_UNDEFINED=ON ..
     # cmake $CLANG_ARGS -DCMAKE_INSTALL_PREFIX=$rootdir/$dist_dir -DBUILDJAVA=ON -DBUILDEXAMPLES=ON -DBUILD_TRIAL=ON -DDEBUG=ON -DINSTRUMENTATION_THREAD=ON ..
-    make -j $CPU_COUNT install
+    time make -j $CPU_COUNT install
     if [ $? -eq 0 ] ; then
         echo "BUILD SUCCESS $bname $os_name $archabi"
         cd $rootdir
