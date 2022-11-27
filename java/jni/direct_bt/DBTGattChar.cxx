@@ -156,7 +156,7 @@ jboolean Java_jau_direct_1bt_DBTGattChar_writeValueImpl(JNIEnv *env, jobject obj
 
         JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
         uint8_t * value_ptr = criticalArray.get(jval, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
-        if( NULL == value_ptr ) {
+        if( nullptr == value_ptr ) {
             throw jau::InternalError("GetPrimitiveArrayCritical(byte array) is null", E_FILE_LINE);
         }
         jau::TROOctets value(value_ptr, value_size, jau::endian::little);
@@ -202,7 +202,7 @@ jboolean Java_jau_direct_1bt_DBTGattChar_configNotificationIndicationImpl(JNIEnv
         }
         JNICriticalArray<jboolean, jbooleanArray> criticalArray(env); // RAII - release
         jboolean * state_ptr = criticalArray.get(jEnabledState, criticalArray.Mode::UPDATE_AND_RELEASE);
-        if( NULL == state_ptr ) {
+        if( nullptr == state_ptr ) {
             throw jau::InternalError("GetPrimitiveArrayCritical(boolean array) is null", E_FILE_LINE);
         }
 

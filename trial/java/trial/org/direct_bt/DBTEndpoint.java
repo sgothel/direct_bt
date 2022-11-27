@@ -25,8 +25,6 @@ package trial.org.direct_bt;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import org.direct_bt.BTAdapter;
 import org.direct_bt.BTManager;
 import org.direct_bt.BTRole;

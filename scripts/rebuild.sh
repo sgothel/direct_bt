@@ -15,6 +15,12 @@ CPU_COUNT=`getconf _NPROCESSORS_ONLN`
 export LANG=en_US.UTF-8
 export LC_MEASUREMENT=en_US.UTF-8
 
+if ! type time &> /dev/null ; then 
+    time_cmd=""
+else 
+    time_cmd="time"
+fi
+
 buildit() {
     if [ -z "$JAVA_HOME" -o ! -e "$JAVA_HOME" ] ; then
         echo "WARNING: JAVA_HOME $JAVA_HOME does not exist"
@@ -31,7 +37,7 @@ buildit() {
     echo build_dir $build_dir
 
     cd $rootdir/$build_dir
-    make -j $CPU_COUNT install
+    ${time_cmd} make -j $CPU_COUNT install
     if [ $? -eq 0 ] ; then
         echo "REBUILD SUCCESS $bname $os_name $archabi"
         cd $rootdir

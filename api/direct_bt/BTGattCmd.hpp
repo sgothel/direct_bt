@@ -145,7 +145,7 @@ namespace direct_bt {
               cmdCharRef(nullptr),
               rspCharRef(nullptr),
               setup_done(false),
-              rspCharListener( std::shared_ptr<ResponseCharListener>( new ResponseCharListener(*this, rsp_data) ) ),
+              rspCharListener( std::make_shared<ResponseCharListener>( *this, rsp_data) ),
               verbose(jau::environment::get().debug)
             { }
 
@@ -173,7 +173,7 @@ namespace direct_bt {
               cmdCharRef(nullptr),
               rspCharRef(nullptr),
               setup_done(false),
-              rspCharListener( std::shared_ptr<ResponseCharListener>( new ResponseCharListener(*this, rsp_data) ) ),
+              rspCharListener( std::make_shared<ResponseCharListener>( *this, rsp_data ) ),
               verbose(jau::environment::get().debug)
             { }
 

@@ -47,6 +47,7 @@
 #include "HCIComm.hpp"
 #include "MgmtTypes.hpp"
 #include "BTAdapter.hpp"
+#include "jau/int_types.hpp"
 
 namespace direct_bt {
 
@@ -243,7 +244,8 @@ namespace direct_bt {
 
             ChangedAdapterSetCallbackList mgmtChangedAdapterSetCallbackList;
 
-            typedef jau::cow_darray<std::shared_ptr<BTAdapter>> adapters_t;
+            typedef jau::nsize_t size_type;
+            typedef jau::cow_darray<std::shared_ptr<BTAdapter>, size_type> adapters_t;
             adapters_t adapters;
 
             /**
@@ -288,9 +290,14 @@ namespace direct_bt {
             bool initialize(const std::shared_ptr<BTManager>& self) noexcept;
 
             static const std::shared_ptr<BTManager> make_shared() noexcept {
-                std::shared_ptr<BTManager> s( new BTManager() );
-                s->initialize(s);
-                return s;
+                try {
+                    std::shared_ptr<BTManager> s( new BTManager() );
+                    s->initialize(s);
+                    return s;
+                } catch (const std::bad_alloc &e) {
+                    ABORT("Error: bad_alloc: BTManager allocation failed");
+                    return nullptr; // unreachable
+                }
             }
 
             BTManager(const BTManager&) = delete;
@@ -366,7 +373,7 @@ namespace direct_bt {
             /**
              * Returns AdapterInfo count in list
              */
-            int getAdapterCount() const noexcept { return adapters.size(); }
+            size_type getAdapterCount() const noexcept { return adapters.size(); }
 
             /**
              * Returns a list of currently added DBTAdapter.
@@ -470,7 +477,7 @@ namespace direct_bt {
             bool removeDeviceFromWhitelist(const uint16_t dev_id, const BDAddressAndType & addressAndType) noexcept;
 
             /** Remove all previously added devices from the autoconnect whitelist. Returns number of removed devices. */
-            int removeAllDevicesFromWhitelist() noexcept;
+            size_type removeAllDevicesFromWhitelist() noexcept;
 
             std::shared_ptr<ConnectionInfo> getConnectionInfo(const uint16_t dev_id, const BDAddressAndType& addressAndType) noexcept;
             std::shared_ptr<NameAndShortName> setLocalName(const uint16_t dev_id, const std::string & name, const std::string & short_name) noexcept;
@@ -516,9 +523,9 @@ namespace direct_bt {
              */
             bool addMgmtEventCallback(const int dev_id, const MgmtEvent::Opcode opc, const MgmtEventCallback &cb) noexcept;
             /** Returns count of removed given MgmtEventCallback from the named MgmtEvent::Opcode list. */
-            int removeMgmtEventCallback(const MgmtEvent::Opcode opc, const MgmtEventCallback &cb) noexcept;
+            size_type removeMgmtEventCallback(const MgmtEvent::Opcode opc, const MgmtEventCallback &cb) noexcept;
             /** Returns count of removed MgmtEventCallback from the named MgmtEvent::Opcode list matching the given adapter dev_id . */
-            int removeMgmtEventCallback(const int dev_id) noexcept;
+            size_type removeMgmtEventCallback(const int dev_id) noexcept;
             /** Removes all MgmtEventCallbacks from the to the named MgmtEvent::Opcode list. */
             void clearMgmtEventCallbacks(const MgmtEvent::Opcode opc) noexcept;
             /** Removes all MgmtEventCallbacks from all MgmtEvent::Opcode lists. */
@@ -547,7 +554,7 @@ namespace direct_bt {
              * @param l the to be removed element
              * @return the number of removed elements
              */
-            int removeChangedAdapterSetCallback(const ChangedAdapterSetCallback & l);
+            size_type removeChangedAdapterSetCallback(const ChangedAdapterSetCallback & l);
 
             /**
              * Adds the given ChangedAdapterSetFunc to this manager.
@@ -567,14 +574,14 @@ namespace direct_bt {
              * @param l the to be removed element
              * @return the number of removed elements
              */
-            int removeChangedAdapterSetCallback(ChangedAdapterSetFunc f);
+            size_type removeChangedAdapterSetCallback(ChangedAdapterSetFunc f);
 
             /**
              * Remove all added ChangedAdapterSetCallback entries from this manager.
              * @return the number of removed elements
              * @since 2.7.0
              */
-            int removeAllChangedAdapterSetCallbacks() noexcept;
+            size_type removeAllChangedAdapterSetCallbacks() noexcept;
 
     };
     typedef std::shared_ptr<BTManager> BTManagerRef;

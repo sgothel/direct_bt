@@ -81,13 +81,13 @@ BTDevice::BTDevice(const ctor_cookie& cc, BTAdapter & a, EInfoReport const & r)
     const BLERandomAddressType leRandomAddressType = addressAndType.getBLERandomAddressType();
     if( BDAddressType::BDADDR_LE_RANDOM == addressAndType.type ) {
         if( BLERandomAddressType::UNDEFINED == leRandomAddressType ) {
-            throw jau::IllegalArgumentException("BDADDR_LE_RANDOM: Invalid BLERandomAddressType "+
-                    to_string(leRandomAddressType)+": "+toString(), E_FILE_LINE);
+            // NOLINTNEXTLINE(clang-analyzer-optin.cplusplus.VirtualCall)
+            throw jau::IllegalArgumentException("BDADDR_LE_RANDOM: Invalid BLERandomAddressType "+to_string(leRandomAddressType)+": "+toString(), E_FILE_LINE);
         }
     } else {
         if( BLERandomAddressType::UNDEFINED != leRandomAddressType ) {
-            throw jau::IllegalArgumentException("Not BDADDR_LE_RANDOM: Invalid given native BLERandomAddressType "+
-                    to_string(leRandomAddressType)+": "+toString(), E_FILE_LINE);
+            // NOLINTNEXTLINE(clang-analyzer-optin.cplusplus.VirtualCall)
+            throw jau::IllegalArgumentException("Not BDADDR_LE_RANDOM: Invalid given native BLERandomAddressType "+to_string(leRandomAddressType)+": "+toString(), E_FILE_LINE);
         }
     }
 }
@@ -197,14 +197,14 @@ EIRDataType BTDevice::update(EInfoReport const & data) noexcept {
     ts_last_update = data.getTimestamp();
     if( data.isSet(EIRDataType::BDADDR) ) {
         if( data.getAddress() != this->addressAndType.address ) {
-            WARN_PRINT("BDADDR update not supported: %s for %s",
-                    data.toString().c_str(), this->toString().c_str());
+            // NOLINTNEXTLINE(clang-analyzer-optin.cplusplus.VirtualCall)
+            WARN_PRINT("BDADDR update not supported: %s for %s", data.toString().c_str(), this->toString().c_str());
         }
     }
     if( data.isSet(EIRDataType::BDADDR_TYPE) ) {
         if( data.getAddressType() != this->addressAndType.type ) {
-            WARN_PRINT("BDADDR_TYPE update not supported: %s for %s",
-                    data.toString().c_str(), this->toString().c_str());
+            // NOLINTNEXTLINE(clang-analyzer-optin.cplusplus.VirtualCall)
+            WARN_PRINT("BDADDR_TYPE update not supported: %s for %s", data.toString().c_str(), this->toString().c_str());
         }
     }
     if( data.isSet(EIRDataType::NAME) ) {
@@ -452,6 +452,7 @@ HCIStatusCode BTDevice::connectLE(const uint16_t le_scan_interval, const uint16_
             } else if( SMPPairingState::COMPLETED == pstate ) {
                 DBG_PRINT("BTDevice::connectLE: SEC AUTO.%d.X Done: %s", smp_auto_count, toString().c_str());
                 smp_auto_done = true;
+                (void)smp_auto_done;
                 break;
             } else if( SMPPairingState::FAILED == pstate ) {
                 if( !smp_auto_done ) { // not last one
@@ -610,7 +611,7 @@ void BTDevice::processL2CAPSetup(std::shared_ptr<BTDevice> sthis) {
                 sec_level = BTSecurityLevel::ENC_ONLY; // no auth w/o I/O
             } else if( adapter.hasSecureConnections() ) {
                 sec_level = BTSecurityLevel::ENC_AUTH_FIPS;
-            } else if( responderLikesEncryption ) {
+            } else {
                 sec_level = BTSecurityLevel::ENC_AUTH;
             }
         } else {
@@ -1801,6 +1802,7 @@ void BTDevice::clearSMPStates(const bool connected) noexcept {
     // notifyDisconnect() will be called at all times, even if disconnect() fails!
     const std::unique_lock<std::recursive_mutex> lock_pairing(mtx_pairing); // RAII-style acquire and relinquish via destructor
 
+    // NOLINTNEXTLINE(clang-analyzer-optin.cplusplus.VirtualCall)
     DBG_PRINT("BTDevice::clearSMPStates(connected %d): %s", connected, toString().c_str());
 
     if( !connected ) {
@@ -1949,7 +1951,7 @@ std::shared_ptr<BTGattHandler> BTDevice::getGattHandler() noexcept {
     return gattHandler;
 }
 
-jau::darray<BTGattServiceRef> BTDevice::getGattServices() noexcept {
+BTDevice::GattServiceList_t BTDevice::getGattServices() noexcept {
     std::shared_ptr<BTGattHandler> gh = getGattHandler();
     if( nullptr == gh ) {
         ERR_PRINT("GATTHandler nullptr: %s", toString().c_str());
@@ -1970,7 +1972,7 @@ jau::darray<BTGattServiceRef> BTDevice::getGattServices() noexcept {
         return gh->getServices(); // copy previous discovery result
     }
 
-    jau::darray<BTGattServiceRef> result = gh->getServices(); // copy
+    GattServiceList_t result = gh->getServices(); // copy
     if( result.size() == 0 ) { // nothing discovered, actually a redundant check done @ BTGattHandler::initClientGatt() 1st
         ERR_PRINT2("No primary services discovered");
         return jau::darray<BTGattServiceRef>(); // return zero size
@@ -2104,7 +2106,7 @@ bool BTDevice::removeCharListener(const BTGattCharListenerRef& l) noexcept {
     return gatt->removeCharListener(l);
 }
 
-int BTDevice::removeAllAssociatedCharListener(const BTGattCharRef& associatedCharacteristic) noexcept {
+BTDevice::size_type BTDevice::removeAllAssociatedCharListener(const BTGattCharRef& associatedCharacteristic) noexcept {
     std::shared_ptr<BTGattHandler> gatt = getGattHandler();
     if( nullptr == gatt ) {
         // OK to have GATTHandler being shutdown @ disable
@@ -2114,7 +2116,7 @@ int BTDevice::removeAllAssociatedCharListener(const BTGattCharRef& associatedCha
     return gatt->removeAllAssociatedCharListener( associatedCharacteristic );
 }
 
-int BTDevice::removeAllAssociatedCharListener(const BTGattChar * associatedCharacteristic) noexcept {
+BTDevice::size_type BTDevice::removeAllAssociatedCharListener(const BTGattChar * associatedCharacteristic) noexcept {
     std::shared_ptr<BTGattHandler> gatt = getGattHandler();
     if( nullptr == gatt ) {
         // OK to have GATTHandler being shutdown @ disable
@@ -2124,7 +2126,7 @@ int BTDevice::removeAllAssociatedCharListener(const BTGattChar * associatedChara
     return gatt->removeAllAssociatedCharListener( associatedCharacteristic );
 }
 
-int BTDevice::removeAllCharListener() noexcept {
+BTDevice::size_type BTDevice::removeAllCharListener() noexcept {
     std::shared_ptr<BTGattHandler> gatt = getGattHandler();
     if( nullptr == gatt ) {
         // OK to have GATTHandler being shutdown @ disable

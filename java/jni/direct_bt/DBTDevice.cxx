@@ -310,7 +310,7 @@ jint Java_jau_direct_1bt_DBTDevice_removeAllAssociatedCharListener(JNIEnv *env, 
             return 0;
         }
 
-        return gatt->removeAllAssociatedCharListener(associatedCharacteristicRef.shared_ptr());
+        return (jint) gatt->removeAllAssociatedCharListener(associatedCharacteristicRef.shared_ptr());
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
@@ -333,7 +333,7 @@ jint Java_jau_direct_1bt_DBTDevice_removeAllCharListener(JNIEnv *env, jobject ob
             DBG_PRINT("BTGattChar's device GATTHandle not connected: %s", device->toString().c_str());
             return 0;
         }
-        return gatt->removeAllCharListener();
+        return (jint) gatt->removeAllCharListener();
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
@@ -378,19 +378,19 @@ jbyte Java_jau_direct_1bt_DBTDevice_getConnectedLE_1PHYImpl(JNIEnv *env, jobject
 
         JNICriticalArray<uint8_t, jbyteArray> criticalArrayTx(env); // RAII - release
         uint8_t * resTx_ptr = criticalArrayTx.get(jresTx, criticalArrayTx.Mode::UPDATE_AND_RELEASE);
-        if( NULL == resTx_ptr ) {
+        if( nullptr == resTx_ptr ) {
             throw jau::InternalError("GetPrimitiveArrayCritical(resTx byte array) is null", E_FILE_LINE);
         }
         JNICriticalArray<uint8_t, jbyteArray> criticalArrayRx(env); // RAII - release
         uint8_t * resRx_ptr = criticalArrayRx.get(jresRx, criticalArrayTx.Mode::UPDATE_AND_RELEASE);
-        if( NULL == resRx_ptr ) {
+        if( nullptr == resRx_ptr ) {
             throw jau::InternalError("GetPrimitiveArrayCritical(resRx byte array) is null", E_FILE_LINE);
         }
 
         LE_PHYs& resTx = *reinterpret_cast<LE_PHYs *>(resTx_ptr);
         LE_PHYs& resRx = *reinterpret_cast<LE_PHYs *>(resRx_ptr);
 
-        return number( device->getConnectedLE_PHY(resTx, resRx) );
+        return (jbyte) number( device->getConnectedLE_PHY(resTx, resRx) );
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
@@ -407,7 +407,7 @@ jbyte Java_jau_direct_1bt_DBTDevice_setConnectedLE_1PHYImpl(JNIEnv *env, jobject
         const LE_PHYs Tx = static_cast<LE_PHYs>(jTx);
         const LE_PHYs Rx = static_cast<LE_PHYs>(jRx);
 
-        return number ( device->setConnectedLE_PHY(Tx, Rx) );
+        return (jbyte)number ( device->setConnectedLE_PHY(Tx, Rx) );
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
@@ -420,7 +420,7 @@ jbyte Java_jau_direct_1bt_DBTDevice_getTxPhysImpl(JNIEnv *env, jobject obj) {
         JavaAnonRef device_java = device->getJavaObject(); // hold until done!
         JavaGlobalObj::check(device_java, E_FILE_LINE);
 
-        return number( device->getTxPhys() );
+        return (jbyte) number( device->getTxPhys() );
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
@@ -433,7 +433,7 @@ jbyte Java_jau_direct_1bt_DBTDevice_getRxPhysImpl(JNIEnv *env, jobject obj) {
         JavaAnonRef device_java = device->getJavaObject(); // hold until done!
         JavaGlobalObj::check(device_java, E_FILE_LINE);
 
-        return number( device->getRxPhys() );
+        return (jbyte) number( device->getRxPhys() );
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
@@ -446,7 +446,7 @@ jbyte Java_jau_direct_1bt_DBTDevice_disconnectImpl(JNIEnv *env, jobject obj)
         shared_ptr_ref<BTDevice> device(env, obj); // hold until done
         JavaAnonRef device_java = device->getJavaObject(); // hold until done!
         JavaGlobalObj::check(device_java, E_FILE_LINE);
-        return (jint) number( device->disconnect() );
+        return (jbyte) number( device->disconnect() );
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
@@ -516,7 +516,7 @@ jbyte Java_jau_direct_1bt_DBTDevice_getAvailableSMPKeysImpl(JNIEnv *env, jobject
         JavaAnonRef device_java = device->getJavaObject(); // hold until done!
         JavaGlobalObj::check(device_java, E_FILE_LINE);
 
-        return number( device->getAvailableSMPKeys(JNI_TRUE == responder) );
+        return (jbyte) number( device->getAvailableSMPKeys(JNI_TRUE == responder) );
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
@@ -529,7 +529,7 @@ jbyte Java_jau_direct_1bt_DBTDevice_uploadKeysImpl(JNIEnv *env, jobject obj) {
         JavaAnonRef device_java = device->getJavaObject(); // hold until done!
         JavaGlobalObj::check(device_java, E_FILE_LINE);
 
-        return number( device->uploadKeys() );
+        return (jbyte) number( device->uploadKeys() );
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
@@ -551,7 +551,7 @@ void Java_jau_direct_1bt_DBTDevice_getLongTermKeyImpl(JNIEnv *env, jobject obj, 
         }
         JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
         uint8_t * sink_ptr = criticalArray.get(jsink, criticalArray.Mode::UPDATE_AND_RELEASE);
-        if( NULL == sink_ptr ) {
+        if( nullptr == sink_ptr ) {
             throw jau::InternalError("GetPrimitiveArrayCritical(byte array) is null", E_FILE_LINE);
         }
         SMPLongTermKey& ltk_sink = *reinterpret_cast<SMPLongTermKey *>(sink_ptr);
@@ -576,7 +576,7 @@ void Java_jau_direct_1bt_DBTDevice_setLongTermKeyImpl(JNIEnv *env, jobject obj, 
         }
         JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
         uint8_t * source_ptr = criticalArray.get(jsource, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
-        if( NULL == source_ptr ) {
+        if( nullptr == source_ptr ) {
             throw jau::InternalError("GetPrimitiveArrayCritical(byte array) is null", E_FILE_LINE);
         }
         const SMPLongTermKey& ltk = *reinterpret_cast<SMPLongTermKey *>(source_ptr);
@@ -602,7 +602,7 @@ void Java_jau_direct_1bt_DBTDevice_getIdentityResolvingKeyImpl(JNIEnv *env, jobj
         }
         JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
         uint8_t * sink_ptr = criticalArray.get(jsink, criticalArray.Mode::UPDATE_AND_RELEASE);
-        if( NULL == sink_ptr ) {
+        if( nullptr == sink_ptr ) {
             throw jau::InternalError("GetPrimitiveArrayCritical(byte array) is null", E_FILE_LINE);
         }
         SMPIdentityResolvingKey& irk_sink = *reinterpret_cast<SMPIdentityResolvingKey *>(sink_ptr);
@@ -627,7 +627,7 @@ void Java_jau_direct_1bt_DBTDevice_setIdentityResolvingKeyImpl(JNIEnv *env, jobj
         }
         JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
         uint8_t * source_ptr = criticalArray.get(jsource, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
-        if( NULL == source_ptr ) {
+        if( nullptr == source_ptr ) {
             throw jau::InternalError("GetPrimitiveArrayCritical(byte array) is null", E_FILE_LINE);
         }
         const SMPIdentityResolvingKey& irk = *reinterpret_cast<SMPIdentityResolvingKey *>(source_ptr);
@@ -653,7 +653,7 @@ void Java_jau_direct_1bt_DBTDevice_getSignatureResolvingKeyImpl(JNIEnv *env, job
         }
         JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
         uint8_t * sink_ptr = criticalArray.get(jsink, criticalArray.Mode::UPDATE_AND_RELEASE);
-        if( NULL == sink_ptr ) {
+        if( nullptr == sink_ptr ) {
             throw jau::InternalError("GetPrimitiveArrayCritical(byte array) is null", E_FILE_LINE);
         }
         SMPSignatureResolvingKey& irk_sink = *reinterpret_cast<SMPSignatureResolvingKey *>(sink_ptr);
@@ -678,7 +678,7 @@ void Java_jau_direct_1bt_DBTDevice_setSignatureResolvingKeyImpl(JNIEnv *env, job
         }
         JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
         uint8_t * source_ptr = criticalArray.get(jsource, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
-        if( NULL == source_ptr ) {
+        if( nullptr == source_ptr ) {
             throw jau::InternalError("GetPrimitiveArrayCritical(byte array) is null", E_FILE_LINE);
         }
         const SMPSignatureResolvingKey& irk = *reinterpret_cast<SMPSignatureResolvingKey *>(source_ptr);
@@ -704,7 +704,7 @@ void Java_jau_direct_1bt_DBTDevice_getLinkKeyImpl(JNIEnv *env, jobject obj, jboo
         }
         JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
         uint8_t * sink_ptr = criticalArray.get(jsink, criticalArray.Mode::UPDATE_AND_RELEASE);
-        if( NULL == sink_ptr ) {
+        if( nullptr == sink_ptr ) {
             throw jau::InternalError("GetPrimitiveArrayCritical(byte array) is null", E_FILE_LINE);
         }
         SMPLinkKey& lk_sink = *reinterpret_cast<SMPLinkKey *>(sink_ptr);
@@ -729,7 +729,7 @@ void Java_jau_direct_1bt_DBTDevice_setLinkKeyImpl(JNIEnv *env, jobject obj, jbyt
         }
         JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
         uint8_t * source_ptr = criticalArray.get(jsource, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
-        if( NULL == source_ptr ) {
+        if( nullptr == source_ptr ) {
             throw jau::InternalError("GetPrimitiveArrayCritical(byte array) is null", E_FILE_LINE);
         }
         const SMPLinkKey& lk = *reinterpret_cast<SMPLinkKey *>(source_ptr);
@@ -759,7 +759,7 @@ jbyte Java_jau_direct_1bt_DBTDevice_getConnSecurityLevelImpl(JNIEnv *env, jobjec
         JavaAnonRef device_java = device->getJavaObject(); // hold until done!
         JavaGlobalObj::check(device_java, E_FILE_LINE);
 
-        return number( device->getConnSecurityLevel() );
+        return (jbyte) number( device->getConnSecurityLevel() );
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
@@ -772,11 +772,11 @@ jbyte Java_jau_direct_1bt_DBTDevice_getConnIOCapabilityImpl(JNIEnv *env, jobject
         JavaAnonRef device_java = device->getJavaObject(); // hold until done!
         JavaGlobalObj::check(device_java, E_FILE_LINE);
 
-        return number( device->getConnIOCapability() );
+        return (jbyte) number( device->getConnIOCapability() );
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
-    return number( SMPIOCapability::UNSET );
+    return (jbyte) number( SMPIOCapability::UNSET );
 }
 
 jboolean Java_jau_direct_1bt_DBTDevice_setConnSecurityImpl(JNIEnv *env, jobject obj, jbyte jsec_level, jbyte jio_cap) {
@@ -825,7 +825,7 @@ jbyte Java_jau_direct_1bt_DBTDevice_getPairingModeImpl(JNIEnv *env, jobject obj)
         JavaAnonRef device_java = device->getJavaObject(); // hold until done!
         JavaGlobalObj::check(device_java, E_FILE_LINE);
 
-        return number( device->getPairingMode() );
+        return (jbyte) number( device->getPairingMode() );
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
@@ -838,7 +838,7 @@ jbyte Java_jau_direct_1bt_DBTDevice_getPairingStateImpl(JNIEnv *env, jobject obj
         JavaAnonRef device_java = device->getJavaObject(); // hold until done!
         JavaGlobalObj::check(device_java, E_FILE_LINE);
 
-        return static_cast<uint8_t>( device->getPairingState() );
+        return (jbyte) static_cast<uint8_t>( device->getPairingState() );
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
@@ -851,11 +851,11 @@ jbyte Java_jau_direct_1bt_DBTDevice_setPairingPasskeyImpl(JNIEnv *env, jobject o
         JavaAnonRef device_java = device->getJavaObject(); // hold until done!
         JavaGlobalObj::check(device_java, E_FILE_LINE);
 
-        return number( device->setPairingPasskey( static_cast<uint32_t>(jpasskey) ) );
+        return (jbyte) number( device->setPairingPasskey( static_cast<uint32_t>(jpasskey) ) );
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
-    return static_cast<uint8_t>( HCIStatusCode::INTERNAL_FAILURE );
+    return (jbyte) static_cast<uint8_t>( HCIStatusCode::INTERNAL_FAILURE );
 }
 
 jbyte Java_jau_direct_1bt_DBTDevice_setPairingPasskeyNegativeImpl(JNIEnv *env, jobject obj) {
@@ -864,11 +864,11 @@ jbyte Java_jau_direct_1bt_DBTDevice_setPairingPasskeyNegativeImpl(JNIEnv *env, j
         JavaAnonRef device_java = device->getJavaObject(); // hold until done!
         JavaGlobalObj::check(device_java, E_FILE_LINE);
 
-        return number( device->setPairingPasskeyNegative() );
+        return (jbyte) number( device->setPairingPasskeyNegative() );
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
-    return static_cast<uint8_t>( HCIStatusCode::INTERNAL_FAILURE );
+    return (jbyte) static_cast<uint8_t>( HCIStatusCode::INTERNAL_FAILURE );
 }
 
 jbyte Java_jau_direct_1bt_DBTDevice_setPairingNumericComparisonImpl(JNIEnv *env, jobject obj, jboolean jequal) {
@@ -877,11 +877,11 @@ jbyte Java_jau_direct_1bt_DBTDevice_setPairingNumericComparisonImpl(JNIEnv *env,
         JavaAnonRef device_java = device->getJavaObject(); // hold until done!
         JavaGlobalObj::check(device_java, E_FILE_LINE);
 
-        return number( device->setPairingNumericComparison( JNI_TRUE == jequal ? true : false ) );
+        return (jbyte) number( device->setPairingNumericComparison( JNI_TRUE == jequal ? true : false ) );
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
-    return static_cast<uint8_t>( HCIStatusCode::INTERNAL_FAILURE );
+    return (jbyte) static_cast<uint8_t>( HCIStatusCode::INTERNAL_FAILURE );
 }
 
 //
@@ -953,7 +953,7 @@ jboolean Java_jau_direct_1bt_DBTDevice_sendNotification(JNIEnv *env, jobject obj
         }
         JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
         uint8_t * value_ptr = criticalArray.get(jval, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
-        if( NULL == value_ptr ) {
+        if( nullptr == value_ptr ) {
             throw jau::InternalError("GetPrimitiveArrayCritical(byte array) is null", E_FILE_LINE);
         }
         const jau::TROOctets value(value_ptr, value_size, jau::endian::little);
@@ -979,7 +979,7 @@ jboolean Java_jau_direct_1bt_DBTDevice_sendIndication(JNIEnv *env, jobject obj, 
         }
         JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
         uint8_t * value_ptr = criticalArray.get(jval, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
-        if( NULL == value_ptr ) {
+        if( nullptr == value_ptr ) {
             throw jau::InternalError("GetPrimitiveArrayCritical(byte array) is null", E_FILE_LINE);
         }
         const jau::TROOctets value(value_ptr, value_size, jau::endian::little);

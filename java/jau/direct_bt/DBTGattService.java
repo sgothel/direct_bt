@@ -30,9 +30,7 @@ import java.util.List;
 
 import org.direct_bt.BTDevice;
 import org.direct_bt.BTGattChar;
-import org.direct_bt.BTGattDesc;
 import org.direct_bt.BTGattService;
-import org.direct_bt.BTObject;
 
 public class DBTGattService extends DBTObject implements BTGattService
 {

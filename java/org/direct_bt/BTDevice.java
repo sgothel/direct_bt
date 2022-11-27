@@ -26,7 +26,6 @@
 package org.direct_bt;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * BTDevice represents one remote Bluetooth device.

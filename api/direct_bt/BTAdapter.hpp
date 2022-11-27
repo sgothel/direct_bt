@@ -46,6 +46,7 @@
 #include "DBGattServer.hpp"
 
 #include "SMPKeyBin.hpp"
+#include "jau/int_types.hpp"
 
 namespace direct_bt {
 
@@ -270,7 +271,7 @@ namespace direct_bt {
                 (void)timestamp;
             }
 
-            ~AdapterStatusListener() noexcept override {}
+            ~AdapterStatusListener() noexcept override = default;
 
             std::string toString() const noexcept override { return "AdapterStatusListener["+jau::to_hexstring(this)+"]"; }
 
@@ -349,6 +350,8 @@ namespace direct_bt {
             BDAddressAndType visibleAddressAndType;
 
         public:
+            typedef jau::nsize_t size_type;
+
             /**
              * Adapter's internal temporary device id.
              * <p>
@@ -372,8 +375,8 @@ namespace direct_bt {
             std::mutex mtx_single_conn_device;
             std::condition_variable cv_single_conn_device;
 
-            typedef jau::darray<BTDeviceRef> device_list_t;
-            typedef jau::darray<std::weak_ptr<BTDevice>> weak_device_list_t;
+            typedef jau::darray<BTDeviceRef, size_type> device_list_t;
+            typedef jau::darray<std::weak_ptr<BTDevice>, size_type> weak_device_list_t;
 
             /** All discovered devices: Transient until removeDiscoveredDevices(), startDiscovery(). */
             device_list_t discoveredDevices;
@@ -402,14 +405,14 @@ namespace direct_bt {
                     }
                 }
             };
-            typedef jau::cow_darray<StatusListenerPair> statusListenerList_t;
+            typedef jau::cow_darray<StatusListenerPair, size_type> statusListenerList_t;
             static statusListenerList_t::equal_comparator adapterStatusListenerRefEqComparator;
             statusListenerList_t statusListenerList;
 
             // Storing SMPKeyBin entries, referenced by their remote address, i.e. BTDevice address.
             std::string key_path;
             typedef std::shared_ptr<SMPKeyBin> SMPKeyBinRef;
-            typedef jau::darray<SMPKeyBinRef> key_list_t;
+            typedef jau::darray<SMPKeyBinRef, size_type> key_list_t;
             key_list_t key_list;
             BTSecurityLevel sec_level_server = BTSecurityLevel::UNSET;
             SMPIOCapability io_cap_server = SMPIOCapability::UNSET;
@@ -486,7 +489,7 @@ namespace direct_bt {
 
             bool addConnectedDevice(const BTDeviceRef & device) noexcept;
             bool removeConnectedDevice(const BTDevice & device) noexcept;
-            int disconnectAllDevices(const HCIStatusCode reason=HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION ) noexcept;
+            size_type disconnectAllDevices(const HCIStatusCode reason=HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION ) noexcept;
             BTDeviceRef findConnectedDevice (const EUI48 & address, const BDAddressType & addressType) noexcept;
             jau::nsize_t getConnectedDeviceCount() const noexcept;
 
@@ -569,12 +572,12 @@ namespace direct_bt {
 
             void sendDeviceUpdated(std::string cause, BTDeviceRef device, uint64_t timestamp, EIRDataType updateMask) noexcept;
 
-            int removeAllStatusListener(const BTDevice& d) noexcept;
+            size_type removeAllStatusListener(const BTDevice& d) noexcept;
 
         public:
 
             /** Private ctor for private BTAdapter::make_shared() intended for friends. */
-            BTAdapter(const BTAdapter::ctor_cookie& cc, const BTManagerRef& mgmt_, const AdapterInfo& adapterInfo_) noexcept;
+            BTAdapter(const BTAdapter::ctor_cookie& cc, BTManagerRef mgmt_, AdapterInfo adapterInfo_) noexcept;
 
             BTAdapter(const BTAdapter&) = delete;
             void operator=(const BTAdapter&) = delete;
@@ -1006,7 +1009,7 @@ namespace direct_bt {
              * Returns the number of removed status listener.
              * </p>
              */
-            int removeAllStatusListener() noexcept;
+            size_type removeAllStatusListener() noexcept;
 
             /**
              * Starts discovery.
@@ -1147,7 +1150,7 @@ namespace direct_bt {
             jau::darray<BTDeviceRef> getDiscoveredDevices() const noexcept;
 
             /** Discards all discovered devices. Returns number of removed discovered devices. */
-            int removeDiscoveredDevices() noexcept;
+            size_type removeDiscoveredDevices() noexcept;
 
             /** Discards matching discovered devices. Returns `true` if found and removed, otherwise false. */
             bool removeDiscoveredDevice(const BDAddressAndType & addressAndType) noexcept;

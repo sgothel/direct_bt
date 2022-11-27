@@ -46,6 +46,7 @@
 #include "L2CAPComm.hpp"
 #include "SMPTypes.hpp"
 #include "DBTConst.hpp"
+#include "jau/int_types.hpp"
 
 /**
  * - - - - - - - - - - - - - - -
@@ -146,9 +147,6 @@ namespace direct_bt {
     };
 
 
-    typedef jau::function<void(const SMPPDUMsg&)> SMPSecurityReqCallback;
-    typedef jau::cow_darray<SMPSecurityReqCallback> SMPSecurityReqCallbackList;
-
     /**
      * A thread safe SMP handler associated to one device via one L2CAP connection.
      * <p>
@@ -179,6 +177,10 @@ namespace direct_bt {
                 SMP_MTU_BUFFER_SZ = 128
             };
             static constexpr int number(const Defaults d) { return static_cast<int>(d); }
+
+            typedef jau::function<void(const SMPPDUMsg&)> SMPSecurityReqCallback;
+            typedef jau::nsize_t size_type;
+            typedef jau::cow_darray<SMPSecurityReqCallback, size_type> SMPSecurityReqCallbackList;
 
         private:
             const SMPEnv & env;
@@ -244,7 +246,7 @@ namespace direct_bt {
             bool disconnect(const bool disconnectDevice, const bool ioErrorCause) noexcept;
 
             void addSMPSecurityReqCallback(const SMPSecurityReqCallback & l);
-            int removeSMPSecurityReqCallback(const SMPSecurityReqCallback & l);
+            size_type removeSMPSecurityReqCallback(const SMPSecurityReqCallback & l);
     };
 
     /**@}*/

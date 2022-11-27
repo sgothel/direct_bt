@@ -156,8 +156,8 @@ jau::snsize_t HCIComm::read(uint8_t* buffer, const jau::nsize_t capacity, const 
 
     if( !timeout.is_zero() ) {
         struct pollfd p;
-        int n;
-        const int32_t timeoutMS = timeout.to_num_of(jau::fractions_i64::milli);
+        int n = 1;
+        const int32_t timeoutMS = (int32_t) timeout.to_num_of(jau::fractions_i64::milli);
 
         p.fd = socket_descriptor; p.events = POLLIN;
         while ( !interrupted() && (n = ::poll(&p, 1, timeoutMS)) < 0 ) {

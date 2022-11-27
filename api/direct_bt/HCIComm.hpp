@@ -122,7 +122,7 @@ namespace direct_bt {
                 *((uint32_t *) addr + (nr >> 5)) &= ~(1 << (nr & 31));
             }
 
-            static inline int testu32_bit(int nr, void *addr) noexcept
+            static inline uint32_t testu32_bit(int nr, void *addr) noexcept
             {
                 return *((uint32_t *) addr + (nr >> 5)) & (1 << (nr & 31));
             }
@@ -140,7 +140,7 @@ namespace direct_bt {
             {
                 clearu32_bit((t == HCI_VENDOR_PKT) ? 0 : (t & HCI_FLT_TYPE_BITS), &f->type_mask);
             }
-            static inline int filter_test_ptype(int t, hci_ufilter *f) noexcept
+            static inline uint32_t filter_test_ptype(int t, hci_ufilter *f) noexcept
             {
                 return testu32_bit((t == HCI_VENDOR_PKT) ? 0 : (t & HCI_FLT_TYPE_BITS), &f->type_mask);
             }
@@ -156,7 +156,7 @@ namespace direct_bt {
             {
                 clearu32_bit((e & HCI_FLT_EVENT_BITS), &f->event_mask);
             }
-            static inline int filter_test_event(int e, hci_ufilter *f) noexcept
+            static inline uint32_t filter_test_event(int e, hci_ufilter *f) noexcept
             {
                 return testu32_bit((e & HCI_FLT_EVENT_BITS), &f->event_mask);
             }

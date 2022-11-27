@@ -38,6 +38,7 @@
 #include <jau/uuid.hpp>
 
 #include "BTAddress.hpp"
+#include "jau/int_types.hpp"
 
 #define JAVA_DBT_PACKAGE "jau/direct_bt/"
 #define JAVA_MAIN_PACKAGE "org/direct_bt/"
@@ -912,6 +913,9 @@ namespace direct_bt {
             static Source toSource(const AD_PDU_Type type);
             static Source toSource(const EAD_Event_Type type);
 
+            typedef jau::nsize_t size_type;
+            typedef jau::snsize_t ssize_type;
+
         private:
             /** Source */
             Source source = Source::NA;
@@ -932,7 +936,7 @@ namespace direct_bt {
             int8_t rssi = 127; // The core spec defines 127 as the "not available" value
             int8_t tx_power = 127; // The core spec defines 127 as the "not available" value
             std::shared_ptr<ManufactureSpecificData> msd = nullptr;
-            jau::darray<std::shared_ptr<const jau::uuid_t>> services;
+            jau::darray<std::shared_ptr<const jau::uuid_t>, size_type> services;
             bool services_complete = false;
             uint32_t device_class = 0;
             AppearanceCat appearance = AppearanceCat::UNKNOWN;
@@ -1121,7 +1125,7 @@ namespace direct_bt {
 
             const jau::darray<std::shared_ptr<const jau::uuid_t>>& getServices() const noexcept { return services; }
             bool getServicesComplete() const noexcept { return services_complete; }
-            int findService(const jau::uuid_t& uuid) const noexcept;
+            ssize_type findService(const jau::uuid_t& uuid) const noexcept;
 
             uint32_t getDeviceClass() const noexcept { return device_class; }
             AppearanceCat getAppearance() const noexcept { return appearance; }

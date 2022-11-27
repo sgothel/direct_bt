@@ -44,6 +44,7 @@
 
 #include "BTTypes1.hpp"
 #include "SMPTypes.hpp"
+#include "jau/int_types.hpp"
 
 namespace direct_bt {
 
@@ -367,7 +368,7 @@ namespace direct_bt {
               ts_creation(jau::getCurrentMilliseconds())
             {}
 
-            virtual ~MgmtMsg() {}
+            virtual ~MgmtMsg() = default;
 
             /**
              * Clone template for convenience, based on derived class's copy-constructor.<br>
@@ -514,11 +515,11 @@ namespace direct_bt {
                 }
             }
 
-            virtual std::string baseString() const noexcept override {
+            std::string baseString() const noexcept override {
                 return "opcode "+getOpcodeString(getOpcode())+", devID "+jau::to_hexstring(getDevID());
             }
 
-            virtual std::string valueString() const noexcept override {
+            std::string valueString() const noexcept override {
                 const jau::nsize_t psz = getParamSize();
                 const std::string ps = psz > 0 ? jau::bytesHexString(getParam(), 0, psz, true /* lsbFirst */) : "";
                 return "param[size "+std::to_string(getParamSize())+", data "+ps+"], tsz "+std::to_string(getTotalSize());
@@ -539,7 +540,7 @@ namespace direct_bt {
                     memcpy(pdu.get_wptr_nc(MGMT_HEADER_SIZE), param, param_size);
                 }
             }
-            virtual ~MgmtCommand() noexcept override {}
+            ~MgmtCommand() noexcept override = default;
 
             Opcode getOpcode() const noexcept { return static_cast<Opcode>( pdu.get_uint16_nc(0) ); }
 
@@ -753,7 +754,7 @@ namespace direct_bt {
                 pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, direct_bt::number(addressAndType.type));
             }
 
-            virtual ~MgmtCmdAdressInfoMeta() noexcept override {}
+            ~MgmtCmdAdressInfoMeta() noexcept override = default;
 
             const EUI48& getAddress() const noexcept { return *reinterpret_cast<const EUI48 *>( pdu.get_ptr_nc(MGMT_HEADER_SIZE + 0) ); } // mgmt_addr_info
             BDAddressType getAddressType() const noexcept { return static_cast<BDAddressType>(pdu.get_uint8_nc(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
@@ -1205,10 +1206,10 @@ namespace direct_bt {
         bool valid() const { return value.size() > 0; }
 
         /** Net size, i.e. sizeof(Type) + value-octets = 2 + value-octets */
-        int net_size() const { return 2 + value.size(); }
+        jau::nsize_t net_size() const { return 2 + value.size(); }
 
         /** Mgmt size, i.e. sizeof(Type) + sizeof(value_length) + value-octets = 2 + 1 + value-octets*/
-        int mgmt_size() const { return net_size() + 1; }
+        jau::nsize_t mgmt_size() const { return net_size() + 1; }
 
         /** Transfer bytes to dest, both in little endian format */
         void put_nc(jau::TOctets& dest, const jau::nsize_t offset) const {
@@ -1372,10 +1373,10 @@ namespace direct_bt {
                 }
             }
 
-            virtual std::string baseString() const noexcept override {
+            std::string baseString() const noexcept override {
                 return "opcode "+getOpcodeString(getOpcode())+", devID "+jau::to_hexstring(getDevID());
             }
-            virtual std::string valueString() const noexcept override {
+            std::string valueString() const noexcept override {
                 const jau::nsize_t d_sz = getDataSize();
                 const std::string d_str = d_sz > 0 ? jau::bytesHexString(getData(), 0, d_sz, true /* lsbFirst */) : "";
                 return "data[size "+std::to_string(d_sz)+", data "+d_str+"], tsz "+std::to_string(getTotalSize());
@@ -1399,7 +1400,7 @@ namespace direct_bt {
             : MgmtMsg(buffer, buffer_len)
             {
                 const jau::nsize_t paramSize = getParamSize();
-                pdu.check_range(0, MGMT_HEADER_SIZE+paramSize);
+                pdu.check_range(0, MGMT_HEADER_SIZE+paramSize, E_FILE_LINE);
                 if( exp_param_size > paramSize ) {
                     throw jau::IndexOutOfBoundsException(exp_param_size, paramSize, E_FILE_LINE);
                 }
@@ -1420,7 +1421,7 @@ namespace direct_bt {
                 }
             }
 
-            virtual ~MgmtEvent() noexcept override {}
+            ~MgmtEvent() noexcept override = default;
 
             jau::nsize_t getTotalSize() const noexcept { return pdu.size(); }
 
@@ -1457,7 +1458,7 @@ namespace direct_bt {
                 checkOpcode(getOpcode(), opc);
             }
 
-            virtual ~MgmtEvtAdressInfoMeta() noexcept override {}
+            ~MgmtEvtAdressInfoMeta() noexcept override = default;
 
             const EUI48& getAddress() const noexcept { return *reinterpret_cast<const EUI48 *>( pdu.get_ptr_nc(MGMT_HEADER_SIZE + 0) ); } // mgmt_addr_info
             BDAddressType getAddressType() const noexcept { return static_cast<BDAddressType>(pdu.get_uint8_nc(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
@@ -1496,7 +1497,7 @@ namespace direct_bt {
                 checkOpcode(getOpcode(), Opcode::CMD_COMPLETE);
             }
 
-            virtual ~MgmtEvtCmdComplete() noexcept override {}
+            ~MgmtEvtCmdComplete() noexcept override = default;
 
             MgmtCommand::Opcode getCmdOpcode() const noexcept { return static_cast<MgmtCommand::Opcode>( pdu.get_uint16_nc(MGMT_HEADER_SIZE) ); }
             MgmtStatus getStatus() const noexcept { return static_cast<MgmtStatus>( pdu.get_uint8_nc(MGMT_HEADER_SIZE+2) ); }

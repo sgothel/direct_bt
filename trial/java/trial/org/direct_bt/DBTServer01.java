@@ -27,18 +27,14 @@ package trial.org.direct_bt;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.direct_bt.AdapterSettings;
 import org.direct_bt.AdapterStatusListener;
-import org.direct_bt.BDAddressAndType;
 import org.direct_bt.BTMode;
 import org.direct_bt.BTSecurityLevel;
 import org.direct_bt.BTAdapter;
 import org.direct_bt.BTDevice;
-import org.direct_bt.BTDeviceRegistry;
 import org.direct_bt.BTSecurityRegistry;
 import org.direct_bt.BTUtils;
 import org.direct_bt.DBGattChar;

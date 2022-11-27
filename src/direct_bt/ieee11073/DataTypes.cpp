@@ -41,7 +41,7 @@ AbsoluteTime::AbsoluteTime(const uint8_t * data_le, const int size) {
     }
     int i=0;
     if( 2 > size ) return;
-    year = data_le[i+0] | data_le[i+1] << 8;
+    year = (int16_t) ( data_le[i+0] | data_le[i+1] << 8 );
     i+=2;
     if( 3 > size ) return;
     month = static_cast<int8_t>(data_le[i++]);
@@ -76,12 +76,14 @@ static const uint32_t FIRST_S_RESERVED_VALUE = FloatTypes::ReservedSFloatValues:
 
 static const float reserved_float_values[5] = {INFINITY, NAN, NAN, NAN, -INFINITY};
 
+using namespace jau::int_literals;
+
 float FloatTypes::float16_IEEE11073_to_IEEE754(const uint16_t raw_bt_float16_le) {
     uint16_t mantissa = raw_bt_float16_le & 0x0FFF;
-    int8_t exponent = raw_bt_float16_le >> 12;
+    int8_t exponent = (int8_t) ( ( raw_bt_float16_le >> 12 ) & 0xFF );
 
     if( exponent >= 0x0008) {
-        exponent = - ( (0x000F + 1) - exponent );
+        exponent = (int8_t) ( - ( (0x000F + 1) - (int)exponent ) );
     }
 
     if( mantissa >= FIRST_S_RESERVED_VALUE &&
@@ -91,12 +93,12 @@ float FloatTypes::float16_IEEE11073_to_IEEE754(const uint16_t raw_bt_float16_le)
     if ( mantissa >= 0x0800 ) {
         mantissa = - ( ( 0x0FFF + 1 ) - mantissa );
     }
-    return mantissa * powf(10.0f, exponent);
+    return (float)mantissa * ::powf(10.0f, (float)exponent);
 }
 
 float FloatTypes::float32_IEEE11073_to_IEEE754(const uint32_t raw_bt_float32_le) {
-    int32_t mantissa = raw_bt_float32_le & 0xFFFFFF;
-    int8_t expoent = raw_bt_float32_le >> 24;
+    int32_t mantissa = (int32_t) ( raw_bt_float32_le & 0xFFFFFF );
+    int8_t exponent = (int8_t) ( ( raw_bt_float32_le >> 24 ) & 0xFF );
 
     if( mantissa >= FIRST_RESERVED_VALUE &&
         mantissa <= ReservedFloatValues::MDER_NEGATIVE_INFINITY ) {
@@ -105,5 +107,5 @@ float FloatTypes::float32_IEEE11073_to_IEEE754(const uint32_t raw_bt_float32_le)
     if( mantissa >= 0x800000 ) {
         mantissa = - ( ( 0xFFFFFF + 1 ) - mantissa );
     }
-    return mantissa * powf(10.0f, expoent);
+    return (float)mantissa * ::powf(10.0f, (float)exponent);
 }

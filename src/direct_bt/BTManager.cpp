@@ -516,6 +516,7 @@ void BTManager::close() noexcept {
     if( !allowClose.compare_exchange_strong(expConn, false) ) {
         // not open
         const bool mgmt_service_stopped = mgmt_reader_service.join(); // [data] race: wait until disconnecting thread has stopped service
+        // NOLINTNEXTLINE(clang-analyzer-optin.cplusplus.VirtualCall)
         DBG_PRINT("BTManager::close: Not open: stopped %d, %s", mgmt_service_stopped, toString().c_str());
         return;
     }
@@ -968,7 +969,7 @@ bool BTManager::addDeviceToWhitelist(const uint16_t dev_id, const BDAddressAndTy
     return false;
 }
 
-int BTManager::removeAllDevicesFromWhitelist() noexcept {
+BTManager::size_type BTManager::removeAllDevicesFromWhitelist() noexcept {
 #if 0
     jau::darray<std::shared_ptr<WhitelistElem>> whitelist_copy = whitelist;
     int count = 0;
@@ -980,7 +981,7 @@ int BTManager::removeAllDevicesFromWhitelist() noexcept {
         ++count;
     }
 #else
-    int count = 0;
+    size_type count = 0;
     DBG_PRINT("BTManager::removeAllDevicesFromWhitelist.B: Start %d elements", count);
     whitelist.clear();
     jau::for_each_const(adapters, [&](const std::shared_ptr<BTAdapter> & a) {
@@ -990,8 +991,8 @@ int BTManager::removeAllDevicesFromWhitelist() noexcept {
     });
 #endif
 
-    DBG_PRINT("BTManager::removeAllDevicesFromWhitelist: End: Removed %d elements, remaining %zd elements",
-            count, whitelist.size());
+    DBG_PRINT("BTManager::removeAllDevicesFromWhitelist: End: Removed %zu elements, remaining %zd elements",
+            (size_t)count, whitelist.size());
     return count;
 }
 
@@ -1075,7 +1076,7 @@ bool BTManager::addMgmtEventCallback(const int dev_id, const MgmtEvent::Opcode o
     /* const bool added = */ l.push_back_unique(MgmtAdapterEventCallback(dev_id, opc, cb), _mgmtAdapterEventCallbackEqComp_ID_CB);
     return true;
 }
-int BTManager::removeMgmtEventCallback(const MgmtEvent::Opcode opc, const MgmtEventCallback &cb) noexcept {
+BTManager::size_type BTManager::removeMgmtEventCallback(const MgmtEvent::Opcode opc, const MgmtEventCallback &cb) noexcept {
     if( !isValidMgmtEventCallbackListsIndex(opc) ) {
         ERR_PRINT("Opcode %s >= %d", MgmtEvent::getOpcodeString(opc).c_str(), mgmtAdapterEventCallbackLists.size());
         return 0;
@@ -1084,14 +1085,13 @@ int BTManager::removeMgmtEventCallback(const MgmtEvent::Opcode opc, const MgmtEv
     return l.erase_matching( MgmtAdapterEventCallback( 0, MgmtEvent::Opcode::INVALID, cb ),
                                true /* all_matching */, _mgmtAdapterEventCallbackEqComp_CB);
 }
-int BTManager::removeMgmtEventCallback(const int dev_id) noexcept {
+BTManager::size_type BTManager::removeMgmtEventCallback(const int dev_id) noexcept {
     if( 0 > dev_id ) {
         // skip dev_id -1 case, use clearAllMgmtEventCallbacks() here
         return 0;
     }
-    int count = 0;
-    for(size_t i=0; i<mgmtAdapterEventCallbackLists.size(); i++) {
-        MgmtAdapterEventCallbackList &l = mgmtAdapterEventCallbackLists[i];
+    size_type count = 0;
+    for(auto & l : mgmtAdapterEventCallbackLists) {
         count += l.erase_matching( MgmtAdapterEventCallback( dev_id, MgmtEvent::Opcode::INVALID, MgmtEventCallback() ),
                                      true /* all_matching */, _mgmtAdapterEventCallbackEqComp_ID);
     }
@@ -1105,8 +1105,8 @@ void BTManager::clearMgmtEventCallbacks(const MgmtEvent::Opcode opc) noexcept {
     mgmtAdapterEventCallbackLists[static_cast<uint16_t>(opc)].clear();
 }
 void BTManager::clearAllCallbacks() noexcept {
-    for(size_t i=0; i<mgmtAdapterEventCallbackLists.size(); i++) {
-        mgmtAdapterEventCallbackLists[i].clear();
+    for(auto & mgmtAdapterEventCallbackList : mgmtAdapterEventCallbackLists) {
+        mgmtAdapterEventCallbackList.clear();
     }
     mgmtChangedAdapterSetCallbackList.clear();
 }
@@ -1185,7 +1185,7 @@ void BTManager::addChangedAdapterSetCallback(const ChangedAdapterSetCallback & l
         (*l_p)(true /* added */, ai);
     });
 }
-int BTManager::removeChangedAdapterSetCallback(const ChangedAdapterSetCallback & l) {
+BTManager::size_type BTManager::removeChangedAdapterSetCallback(const ChangedAdapterSetCallback & l) {
     return mgmtChangedAdapterSetCallbackList.erase_matching(l, true /* all_matching */, _changedAdapterSetCallbackEqComp);
 }
 
@@ -1193,13 +1193,13 @@ void BTManager::addChangedAdapterSetCallback(ChangedAdapterSetFunc f) {
     addChangedAdapterSetCallback(
             ChangedAdapterSetCallback( jau::bind_free(f) ) );
 }
-int BTManager::removeChangedAdapterSetCallback(ChangedAdapterSetFunc f) {
+BTManager::size_type BTManager::removeChangedAdapterSetCallback(ChangedAdapterSetFunc f) {
     ChangedAdapterSetCallback l( jau::bind_free(f) );
     return mgmtChangedAdapterSetCallbackList.erase_matching(l, true /* all_matching */, _changedAdapterSetCallbackEqComp);
 }
 
-int BTManager::removeAllChangedAdapterSetCallbacks() noexcept {
-    const int count = mgmtChangedAdapterSetCallbackList.size();
+BTManager::size_type BTManager::removeAllChangedAdapterSetCallbacks() noexcept {
+    const size_type count = mgmtChangedAdapterSetCallbackList.size();
     mgmtChangedAdapterSetCallbackList.clear();
     return count;
 }

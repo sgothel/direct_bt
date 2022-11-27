@@ -2,7 +2,7 @@
 
 #
 # sudo mkdir -p /mnt/arm64
-# sudo mount /data/diskimages/RaspiArm64LightDev-1.2-rw-deb11-arm64-litexdev.root-ext4.img /mnt/arm64
+# sudo mount /data/diskimages/RaspiArm64LightDev-1.3-rw-deb11-arm64-litexdev.root-ext4.img /mnt/arm64
 # scripts/build-cross.sh /mnt/arm64
 #
 # sudo mkdir -p /mnt/arm32

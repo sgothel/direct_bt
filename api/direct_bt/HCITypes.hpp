@@ -558,7 +558,7 @@ namespace direct_bt {
                 checkPacketType(getPacketType());
             }
 
-            virtual ~HCIPacket() noexcept {}
+            virtual ~HCIPacket() noexcept = default;
 
             /**
              * Clone template for convenience, based on derived class's copy-constructor.
@@ -639,7 +639,7 @@ namespace direct_bt {
             : HCIPacket(buffer, buffer_len)
             {
                 const jau::nsize_t paramSize = getParamSize();
-                pdu.check_range(0, number(HCIConstSizeT::COMMAND_HDR_SIZE)+paramSize);
+                pdu.check_range(0, number(HCIConstSizeT::COMMAND_HDR_SIZE)+paramSize, E_FILE_LINE);
                 if( exp_param_size > paramSize ) {
                     throw jau::IndexOutOfBoundsException(exp_param_size, paramSize, E_FILE_LINE);
                 }
@@ -668,7 +668,7 @@ namespace direct_bt {
                 }
             }
 
-            virtual ~HCICommand() noexcept {}
+            ~HCICommand() noexcept override = default;
 
             HCIOpcode getOpcode() const noexcept { return static_cast<HCIOpcode>( pdu.get_uint16_nc(1) ); }
             jau::nsize_t getParamSize() const noexcept { return pdu.get_uint8_nc(3); }
@@ -1036,7 +1036,7 @@ namespace direct_bt {
             : HCIPacket(buffer, buffer_len)
             {
                 const jau::nsize_t baseParamSize = getParamSize();
-                pdu.check_range(0, number(HCIConstSizeT::ACL_HDR_SIZE)+baseParamSize);
+                pdu.check_range(0, number(HCIConstSizeT::ACL_HDR_SIZE)+baseParamSize, E_FILE_LINE);
             }
 
             uint16_t getHandleAndFlags() const noexcept { return pdu.get_uint16_nc(1); }
@@ -1116,7 +1116,7 @@ namespace direct_bt {
             : HCIPacket(buffer, buffer_len), ts_creation(jau::getCurrentMilliseconds())
             {
                 const jau::nsize_t baseParamSize = getBaseParamSize();
-                pdu.check_range(0, number(HCIConstSizeT::EVENT_HDR_SIZE)+baseParamSize);
+                pdu.check_range(0, number(HCIConstSizeT::EVENT_HDR_SIZE)+baseParamSize, E_FILE_LINE);
                 if( exp_param_size > baseParamSize ) {
                     throw jau::IndexOutOfBoundsException(exp_param_size, baseParamSize, E_FILE_LINE);
                 }
@@ -1141,7 +1141,7 @@ namespace direct_bt {
                 }
             }
 
-            virtual ~HCIEvent() noexcept {}
+            ~HCIEvent() noexcept override = default;
 
             uint64_t getTimestamp() const noexcept { return ts_creation; }
 

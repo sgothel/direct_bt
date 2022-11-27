@@ -96,7 +96,7 @@ bool DBGattServer::removeListener(ListenerRef l) {
         ERR_PRINT("Listener ref is null");
         return false;
     }
-    const int count = listenerList.erase_matching(l, false /* all_matching */, _listenerRefEqComparator);
+    const auto count = listenerList.erase_matching(l, false /* all_matching */, _listenerRefEqComparator);
     return count > 0;
 }
 

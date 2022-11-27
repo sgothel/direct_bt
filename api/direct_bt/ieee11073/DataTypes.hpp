@@ -59,9 +59,9 @@ namespace ieee11073 {
         RuntimeException(std::string const m, const char* file, int line) noexcept
         : RuntimeException("RuntimeException", m, file, line) {}
 
-        virtual ~RuntimeException() noexcept { }
+        ~RuntimeException() noexcept override = default;
 
-        virtual const char* what() const noexcept override;
+        const char* what() const noexcept override;
     };
 
     /** date / timestamp format */
@@ -76,7 +76,7 @@ namespace ieee11073 {
             int8_t second_fractions=0;
 
             /** Default ctor w/ zero value */
-            AbsoluteTime() {}
+            AbsoluteTime() = default;
 
             /** Reads up to 8 bytes, as available */
             AbsoluteTime(const uint8_t * data_le, const int size);

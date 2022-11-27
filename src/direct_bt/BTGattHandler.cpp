@@ -132,7 +132,7 @@ bool BTGattHandler::removeCharListener(const BTGattCharListenerRef& l) noexcept 
         ERR_PRINT("GATTCharacteristicListener ref is null");
         return false;
     }
-    const int count = gattCharListenerList.erase_matching(GattCharListenerPair{l, std::weak_ptr<BTGattChar>{}},
+    const size_type count = gattCharListenerList.erase_matching(GattCharListenerPair{l, std::weak_ptr<BTGattChar>{}},
                                                         false /* all_matching */,
                                                         gattCharListenerRefEqComparator);
     return count > 0;
@@ -170,7 +170,7 @@ bool BTGattHandler::removeCharListener(const BTGattHandler::NativeGattCharListen
         ERR_PRINT("NativeGattCharListener ref is null");
         return false;
     }
-    const int count = nativeGattCharListenerList.erase_matching(l, false /* all_matching */, _nativeGattCharListenerRefEqComparator);
+    const size_type count = nativeGattCharListenerList.erase_matching(l, false /* all_matching */, _nativeGattCharListenerRefEqComparator);
     return count > 0;
 }
 
@@ -193,7 +193,7 @@ void BTGattHandler::printCharListener() noexcept {
     }
 }
 
-int BTGattHandler::removeAllAssociatedCharListener(const BTGattCharRef& associatedCharacteristic) noexcept {
+BTGattHandler::size_type BTGattHandler::removeAllAssociatedCharListener(const BTGattCharRef& associatedCharacteristic) noexcept {
     if( nullptr == associatedCharacteristic ) {
         ERR_PRINT("Given GATTCharacteristic ref is null");
         return false;
@@ -201,12 +201,12 @@ int BTGattHandler::removeAllAssociatedCharListener(const BTGattCharRef& associat
     return removeAllAssociatedCharListener( associatedCharacteristic.get() );
 }
 
-int BTGattHandler::removeAllAssociatedCharListener(const BTGattChar * associatedCharacteristic) noexcept {
+BTGattHandler::size_type BTGattHandler::removeAllAssociatedCharListener(const BTGattChar * associatedCharacteristic) noexcept {
     if( nullptr == associatedCharacteristic ) {
         ERR_PRINT("Given GATTCharacteristic ref is null");
         return false;
     }
-    int count = 0;
+    size_type count = 0;
     auto it = gattCharListenerList.begin(); // lock mutex and copy_store
     while( !it.is_end() ) {
         if ( it->match(*associatedCharacteristic) ) {
@@ -222,8 +222,8 @@ int BTGattHandler::removeAllAssociatedCharListener(const BTGattChar * associated
     return count;
 }
 
-int BTGattHandler::removeAllCharListener() noexcept {
-    int count = gattCharListenerList.size();
+BTGattHandler::size_type BTGattHandler::removeAllCharListener() noexcept {
+    size_type count = gattCharListenerList.size();
     gattCharListenerList.clear();
     count += nativeGattCharListenerList.size();
     nativeGattCharListenerList.clear();
@@ -883,8 +883,8 @@ bool BTGattHandler::sendIndication(const uint16_t char_value_handle, const jau::
 }
 
 BTGattCharRef BTGattHandler::findCharacterisicsByValueHandle(const jau::darray<BTGattServiceRef> &services_, const uint16_t charValueHandle) noexcept {
-    for(auto it = services_.cbegin(); it != services_.cend(); it++) {
-        BTGattCharRef decl = findCharacterisicsByValueHandle(*it, charValueHandle);
+    for(const auto & service : services_) {
+        BTGattCharRef decl = findCharacterisicsByValueHandle(service, charValueHandle);
         if( nullptr != decl ) {
             return decl;
         }
@@ -893,8 +893,7 @@ BTGattCharRef BTGattHandler::findCharacterisicsByValueHandle(const jau::darray<B
 }
 
 BTGattCharRef BTGattHandler::findCharacterisicsByValueHandle(const BTGattServiceRef service, const uint16_t charValueHandle) noexcept {
-    for(auto it = service->characteristicList.begin(); it != service->characteristicList.end(); it++) {
-        BTGattCharRef decl = *it;
+    for(auto decl : service->characteristicList) {
         if( charValueHandle == decl->value_handle ) {
             return decl;
         }
@@ -965,8 +964,7 @@ bool BTGattHandler::discoverCompletePrimaryServices(std::shared_ptr<BTGattHandle
     if( !discoverPrimaryServices(shared_this, services) ) {
         return false;
     }
-    for(auto it = services.begin(); it != services.end(); it++) {
-        BTGattServiceRef primSrv = *it;
+    for(auto primSrv : services) {
         if( !discoverCharacteristics(primSrv) ) {
             return false;
         }
@@ -1015,16 +1013,21 @@ bool BTGattHandler::discoverPrimaryServices(std::shared_ptr<BTGattHandler> share
 
         if( pdu->getOpcode() == AttPDUMsg::Opcode::READ_BY_GROUP_TYPE_RSP ) {
             const AttReadByGroupTypeRsp * p = static_cast<const AttReadByGroupTypeRsp*>(pdu.get());
-            const int esz = p->getElementSize();
-            const int count = p->getElementCount();
+            const size_type esz = p->getElementSize();
+            const size_type count = p->getElementCount();
 
-            for(int i=0; i<count; i++) {
-                const int ePDUOffset = p->getElementPDUOffset(i);
-                result.push_back( BTGattServiceRef( new BTGattService( shared_this, true,
-                        p->pdu.get_uint16(ePDUOffset), // start-handle
-                        p->pdu.get_uint16(ePDUOffset + 2), // end-handle
-                        p->pdu.get_uuid( ePDUOffset + 2 + 2, jau::uuid_t::toTypeSize(esz-2-2) ) // uuid
-                    ) ) );
+            for(size_type i=0; i<count; ++i) {
+                const size_type ePDUOffset = p->getElementPDUOffset(i);
+                try {
+                    result.push_back( std::make_shared<BTGattService>( shared_this, true,
+                            p->pdu.get_uint16(ePDUOffset), // start-handle
+                            p->pdu.get_uint16(ePDUOffset + 2), // end-handle
+                            p->pdu.get_uuid( ePDUOffset + 2 + 2, jau::uuid_t::toTypeSize(esz-2-2) ) // uuid
+                        ) );
+                } catch (const std::bad_alloc &e) {
+                    ABORT("Error: bad_alloc: BTGattServiceRef allocation failed");
+                    return false; // unreachable
+                }
                 COND_PRINT(env.DEBUG_DATA, "GATT PRIM SRV discovered[%d/%d]: %s on %s", i,
                         count, result.at(result.size()-1)->toString().c_str(), toString().c_str());
             }
@@ -1078,19 +1081,24 @@ bool BTGattHandler::discoverCharacteristics(BTGattServiceRef & service) noexcept
 
         if( pdu->getOpcode() == AttPDUMsg::Opcode::READ_BY_TYPE_RSP ) {
             const AttReadByTypeRsp * p = static_cast<const AttReadByTypeRsp*>(pdu.get());
-            const int esz = p->getElementSize();
-            const int e_count = p->getElementCount();
+            const size_type esz = p->getElementSize();
+            const size_type e_count = p->getElementCount();
 
-            for(int e_iter=0; e_iter<e_count; e_iter++) {
+            for(size_type e_iter=0; e_iter<e_count; ++e_iter) {
                 // handle: handle for the Characteristics declaration
                 // value: Characteristics Property, Characteristics Value Handle _and_ Characteristics UUID
-                const int ePDUOffset = p->getElementPDUOffset(e_iter);
-                service->characteristicList.push_back( BTGattCharRef( new BTGattChar(
-                    service,
-                    p->getElementHandle(e_iter), // Characteristic Handle
-                    static_cast<BTGattChar::PropertyBitVal>(p->pdu.get_uint8(ePDUOffset  + 2)), // Characteristics Property
-                    p->pdu.get_uint16(ePDUOffset + 2 + 1), // Characteristics Value Handle
-                    p->pdu.get_uuid(ePDUOffset   + 2 + 1 + 2, jau::uuid_t::toTypeSize(esz-2-1-2) ) ) ) ); // Characteristics Value Type UUID
+                const size_type  ePDUOffset = p->getElementPDUOffset(e_iter);
+                try {
+                    service->characteristicList.push_back( std::make_shared<BTGattChar>(
+                        service,
+                        p->getElementHandle(e_iter), // Characteristic Handle
+                        static_cast<BTGattChar::PropertyBitVal>(p->pdu.get_uint8(ePDUOffset  + 2)), // Characteristics Property
+                        p->pdu.get_uint16(ePDUOffset + 2 + 1), // Characteristics Value Handle
+                        p->pdu.get_uuid(ePDUOffset   + 2 + 1 + 2, jau::uuid_t::toTypeSize(esz-2-1-2) ) ) ); // Characteristics Value Type UUID
+                } catch (const std::bad_alloc &e) {
+                    ABORT("Error: bad_alloc: BTGattCharRef allocation failed");
+                    return false; // unreachable
+                }
                 COND_PRINT(env.DEBUG_DATA, "GATT C discovered[%d/%d]: char%s on %s", e_iter, e_count,
                         service->characteristicList.at(service->characteristicList.size()-1)->toString().c_str(), toString().c_str());
             }
@@ -1124,8 +1132,8 @@ bool BTGattHandler::discoverDescriptors(BTGattServiceRef & service) noexcept {
     const std::lock_guard<std::recursive_mutex> lock(mtx_command); // RAII-style acquire and relinquish via destructor
     PERF_TS_T0();
 
-    const int charCount = service->characteristicList.size();
-    for(int charIter=0; charIter < charCount; charIter++ ) {
+    const size_type charCount = service->characteristicList.size();
+    for(size_type charIter=0; charIter < charCount; ++charIter ) {
         BTGattCharRef charDecl = service->characteristicList[charIter];
         charDecl->clearDescriptors();
         COND_PRINT(env.DEBUG_DATA, "GATT discoverDescriptors Characteristic[%d/%d]: %s on %s", charIter, charCount, charDecl->toString().c_str(), toString().c_str());
@@ -1153,9 +1161,9 @@ bool BTGattHandler::discoverDescriptors(BTGattServiceRef & service) noexcept {
 
             if( pdu->getOpcode() == AttPDUMsg::Opcode::FIND_INFORMATION_RSP ) {
                 const AttFindInfoRsp * p = static_cast<const AttFindInfoRsp*>(pdu.get());
-                const int e_count = p->getElementCount();
+                const size_type e_count = p->getElementCount();
 
-                for(int e_iter=0; e_iter<e_count; e_iter++) {
+                for(size_type e_iter=0; e_iter<e_count; ++e_iter) {
                     // handle: handle of Characteristic Descriptor.
                     // value: Characteristic Descriptor UUID.
                     const uint16_t cd_handle = p->getElementHandle(e_iter);
@@ -1178,9 +1186,9 @@ bool BTGattHandler::discoverDescriptors(BTGattServiceRef & service) noexcept {
                         break;
                     }
                     if( cd->isClientCharConfig() ) {
-                        charDecl->clientCharConfigIndex = charDecl->descriptorList.size();
+                        charDecl->clientCharConfigIndex = (BTGattChar::ssize_type) charDecl->descriptorList.size();
                     } else if( cd->isUserDescription() ) {
-                        charDecl->userDescriptionIndex = charDecl->descriptorList.size();
+                        charDecl->userDescriptionIndex = (BTGattChar::ssize_type) charDecl->descriptorList.size();
                     }
                     charDecl->descriptorList.push_back(cd);
                     COND_PRINT(env.DEBUG_DATA, "GATT CD discovered[%d/%d]: %s", e_iter, e_count, cd->toString().c_str());
@@ -1204,8 +1212,8 @@ bool BTGattHandler::discoverDescriptors(BTGattServiceRef & service) noexcept {
     return true;
 }
 
-bool BTGattHandler::readDescriptorValue(BTGattDesc & desc, int expectedLength) noexcept {
-    COND_PRINT(env.DEBUG_DATA, "GATTHandler::readDescriptorValue expLen %d, desc %s", expectedLength, desc.toString().c_str());
+bool BTGattHandler::readDescriptorValue(BTGattDesc & desc, ssize_type expectedLength) noexcept {
+    COND_PRINT(env.DEBUG_DATA, "GATTHandler::readDescriptorValue expLen %zd, desc %s", (size_t)expectedLength, desc.toString().c_str());
     const bool res = readValue(desc.handle, desc.value, expectedLength);
     if( !res ) {
         WORDY_PRINT("GATT readDescriptorValue error on desc%s within char%s from %s",
@@ -1214,8 +1222,8 @@ bool BTGattHandler::readDescriptorValue(BTGattDesc & desc, int expectedLength) n
     return res;
 }
 
-bool BTGattHandler::readCharacteristicValue(const BTGattChar & decl, jau::POctets & resValue, int expectedLength) noexcept {
-    COND_PRINT(env.DEBUG_DATA, "GATTHandler::readCharacteristicValue expLen %d, decl %s", expectedLength, decl.toString().c_str());
+bool BTGattHandler::readCharacteristicValue(const BTGattChar & decl, jau::POctets & resValue, ssize_type expectedLength) noexcept {
+    COND_PRINT(env.DEBUG_DATA, "GATTHandler::readCharacteristicValue expLen %zd, decl %s", (size_t)expectedLength, decl.toString().c_str());
     const bool res = readValue(decl.value_handle, resValue, expectedLength);
     if( !res ) {
         WORDY_PRINT("GATT readCharacteristicValue error on char%s from %s", decl.toString().c_str(), toString().c_str());
@@ -1223,19 +1231,19 @@ bool BTGattHandler::readCharacteristicValue(const BTGattChar & decl, jau::POctet
     return res;
 }
 
-bool BTGattHandler::readValue(const uint16_t handle, jau::POctets & res, int expectedLength) noexcept {
+bool BTGattHandler::readValue(const uint16_t handle, jau::POctets & res, ssize_type expectedLength) noexcept {
     /* BT Core Spec v5.2: Vol 3, Part G GATT: 4.8.1 Read Characteristic Value */
     /* BT Core Spec v5.2: Vol 3, Part G GATT: 4.8.3 Read Long Characteristic Value */
     const std::lock_guard<std::recursive_mutex> lock(mtx_command); // RAII-style acquire and relinquish via destructor
     PERF2_TS_T0();
 
     bool done=false;
-    int offset=0;
+    size_type offset=0;
 
-    COND_PRINT(env.DEBUG_DATA, "GATTHandler::readValue expLen %d, handle %s from %s", expectedLength, jau::to_hexstring(handle).c_str(), toString().c_str());
+    COND_PRINT(env.DEBUG_DATA, "GATTHandler::readValue expLen %zd, handle %s from %s", (size_t)expectedLength, jau::to_hexstring(handle).c_str(), toString().c_str());
 
     while(!done) {
-        if( 0 < expectedLength && expectedLength <= offset ) {
+        if( 0 < expectedLength && (size_type)expectedLength <= offset ) {
             break; // done
         } else if( 0 == expectedLength && 0 < offset ) {
             break; // done w/ only one request
@@ -1425,8 +1433,8 @@ std::shared_ptr<GattGenericAccessSvc> BTGattHandler::getGenericAccess(jau::darra
 
     const std::lock_guard<std::recursive_mutex> lock(mtx_command); // RAII-style acquire and relinquish via destructor
 
-    for(size_t i=0; i<genericAccessCharDeclList.size(); i++) {
-        const BTGattChar & charDecl = *genericAccessCharDeclList.at(i);
+    for(auto & i : genericAccessCharDeclList) {
+        const BTGattChar & charDecl = *i;
         std::shared_ptr<BTGattService> service = charDecl.getServiceUnchecked();
         if( nullptr == service || _GENERIC_ACCESS != *(service->type) ) {
         	continue;
@@ -1452,10 +1460,10 @@ std::shared_ptr<GattGenericAccessSvc> BTGattHandler::getGenericAccess(jau::darra
 }
 
 std::shared_ptr<GattGenericAccessSvc> BTGattHandler::getGenericAccess(jau::darray<BTGattServiceRef> & primServices) noexcept {
-	for(size_t i=0; i<primServices.size(); i++) {
-	    BTGattServiceRef service = primServices.at(i);
+	for(auto & primService : primServices) {
+	    BTGattServiceRef service = primService;
 	    if( _GENERIC_ACCESS == *service->type ) {
-	        return getGenericAccess(primServices.at(i)->characteristicList);
+	        return getGenericAccess(primService->characteristicList);
 	    }
 	}
 	return nullptr;
@@ -1510,8 +1518,8 @@ std::shared_ptr<GattDeviceInformationSvc> BTGattHandler::getDeviceInformation(ja
 
     const std::lock_guard<std::recursive_mutex> lock(mtx_command); // RAII-style acquire and relinquish via destructor
 
-    for(size_t i=0; i<characteristicDeclList.size(); i++) {
-        const BTGattChar & charDecl = *characteristicDeclList.at(i);
+    for(auto & i : characteristicDeclList) {
+        const BTGattChar & charDecl = *i;
         std::shared_ptr<BTGattService> service = charDecl.getServiceUnchecked();
         if( nullptr == service || _DEVICE_INFORMATION != *(service->type) ) {
             continue;
@@ -1564,10 +1572,10 @@ std::shared_ptr<GattDeviceInformationSvc> BTGattHandler::getDeviceInformation(ja
 }
 
 std::shared_ptr<GattDeviceInformationSvc> BTGattHandler::getDeviceInformation(jau::darray<BTGattServiceRef> & primServices) noexcept {
-    for(size_t i=0; i<primServices.size(); i++) {
-        BTGattServiceRef service = primServices.at(i);
+    for(auto & primService : primServices) {
+        BTGattServiceRef service = primService;
         if( _DEVICE_INFORMATION == *service->type ) {
-            return getDeviceInformation(primServices.at(i)->characteristicList);
+            return getDeviceInformation(primService->characteristicList);
         }
     }
     return nullptr;

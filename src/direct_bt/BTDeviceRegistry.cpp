@@ -122,8 +122,7 @@ namespace direct_bt::BTDeviceRegistry {
 
     bool areAllDevicesProcessed(DeviceQueryMatchFunc m) noexcept {
         const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessed); // RAII-style acquire and relinquish via destructor
-        for (auto it1 = waitForDevices.cbegin(); it1 != waitForDevices.cend(); ++it1) {
-            const DeviceQuery& q = *it1;
+        for (const auto & q : waitForDevices) {
             auto it2 = devicesProcessed.cbegin();
             while ( it2 != devicesProcessed.cend() ) {
                 const DeviceID& id = *it2;

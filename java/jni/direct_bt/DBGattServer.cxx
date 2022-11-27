@@ -54,8 +54,8 @@ static const std::string _dbGattValueClazzCtorArgs("([BIZ)V");
 
 static jobject _createDBGattValueFromDesc(JNIEnv *env_, jclass clazz, jmethodID clazz_ctor, const DBGattDescRef& valueHolder) {
     const jau::POctets& value = valueHolder->getValue();
-    jbyteArray jval = env_->NewByteArray(value.size());
-    env_->SetByteArrayRegion(jval, 0, value.size(), (const jbyte*)(value.get_ptr()));
+    jbyteArray jval = env_->NewByteArray( (jsize) value.size() );
+    env_->SetByteArrayRegion(jval, 0, (jsize) value.size(), (const jbyte*)(value.get_ptr()));
     java_exception_check_and_throw(env_, E_FILE_LINE);
 
     jobject jDBGattValue = env_->NewObject(clazz, clazz_ctor, jval, (jint)value.capacity(), valueHolder->hasVariableLength());
@@ -68,8 +68,8 @@ static jobject _createDBGattValueFromDesc(JNIEnv *env_, jclass clazz, jmethodID 
 
 static jobject _createDBGattValueFromChar(JNIEnv *env_, jclass clazz, jmethodID clazz_ctor, const DBGattCharRef& valueHolder) {
     const jau::POctets& value = valueHolder->getValue();
-    jbyteArray jval = env_->NewByteArray(value.size());
-    env_->SetByteArrayRegion(jval, 0, value.size(), (const jbyte*)(value.get_ptr()));
+    jbyteArray jval = env_->NewByteArray( (jsize) value.size() );
+    env_->SetByteArrayRegion(jval, 0, (jsize) value.size(), (const jbyte*)(value.get_ptr()));
     java_exception_check_and_throw(env_, E_FILE_LINE);
 
     jobject jDBGattValue = env_->NewObject(clazz, clazz_ctor, jval, (jint)value.capacity(), valueHolder->hasVariableLength());
@@ -635,7 +635,7 @@ class JNIDBGattServerListener : public DBGattServer::Listener {
             mCCDChanged = search_method(env, clazz, "clientCharConfigChanged", "(Lorg/direct_bt/BTDevice;Lorg/direct_bt/DBGattService;Lorg/direct_bt/DBGattChar;Lorg/direct_bt/DBGattDesc;ZZ)V", false);
         }
 
-        ~JNIDBGattServerListener() noexcept { }
+        ~JNIDBGattServerListener() noexcept override = default;
 
         void connected(BTDeviceRef device, const uint16_t initialMTU) override {
             jobject j_device = JavaGlobalObj::checkAndGetObject(device->getJavaObject(), E_FILE_LINE);

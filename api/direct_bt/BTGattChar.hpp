@@ -44,6 +44,7 @@
 #include "BTTypes1.hpp"
 
 #include "BTGattDesc.hpp"
+#include "jau/int_types.hpp"
 
 
 /**
@@ -113,6 +114,9 @@ namespace direct_bt {
                 ExtProps        = (1 << 7)
             };
 
+            typedef jau::nsize_t size_type;
+            typedef jau::snsize_t ssize_type;
+
             /**
              * Characteristic Handle of this instance.
              * <p>
@@ -139,10 +143,10 @@ namespace direct_bt {
             jau::darray<BTGattDescRef> descriptorList;
 
             /* Optional Client Characteristic Configuration index within descriptorList */
-            int clientCharConfigIndex = -1;
+            ssize_type clientCharConfigIndex = -1;
 
             /* Optional Characteristic User Description index within descriptorList */
-            int userDescriptionIndex = -1;
+            ssize_type userDescriptionIndex = -1;
 
             BTGattChar(const BTGattServiceRef & service_, const uint16_t handle_,
                        const PropertyBitVal properties_, const uint16_t value_handle_, std::unique_ptr<const jau::uuid_t> && value_type_) noexcept
@@ -354,7 +358,7 @@ namespace direct_bt {
              * @see BTGattChar::removeCharListener()
              * @see BTGattChar::removeAllAssociatedCharListener()
              */
-            int removeAllAssociatedCharListener(bool shallDisableIndicationNotification) noexcept;
+            size_type removeAllAssociatedCharListener(bool shallDisableIndicationNotification) noexcept;
 
             /**
              * BT Core Spec v5.2: Vol 3, Part G GATT: 4.8.1 Read Characteristic Value
@@ -475,7 +479,7 @@ namespace direct_bt {
                                             const jau::TROOctets& charValue, const uint64_t timestamp,
                                             const bool confirmationSent) = 0;
 
-            ~BTGattCharListener() noexcept override {}
+            ~BTGattCharListener() noexcept override = default;
 
             /** Return a simple description about this instance. */
             std::string toString() const noexcept override {

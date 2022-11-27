@@ -46,6 +46,7 @@
 #include "ATTPDUTypes.hpp"
 #include "GattNumbers.hpp"
 #include "DBGattServer.hpp"
+#include "jau/int_types.hpp"
 
 /**
  * - - - - - - - - - - - - - - -
@@ -199,7 +200,7 @@ namespace direct_bt {
              */
             class GattServerHandler {
                 public:
-                    virtual ~GattServerHandler() { close(); }
+                    virtual ~GattServerHandler() = default;
 
                     /**
                      * Close and clear this handler, i.e. release all resources.
@@ -420,7 +421,7 @@ namespace direct_bt {
                                               [[maybe_unused]] BTDeviceRef serverReplier,
                                               [[maybe_unused]] BTDeviceRef clientRequester) { }
 
-                    virtual ~NativeGattCharListener() noexcept {}
+                    virtual ~NativeGattCharListener() noexcept = default;
 
                     /** Return a simple description about this instance. */
                     virtual std::string toString() {
@@ -439,9 +440,13 @@ namespace direct_bt {
                     bool operator!=(const NativeGattCharListener& rhs) const noexcept
                     { return !(*this == rhs); }
             };
+            typedef jau::nsize_t size_type;
+            typedef jau::snsize_t ssize_type;
+
             typedef std::shared_ptr<NativeGattCharListener> NativeGattCharListenerRef;
-            typedef jau::cow_darray<NativeGattCharListenerRef> NativeGattCharListenerList_t;
-            typedef jau::darray<NativeGattCharListener::Section> NativeGattCharSections_t;
+            typedef jau::cow_darray<NativeGattCharListenerRef, size_type> NativeGattCharListenerList_t;
+            typedef jau::darray<NativeGattCharListener::Section, size_type> NativeGattCharSections_t;
+            typedef jau::darray<BTGattServiceRef, size_type> GattServiceList_t;
 
        private:
             /** BTGattHandler's device weak back-reference */
@@ -481,7 +486,7 @@ namespace direct_bt {
                     }
                 }
             };
-            typedef jau::cow_darray<GattCharListenerPair> gattCharListenerList_t;
+            typedef jau::cow_darray<GattCharListenerPair, size_type> gattCharListenerList_t;
             static gattCharListenerList_t::equal_comparator gattCharListenerRefEqComparator;
             gattCharListenerList_t gattCharListenerList;
 
@@ -493,7 +498,7 @@ namespace direct_bt {
             std::unique_ptr<GattServerHandler> gattServerHandler;
             static std::unique_ptr<GattServerHandler> selectGattServerHandler(BTGattHandler& gh, DBGattServerRef gattServerData) noexcept;
 
-            jau::darray<BTGattServiceRef> services;
+            GattServiceList_t services;
             std::shared_ptr<GattGenericAccessSvc> genericAccess = nullptr;
 
             bool validateConnected() noexcept;
@@ -533,7 +538,7 @@ namespace direct_bt {
              * @see initClientGatt()
              * @see discoverCompletePrimaryServices()
              */
-            bool discoverPrimaryServices(std::shared_ptr<BTGattHandler> shared_this, jau::darray<BTGattServiceRef> & result) noexcept;
+            bool discoverPrimaryServices(std::shared_ptr<BTGattHandler> shared_this, GattServiceList_t& result) noexcept;
 
             /**
              * Discover all characteristics of a service and declaration attributes _only_.
@@ -625,7 +630,7 @@ namespace direct_bt {
              * Returns nullptr if not found.
              * </p>
              */
-            BTGattCharRef findCharacterisicsByValueHandle(const jau::darray<BTGattServiceRef> &services_, const uint16_t charValueHandle) noexcept;
+            BTGattCharRef findCharacterisicsByValueHandle(const GattServiceList_t&services_, const uint16_t charValueHandle) noexcept;
 
             /**
              * Find and return the BTGattChar within given primary service
@@ -659,7 +664,7 @@ namespace direct_bt {
              *
              * @see initClientGatt()
              */
-            inline jau::darray<BTGattServiceRef> & getServices() noexcept { return services; }
+            inline GattServiceList_t& getServices() noexcept { return services; }
 
             /**
              * Returns the internal kept shared GattGenericAccessSvc instance.
@@ -717,7 +722,7 @@ namespace direct_bt {
              * if required until the response returns zero.
              * </p>
              */
-            bool readValue(const uint16_t handle, jau::POctets & res, int expectedLength=-1) noexcept;
+            bool readValue(const uint16_t handle, jau::POctets & res, ssize_type expectedLength=-1) noexcept;
 
             /**
              * BT Core Spec v5.2: Vol 3, Part G GATT: 4.8.1 Read Characteristic Value
@@ -736,7 +741,7 @@ namespace direct_bt {
              * if required until the response returns zero.
              * </p>
              */
-            bool readCharacteristicValue(const BTGattChar & c, jau::POctets & res, int expectedLength=-1) noexcept;
+            bool readCharacteristicValue(const BTGattChar & c, jau::POctets & res, ssize_type expectedLength=-1) noexcept;
 
             /**
              * BT Core Spec v5.2: Vol 3, Part G GATT: 4.12.1 Read Characteristic Descriptor
@@ -755,7 +760,7 @@ namespace direct_bt {
              * if required until the response returns zero.
              * </p>
              */
-            bool readDescriptorValue(BTGattDesc & cd, int expectedLength=-1) noexcept;
+            bool readDescriptorValue(BTGattDesc & cd, ssize_type expectedLength=-1) noexcept;
 
             /**
              * Generic write GATT value and long value
@@ -863,9 +868,9 @@ namespace direct_bt {
              * @param associatedCharacteristic the match criteria to remove any BTGattCharListener from the list
              * @return number of removed listener.
              */
-            int removeAllAssociatedCharListener(const BTGattCharRef& associatedChar) noexcept;
+            size_type removeAllAssociatedCharListener(const BTGattCharRef& associatedChar) noexcept;
 
-            int removeAllAssociatedCharListener(const BTGattChar * associatedChar) noexcept;
+            size_type removeAllAssociatedCharListener(const BTGattChar * associatedChar) noexcept;
 
             /**
              * Add the given listener to the list if not already present.
@@ -891,7 +896,7 @@ namespace direct_bt {
              * Returns the number of removed event listener.
              * </p>
              */
-            int removeAllCharListener() noexcept;
+            size_type removeAllCharListener() noexcept;
 
             /**
              * Return event listener count.
@@ -1006,10 +1011,10 @@ namespace direct_bt {
             /** Higher level semantic functionality **/
             /*****************************************************/
 
-            std::shared_ptr<GattGenericAccessSvc> getGenericAccess(jau::darray<BTGattServiceRef> & primServices) noexcept;
+            std::shared_ptr<GattGenericAccessSvc> getGenericAccess(GattServiceList_t& primServices) noexcept;
             std::shared_ptr<GattGenericAccessSvc> getGenericAccess(jau::darray<BTGattCharRef> & genericAccessCharDeclList) noexcept;
 
-            std::shared_ptr<GattDeviceInformationSvc> getDeviceInformation(jau::darray<BTGattServiceRef> & primServices) noexcept;
+            std::shared_ptr<GattDeviceInformationSvc> getDeviceInformation(GattServiceList_t& primServices) noexcept;
             std::shared_ptr<GattDeviceInformationSvc> getDeviceInformation(jau::darray<BTGattCharRef> & deviceInfoCharDeclList) noexcept;
 
             /**

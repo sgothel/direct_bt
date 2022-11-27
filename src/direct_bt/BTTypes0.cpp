@@ -690,8 +690,7 @@ EIRDataType EInfoReport::set(const EInfoReport& eir) noexcept {
     if( eir.isSet( EIRDataType::SERVICE_UUID) ) {
         const jau::darray<std::shared_ptr<const jau::uuid_t>>& services_ = eir.getServices();
         bool added = false;
-        for(size_t j=0; j<services_.size(); j++) {
-            const std::shared_ptr<const jau::uuid_t> uuid = services_[j];
+        for(auto uuid : services_) {
             added = addService(uuid) | added;
         }
         if( added ) {
@@ -748,13 +747,13 @@ EIRDataType EInfoReport::set(const EInfoReport& eir) noexcept {
     return res;
 }
 
-int EInfoReport::findService(const jau::uuid_t& uuid) const noexcept
+EInfoReport::ssize_type EInfoReport::findService(const jau::uuid_t& uuid) const noexcept
 {
-    const size_t size = services.size();
-    for (size_t i = 0; i < size; i++) {
+    const size_type size = services.size();
+    for (size_type i = 0; i < size; ++i) {
         const std::shared_ptr<const jau::uuid_t> & e = services[i];
         if ( nullptr != e && uuid.equivalent(*e) ) {
-            return i;
+            return (ssize_type)i;
         }
     }
     return -1;
@@ -908,8 +907,7 @@ std::string EInfoReport::toString(const bool includeServices) const noexcept {
 
     if( includeServices && services.size() > 0 && isSet(EIRDataType::SERVICE_UUID) ) {
         out.append("\n");
-        for(auto it = services.begin(); it != services.end(); it++) {
-            std::shared_ptr<const jau::uuid_t> p = *it;
+        for(auto p : services) {
             out.append("  ").append(p->toUUID128String()).append(", ").append(std::to_string(static_cast<int>(p->getTypeSize()))).append(" bytes\n");
         }
     }
@@ -950,7 +948,7 @@ bool EInfoReport::operator==(const EInfoReport& o) const noexcept {
 }
 
 std::string EInfoReport::getDeviceIDModalias() const noexcept {
-    char *cstr = NULL;
+    char *cstr = nullptr;
     int length;
 
     switch (did_source) {
@@ -965,7 +963,7 @@ std::string EInfoReport::getDeviceIDModalias() const noexcept {
             break;
     }
     if( 0 >= length ) {
-        if( NULL != cstr ) {
+        if( nullptr != cstr ) {
             free(cstr);
         }
         return std::string();
@@ -1206,8 +1204,7 @@ jau::nsize_t EInfoReport::write_data(EIRDataType write_mask, uint8_t * data, jau
     }
     if( is_set(mask, EIRDataType::SERVICE_UUID) ) {
         jau::darray<std::shared_ptr<const jau::uuid_t>> uuid16s, uuid32s, uuid128s;
-        for(auto it = services.begin(); it != services.end(); it++) {
-            std::shared_ptr<const jau::uuid_t> p = *it;
+        for(auto p : services) {
             switch( p->getTypeSizeInt() ) {
                 case 2:
                     uuid16s.push_back(p);
@@ -1231,8 +1228,7 @@ jau::nsize_t EInfoReport::write_data(EIRDataType write_mask, uint8_t * data, jau
             count    += ad_sz + 1;
             *data_i++ = ad_sz;
             *data_i++ = direct_bt::number(services_complete ? GAP_T::UUID16_COMPLETE : GAP_T::UUID16_INCOMPLETE);
-            for(auto it = uuid16s.begin(); it != uuid16s.end(); it++) {
-                std::shared_ptr<const jau::uuid_t> p = *it;
+            for(auto p : uuid16s) {
                 data_i += p->put(data_i, 0, true /* le */);
             }
         }
@@ -1245,8 +1241,7 @@ jau::nsize_t EInfoReport::write_data(EIRDataType write_mask, uint8_t * data, jau
             count    += ad_sz + 1;
             *data_i++ = ad_sz;
             *data_i++ = direct_bt::number(services_complete ? GAP_T::UUID32_COMPLETE : GAP_T::UUID32_INCOMPLETE);
-            for(auto it = uuid32s.begin(); it != uuid32s.end(); it++) {
-                std::shared_ptr<const jau::uuid_t> p = *it;
+            for(auto p : uuid32s) {
                 data_i += p->put(data_i, 0, true /* le */);
             }
         }
@@ -1259,8 +1254,7 @@ jau::nsize_t EInfoReport::write_data(EIRDataType write_mask, uint8_t * data, jau
             count    += ad_sz + 1;
             *data_i++ = ad_sz;
             *data_i++ = direct_bt::number(services_complete ? GAP_T::UUID128_COMPLETE : GAP_T::UUID128_INCOMPLETE);
-            for(auto it = uuid128s.begin(); it != uuid128s.end(); it++) {
-                std::shared_ptr<const jau::uuid_t> p = *it;
+            for(auto p : uuid128s) {
                 data_i += p->put(data_i, 0, true /* le */);
             }
         }

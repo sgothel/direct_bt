@@ -304,9 +304,9 @@ class GattGenericAccessSvc {
 		/** Characteristic: Optional [Read: Mandatory; Write: Excluded; ...]*/
 		const std::shared_ptr<GattPeriphalPreferredConnectionParameters> prefConnParam;
 
-		GattGenericAccessSvc(const std::string & deviceName_, const AppearanceCat appearance_,
-		                     const std::shared_ptr<GattPeriphalPreferredConnectionParameters> & prefConnParam_) noexcept
-		: deviceName(deviceName_), appearance(appearance_), prefConnParam(prefConnParam_) {}
+		GattGenericAccessSvc(std::string deviceName_, const AppearanceCat appearance_,
+		                     std::shared_ptr<GattPeriphalPreferredConnectionParameters> prefConnParam_) noexcept
+		: deviceName(std::move(deviceName_)), appearance(appearance_), prefConnParam(std::move(prefConnParam_)) {}
 
 		std::string toString() const noexcept;
 };
@@ -363,12 +363,13 @@ class GattDeviceInformationSvc {
         /** Optional */
         const std::shared_ptr<GattPnP_ID> pnpID;
 
-        GattDeviceInformationSvc(const jau::POctets &systemID_, const std::string &modelNumber_, const std::string &serialNumber_,
-                          const std::string &firmwareRevision_, const std::string &hardwareRevision_, const std::string &softwareRevision_,
-                          const std::string &manufacturer_, const jau::POctets &regulatoryCertDataList_, const std::shared_ptr<GattPnP_ID> &pnpID_) noexcept
-        : systemID(systemID_), modelNumber(modelNumber_), serialNumber(serialNumber_), firmwareRevision(firmwareRevision_),
-          hardwareRevision(hardwareRevision_), softwareRevision(softwareRevision_), manufacturer(manufacturer_),
-          regulatoryCertDataList(regulatoryCertDataList_), pnpID(pnpID_) {}
+        GattDeviceInformationSvc(jau::POctets systemID_, std::string modelNumber_, std::string serialNumber_,
+                                 std::string firmwareRevision_, std::string hardwareRevision_, std::string softwareRevision_,
+                                 std::string manufacturer_, jau::POctets regulatoryCertDataList_, std::shared_ptr<GattPnP_ID> pnpID_) noexcept
+        : systemID( std::move(systemID_) ), modelNumber( std::move(modelNumber_) ), serialNumber( std::move(serialNumber_) ), 
+          firmwareRevision( std::move(firmwareRevision_) ), hardwareRevision( std::move(hardwareRevision_) ), 
+          softwareRevision( std::move(softwareRevision_) ), manufacturer( std::move(manufacturer_) ),
+          regulatoryCertDataList( std::move(regulatoryCertDataList_) ), pnpID( std::move(pnpID_) ) {}
 
         std::string toString() const noexcept;
 };

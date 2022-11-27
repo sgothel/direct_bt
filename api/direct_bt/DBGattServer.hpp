@@ -47,6 +47,7 @@
 
 // #include "BTGattDesc.hpp"
 #include "BTGattChar.hpp"
+#include "jau/int_types.hpp"
 // #include "BTGattService.hpp"
 
 // #define JAU_TRACE_DBGATT 1
@@ -163,9 +164,9 @@ namespace direct_bt {
              *        Forced to false if isExtendedProperties() or isClientCharConfig().
              * @param variable_length_ defaults to false.
              */
-            DBGattDesc(const std::shared_ptr<const jau::uuid_t>& type_,
+            DBGattDesc(std::shared_ptr<const jau::uuid_t> type_,
                        jau::POctets && value_, bool variable_length_=false) noexcept
-            : handle(0), type(type_), value( std::move( value_ ) ), variable_length(variable_length_)
+            : handle(0), type(std::move(type_)), value( std::move( value_ ) ), variable_length(variable_length_)
             {
                 if( variable_length && ( isExtendedProperties() || isClientCharConfig() ) ) {
                     variable_length = false;
@@ -178,7 +179,8 @@ namespace direct_bt {
              * @param o
              */
             DBGattDesc(const DBGattDesc &o)
-            : handle(o.handle), type(o.type),
+            : jau::jni::JavaUplink(o),
+              handle(o.handle), type(o.type),
               value(o.value, o.value.capacity()),
               variable_length(o.variable_length)
             {
@@ -406,7 +408,8 @@ namespace direct_bt {
              * @param o
              */
             DBGattChar(const DBGattChar &o)
-            : handle(o.handle), end_handle(o.end_handle),
+            : jau::jni::JavaUplink(o),
+              handle(o.handle), end_handle(o.end_handle),
               value_handle(o.value_handle), value_type(o.value_type),
               properties(o.properties),
               descriptors(o.descriptors),
@@ -678,7 +681,7 @@ namespace direct_bt {
              */
             class Listener {
                 public:
-                    virtual ~Listener() {}
+                    virtual ~Listener() = default;
 
                     /**
                      * Notification that device got connected.
@@ -813,13 +816,16 @@ namespace direct_bt {
             };
             typedef std::shared_ptr<Listener> ListenerRef;
 
-        private:
-            typedef jau::cow_darray<ListenerRef> ListenerList_t;
+            typedef jau::nsize_t size_type;
+            typedef jau::cow_darray<ListenerRef, size_type> ListenerList_t;
+            typedef jau::darray<DBGattServiceRef, size_type> GattServiceList_t;
+
+        private:            
             ListenerList_t listenerList;
 
             uint16_t max_att_mtu;
 
-            jau::darray<DBGattServiceRef> services;
+            GattServiceList_t services;
 
             BTDeviceRef fwdServer; // FWD mode
 
@@ -852,7 +858,7 @@ namespace direct_bt {
                 return java_class();
             }
 
-            ~DBGattServer() noexcept override {
+            ~DBGattServer() noexcept override { // NOLINT(modernize-use-equals-default)
                 #ifdef JAU_TRACE_DBGATT
                     JAU_TRACE_DBGATT_PRINT("DBGattServer dtor0: %p", this);
                     jau::print_backtrace(true);
@@ -959,8 +965,8 @@ namespace direct_bt {
              * @return number of set handles, i.e. `( end_handle - handle ) + 1`
              * @see BTAdapter::startAdvertising()
              */
-            int setServicesHandles() {
-                int c = 0;
+            size_type setServicesHandles() {
+                size_type c = 0;
                 uint16_t h = 1;
                 for(DBGattServiceRef& s : services) {
                     int l = s->setHandles(h);
@@ -972,7 +978,7 @@ namespace direct_bt {
 
             bool addListener(ListenerRef l);
             bool removeListener(ListenerRef l);
-            jau::cow_darray<ListenerRef>& listener() { return listenerList; }
+            ListenerList_t& listener() { return listenerList; }
 
             std::string toFullString() {
                 std::string res = toString()+"\n";

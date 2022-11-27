@@ -165,7 +165,7 @@ namespace direct_bt {
             L2CAPComm(const uint16_t adev_id, const BDAddressAndType& localAddressAndType, const L2CAP_PSM psm, const L2CAP_CID cid) noexcept;
 
             /** Destructor specialization shall close the L2CAP socket, see {@link #close()}. */
-            virtual ~L2CAPComm() noexcept {}
+            virtual ~L2CAPComm() noexcept = default;
 
             L2CAPComm(const L2CAPComm&) = delete;
             void operator=(const L2CAPComm&) = delete;
@@ -231,6 +231,8 @@ namespace direct_bt {
             std::atomic<::pthread_t> tid_connect;
             std::atomic<::pthread_t> tid_read;
 
+            bool close_impl() noexcept;
+
         public:
             /**
              * Constructing a non connected L2CAP channel instance for the pre-defined PSM and CID.
@@ -244,7 +246,9 @@ namespace direct_bt {
                         const BDAddressAndType& remoteAddressAndType, int client_socket) noexcept;
 
             /** Destructor closing the L2CAP channel, see {@link #close()}. */
-            ~L2CAPClient() noexcept { close(); }
+            ~L2CAPClient() noexcept override { 
+                close_impl();
+            }
 
             /**
              * Opens and connects the L2CAP channel, locking {@link #mutex_write()}.
@@ -261,7 +265,7 @@ namespace direct_bt {
             const BDAddressAndType& getRemoteAddressAndType() const noexcept { return remoteAddressAndType; }
 
             /** Closing the L2CAP channel, locking {@link #mutex_write()}. */
-            bool close() noexcept override;
+            bool close() noexcept override { return close_impl(); }
 
             bool hasIOError() const noexcept { return has_ioerror; }
             std::string getStateString() const noexcept override { return L2CAPComm::getStateString(is_open_, interrupted_int(), interrupted_ext(), has_ioerror); }
@@ -314,15 +318,19 @@ namespace direct_bt {
         private:
             std::atomic<::pthread_t> tid_accept;
 
+            bool close_impl() noexcept;
+
         public:
             L2CAPServer(const uint16_t adev_id, const BDAddressAndType& localAddressAndType, const L2CAP_PSM psm, const L2CAP_CID cid) noexcept;
 
             /** Destructor closing the L2CAP channel, see {@link #close()}. */
-            ~L2CAPServer() noexcept { close(); }
+            ~L2CAPServer() noexcept override { 
+                close_impl();
+            }
 
             bool open() noexcept;
 
-            bool close() noexcept override;
+            bool close() noexcept override { return close_impl(); }
 
             std::unique_ptr<L2CAPClient> accept() noexcept;
 

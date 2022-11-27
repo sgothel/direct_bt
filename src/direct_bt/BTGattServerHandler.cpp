@@ -56,10 +56,15 @@ extern "C" {
 using namespace direct_bt;
 
 class NopGattServerHandler : public BTGattHandler::GattServerHandler {
-    public:
-        NopGattServerHandler() noexcept {}
+    private:
+        void close_impl() noexcept {}
 
-        void close() noexcept override {}
+    public:
+        NopGattServerHandler() noexcept = default;
+
+        ~NopGattServerHandler() override { close_impl(); }
+
+        void close() noexcept override { close_impl(); }
 
         DBGattServer::Mode getMode() noexcept override { return DBGattServer::Mode::NOP; }
 
@@ -107,9 +112,34 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
         jau::darray<AttPrepWrite> writeDataQueue;
         jau::darray<uint16_t> writeDataQueueHandles;
 
+        void close_impl() noexcept {
+            BTDeviceRef device = gh.getDeviceUnchecked();
+            if( nullptr == device ) {
+                ERR_PRINT("null device: %s", gh.toString().c_str());
+            } else {
+                int i=0;
+                jau::for_each_fidelity(gattServerData->listener(), [&](DBGattServer::ListenerRef &l) {
+                    try {
+                        l->disconnected(device);
+                    } catch (std::exception &e) {
+                        ERR_PRINT("%d/%zd: %s: Caught exception %s",
+                                i+1, gattServerData->listener().size(),
+                                gh.toString().c_str(), e.what());
+                    }
+                    i++;
+                });
+            }
+            writeDataQueue.clear();
+            writeDataQueueHandles.clear();
+        }
+
     public:
         DBGattServerHandler(BTGattHandler& gh_, DBGattServerRef gsd) noexcept
         : gh(gh_), gattServerData(gsd) {}
+
+        ~DBGattServerHandler() override { close_impl(); }
+
+        void close() noexcept override { close_impl(); }
 
     private:
         bool hasServerHandle(const uint16_t handle) noexcept {
@@ -322,27 +352,6 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
 
 
     public:
-        void close() noexcept override {
-            BTDeviceRef device = gh.getDeviceUnchecked();
-            if( nullptr == device ) {
-                ERR_PRINT("null device: %s", gh.toString().c_str());
-            } else {
-                int i=0;
-                jau::for_each_fidelity(gattServerData->listener(), [&](DBGattServer::ListenerRef &l) {
-                    try {
-                        l->disconnected(device);
-                    } catch (std::exception &e) {
-                        ERR_PRINT("%d/%zd: %s: Caught exception %s",
-                                i+1, gattServerData->listener().size(),
-                                gh.toString().c_str(), e.what());
-                    }
-                    i++;
-                });
-            }
-            writeDataQueue.clear();
-            writeDataQueueHandles.clear();
-        }
-
         DBGattServer::Mode getMode() noexcept override { return DBGattServer::Mode::DB; }
 
         bool replyExchangeMTUReq(const AttExchangeMTU * pdu) noexcept override {
@@ -719,38 +728,49 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
                 req_group_type = 0;
             }
 
-
             // const jau::nsize_t rspMaxSize = std::min<jau::nsize_t>(255, getUsedMTU()-2);
             AttFindByTypeValueRsp rsp(gh.getUsedMTU()); // maximum size
-            jau::nsize_t rspSize = 0;
+            // jau::nsize_t rspSize = 0;
             jau::nsize_t rspCount = 0;
 
-            const jau::nsize_t size = 2 + 2;
+            try {
+                // const jau::nsize_t size = 2 + 2;
 
-            for(DBGattServiceRef& s : gattServerData->getServices()) {
-                if( start_handle <= s->getHandle() && s->getHandle() <= end_handle ) {
-                    if( ( ( GattAttributeType::PRIMARY_SERVICE   == req_group_type &&  s->isPrimary() ) ||
-                          ( GattAttributeType::SECONDARY_SERVICE == req_group_type && !s->isPrimary() )
-                        ) &&
-                        s->getType()->equivalent(*att_value) )
-                    {
-                        rsp.setElementHandles(rspCount, s->getHandle(), s->getEndHandle());
-                        rspSize += size;
-                        ++rspCount;
-                        COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: TYPEVALUE.4: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), gh.toString().c_str());
-                        return gh.send(rsp); // done
+                for(DBGattServiceRef& s : gattServerData->getServices()) {
+                    if( start_handle <= s->getHandle() && s->getHandle() <= end_handle ) {
+                        if( ( ( GattAttributeType::PRIMARY_SERVICE   == req_group_type &&  s->isPrimary() ) ||
+                            ( GattAttributeType::SECONDARY_SERVICE == req_group_type && !s->isPrimary() )
+                            ) &&
+                            s->getType()->equivalent(*att_value) )
+                        {
+                            rsp.setElementHandles(rspCount, s->getHandle(), s->getEndHandle());
+                            // rspSize += size;
+                            ++rspCount;
+                            COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: TYPEVALUE.4: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), gh.toString().c_str());
+                            return gh.send(rsp); // done
+                        }
                     }
                 }
+                if( 0 < rspCount ) { // loop completed, elements added and all fitting in ATT_MTU
+                    rsp.setElementCount(rspCount);
+                    COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: TYPEVALUE.5: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), gh.toString().c_str());
+                    return gh.send(rsp);
+                }
+            } catch (const jau::ExceptionBase &e) {
+                ERR_PRINT("invalid att uuid: %s", e.message().c_str());
+            } catch (...) {
+                ERR_PRINT("invalid att uuid: Unknown exception");
             }
-            (void)rspSize; // not yet used
-            if( 0 < rspCount ) { // loop completed, elements added and all fitting in ATT_MTU
-                rsp.setElementCount(rspCount);
-                COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: TYPEVALUE.5: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), gh.toString().c_str());
-                return gh.send(rsp);
+            try {
+                AttErrorRsp err(AttErrorRsp::ErrorCode::ATTRIBUTE_NOT_FOUND, pdu->getOpcode(), start_handle);
+                COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: TYPEVALUE.6: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), gh.toString().c_str());
+                return gh.send(err);
+            } catch (const jau::ExceptionBase &e) {
+                ERR_PRINT("invalid att uuid: %s", e.message().c_str());
+            } catch (...) {
+                ERR_PRINT("invalid att uuid: Unknown exception");
             }
-            AttErrorRsp err(AttErrorRsp::ErrorCode::ATTRIBUTE_NOT_FOUND, pdu->getOpcode(), start_handle);
-            COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: TYPEVALUE.6: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), gh.toString().c_str());
-            return gh.send(err);
+            return false;
         }
 
         bool replyReadByTypeReq(const AttReadByNTypeReq * pdu) noexcept override {
@@ -814,6 +834,7 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
                             ePDUOffset += c->getValueType()->getTypeSizeInt();
                             rspSize += size;
                             ++rspCount;
+                            (void)ePDUOffset;
                         }
                     }
                 }
@@ -928,16 +949,20 @@ class FwdGattServerHandler : public BTGattHandler::GattServerHandler {
         jau::darray<AttPrepWrite> writeDataQueue;
         jau::darray<uint16_t> writeDataQueueHandles;
 
+        void close_impl() noexcept {
+            writeDataQueue.clear();
+            writeDataQueueHandles.clear();
+        }
+
     public:
         FwdGattServerHandler(BTGattHandler& gh_, BTDeviceRef fwdServer_) noexcept
         : gh(gh_), fwdServer(fwdServer_) {
             fwd_gh = fwdServer->getGattHandler();
         }
 
-        void close() noexcept override {
-            writeDataQueue.clear();
-            writeDataQueueHandles.clear();
-        }
+        ~FwdGattServerHandler() override { close_impl(); }
+
+        void close() noexcept override { close_impl(); }
 
         DBGattServer::Mode getMode() noexcept override { return DBGattServer::Mode::FWD; }
 

@@ -300,14 +300,14 @@ std::unique_ptr<const SMPPDUMsg> SMPHandler::sendWithReply(const SMPPDUMsg & msg
  * SMPSecurityReqCallback handling
  */
 
-static SMPSecurityReqCallbackList::equal_comparator _changedSMPSecurityReqCallbackEqComp =
-        [](const SMPSecurityReqCallback& a, const SMPSecurityReqCallback& b) -> bool { return a == b; };
+static SMPHandler::SMPSecurityReqCallbackList::equal_comparator _changedSMPSecurityReqCallbackEqComp =
+        [](const SMPHandler::SMPSecurityReqCallback& a, const SMPHandler::SMPSecurityReqCallback& b) -> bool { return a == b; };
 
 
 void SMPHandler::addSMPSecurityReqCallback(const SMPSecurityReqCallback & l) {
     smpSecurityReqCallbackList.push_back(l);
 }
-int SMPHandler::removeSMPSecurityReqCallback(const SMPSecurityReqCallback & l) {
+SMPHandler::size_type SMPHandler::removeSMPSecurityReqCallback(const SMPSecurityReqCallback & l) {
     return smpSecurityReqCallbackList.erase_matching(l, true /* all_matching */, _changedSMPSecurityReqCallbackEqComp);
 }
 

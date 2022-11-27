@@ -37,7 +37,6 @@ import org.direct_bt.BTMode;
 import org.direct_bt.BTSecurityLevel;
 import org.direct_bt.BTAdapter;
 import org.direct_bt.BTDevice;
-import org.direct_bt.BTDeviceRegistry;
 import org.direct_bt.BTException;
 import org.direct_bt.BTFactory;
 import org.direct_bt.BTManager;
@@ -358,7 +357,7 @@ public class DBTPeripheral00 {
         }
     };
 
-    class MyGATTServerListener extends DBGattServer.Listener implements AutoCloseable {
+    class MyGATTServerListener extends DBGattServer.Listener {
         private final Thread pulseSenderThread;
         private volatile boolean stopPulseSenderFlag = false;
 

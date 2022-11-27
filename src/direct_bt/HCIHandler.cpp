@@ -101,9 +101,14 @@ HCIHandler::HCIConnectionRef HCIHandler::addOrUpdateHCIConnection(jau::darray<HC
             return conn; // done
         }
     }
-    HCIConnectionRef res( new HCIConnection(addressAndType, handle) );
-    list.push_back( res );
-    return res;
+    try {
+        HCIConnectionRef res( std::make_shared<HCIConnection>(addressAndType, handle) );
+        list.push_back( res );
+        return res;
+    } catch (const std::bad_alloc &e) {
+        ABORT("Error: bad_alloc: HCIConnectionRef allocation failed");
+        return nullptr; // unreachable
+    }
 }
 
 HCIHandler::HCIConnectionRef HCIHandler::findHCIConnection(jau::darray<HCIConnectionRef> &list, const BDAddressAndType& addressAndType) noexcept {
@@ -142,18 +147,17 @@ HCIHandler::HCIConnectionRef HCIHandler::removeTrackerConnection(const HCIConnec
     }
     return nullptr;
 }
-int HCIHandler::countPendingTrackerConnections() noexcept {
+HCIHandler::size_type HCIHandler::countPendingTrackerConnections() noexcept {
     const std::lock_guard<std::recursive_mutex> lock(mtx_connectionList); // RAII-style acquire and relinquish via destructor
-    int count = 0;
-    for (auto it = connectionList.begin(); it != connectionList.end(); it++) {
-        HCIConnectionRef e = *it;
+    size_type count = 0;
+    for (auto e : connectionList) {
         if ( e->getHandle() == 0 ) {
             count++;
         }
     }
     return count;
 }
-int HCIHandler::getTrackerConnectionCount() noexcept {
+HCIHandler::size_type HCIHandler::getTrackerConnectionCount() noexcept {
     const std::lock_guard<std::recursive_mutex> lock(mtx_connectionList); // RAII-style acquire and relinquish via destructor
     return connectionList.size();
 }
@@ -303,9 +307,14 @@ std::unique_ptr<MgmtEvent> HCIHandler::translate(HCIEvent& ev) noexcept {
                 advertisingEnabled = false;
                 return std::make_unique<MgmtEvtDeviceConnected>(dev_id, conn->getAddressAndType(), conn->getHandle());
             } else {
-                std::unique_ptr<MgmtEvent> res( new MgmtEvtDeviceConnectFailed(dev_id, conn->getAddressAndType(),status) );
-                removeTrackerConnection(conn);
-                return res;
+                try {
+                    std::unique_ptr<MgmtEvent> res( std::make_unique<MgmtEvtDeviceConnectFailed>(dev_id, conn->getAddressAndType(),status) );
+                    removeTrackerConnection(conn);
+                    return res;
+                } catch (const std::bad_alloc &e) {
+                    ABORT("Error: bad_alloc: MgmtEvtDeviceConnectFailedRef allocation failed");
+                    return nullptr; // unreachable
+                }
             }
         }
         case HCIEventType::DISCONN_COMPLETE: {
@@ -1284,9 +1293,9 @@ HCIStatusCode HCIHandler::le_create_conn(const EUI48 &peer_bdaddr,
             dev_id, 1.25f * (float)conn_interval_min, 1.25f * (float)conn_interval_max,
             conn_latency, supervision_timeout*10, toString().c_str());
 
-    int pendingConnections = countPendingTrackerConnections();
+    size_type pendingConnections = countPendingTrackerConnections();
     if( 0 < pendingConnections ) {
-        DBG_PRINT("HCIHandler<%u>::le_create_conn: %d connections pending - %s", dev_id, pendingConnections, toString().c_str());
+        DBG_PRINT("HCIHandler<%u>::le_create_conn: %zu connections pending - %s", dev_id, (size_t)pendingConnections, toString().c_str());
         jau::fraction_i64 td = 0_s;
         while( env.HCI_COMMAND_COMPLETE_REPLY_TIMEOUT > td && 0 < pendingConnections ) {
             sleep_for(env.HCI_COMMAND_POLL_PERIOD);
@@ -1294,7 +1303,7 @@ HCIStatusCode HCIHandler::le_create_conn(const EUI48 &peer_bdaddr,
             pendingConnections = countPendingTrackerConnections();
         }
         if( 0 < pendingConnections ) {
-            WARN_PRINT("%d connections pending after %" PRIi64 " ms - %s", pendingConnections, td.to_ms(), toString().c_str());
+            WARN_PRINT("%zu connections pending after %" PRIi64 " ms - %s", (size_t)pendingConnections, td.to_ms(), toString().c_str());
         } else {
             DBG_PRINT("HCIHandler<%u>::le_create_conn: pending connections resolved after %" PRIi64 " ms - %s", dev_id, td.to_ms(), toString().c_str());
         }
@@ -1413,9 +1422,9 @@ HCIStatusCode HCIHandler::create_conn(const EUI48 &bdaddr,
     cp->clock_offset = jau::cpu_to_le(clock_offset);
     cp->role_switch = role_switch;
 
-    int pendingConnections = countPendingTrackerConnections();
+    size_type pendingConnections = countPendingTrackerConnections();
     if( 0 < pendingConnections ) {
-        DBG_PRINT("HCIHandler<%u>::create_conn: %d connections pending - %s", dev_id, pendingConnections, toString().c_str());
+        DBG_PRINT("HCIHandler<%u>::create_conn: %zu connections pending - %s", dev_id, (size_t)pendingConnections, toString().c_str());
         jau::fraction_i64 td = 0_s;
         while( env.HCI_COMMAND_COMPLETE_REPLY_TIMEOUT > td && 0 < pendingConnections ) {
             sleep_for(env.HCI_COMMAND_POLL_PERIOD);
@@ -1423,7 +1432,7 @@ HCIStatusCode HCIHandler::create_conn(const EUI48 &bdaddr,
             pendingConnections = countPendingTrackerConnections();
         }
         if( 0 < pendingConnections ) {
-            WARN_PRINT("%d connections pending after %" PRIi64 " ms - %s", pendingConnections, td.to_ms(), toString().c_str());
+            WARN_PRINT("%zu connections pending after %" PRIi64 " ms - %s", (size_t)pendingConnections, td.to_ms(), toString().c_str());
         } else {
             DBG_PRINT("HCIHandler<%u>::create_conn: pending connections resolved after %" PRIi64 " ms - %s", dev_id, td.to_ms(), toString().c_str());
         }
@@ -1776,9 +1785,9 @@ HCIStatusCode HCIHandler::le_enable_adv(const bool enable) noexcept {
             WARN_PRINT("Not allowed (scan enabled): %s", toString().c_str());
             return HCIStatusCode::COMMAND_DISALLOWED;
         }
-        const int connCount = getTrackerConnectionCount();
+        const size_type connCount = getTrackerConnectionCount();
         if( 0 < connCount ) {
-            WARN_PRINT("Not allowed (%d connections open/pending): %s", connCount, toString().c_str());
+            WARN_PRINT("Not allowed (%zu connections open/pending): %s", (size_t)connCount, toString().c_str());
             return HCIStatusCode::COMMAND_DISALLOWED;
         }
     }
@@ -1854,9 +1863,9 @@ HCIStatusCode HCIHandler::le_start_adv(const EInfoReport &eir,
         WARN_PRINT("Not allowed (scan enabled): %s", toString().c_str());
         return HCIStatusCode::COMMAND_DISALLOWED;
     }
-    const int connCount = getTrackerConnectionCount();
+    const size_type connCount = getTrackerConnectionCount();
     if( 0 < connCount ) {
-        WARN_PRINT("Not allowed (%d connections open/pending): %s", connCount, toString().c_str());
+        WARN_PRINT("Not allowed (%zu connections open/pending): %s", (size_t)connCount, toString().c_str());
         return HCIStatusCode::COMMAND_DISALLOWED;
     }
 
@@ -2066,7 +2075,7 @@ bool HCIHandler::addMgmtEventCallback(const MgmtEvent::Opcode opc, const MgmtEve
     /* const bool added = */ l.push_back_unique(cb, _mgmtEventCallbackEqComparator);
     return true;
 }
-int HCIHandler::removeMgmtEventCallback(const MgmtEvent::Opcode opc, const MgmtEventCallback &cb) noexcept {
+HCIHandler::size_type HCIHandler::removeMgmtEventCallback(const MgmtEvent::Opcode opc, const MgmtEventCallback &cb) noexcept {
     if( !isValidMgmtEventCallbackListsIndex(opc) ) {
         ERR_PRINT("Opcode %s >= %d - %s", MgmtEvent::getOpcodeString(opc).c_str(), mgmtEventCallbackLists.size(), toString().c_str());
         return 0;
@@ -2082,8 +2091,8 @@ void HCIHandler::clearMgmtEventCallbacks(const MgmtEvent::Opcode opc) noexcept {
     mgmtEventCallbackLists[static_cast<uint16_t>(opc)].clear();
 }
 void HCIHandler::clearAllCallbacks() noexcept {
-    for(size_t i=0; i<mgmtEventCallbackLists.size(); i++) {
-        mgmtEventCallbackLists[i].clear();
+    for(auto & mgmtEventCallbackList : mgmtEventCallbackLists) {
+        mgmtEventCallbackList.clear();
     }
     hciSMPMsgCallbackList.clear();
 }
@@ -2099,7 +2108,7 @@ static HCISMPMsgCallbackList::equal_comparator _changedHCISMPMsgCallbackEqComp =
 void HCIHandler::addSMPMsgCallback(const HCISMPMsgCallback & l) {
     hciSMPMsgCallbackList.push_back(l);
 }
-int HCIHandler::removeSMPMsgCallback(const HCISMPMsgCallback & l) {
+HCIHandler::size_type HCIHandler::removeSMPMsgCallback(const HCISMPMsgCallback & l) {
     return hciSMPMsgCallbackList.erase_matching(l, true /* all_matching */, _changedHCISMPMsgCallbackEqComp);
 }
 

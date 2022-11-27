@@ -119,9 +119,8 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
         return "JNIAdapterStatusListener[this "+jau::to_hexstring(this)+", iname "+std::to_string(iname)+"]";
     }
 
-    ~JNIAdapterStatusListener() override {
-        // listenerObjRef dtor will call notifyDelete and clears the nativeInstance handle
-    }
+    // listenerObjRef dtor will call notifyDelete and clears the nativeInstance handle
+    ~JNIAdapterStatusListener() override = default;
 
     JNIAdapterStatusListener(JNIEnv *env, jobject statusListenerObj)
     : iname(iname_next.fetch_add(1))
@@ -544,7 +543,7 @@ jint Java_jau_direct_1bt_DBTAdapter_removeAllStatusListenerImpl(JNIEnv *env, job
         shared_ptr_ref<BTAdapter> adapter(env, obj); // hold until done
         JavaAnonRef adapter_java = adapter->getJavaObject(); // hold until done!
         JavaGlobalObj::check(adapter_java, E_FILE_LINE);
-        return adapter->removeAllStatusListener();
+        return (jint)adapter->removeAllStatusListener();
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
@@ -566,7 +565,7 @@ jboolean Java_jau_direct_1bt_DBTAdapter_isDeviceWhitelisted(JNIEnv *env, jobject
         }
         JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
         uint8_t * address_ptr = criticalArray.get(jaddress, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
-        if( NULL == address_ptr ) {
+        if( nullptr == address_ptr ) {
             throw jau::InternalError("GetPrimitiveArrayCritical(address byte array) is null", E_FILE_LINE);
         }
         const EUI48& address = *reinterpret_cast<EUI48 *>(address_ptr);
@@ -596,7 +595,7 @@ jboolean Java_jau_direct_1bt_DBTAdapter_addDeviceToWhitelistImpl1(JNIEnv *env, j
         }
         JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
         uint8_t * address_ptr = criticalArray.get(jaddress, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
-        if( NULL == address_ptr ) {
+        if( nullptr == address_ptr ) {
             throw jau::InternalError("GetPrimitiveArrayCritical(address byte array) is null", E_FILE_LINE);
         }
         const EUI48& address = *reinterpret_cast<EUI48 *>(address_ptr);
@@ -625,7 +624,7 @@ jboolean Java_jau_direct_1bt_DBTAdapter_addDeviceToWhitelistImpl2(JNIEnv *env, j
         }
         JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
         uint8_t * address_ptr = criticalArray.get(jaddress, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
-        if( NULL == address_ptr ) {
+        if( nullptr == address_ptr ) {
             throw jau::InternalError("GetPrimitiveArrayCritical(address byte array) is null", E_FILE_LINE);
         }
         const EUI48& address = *reinterpret_cast<EUI48 *>(address_ptr);
@@ -653,7 +652,7 @@ jboolean Java_jau_direct_1bt_DBTAdapter_removeDeviceFromWhitelistImpl(JNIEnv *en
         }
         JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
         uint8_t * address_ptr = criticalArray.get(jaddress, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
-        if( NULL == address_ptr ) {
+        if( nullptr == address_ptr ) {
             throw jau::InternalError("GetPrimitiveArrayCritical(address byte array) is null", E_FILE_LINE);
         }
         const EUI48& address = *reinterpret_cast<EUI48 *>(address_ptr);
@@ -861,7 +860,7 @@ jint Java_jau_direct_1bt_DBTAdapter_removeDiscoveredDevicesImpl1(JNIEnv *env, jo
         JavaAnonRef adapter_java = adapter->getJavaObject(); // hold until done!
         JavaGlobalObj::check(adapter_java, E_FILE_LINE);
 
-        return adapter->removeDiscoveredDevices();
+        return (jint) adapter->removeDiscoveredDevices();
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
@@ -884,7 +883,7 @@ jboolean Java_jau_direct_1bt_DBTAdapter_removeDiscoveredDeviceImpl1(JNIEnv *env,
         }
         JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
         uint8_t * address_ptr = criticalArray.get(jaddress, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
-        if( NULL == address_ptr ) {
+        if( nullptr == address_ptr ) {
             throw jau::InternalError("GetPrimitiveArrayCritical(address byte array) is null", E_FILE_LINE);
         }
         const EUI48& address = *reinterpret_cast<EUI48 *>(address_ptr);
@@ -1038,7 +1037,7 @@ jbyte Java_jau_direct_1bt_DBTAdapter_setDefaultLE_1PHYImpl(JNIEnv *env, jobject 
         const LE_PHYs Tx = static_cast<LE_PHYs>(jTx);
         const LE_PHYs Rx = static_cast<LE_PHYs>(jRx);
 
-        return number ( adapter->setDefaultLE_PHY(Tx, Rx) );
+        return (jbyte)number ( adapter->setDefaultLE_PHY(Tx, Rx) );
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
@@ -1101,7 +1100,7 @@ jobject Java_jau_direct_1bt_DBTAdapter_connectDeviceImpl(JNIEnv *env, jobject ob
         }
         JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
         uint8_t * address_ptr = criticalArray.get(jaddress, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
-        if( NULL == address_ptr ) {
+        if( nullptr == address_ptr ) {
             throw jau::InternalError("GetPrimitiveArrayCritical(address byte array) is null", E_FILE_LINE);
         }
         const EUI48& address = *reinterpret_cast<EUI48 *>(address_ptr);

@@ -100,7 +100,7 @@ jboolean Java_jau_direct_1bt_DBTGattDesc_writeValueImpl(JNIEnv *env, jobject obj
         }
         JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
         uint8_t * value_ptr = criticalArray.get(jval, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
-        if( NULL == value_ptr ) {
+        if( nullptr == value_ptr ) {
             throw jau::InternalError("GetPrimitiveArrayCritical(byte array) is null", E_FILE_LINE);
         }
         jau::TROOctets value(value_ptr, value_size, jau::endian::little);

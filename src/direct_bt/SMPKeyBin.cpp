@@ -23,6 +23,7 @@
  */
 
 #include <cstring>
+#include <limits>
 #include <string>
 #include <memory>
 #include <cstdint>
@@ -169,6 +170,7 @@ std::string SMPKeyBin::toString() const noexcept {
             res += csrk_init.toString();
             comma = true;
         }
+        // NOLINTBEGIN(clang-analyzer-deadcode.DeadStores)        
         if( hasLKInit() ) {
             if( comma ) {
                 res += ", ";
@@ -204,6 +206,7 @@ std::string SMPKeyBin::toString() const noexcept {
             comma = true;
         }
         res += "], ";
+        // NOLINTEND(clang-analyzer-deadcode.DeadStores)        
     }
     res += "ver["+jau::to_hexstring(version)+", ok "+std::to_string( isVersionValid() )+
            "], size["+std::to_string(size);
@@ -213,7 +216,7 @@ std::string SMPKeyBin::toString() const noexcept {
     res += ", valid "+std::to_string( isSizeValid() )+
            "], ";
     {
-        jau::fraction_timespec t0( ts_creation_sec, 0 );
+        jau::fraction_timespec t0( (int64_t) std::min<uint64_t>(ts_creation_sec, std::numeric_limits<int64_t>::max()), 0 );
         res += t0.to_iso8601_string();
     }
     res += ", valid "+std::to_string( isValid() )+"]";

@@ -394,7 +394,7 @@ failure:
     return false;
 }
 
-bool L2CAPClient::close() noexcept {
+bool L2CAPClient::close_impl() noexcept {
     bool expOpen = true; // C++11, exp as value since C++20
     if( !is_open_.compare_exchange_strong(expOpen, false) ) {
         DBG_PRINT("L2CAPClient::close: Not connected: dev_id %u, dd %d, %s, psm %s, cid %s; %s",
@@ -543,7 +543,7 @@ jau::snsize_t L2CAPClient::read(uint8_t* buffer, const jau::nsize_t capacity) no
 
     if( timeoutMS ) {
         struct pollfd p;
-        int n;
+        int n = 1;
 
         p.fd = socket_; p.events = POLLIN;
         while ( is_open_ && !interrupted() && ( n = ::poll( &p, 1, timeoutMS ) ) < 0 ) {
@@ -770,7 +770,7 @@ failure:
     return false;
 }
 
-bool L2CAPServer::close() noexcept {
+bool L2CAPServer::close_impl() noexcept {
     bool expOpen = true; // C++11, exp as value since C++20
     if( !is_open_.compare_exchange_strong(expOpen, false) ) {
         DBG_PRINT("L2CAPServer::close: Not connected: dev_id %u, dd %d, psm %s, cid %s, local %s",

@@ -184,6 +184,8 @@ namespace direct_bt {
 
             const HCIEnv & env;
 
+            typedef jau::nsize_t size_type;
+
         private:
             class HCIConnection {
                 private:
@@ -226,7 +228,11 @@ namespace direct_bt {
                                ", address "+addressAndType.toString()+"]";
                     }
             };
+        public:
             typedef std::shared_ptr<HCIConnection> HCIConnectionRef;
+            typedef jau::darray<HCIConnectionRef, size_type> HCIConnectionRefList_t;
+
+        private:
 
             static MgmtEvent::Opcode translate(HCIEventType evt, HCIMetaEventType met) noexcept;
 
@@ -273,8 +279,8 @@ namespace direct_bt {
             std::atomic<ScanType> currentScanType;
             jau::sc_atomic_bool advertisingEnabled;
 
-            jau::darray<HCIConnectionRef> connectionList;
-            jau::darray<HCIConnectionRef> disconnectCmdList;
+            HCIConnectionRefList_t connectionList;
+            HCIConnectionRefList_t disconnectCmdList;
             std::recursive_mutex mtx_connectionList; // Recurses from disconnect -> findTrackerConnection, addOrUpdateTrackerConnection
 
             /** Exclusive [le] connection command (status + pending completed) one at a time */
@@ -292,7 +298,7 @@ namespace direct_bt {
              * @param addrType key to matching connection
              * @param handle ignored for existing tracker _if_ invalid, i.e. zero.
              */
-            HCIConnectionRef addOrUpdateHCIConnection(jau::darray<HCIConnectionRef> &list,
+            HCIConnectionRef addOrUpdateHCIConnection(HCIConnectionRefList_t& list,
                                                       const BDAddressAndType& addressAndType, const uint16_t handle) noexcept;
             HCIConnectionRef addOrUpdateTrackerConnection(const BDAddressAndType& addressAndType, const uint16_t handle) noexcept {
                 return addOrUpdateHCIConnection(connectionList, addressAndType, handle);
@@ -301,7 +307,7 @@ namespace direct_bt {
                 return addOrUpdateHCIConnection(disconnectCmdList, addressAndType, handle);
             }
 
-            HCIConnectionRef findHCIConnection(jau::darray<HCIConnectionRef> &list, const BDAddressAndType& addressAndType) noexcept;
+            HCIConnectionRef findHCIConnection(HCIConnectionRefList_t& list, const BDAddressAndType& addressAndType) noexcept;
             HCIConnectionRef findTrackerConnection(const BDAddressAndType& addressAndType) noexcept {
                 return findHCIConnection(connectionList, addressAndType);
             }
@@ -311,10 +317,10 @@ namespace direct_bt {
 
             HCIConnectionRef findTrackerConnection(const uint16_t handle) noexcept;
             HCIConnectionRef removeTrackerConnection(const HCIConnectionRef conn) noexcept;
-            int countPendingTrackerConnections() noexcept;
-            int getTrackerConnectionCount() noexcept;
+            size_type countPendingTrackerConnections() noexcept;
+            size_type getTrackerConnectionCount() noexcept;
 
-            HCIConnectionRef removeHCIConnection(jau::darray<HCIConnectionRef> &list, const uint16_t handle) noexcept;
+            HCIConnectionRef removeHCIConnection(HCIConnectionRefList_t& list, const uint16_t handle) noexcept;
             HCIConnectionRef removeTrackerConnection(const uint16_t handle) noexcept {
                 return removeHCIConnection(connectionList, handle);
             }
@@ -907,12 +913,12 @@ namespace direct_bt {
              */
             bool addMgmtEventCallback(const MgmtEvent::Opcode opc, const MgmtEventCallback &cb) noexcept;
             /** Returns count of removed given MgmtEventCallback from the named MgmtEvent::Opcode list. */
-            int removeMgmtEventCallback(const MgmtEvent::Opcode opc, const MgmtEventCallback &cb) noexcept;
+            size_type removeMgmtEventCallback(const MgmtEvent::Opcode opc, const MgmtEventCallback &cb) noexcept;
             /** Removes all MgmtEventCallbacks from the to the named MgmtEvent::Opcode list. */
             void clearMgmtEventCallbacks(const MgmtEvent::Opcode opc) noexcept;
 
             void addSMPMsgCallback(const HCISMPMsgCallback & l);
-            int removeSMPMsgCallback(const HCISMPMsgCallback & l);
+            size_type removeSMPMsgCallback(const HCISMPMsgCallback & l);
 
             /** Removes all MgmtEventCallbacks from all MgmtEvent::Opcode lists and all SMPSecurityReqCallbacks. */
             void clearAllCallbacks() noexcept;

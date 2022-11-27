@@ -211,13 +211,13 @@ bool BTAdapter::removeConnectedDevice(const BTDevice & device) noexcept {
     return false;
 }
 
-int BTAdapter::disconnectAllDevices(const HCIStatusCode reason) noexcept {
+BTAdapter::size_type BTAdapter::disconnectAllDevices(const HCIStatusCode reason) noexcept {
     device_list_t devices;
     {
         jau::sc_atomic_critical sync(sync_data); // SC-DRF via atomic acquire & release
         devices = connectedDevices; // copy!
     }
-    const int count = devices.size();
+    const size_type count = devices.size();
     auto end = devices.end();
     for (auto it = devices.begin(); it != end; ++it) {
         if( nullptr != *it ) {
@@ -298,6 +298,7 @@ bool BTAdapter::initialSetup() noexcept {
         hci.resetAllStates(false);
         WORDY_PRINT("BTAdapter::initialSetup: Adapter[%d]: Not POWERED: %s", dev_id, adapterInfo.toString().c_str());
     }
+    // NOLINTNEXTLINE(clang-analyzer-optin.cplusplus.VirtualCall)
     WORDY_PRINT("BTAdapter::initialSetup: Adapter[%d]: Done: %s - %s", dev_id, adapterInfo.toString().c_str(), toString().c_str());
 
     return true;
@@ -322,14 +323,14 @@ bool BTAdapter::enableListening(const bool enable) noexcept {
         ok = mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::DISCOVERING, jau::bind_member(this, &BTAdapter::mgmtEvDeviceDiscoveringMgmt)) && ok;
         ok = mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::NEW_SETTINGS, jau::bind_member(this, &BTAdapter::mgmtEvNewSettingsMgmt)) && ok;
         ok = mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::LOCAL_NAME_CHANGED, jau::bind_member(this, &BTAdapter::mgmtEvLocalNameChangedMgmt)) && ok;
-        ok = mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::PIN_CODE_REQUEST, jau::bind_member(this, &BTAdapter::mgmtEvPinCodeRequestMgmt));
-        ok = mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::USER_CONFIRM_REQUEST, jau::bind_member(this, &BTAdapter::mgmtEvUserConfirmRequestMgmt));
-        ok = mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::USER_PASSKEY_REQUEST, jau::bind_member(this, &BTAdapter::mgmtEvUserPasskeyRequestMgmt));
-        ok = mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::AUTH_FAILED, jau::bind_member(this, &BTAdapter::mgmtEvAuthFailedMgmt));
-        ok = mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::DEVICE_UNPAIRED, jau::bind_member(this, &BTAdapter::mgmtEvDeviceUnpairedMgmt));
-        ok = mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::PAIR_DEVICE_COMPLETE, jau::bind_member(this, &BTAdapter::mgmtEvPairDeviceCompleteMgmt));
-        ok = mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::NEW_LONG_TERM_KEY, jau::bind_member(this, &BTAdapter::mgmtEvNewLongTermKeyMgmt));
-        ok = mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::NEW_LINK_KEY, jau::bind_member(this, &BTAdapter::mgmtEvNewLinkKeyMgmt));
+        ok = mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::PIN_CODE_REQUEST, jau::bind_member(this, &BTAdapter::mgmtEvPinCodeRequestMgmt)) && ok;
+        ok = mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::USER_CONFIRM_REQUEST, jau::bind_member(this, &BTAdapter::mgmtEvUserConfirmRequestMgmt)) && ok;
+        ok = mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::USER_PASSKEY_REQUEST, jau::bind_member(this, &BTAdapter::mgmtEvUserPasskeyRequestMgmt)) && ok;
+        ok = mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::AUTH_FAILED, jau::bind_member(this, &BTAdapter::mgmtEvAuthFailedMgmt)) && ok;
+        ok = mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::DEVICE_UNPAIRED, jau::bind_member(this, &BTAdapter::mgmtEvDeviceUnpairedMgmt)) && ok;
+        ok = mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::PAIR_DEVICE_COMPLETE, jau::bind_member(this, &BTAdapter::mgmtEvPairDeviceCompleteMgmt)) && ok;
+        ok = mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::NEW_LONG_TERM_KEY, jau::bind_member(this, &BTAdapter::mgmtEvNewLongTermKeyMgmt)) && ok;
+        ok = mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::NEW_LINK_KEY, jau::bind_member(this, &BTAdapter::mgmtEvNewLinkKeyMgmt)) && ok;
 
         if( !ok ) {
             ERR_PRINT("Could not add all required MgmtEventCallbacks to DBTManager: %s", toString().c_str());
@@ -370,11 +371,11 @@ bool BTAdapter::enableListening(const bool enable) noexcept {
     return true;
 }
 
-BTAdapter::BTAdapter(const BTAdapter::ctor_cookie& cc, const BTManagerRef& mgmt_, const AdapterInfo& adapterInfo_) noexcept
+BTAdapter::BTAdapter(const BTAdapter::ctor_cookie& cc, BTManagerRef mgmt_, AdapterInfo adapterInfo_) noexcept
 : debug_event(jau::environment::getBooleanProperty("direct_bt.debug.adapter.event", false)),
   debug_lock(jau::environment::getBooleanProperty("direct_bt.debug.adapter.lock", false)),
-  mgmt( mgmt_ ),
-  adapterInfo( adapterInfo_ ),
+  mgmt( std::move(mgmt_) ),
+  adapterInfo( std::move(adapterInfo_) ),
   adapter_initialized( false ), adapter_poweredon_at_init( false ),
   le_features( LE_Features::NONE ),
   hci_uses_ext_scan( false ), hci_uses_ext_conn( false ), hci_uses_ext_adv( false ),
@@ -412,6 +413,7 @@ BTAdapter::~BTAdapter() noexcept {
         hci.clearAllCallbacks();
         return;
     }
+    // NOLINTNEXTLINE(clang-analyzer-optin.cplusplus.VirtualCall)
     DBG_PRINT("BTAdapter::dtor: ... %p %s", this, toString().c_str());
     close();
 
@@ -427,13 +429,14 @@ void BTAdapter::close() noexcept {
         DBG_PRINT("BTAdapter::close: dev_id %d, invalid, %p", dev_id, this);
         return;
     }
+    // NOLINTNEXTLINE(clang-analyzer-optin.cplusplus.VirtualCall)
     DBG_PRINT("BTAdapter::close: ... %p %s", this, toString().c_str());
     discovery_policy = DiscoveryPolicy::AUTO_OFF;
 
     // mute all listener first
     {
-        int count = mgmt->removeMgmtEventCallback(dev_id);
-        DBG_PRINT("BTAdapter::close removeMgmtEventCallback: %d callbacks", count);
+        size_type count = mgmt->removeMgmtEventCallback(dev_id);
+        DBG_PRINT("BTAdapter::close removeMgmtEventCallback: %zu callbacks", (size_t)count);
     }
     hci.clearAllCallbacks();
     statusListenerList.clear();
@@ -980,7 +983,7 @@ bool BTAdapter::removeStatusListener(const AdapterStatusListenerRef& l) noexcept
         ERR_PRINT("AdapterStatusListener ref is null");
         return false;
     }
-    const int count = statusListenerList.erase_matching(StatusListenerPair{l, std::weak_ptr<BTDevice>{}},
+    const size_type count = statusListenerList.erase_matching(StatusListenerPair{l, std::weak_ptr<BTDevice>{}},
                                                         false /* all_matching */,
                                                         adapterStatusListenerRefEqComparator);
     if( _print_device_lists || jau::environment::get().verbose ) {
@@ -1014,11 +1017,10 @@ bool BTAdapter::removeStatusListener(const AdapterStatusListener * l) noexcept {
     return res;
 }
 
-int BTAdapter::removeAllStatusListener(const BTDevice& d) noexcept {
-    int count = 0;
+BTAdapter::size_type BTAdapter::removeAllStatusListener(const BTDevice& d) noexcept {
+    size_type count = 0;
 
-    int res = statusListenerList.size();
-    if( 0 < res ) {
+    if( 0 < statusListenerList.size() ) {
         auto begin = statusListenerList.begin();
         auto it = begin.end();
         do {
@@ -1037,8 +1039,8 @@ int BTAdapter::removeAllStatusListener(const BTDevice& d) noexcept {
     return count;
 }
 
-int BTAdapter::removeAllStatusListener() noexcept {
-    int count = statusListenerList.size();
+BTAdapter::size_type BTAdapter::removeAllStatusListener() noexcept {
+    const size_type count = statusListenerList.size();
     statusListenerList.clear();
     return count;
 }
@@ -1316,8 +1318,8 @@ bool BTAdapter::removeDiscoveredDevice(const BDAddressAndType & addressAndType) 
     return false;
 }
 
-int BTAdapter::removeDiscoveredDevices() noexcept {
-    int res;
+BTAdapter::size_type BTAdapter::removeDiscoveredDevices() noexcept {
+    size_type res;
     {
         const std::lock_guard<std::mutex> lock(mtx_discoveredDevices); // RAII-style acquire and relinquish via destructor
 
@@ -1335,7 +1337,7 @@ int BTAdapter::removeDiscoveredDevices() noexcept {
         }
     }
     if( _print_device_lists || jau::environment::get().verbose ) {
-        jau::PLAIN_PRINT(true, "BTAdapter::removeDiscoveredDevices: End: %d, %s", res, toString().c_str());
+        jau::PLAIN_PRINT(true, "BTAdapter::removeDiscoveredDevices: End: %zu, %s", (size_t)res, toString().c_str());
         printDeviceLists();
     }
     return res;
@@ -1368,7 +1370,7 @@ void BTAdapter::removeSharedDevice(const BTDevice & device) noexcept {
     const std::lock_guard<std::mutex> lock(mtx_sharedDevices); // RAII-style acquire and relinquish via destructor
     for (auto it = sharedDevices.begin(); it != sharedDevices.end(); ) {
         if ( nullptr != *it && device == **it ) {
-            it = sharedDevices.erase(it);
+            sharedDevices.erase(it);
             return; // unique set
         } else {
             ++it;
@@ -1588,9 +1590,8 @@ std::string BTAdapter::toString(bool includeDiscoveredDevices) const noexcept {
         device_list_t devices = getDiscoveredDevices();
         if( devices.size() > 0 ) {
             out.append("\n");
-            for(auto it = devices.begin(); it != devices.end(); it++) {
-                BTDeviceRef p = *it;
-                if( nullptr != p ) {
+            for(auto p : devices) {
+                 if( nullptr != p ) {
                     out.append("  ").append(p->toString()).append("\n");
                 }
             }
@@ -1757,7 +1758,7 @@ void BTAdapter::updateAdapterSettings(const bool off_thread, const AdapterSettin
     COND_PRINT(debug_event, "BTAdapter::updateAdapterSettings: %s -> %s, changes %s: %s, sendEvent %d, offThread %d",
             to_string(old_settings_).c_str(),
             to_string(new_settings).c_str(),
-            to_string(changes).c_str(), toString().c_str(), sendEvent, off_thread );
+            to_string(changes).c_str(), toString().c_str(), sendEvent, off_thread ); // NOLINT(clang-analyzer-optin.cplusplus.VirtualCall)
 
     updateDataFromAdapterInfo();
 
@@ -2348,6 +2349,7 @@ void BTAdapter::mgmtEvDeviceFoundHCI(const MgmtEvent& e) noexcept {
     if( nullptr == eir ) {
         // Sourced from Linux Mgmt, which we don't support
         ABORT("BTAdapter:hci:DeviceFound: Not sourced from LE_ADVERTISING_REPORT: %s", deviceFoundEvent.toString().c_str());
+        return; // unreachable
     } // else: Sourced from HCIHandler via LE_ADVERTISING_REPORT (default!)
 
     /**

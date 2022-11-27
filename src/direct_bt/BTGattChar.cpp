@@ -128,9 +128,8 @@ std::string BTGattChar::toString() const noexcept {
     if( 0 < descriptorList.size() ) {
         bool comma = false;
         desc_str = ", descr[";
-        for(size_t i=0; i<descriptorList.size(); i++) {
-            const BTGattDescRef cd = descriptorList[i];
-            if( comma ) {
+        for(auto cd : descriptorList) {
+             if( comma ) {
                 desc_str += ", ";
             }
             desc_str += "handle "+to_hexstring(cd->handle);
@@ -292,7 +291,7 @@ bool BTGattChar::removeCharListener(const BTGattCharListenerRef& l) noexcept {
     return device->removeCharListener(l);
 }
 
-int BTGattChar::removeAllAssociatedCharListener(bool shallDisableIndicationNotification) noexcept {
+BTGattChar::size_type BTGattChar::removeAllAssociatedCharListener(bool shallDisableIndicationNotification) noexcept {
     if( shallDisableIndicationNotification ) {
         disableIndicationNotification();
     }

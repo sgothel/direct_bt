@@ -153,7 +153,7 @@ void Java_org_direct_1bt_EInfoReport_setAddressImpl(JNIEnv *env, jobject obj, jb
         }
         JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
         uint8_t * address_ptr = criticalArray.get(jaddress, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
-        if( NULL == address_ptr ) {
+        if( nullptr == address_ptr ) {
             throw jau::InternalError("GetPrimitiveArrayCritical(address byte array) is null", E_FILE_LINE);
         }
         const EUI48& address = *reinterpret_cast<EUI48 *>(address_ptr);
@@ -501,8 +501,8 @@ jobject Java_org_direct_1bt_EInfoReport_getManufacturerData(JNIEnv *env, jobject
 
         if( nullptr != mdata ) {
             result = env->NewObject(map_cls, map_ctor, 1);
-            jbyteArray arr = env->NewByteArray(mdata->getData().size());
-            env->SetByteArrayRegion(arr, 0, mdata->getData().size(), (const jbyte *)mdata->getData().get_ptr());
+            jbyteArray arr = env->NewByteArray( (jsize) mdata->getData().size() );
+            env->SetByteArrayRegion(arr, 0, (jsize) mdata->getData().size(), (const jbyte *)mdata->getData().get_ptr());
             jobject key = env->NewObject(short_cls, short_ctor, mdata->getCompany());
             env->CallObjectMethod(result, map_put, key, arr);
 
@@ -649,7 +649,7 @@ void Java_org_direct_1bt_EInfoReport_getConnInterval(JNIEnv *env, jobject obj, j
         }
         JNICriticalArray<uint16_t, jshortArray> criticalArray(env); // RAII - release
         uint16_t * array_ptr = criticalArray.get(jminmax, criticalArray.Mode::UPDATE_AND_RELEASE);
-        if( NULL == array_ptr ) {
+        if( nullptr == array_ptr ) {
             throw jau::InternalError("GetPrimitiveArrayCritical(short array) is null", E_FILE_LINE);
         }
         ref->getConnInterval(array_ptr[0], array_ptr[1]);

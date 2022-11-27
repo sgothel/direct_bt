@@ -249,6 +249,9 @@ namespace direct_bt {
             void sendMgmtEvDeviceDisconnected(std::unique_ptr<MgmtEvent> evt) noexcept;
 
         public:
+            typedef jau::nsize_t size_type;
+            typedef jau::snsize_t ssize_type;
+
             const uint64_t ts_creation;
             /** Device's unique mac address and type tuple. */
             const BDAddressAndType addressAndType; // FIXME: Mutable for resolvable -> identity during pairing?
@@ -1038,6 +1041,8 @@ namespace direct_bt {
              */
             std::shared_ptr<BTGattHandler> getGattHandler() noexcept;
 
+            typedef jau::darray<BTGattServiceRef, size_type> GattServiceList_t;
+
             /**
              * Returns a complete list of shared BTGattService available on this device,
              * initially retrieved via GATT discovery.
@@ -1059,7 +1064,7 @@ namespace direct_bt {
              * A GATT connection will be created via connectGATT() if not established yet.
              * @see getGattGenericAccess()
              */
-            jau::darray<BTGattServiceRef> getGattServices() noexcept;
+            GattServiceList_t getGattServices() noexcept;
 
             /**
              * Returns the shared GenericAccess instance, retrieved by getGattServices() or nullptr if not available.
@@ -1199,15 +1204,15 @@ namespace direct_bt {
              * @param associatedCharacteristic the match criteria to remove any BTGattCharListener from the list
              * @return number of removed listener.
              */
-            int removeAllAssociatedCharListener(const BTGattCharRef& associatedCharacteristic) noexcept;
+            size_type removeAllAssociatedCharListener(const BTGattCharRef& associatedCharacteristic) noexcept;
 
-            int removeAllAssociatedCharListener(const BTGattChar * associatedCharacteristic) noexcept;
+            size_type removeAllAssociatedCharListener(const BTGattChar * associatedCharacteristic) noexcept;
 
             /**
              * Remove all {@link BTGattCharListener} from the list.
              * @return number of removed listener.
              */
-            int removeAllCharListener() noexcept;
+            size_type removeAllCharListener() noexcept;
     };
 
     inline bool operator==(const BTDevice& lhs, const BTDevice& rhs) noexcept

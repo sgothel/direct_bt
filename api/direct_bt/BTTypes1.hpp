@@ -124,8 +124,8 @@ namespace direct_bt {
             NameAndShortName() noexcept
             : name(), short_name() {}
 
-            NameAndShortName(const std::string & name_, const std::string & short_name_) noexcept
-            : name(name_), short_name(short_name_) {}
+            NameAndShortName(std::string name_, std::string short_name_) noexcept
+            : name(std::move(name_)), short_name(std::move(short_name_)) {}
 
             std::string getName() const noexcept { return name; }
             std::string getShortName() const noexcept { return short_name; }
@@ -215,15 +215,15 @@ namespace direct_bt {
             std::string short_name;
 
         public:
-            AdapterInfo(const uint16_t dev_id_, const BDAddressAndType & addressAndType_,
+            AdapterInfo(const uint16_t dev_id_, BDAddressAndType addressAndType_,
                         const uint8_t version_, const uint16_t manufacturer_,
                         const AdapterSetting supported_setting_, const AdapterSetting current_setting_,
-                        const uint32_t dev_class_, const std::string & name_, const std::string & short_name_) noexcept
-            : dev_id(dev_id_), addressAndType(addressAndType_), version(version_),
+                        const uint32_t dev_class_, std::string name_, std::string short_name_) noexcept
+            : dev_id(dev_id_), addressAndType( std::move(addressAndType_) ), version(version_),
               manufacturer(manufacturer_),
               supported_setting(supported_setting_),
               current_setting(current_setting_), dev_class(dev_class_),
-              name(name_), short_name(short_name_)
+              name( std::move(name_) ), short_name( std::move(short_name_) )
             { }
 
             AdapterInfo(const AdapterInfo &o) noexcept
