@@ -29,7 +29,7 @@
 #include <string>
 #include <cstdio>
 
-#include <direct_bt/DirectBT.hpp>
+#include "BTTypes0.hpp"
 
 namespace direct_bt {
 
