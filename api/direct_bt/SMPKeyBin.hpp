@@ -234,12 +234,12 @@ class SMPKeyBin {
         static std::vector<SMPKeyBin> readAll(const std::string& dname, const bool verbose_);
         static std::vector<SMPKeyBin> readAllForLocalAdapter(const BDAddressAndType& localAddress, const std::string& dname, const bool verbose_);
 
-        SMPKeyBin(const BDAddressAndType& localAddress_,
-                  const BDAddressAndType& remoteAddress_,
+        SMPKeyBin(BDAddressAndType localAddress_,
+                  BDAddressAndType remoteAddress_,
                   const BTSecurityLevel sec_level_, const SMPIOCapability io_cap_)
         : version(VERSION), size(0),
           ts_creation_sec( jau::getWallClockSeconds() ),
-          localAddress(localAddress_), remoteAddress(remoteAddress_),
+          localAddress(std::move(localAddress_)), remoteAddress(std::move(remoteAddress_)),
           sec_level(sec_level_), io_cap(io_cap_),
           keys_init(SMPKeyType::NONE), keys_resp(SMPKeyType::NONE),
           ltk_init(), irk_init(), csrk_init(), lk_init(),

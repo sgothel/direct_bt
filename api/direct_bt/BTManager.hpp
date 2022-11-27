@@ -68,7 +68,7 @@ namespace direct_bt {
         friend class BTManager;
 
         private:
-            MgmtEnv() noexcept;
+            MgmtEnv() noexcept; // NOLINT(modernize-use-equals-delete)
 
         public:
             /** Global Debug flag, retrieved first to triggers DBTEnv initialization. */
@@ -220,7 +220,7 @@ namespace direct_bt {
                 HCIWhitelistConnectType ctype;
 
                 WhitelistElem(uint16_t dev_id_, BDAddressAndType address_and_type_, HCIWhitelistConnectType ctype_)
-                : dev_id(dev_id_), address_and_type(address_and_type_), ctype(ctype_) { }
+                : dev_id(dev_id_), address_and_type(std::move(address_and_type_)), ctype(ctype_) { }
             };
             jau::darray<std::shared_ptr<WhitelistElem>> whitelist;
 
@@ -300,9 +300,6 @@ namespace direct_bt {
                 }
             }
 
-            BTManager(const BTManager&) = delete;
-            void operator=(const BTManager&) = delete;
-
             std::unique_ptr<AdapterInfo> readAdapterInfo(const uint16_t dev_id) noexcept;
 
             void processAdapterAdded(std::unique_ptr<MgmtEvent> e) noexcept;
@@ -326,6 +323,9 @@ namespace direct_bt {
             bool removeAdapter(BTAdapter* adapter) noexcept;
 
         public:
+            BTManager(const BTManager&) = delete;
+            void operator=(const BTManager&) = delete;
+
             /**
              * Retrieves the singleton instance.
              * <p>

@@ -131,12 +131,12 @@ namespace direct_bt {
              * @param rsp_uuid_ command's BTGattChar value jau::uuid_t for the notification or indication response.
              * @param rsp_capacity initial capacity of response sink, see getResponse()
              */
-            BTGattCmd(BTDevice& dev_, const std::string& name_,
+            BTGattCmd(BTDevice& dev_, std::string  name_,
                       const jau::uuid_t& service_uuid_,
                       const jau::uuid_t& cmd_uuid_,
                       const jau::uuid_t& rsp_uuid_,
                       const jau::nsize_t rsp_capacity) noexcept
-            : name(name_),
+            : name(std::move(name_)),
               service_uuid(&service_uuid_),
               cmd_uuid(&cmd_uuid_),
               rsp_uuid(&rsp_uuid_),
@@ -160,11 +160,11 @@ namespace direct_bt {
              * @param rsp_uuid_ command's BTGattChar value jau::uuid_t for the notification or indication response.
              * @param rsp_capacity initial capacity of response sink, see getResponse()
              */
-            BTGattCmd(BTDevice& dev_, const std::string& name_,
+            BTGattCmd(BTDevice& dev_, std::string  name_,
                       const jau::uuid_t& cmd_uuid_,
                       const jau::uuid_t& rsp_uuid_,
                       const jau::nsize_t rsp_capacity) noexcept
-            : name(name_),
+            : name(std::move(name_)),
               service_uuid(nullptr),
               cmd_uuid(&cmd_uuid_),
               rsp_uuid(&rsp_uuid_),
@@ -185,10 +185,10 @@ namespace direct_bt {
              * @param service_uuid_ command's BTGattService jau::uuid_t
              * @param cmd_uuid_ command's BTGattChar value jau::uuid_t to write the command
              */
-            BTGattCmd(BTDevice& dev_, const std::string& name_,
+            BTGattCmd(BTDevice& dev_, std::string  name_,
                       const jau::uuid_t& service_uuid_,
                       const jau::uuid_t& cmd_uuid_) noexcept
-            : name(name_),
+            : name(std::move(name_)),
               service_uuid(&service_uuid_),
               cmd_uuid(&cmd_uuid_),
               rsp_uuid(nullptr),
@@ -210,9 +210,9 @@ namespace direct_bt {
              * @param name_ user given name, representing the command
              * @param cmd_uuid_ command's BTGattChar value jau::uuid_t to write the command
              */
-            BTGattCmd(BTDevice& dev_, const std::string& name_,
+            BTGattCmd(BTDevice& dev_, std::string  name_,
                       const jau::uuid_t& cmd_uuid_) noexcept
-            : name(name_),
+            : name(std::move(name_)),
               service_uuid(nullptr),
               cmd_uuid(&cmd_uuid_),
               rsp_uuid(nullptr),

@@ -49,7 +49,7 @@ struct BooleanMgmtCBContext {
     jmethodID  mid;
 
     BooleanMgmtCBContext(MgmtEvent::Opcode opc_, JNIGlobalRef jmgmtRef_, jmethodID mid_)
-    : opc(opc_), jmgmtRef(jmgmtRef_), mid(mid_) { }
+    : opc(opc_), jmgmtRef(std::move(jmgmtRef_)), mid(mid_) { }
 
     bool operator==(const BooleanMgmtCBContext& rhs) const
     {

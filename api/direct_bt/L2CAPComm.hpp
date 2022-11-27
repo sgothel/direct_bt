@@ -68,7 +68,7 @@ namespace direct_bt {
      */
     class L2CAPEnv : public jau::root_environment {
         private:
-            L2CAPEnv() noexcept;
+            L2CAPEnv() noexcept; // NOLINT(modernize-use-equals-delete)
 
             const bool exploding; // just to trigger exploding properties
 
@@ -162,7 +162,7 @@ namespace direct_bt {
             bool interrupted_ext() const noexcept { return !is_interrupted_extern.is_null() && is_interrupted_extern(0/*dummy*/); }
 
         public:
-            L2CAPComm(const uint16_t adev_id, const BDAddressAndType& localAddressAndType, const L2CAP_PSM psm, const L2CAP_CID cid) noexcept;
+            L2CAPComm(const uint16_t adev_id, BDAddressAndType localAddressAndType, const L2CAP_PSM psm, const L2CAP_CID cid) noexcept;
 
             /** Destructor specialization shall close the L2CAP socket, see {@link #close()}. */
             virtual ~L2CAPComm() noexcept = default;
@@ -237,13 +237,13 @@ namespace direct_bt {
             /**
              * Constructing a non connected L2CAP channel instance for the pre-defined PSM and CID.
              */
-            L2CAPClient(const uint16_t adev_id, const BDAddressAndType& adapterAddressAndType, const L2CAP_PSM psm, const L2CAP_CID cid) noexcept;
+            L2CAPClient(const uint16_t adev_id, BDAddressAndType adapterAddressAndType, const L2CAP_PSM psm, const L2CAP_CID cid) noexcept;
 
             /**
              * Constructing a connected L2CAP channel instance for the pre-defined PSM and CID.
              */
-            L2CAPClient(const uint16_t adev_id, const BDAddressAndType& adapterAddressAndType, const L2CAP_PSM psm, const L2CAP_CID cid,
-                        const BDAddressAndType& remoteAddressAndType, int client_socket) noexcept;
+            L2CAPClient(const uint16_t adev_id, BDAddressAndType adapterAddressAndType, const L2CAP_PSM psm, const L2CAP_CID cid,
+                        BDAddressAndType remoteAddressAndType, int client_socket) noexcept;
 
             /** Destructor closing the L2CAP channel, see {@link #close()}. */
             ~L2CAPClient() noexcept override { 
@@ -321,7 +321,7 @@ namespace direct_bt {
             bool close_impl() noexcept;
 
         public:
-            L2CAPServer(const uint16_t adev_id, const BDAddressAndType& localAddressAndType, const L2CAP_PSM psm, const L2CAP_CID cid) noexcept;
+            L2CAPServer(const uint16_t adev_id, BDAddressAndType localAddressAndType, const L2CAP_PSM psm, const L2CAP_CID cid) noexcept;
 
             /** Destructor closing the L2CAP channel, see {@link #close()}. */
             ~L2CAPServer() noexcept override { 

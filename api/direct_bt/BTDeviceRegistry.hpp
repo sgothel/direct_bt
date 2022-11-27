@@ -61,9 +61,9 @@ namespace direct_bt {
             EUI48Sub addressSub;
             std::string nameSub;
 
-            DeviceQuery(const EUI48Sub& as) : type(Type::EUI48SUB), addressSub(as), nameSub() {}
+            DeviceQuery(EUI48Sub as) : type(Type::EUI48SUB), addressSub(std::move(as)), nameSub() {}
 
-            DeviceQuery(const std::string& ns) : type(Type::NAME), addressSub(EUI48Sub::ANY_DEVICE), nameSub(ns) {}
+            DeviceQuery(std::string ns) : type(Type::NAME), addressSub(EUI48Sub::ANY_DEVICE), nameSub(std::move(ns)) {}
 
             bool isEUI48Sub() const noexcept { return Type::EUI48SUB == type; }
 
@@ -97,7 +97,7 @@ namespace direct_bt {
             BDAddressAndType addressAndType;
             std::string name;
 
-            DeviceID(const BDAddressAndType& a, const std::string& n) : addressAndType(a), name(n) {}
+            DeviceID(BDAddressAndType  a, std::string  n) : addressAndType(std::move(a)), name(std::move(n)) {}
             DeviceID() : addressAndType(), name() {}
 
             /**

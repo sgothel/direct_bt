@@ -75,7 +75,7 @@ namespace direct_bt {
      */
     class BTGattEnv : public jau::root_environment {
         private:
-            BTGattEnv() noexcept;
+            BTGattEnv() noexcept; // NOLINT(modernize-use-equals-delete)
 
             const bool exploding; // just to trigger exploding properties
 

@@ -135,7 +135,7 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
 
     public:
         DBGattServerHandler(BTGattHandler& gh_, DBGattServerRef gsd) noexcept
-        : gh(gh_), gattServerData(gsd) {}
+        : gh(gh_), gattServerData(std::move(gsd)) {}
 
         ~DBGattServerHandler() override { close_impl(); }
 
@@ -956,7 +956,8 @@ class FwdGattServerHandler : public BTGattHandler::GattServerHandler {
 
     public:
         FwdGattServerHandler(BTGattHandler& gh_, BTDeviceRef fwdServer_) noexcept
-        : gh(gh_), fwdServer(fwdServer_) {
+        : gh(gh_), fwdServer(std::move(fwdServer_)) 
+        {
             fwd_gh = fwdServer->getGattHandler();
         }
 

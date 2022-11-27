@@ -144,10 +144,10 @@ int L2CAPComm::l2cap_close_dev(int dd) noexcept
     return ::close(dd);
 }
 
-L2CAPComm::L2CAPComm(const uint16_t adev_id_, const BDAddressAndType& localAddressAndType_, const L2CAP_PSM psm_, const L2CAP_CID cid_) noexcept
+L2CAPComm::L2CAPComm(const uint16_t adev_id_, BDAddressAndType localAddressAndType_, const L2CAP_PSM psm_, const L2CAP_CID cid_) noexcept
 : env(L2CAPEnv::get()),
   adev_id(adev_id_),
-  localAddressAndType(localAddressAndType_),
+  localAddressAndType(std::move(localAddressAndType_)),
   psm(psm_), cid(cid_),
   socket_(-1),
   is_open_(false), interrupted_intern(false), is_interrupted_extern(/* Null Type */)
@@ -250,16 +250,16 @@ BTSecurityLevel L2CAPComm::getBTSecurityLevelImpl(const BDAddressAndType& remote
 // *************************************************
 // *************************************************
 
-L2CAPClient::L2CAPClient(const uint16_t adev_id_, const BDAddressAndType& adapterAddressAndType_, const L2CAP_PSM psm_, const L2CAP_CID cid_) noexcept
-: L2CAPComm(adev_id_, adapterAddressAndType_, psm_, cid_),
+L2CAPClient::L2CAPClient(const uint16_t adev_id_, BDAddressAndType adapterAddressAndType_, const L2CAP_PSM psm_, const L2CAP_CID cid_) noexcept
+: L2CAPComm(adev_id_, std::move(adapterAddressAndType_), psm_, cid_),
   remoteAddressAndType(BDAddressAndType::ANY_BREDR_DEVICE),
   has_ioerror(false), tid_connect(0), tid_read(0)
 { }
 
-L2CAPClient::L2CAPClient(const uint16_t adev_id_, const BDAddressAndType& adapterAddressAndType_, const L2CAP_PSM psm_, const L2CAP_CID cid_,
-                         const BDAddressAndType& remoteAddressAndType_, int client_socket_) noexcept
-: L2CAPComm(adev_id_, adapterAddressAndType_, psm_, cid_),
-  remoteAddressAndType(remoteAddressAndType_),
+L2CAPClient::L2CAPClient(const uint16_t adev_id_, BDAddressAndType adapterAddressAndType_, const L2CAP_PSM psm_, const L2CAP_CID cid_,
+                         BDAddressAndType remoteAddressAndType_, int client_socket_) noexcept
+: L2CAPComm(adev_id_, std::move(adapterAddressAndType_), psm_, cid_),
+  remoteAddressAndType(std::move(remoteAddressAndType_)),
   has_ioerror(false), tid_connect(0), tid_read(0)
 {
     socket_ = client_socket_;
@@ -723,8 +723,8 @@ std::string L2CAPClient::toString() const noexcept {
 // *************************************************
 // *************************************************
 
-L2CAPServer::L2CAPServer(const uint16_t adev_id_, const BDAddressAndType& localAddressAndType_, const L2CAP_PSM psm_, const L2CAP_CID cid_) noexcept
-: L2CAPComm(adev_id_, localAddressAndType_, psm_, cid_), tid_accept(0)
+L2CAPServer::L2CAPServer(const uint16_t adev_id_, BDAddressAndType localAddressAndType_, const L2CAP_PSM psm_, const L2CAP_CID cid_) noexcept
+: L2CAPComm(adev_id_, std::move(localAddressAndType_), psm_, cid_), tid_accept(0)
 { }
 
 bool L2CAPServer::open() noexcept {

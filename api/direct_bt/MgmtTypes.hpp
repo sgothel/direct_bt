@@ -2788,8 +2788,8 @@ namespace direct_bt {
             MgmtEventCallback callback;
 
         public:
-            MgmtAdapterEventCallback(const int _dev_id, const MgmtEvent::Opcode _opc, const MgmtEventCallback & _callback) noexcept
-            : dev_id(_dev_id), opc(_opc), callback(_callback) {}
+            MgmtAdapterEventCallback(const int _dev_id, const MgmtEvent::Opcode _opc, MgmtEventCallback _callback) noexcept
+            : dev_id(_dev_id), opc(_opc), callback(std::move(_callback)) {}
 
             MgmtAdapterEventCallback(const MgmtAdapterEventCallback &o) noexcept = default;
             MgmtAdapterEventCallback(MgmtAdapterEventCallback &&o) noexcept = default;

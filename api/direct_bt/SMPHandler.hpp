@@ -92,7 +92,7 @@ namespace direct_bt {
      */
     class SMPEnv : public jau::root_environment {
         private:
-            SMPEnv() noexcept;
+            SMPEnv() noexcept; // NOLINT(modernize-use-equals-delete)
 
             const bool exploding; // just to trigger exploding properties
 

@@ -1,7 +1,3 @@
-#          -modernize-use-equals-delete,
-#          -modernize-pass-by-value,
-#          -bugprone-exception-escape,
-
 Checks:  'clang-diagnostic-*, clang-analyzer-*, 
           modernize-*, bugprone-*,
           -clang-diagnostic-unknown-warning-option,
@@ -10,10 +6,8 @@ Checks:  'clang-diagnostic-*, clang-analyzer-*,
           -modernize-avoid-c-arrays, -modernize-use-default-member-init, -modernize-return-braced-init-list, 
           -modernize-avoid-bind, -modernize-use-transparent-functors,
           -modernize-macro-to-enum, -modernize-concat-nested-namespaces,
-          -modernize-use-equals-delete,
-          -modernize-pass-by-value,
-          -bugprone-exception-escape,
           -bugprone-macro-parentheses, 
+          -bugprone-exception-escape,
           -bugprone-reserved-identifier, -bugprone-easily-swappable-parameters, -bugprone-assignment-in-if-condition,
           -bugprone-misplaced-widening-cast, -bugprone-branch-clone'
 

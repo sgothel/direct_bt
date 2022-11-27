@@ -75,7 +75,7 @@ namespace direct_bt {
         friend class HCIHandler;
 
         private:
-            HCIEnv() noexcept;
+            HCIEnv() noexcept; // NOLINT(modernize-use-equals-delete)
 
             const bool exploding; // just to trigger exploding properties
 
@@ -193,8 +193,8 @@ namespace direct_bt {
                     uint16_t handle; // mutable
 
                 public:
-                    HCIConnection(const BDAddressAndType& addressAndType_, const uint16_t handle_)
-                    : addressAndType(addressAndType_), handle(handle_) {}
+                    HCIConnection(BDAddressAndType addressAndType_, const uint16_t handle_)
+                    : addressAndType(std::move(addressAndType_)), handle(handle_) {}
 
                     HCIConnection(const HCIConnection &o) = default;
                     HCIConnection(HCIConnection &&o) = default;
