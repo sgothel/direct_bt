@@ -904,7 +904,7 @@ jobject Java_jau_direct_1bt_DBTDevice_getGattServicesImpl(JNIEnv *env, jobject o
         // BTGattService(final long nativeInstance, final BTDevice device, final boolean isPrimary,
         //                final String type_uuid, final short handleStart, final short handleEnd)
 
-        std::function<jobject(JNIEnv*, jclass, jmethodID, const BTGattServiceRef&)> ctor_service =
+        jau::function<jobject(JNIEnv*, jclass, jmethodID, const BTGattServiceRef&)> ctor_service =
                 [](JNIEnv *env_, jclass clazz, jmethodID clazz_ctor, const BTGattServiceRef& service)->jobject {
                     // prepare adapter ctor
                     std::shared_ptr<BTDevice> _device = service->getDeviceUnchecked();

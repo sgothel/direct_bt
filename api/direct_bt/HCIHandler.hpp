@@ -30,7 +30,6 @@
 #include <string>
 #include <cstdint>
 #include <array>
-#include <functional>
 
 #include <mutex>
 #include <atomic>
@@ -42,6 +41,7 @@
 #include <jau/java_uplink.hpp>
 #include <jau/octets.hpp>
 #include <jau/service_runner.hpp>
+#include <jau/functional.hpp>
 
 #include "BTTypes0.hpp"
 #include "BTIoctl.hpp"
@@ -465,7 +465,7 @@ namespace direct_bt {
              *
              * @return HCIStatusCode::SUCCESS to continue the process, otherwise to abort process.
              */
-            typedef std::function<HCIStatusCode() /* noexcept */> PostShutdownFunc;
+            typedef jau::function<HCIStatusCode() /* noexcept */> PostShutdownFunc;
 
             /**
              * Complete adapter reset.

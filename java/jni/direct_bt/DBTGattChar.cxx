@@ -77,7 +77,7 @@ jobject Java_jau_direct_1bt_DBTGattChar_getDescriptorsImpl(JNIEnv *env, jobject 
         // BTGattDesc(final long nativeInstance, final BTGattChar characteristic,
         //                   final String type_uuid, final short handle, final byte[] value)
 
-        std::function<jobject(JNIEnv*, jclass, jmethodID, const BTGattDescRef&)> ctor_desc =
+        jau::function<jobject(JNIEnv*, jclass, jmethodID, const BTGattDescRef&)> ctor_desc =
                 [](JNIEnv *env_, jclass clazz, jmethodID clazz_ctor, const BTGattDescRef& descriptor)->jobject {
                     // prepare adapter ctor
                     std::shared_ptr<BTGattChar> _characteristic = descriptor->getGattCharUnchecked();

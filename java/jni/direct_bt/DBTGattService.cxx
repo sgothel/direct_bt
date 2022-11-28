@@ -99,7 +99,7 @@ jobject Java_jau_direct_1bt_DBTGattService_getCharsImpl(JNIEnv *env, jobject obj
                         final int clientCharacteristicsConfigIndex,
                         final int userDescriptionIndex)
         */
-        std::function<jobject(JNIEnv*, jclass, jmethodID, const BTGattCharRef&)> ctor_char =
+        jau::function<jobject(JNIEnv*, jclass, jmethodID, const BTGattCharRef&)> ctor_char =
                 [&gattCharPropSetClazz, &gattCharPropSetClazzCtor](JNIEnv *env_, jclass clazz, jmethodID clazz_ctor, const BTGattCharRef& characteristic)->jobject {
                     // prepare adapter ctor
                     std::shared_ptr<BTGattService> _service = characteristic->getServiceUnchecked();

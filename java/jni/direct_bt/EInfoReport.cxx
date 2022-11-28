@@ -530,7 +530,7 @@ jobject Java_org_direct_1bt_EInfoReport_getServices(JNIEnv *env, jobject obj) {
     try {
         shared_ptr_ref<EInfoReport> ref(env, obj); // hold until done
         jau::darray<std::shared_ptr<const jau::uuid_t>> service_uuids = ref->getServices();
-        std::function<jobject(JNIEnv*, const std::shared_ptr<const jau::uuid_t>&)> ctor_uuid2string =
+        jau::function<jobject(JNIEnv*, const std::shared_ptr<const jau::uuid_t>&)> ctor_uuid2string =
                 [](JNIEnv *env_, const std::shared_ptr<const jau::uuid_t>& uuid_ptr)->jobject {
                     return from_string_to_jstring(env_, uuid_ptr->toUUID128String());
                 };
