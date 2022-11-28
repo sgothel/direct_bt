@@ -4,6 +4,25 @@
 
 ## Changes
 
+**3.0.0**
+* Added and passed clang-tidy diagnostics, multiple issues revealed
+  - Using 'const T&' as method argument type where applicable
+    - Not when required to pass value off-thread
+    - Changed Listener API
+      - AdapterStatusListener
+      - BTGattHandler::NativeGattCharListener
+      - DBGattServer::Listener
+  - Complete replacing std::function with jau::function
+  - L2CAPClient::read, HCIComm::read
+    - preset 'poll' result 'n', avoid garbage comparison
+  - Use local `close_impl()` in virtual destructor
+    - L2CAPServer, L2CAPClient, NopGattServerHandler, DBGattServerHandler, FwdGattServerHandler
+  - Explicitly catch `std::bad_alloc` in 'noexcept' methods -> 'abort'
+    - 'abort' was issued implicitly in noexcept methods
+  - AttPDUMsg*, SMPPDUMsg*: Place `check_range()` in final type, avoid vtable-mess
+  - Performance and API cleansiness
+* Added IDE vscode (vscodium) multi root-workspace config
+
 **2.9.0**
 * Add support for *Alpine Linux* using [musl](https://musl.libc.org/) C library
 * Passed [platforms](PLATFORMS.md) testing:
