@@ -102,7 +102,7 @@ class DBTClient01 : public DBTClientTest {
                 (void)timestamp;
             }
 
-            bool deviceFound(BTDeviceRef device, const uint64_t timestamp) override {
+            bool deviceFound(const BTDeviceRef& device, const uint64_t timestamp) override {
                 (void)timestamp;
                 if( BTDeviceRegistry::isWaitingForDevice(device->getAddressAndType().address, device->getName()) &&
                     0 < parent.measurementsLeft
@@ -123,19 +123,19 @@ class DBTClient01 : public DBTClientTest {
                 }
             }
 
-            void deviceUpdated(BTDeviceRef device, const EIRDataType updateMask, const uint64_t timestamp) override {
+            void deviceUpdated(const BTDeviceRef& device, const EIRDataType updateMask, const uint64_t timestamp) override {
                 (void)device;
                 (void)updateMask;
                 (void)timestamp;
             }
 
-            void deviceConnected(BTDeviceRef device, const bool discovered, const uint64_t timestamp) override {
+            void deviceConnected(const BTDeviceRef& device, const bool discovered, const uint64_t timestamp) override {
                 fprintf_td(stderr, "****** Client CONNECTED (discovered %d): %s\n", discovered, device->toString(true).c_str());
                 (void)discovered;
                 (void)timestamp;
             }
 
-            void devicePairingState(BTDeviceRef device, const SMPPairingState state, const PairingMode mode, const uint64_t timestamp) override {
+            void devicePairingState(const BTDeviceRef& device, const SMPPairingState state, const PairingMode mode, const uint64_t timestamp) override {
                 fprintf_td(stderr, "****** Client PAIRING STATE: state %s, mode %s, %s\n",
                     to_string(state).c_str(), to_string(mode).c_str(), device->toString().c_str());
                 (void)timestamp;
@@ -195,7 +195,7 @@ class DBTClient01 : public DBTClientTest {
                 }
             }
 
-            void disconnectDeviceRandomly(BTDeviceRef device) {
+            void disconnectDeviceRandomly(BTDeviceRef device) { // NOLINT(performance-unnecessary-value-param): 
                 // sleep range: 100 - 1500 ms
                 // sleep range: 100 - 1500 ms
                 static const int sleep_min = 100;
@@ -213,7 +213,7 @@ class DBTClient01 : public DBTClientTest {
                 parent.running_threads.count_down();
             }
 
-            void deviceReady(BTDeviceRef device, const uint64_t timestamp) override {
+            void deviceReady(const BTDeviceRef& device, const uint64_t timestamp) override {
                 (void)timestamp;
                 {
                     parent.deviceReadyCount++;
@@ -233,7 +233,7 @@ class DBTClient01 : public DBTClientTest {
                 }
             }
 
-            void deviceDisconnected(BTDeviceRef device, const HCIStatusCode reason, const uint16_t handle, const uint64_t timestamp) override {
+            void deviceDisconnected(const BTDeviceRef& device, const HCIStatusCode reason, const uint16_t handle, const uint64_t timestamp) override {
                 fprintf_td(stderr, "****** Client DISCONNECTED: Reason 0x%X (%s), old handle %s: %s\n",
                         static_cast<uint8_t>(reason), to_string(reason).c_str(),
                         to_hexstring(handle).c_str(), device->toString(true).c_str());

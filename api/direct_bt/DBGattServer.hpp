@@ -691,7 +691,7 @@ namespace direct_bt {
                      * @param device the connected device
                      * @param initialMTU initial used minimum MTU until negotiated.
                      */
-                    virtual void connected(BTDeviceRef device, const uint16_t initialMTU) = 0;
+                    virtual void connected(const BTDeviceRef& device, const uint16_t initialMTU) = 0;
 
                     /**
                      * Notification that device got disconnected.
@@ -700,7 +700,7 @@ namespace direct_bt {
                      *
                      * @param device the disconnected device.
                      */
-                    virtual void disconnected(BTDeviceRef device) = 0;
+                    virtual void disconnected(const BTDeviceRef& device) = 0;
 
                     /**
                      * Notification that the MTU has changed.
@@ -708,7 +708,7 @@ namespace direct_bt {
                      * @param device the device for which the MTU has changed
                      * @param mtu the new negotiated MTU
                      */
-                    virtual void mtuChanged(BTDeviceRef device, const uint16_t mtu) = 0;
+                    virtual void mtuChanged(const BTDeviceRef& device, const uint16_t mtu) = 0;
 
                     /**
                      * Signals attempt to read a value.
@@ -720,7 +720,7 @@ namespace direct_bt {
                      * @param c
                      * @return true if master read has been accepted by GATT-Server listener, otherwise false. Only if all listener return true, the read action will be allowed.
                      */
-                    virtual bool readCharValue(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c) = 0;
+                    virtual bool readCharValue(const BTDeviceRef& device, const DBGattServiceRef& s, const DBGattCharRef& c) = 0;
 
                     /**
                      * Signals attempt to read a value.
@@ -733,7 +733,7 @@ namespace direct_bt {
                      * @param d
                      * @return true if master read has been accepted by GATT-Server listener, otherwise false. Only if all listener return true, the read action will be allowed.
                      */
-                    virtual bool readDescValue(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c, DBGattDescRef d) = 0;
+                    virtual bool readDescValue(const BTDeviceRef& device, const DBGattServiceRef& s, const DBGattCharRef& c, const DBGattDescRef& d) = 0;
 
                     /**
                      * Signals attempt to write a single or bulk (prepare) value.
@@ -748,7 +748,7 @@ namespace direct_bt {
                      * @return true if master write has been accepted by GATT-Server listener, otherwise false. Only if all listener return true, the write action will be allowed.
                      * @see writeCharValueDone()
                      */
-                    virtual bool writeCharValue(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c,
+                    virtual bool writeCharValue(const BTDeviceRef& device, const DBGattServiceRef& s, const DBGattCharRef& c,
                                                 const jau::TROOctets & value, const uint16_t value_offset) = 0;
 
                     /**
@@ -759,7 +759,7 @@ namespace direct_bt {
                      * @param c
                      * @see writeCharValue()
                      */
-                    virtual void writeCharValueDone(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c) = 0;
+                    virtual void writeCharValueDone(const BTDeviceRef& device, const DBGattServiceRef& s, const DBGattCharRef& c) = 0;
 
                     /**
                      * Signals attempt to write a single or bulk (prepare) value.
@@ -775,7 +775,7 @@ namespace direct_bt {
                      * @return true if master write has been accepted by GATT-Server listener, otherwise false. Only if all listener return true, the write action will be allowed.
                      * @see writeDescValueDone()
                      */
-                    virtual bool writeDescValue(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c, DBGattDescRef d,
+                    virtual bool writeDescValue(const BTDeviceRef& device, const DBGattServiceRef& s, const DBGattCharRef& c, const DBGattDescRef& d,
                                                 const jau::TROOctets & value, const uint16_t value_offset) = 0;
 
                     /**
@@ -787,7 +787,7 @@ namespace direct_bt {
                      * @param d
                      * @see writeDescValue()
                      */
-                    virtual void writeDescValueDone(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c, DBGattDescRef d) = 0;
+                    virtual void writeDescValueDone(const BTDeviceRef& device, const DBGattServiceRef& s, const DBGattCharRef& c, const DBGattDescRef& d) = 0;
 
                     /**
                      * Notifies a change of the Client Characteristic Configuration Descriptor (CCCD) value.
@@ -799,7 +799,7 @@ namespace direct_bt {
                      * @param notificationEnabled
                      * @param indicationEnabled
                      */
-                    virtual void clientCharConfigChanged(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c, DBGattDescRef d,
+                    virtual void clientCharConfigChanged(const BTDeviceRef& device, const DBGattServiceRef& s, const DBGattCharRef& c, const DBGattDescRef& d,
                                                          const bool notificationEnabled, const bool indicationEnabled) = 0;
 
                     /**

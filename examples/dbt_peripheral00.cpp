@@ -235,21 +235,21 @@ class MyAdapterStatusListener : public AdapterStatusListener {
         (void)timestamp;
     }
 
-    bool deviceFound(BTDeviceRef device, const uint64_t timestamp) override {
+    bool deviceFound(const BTDeviceRef& device, const uint64_t timestamp) override {
         (void)timestamp;
 
         fprintf_td(stderr, "****** FOUND__-1: NOP %s\n", device->toString(true).c_str());
         return false;
     }
 
-    void deviceUpdated(BTDeviceRef device, const EIRDataType updateMask, const uint64_t timestamp) override {
+    void deviceUpdated(const BTDeviceRef& device, const EIRDataType updateMask, const uint64_t timestamp) override {
         if( SHOW_UPDATE_EVENTS ) {
             fprintf_td(stderr, "****** UPDATED: %s of %s\n", to_string(updateMask).c_str(), device->toString(true).c_str());
         }
         (void)timestamp;
     }
 
-    void deviceConnected(BTDeviceRef device, const bool discovered, const uint64_t timestamp) override {
+    void deviceConnected(const BTDeviceRef& device, const bool discovered, const uint64_t timestamp) override {
         fprintf_td(stderr, "****** CONNECTED (discovered %d): %s\n", discovered, device->toString(true).c_str());
         const bool available = nullptr == getDevice();
         if( available ) {
@@ -259,7 +259,7 @@ class MyAdapterStatusListener : public AdapterStatusListener {
         (void)timestamp;
     }
 
-    void devicePairingState(BTDeviceRef device, const SMPPairingState state, const PairingMode mode, const uint64_t timestamp) override {
+    void devicePairingState(const BTDeviceRef& device, const SMPPairingState state, const PairingMode mode, const uint64_t timestamp) override {
         fprintf_td(stderr, "****** PAIRING STATE: state %s, mode %s, %s\n",
             to_string(state).c_str(), to_string(mode).c_str(), device->toString().c_str());
         (void)timestamp;
@@ -316,12 +316,12 @@ class MyAdapterStatusListener : public AdapterStatusListener {
         }
     }
 
-    void deviceReady(BTDeviceRef device, const uint64_t timestamp) override {
+    void deviceReady(const BTDeviceRef& device, const uint64_t timestamp) override {
         (void)timestamp;
         fprintf_td(stderr, "****** READY-1: NOP %s\n", device->toString(true).c_str());
     }
 
-    void deviceDisconnected(BTDeviceRef device, const HCIStatusCode reason, const uint16_t handle, const uint64_t timestamp) override {
+    void deviceDisconnected(const BTDeviceRef& device, const HCIStatusCode reason, const uint16_t handle, const uint64_t timestamp) override {
         servedConnections = servedConnections + 1;
         fprintf_td(stderr, "****** DISCONNECTED (count %zu): Reason 0x%X (%s), old handle %s: %s\n",
                 servedConnections.load(), static_cast<uint8_t>(reason), to_string(reason).c_str(),
@@ -399,7 +399,7 @@ class MyGATTServerListener : public DBGattServer::Listener {
             fprintf_td(stderr, "****** Server GATT::PULSE End %s\n", connectedDeviceStr.c_str());
         }
 
-        void sendResponse(jau::POctets data) {
+        void sendResponse(jau::POctets data) { // NOLINT(performance-unnecessary-value-param): Pass-by-value out-of-thread
             BTDeviceRef connectedDevice_ = getDevice();
             if( nullptr != connectedDevice_ && connectedDevice_->getConnected() ) {
                 if( 0 != handleResponseDataNotify || 0 != handleResponseDataIndicate ) {
@@ -427,7 +427,7 @@ class MyGATTServerListener : public DBGattServer::Listener {
             pulse_service.start();
         }
 
-        ~MyGATTServerListener() noexcept {
+        ~MyGATTServerListener() noexcept override {
             pulse_service.stop();
         }
 
@@ -436,7 +436,7 @@ class MyGATTServerListener : public DBGattServer::Listener {
             clear();
         }
 
-        void connected(BTDeviceRef device, const uint16_t initialMTU) override {
+        void connected(const BTDeviceRef& device, const uint16_t initialMTU) override {
             jau::sc_atomic_critical sync(sync_data);
             const bool match = matches(device);
             fprintf_td(stderr, "****** GATT::connected(match %d): initMTU %d, %s\n",
@@ -446,7 +446,7 @@ class MyGATTServerListener : public DBGattServer::Listener {
             }
         }
 
-        void disconnected(BTDeviceRef device) override {
+        void disconnected(const BTDeviceRef& device) override {
             jau::sc_atomic_critical sync(sync_data);
             const bool match = matches(device);
             fprintf_td(stderr, "****** GATT::disconnected(match %d): %s\n", match, device->toString().c_str());
@@ -455,7 +455,7 @@ class MyGATTServerListener : public DBGattServer::Listener {
             }
         }
 
-        void mtuChanged(BTDeviceRef device, const uint16_t mtu) override {
+        void mtuChanged(const BTDeviceRef& device, const uint16_t mtu) override {
             const bool match = matches(device);
             fprintf_td(stderr, "****** GATT::mtuChanged(match %d): %d -> %d, %s\n",
                     match, match ? (int)usedMTU : 0, (int)mtu, device->toString().c_str());
@@ -464,21 +464,21 @@ class MyGATTServerListener : public DBGattServer::Listener {
             }
         }
 
-        bool readCharValue(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c) override {
+        bool readCharValue(const BTDeviceRef& device, const DBGattServiceRef& s, const DBGattCharRef& c) override {
             const bool match = matches(device);
             fprintf_td(stderr, "****** GATT::readCharValue(match %d): to %s, from\n  %s\n    %s\n",
                     match, device->toString().c_str(), s->toString().c_str(), c->toString().c_str());
             return match;
         }
 
-        bool readDescValue(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c, DBGattDescRef d) override {
+        bool readDescValue(const BTDeviceRef& device, const DBGattServiceRef& s, const DBGattCharRef& c, const DBGattDescRef& d) override {
             const bool match = matches(device);
             fprintf_td(stderr, "****** GATT::readDescValue(match %d): to %s, from\n  %s\n    %s\n      %s\n",
                     match, device->toString().c_str(), s->toString().c_str(), c->toString().c_str(), d->toString().c_str());
             return match;
         }
 
-        bool writeCharValue(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c, const jau::TROOctets & value, const uint16_t value_offset) override {
+        bool writeCharValue(const BTDeviceRef& device, const DBGattServiceRef& s, const DBGattCharRef& c, const jau::TROOctets & value, const uint16_t value_offset) override {
             const bool match = matches(device);
             fprintf_td(stderr, "****** GATT::writeCharValue(match %d): %s '%s' @ %u from %s, to\n  %s\n    %s\n",
                     match, value.toString().c_str(), jau::dfa_utf8_decode( value.get_ptr(), value.size() ).c_str(),
@@ -486,7 +486,7 @@ class MyGATTServerListener : public DBGattServer::Listener {
                     device->toString().c_str(), s->toString().c_str(), c->toString().c_str());
             return match;
         }
-        void writeCharValueDone(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c) override {
+        void writeCharValueDone(const BTDeviceRef& device, const DBGattServiceRef& s, const DBGattCharRef& c) override {
             const bool match = matches(device);
             const jau::TROOctets& value = c->getValue();
             fprintf_td(stderr, "****** GATT::writeCharValueDone(match %d): From %s, to\n  %s\n    %s\n    Char-Value: %s\n",
@@ -502,7 +502,7 @@ class MyGATTServerListener : public DBGattServer::Listener {
             }
         }
 
-        bool writeDescValue(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c, DBGattDescRef d, const jau::TROOctets & value, const uint16_t value_offset) override {
+        bool writeDescValue(const BTDeviceRef& device, const DBGattServiceRef& s, const DBGattCharRef& c, const DBGattDescRef& d, const jau::TROOctets & value, const uint16_t value_offset) override {
             const bool match = matches(device);
             fprintf_td(stderr, "****** GATT::writeDescValue(match %d): %s '%s' @ %u from %s\n  %s\n    %s\n      %s\n",
                     match, value.toString().c_str(), jau::dfa_utf8_decode( value.get_ptr(), value.size() ).c_str(),
@@ -510,14 +510,14 @@ class MyGATTServerListener : public DBGattServer::Listener {
                     device->toString().c_str(), s->toString().c_str(), c->toString().c_str(), d->toString().c_str());
             return match;
         }
-        void writeDescValueDone(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c, DBGattDescRef d) override {
+        void writeDescValueDone(const BTDeviceRef& device, const DBGattServiceRef& s, const DBGattCharRef& c, const DBGattDescRef& d) override {
             const bool match = matches(device);
             const jau::TROOctets& value = d->getValue();
             fprintf_td(stderr, "****** GATT::writeDescValueDone(match %d): From %s\n  %s\n    %s\n      %s\n    Desc-Value: %s\n",
                     match, device->toString().c_str(), s->toString().c_str(), c->toString().c_str(), d->toString().c_str(), value.toString().c_str());
         }
 
-        void clientCharConfigChanged(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c, DBGattDescRef d, const bool notificationEnabled, const bool indicationEnabled) override {
+        void clientCharConfigChanged(const BTDeviceRef& device, const DBGattServiceRef& s, const DBGattCharRef& c, const DBGattDescRef& d, const bool notificationEnabled, const bool indicationEnabled) override {
             const bool match = matches(device);
             const jau::TROOctets& value = d->getValue();
             fprintf_td(stderr, "****** GATT::clientCharConfigChanged(match %d): notify %d, indicate %d from %s\n  %s\n    %s\n      %s\n    Desc-Value: %s\n",

@@ -209,21 +209,21 @@ class DBTServer01 : public DBTServerTest {
                 (void)timestamp;
             }
 
-            bool deviceFound(BTDeviceRef device, const uint64_t timestamp) override {
+            bool deviceFound(const BTDeviceRef& device, const uint64_t timestamp) override {
                 (void)timestamp;
 
                 fprintf_td(stderr, "****** Server FOUND__-1: NOP %s\n", device->toString(true).c_str());
                 return false;
             }
 
-            void deviceUpdated(BTDeviceRef device, const EIRDataType updateMask, const uint64_t timestamp) override {
+            void deviceUpdated(const BTDeviceRef& device, const EIRDataType updateMask, const uint64_t timestamp) override {
                 if( SHOW_UPDATE_EVENTS ) {
                     fprintf_td(stderr, "****** Server UPDATED: %s of %s\n", to_string(updateMask).c_str(), device->toString(true).c_str());
                 }
                 (void)timestamp;
             }
 
-            void deviceConnected(BTDeviceRef device, const bool discovered, const uint64_t timestamp) override {
+            void deviceConnected(const BTDeviceRef& device, const bool discovered, const uint64_t timestamp) override {
                 fprintf_td(stderr, "****** Server CONNECTED (discovered %d): %s\n", discovered, device->toString(true).c_str());
                 const bool available = nullptr == parent.getDevice();
                 if( available ) {
@@ -233,7 +233,7 @@ class DBTServer01 : public DBTServerTest {
                 (void)timestamp;
             }
 
-            void devicePairingState(BTDeviceRef device, const SMPPairingState state, const PairingMode mode, const uint64_t timestamp) override {
+            void devicePairingState(const BTDeviceRef& device, const SMPPairingState state, const PairingMode mode, const uint64_t timestamp) override {
                 fprintf_td(stderr, "****** Server PAIRING STATE: state %s, mode %s, %s\n",
                     to_string(state).c_str(), to_string(mode).c_str(), device->toString().c_str());
                 (void)timestamp;
@@ -290,12 +290,12 @@ class DBTServer01 : public DBTServerTest {
                 }
             }
 
-            void deviceReady(BTDeviceRef device, const uint64_t timestamp) override {
+            void deviceReady(const BTDeviceRef& device, const uint64_t timestamp) override {
                 (void)timestamp;
                 fprintf_td(stderr, "****** Server READY-1: NOP %s\n", device->toString(true).c_str());
             }
 
-            void deviceDisconnected(BTDeviceRef device, const HCIStatusCode reason, const uint16_t handle, const uint64_t timestamp) override {
+            void deviceDisconnected(const BTDeviceRef& device, const HCIStatusCode reason, const uint16_t handle, const uint64_t timestamp) override {
                 fprintf_td(stderr, "****** Server DISCONNECTED (count %zu): Reason 0x%X (%s), old handle %s: %s\n",
                         1+parent.disconnectCount.load(), static_cast<uint8_t>(reason), to_string(reason).c_str(),
                         to_hexstring(handle).c_str(), device->toString(true).c_str());
@@ -366,7 +366,7 @@ class DBTServer01 : public DBTServerTest {
                     fprintf_td(stderr, "****** Server GATT::PULSE End %s\n", connectedDeviceStr.c_str());
                 }
 
-                void sendResponse(jau::POctets data) {
+                void sendResponse(jau::POctets data) { // NOLINT(performance-unnecessary-value-param): Pass-by-value out-of-thread
                     BTDeviceRef connectedDevice_ = parent.getDevice();
                     if( nullptr != connectedDevice_ && connectedDevice_->getConnected() ) {
                         if( 0 != handleResponseDataNotify || 0 != handleResponseDataIndicate ) {
@@ -420,7 +420,7 @@ class DBTServer01 : public DBTServerTest {
                     pulse_service.start();
                 }
 
-                ~MyGATTServerListener() noexcept {
+                ~MyGATTServerListener() noexcept override {
                     pulse_service.stop();
                 }
 
@@ -441,7 +441,7 @@ class DBTServer01 : public DBTServerTest {
                     clear();
                 }
 
-                void connected(BTDeviceRef device, const uint16_t initialMTU) override {
+                void connected(const BTDeviceRef& device, const uint16_t initialMTU) override {
                     const bool match = parent.matches(device);
                     fprintf_td(stderr, "****** Server GATT::connected(match %d): initMTU %d, %s\n",
                             match, (int)initialMTU, device->toString().c_str());
@@ -451,7 +451,7 @@ class DBTServer01 : public DBTServerTest {
                     }
                 }
 
-                void disconnected(BTDeviceRef device) override {
+                void disconnected(const BTDeviceRef& device) override {
                     const bool match = parent.matches(device);
                     fprintf_td(stderr, "****** Server GATT::disconnected(match %d): %s\n", match, device->toString().c_str());
                     if( match ) {
@@ -459,7 +459,7 @@ class DBTServer01 : public DBTServerTest {
                     }
                 }
 
-                void mtuChanged(BTDeviceRef device, const uint16_t mtu) override {
+                void mtuChanged(const BTDeviceRef& device, const uint16_t mtu) override {
                     const bool match = parent.matches(device);
                     const uint16_t usedMTU_old = usedMTU;
                     if( match ) {
@@ -476,7 +476,7 @@ class DBTServer01 : public DBTServerTest {
                     }
                 }
 
-                bool readCharValue(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c) override {
+                bool readCharValue(const BTDeviceRef& device, const DBGattServiceRef& s, const DBGattCharRef& c) override {
                     const bool match = parent.matches(device);
                     if( GATT_VERBOSE ) {
                         fprintf_td(stderr, "****** Server GATT::readCharValue(match %d): to %s, from\n  %s\n    %s\n",
@@ -485,7 +485,7 @@ class DBTServer01 : public DBTServerTest {
                     return match;
                 }
 
-                bool readDescValue(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c, DBGattDescRef d) override {
+                bool readDescValue(const BTDeviceRef& device, const DBGattServiceRef& s, const DBGattCharRef& c, const DBGattDescRef& d) override {
                     const bool match = parent.matches(device);
                     if( GATT_VERBOSE ) {
                         fprintf_td(stderr, "****** Server GATT::readDescValue(match %d): to %s, from\n  %s\n    %s\n      %s\n",
@@ -494,7 +494,7 @@ class DBTServer01 : public DBTServerTest {
                     return match;
                 }
 
-                bool writeCharValue(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c, const jau::TROOctets & value, const uint16_t value_offset) override {
+                bool writeCharValue(const BTDeviceRef& device, const DBGattServiceRef& s, const DBGattCharRef& c, const jau::TROOctets & value, const uint16_t value_offset) override {
                     const bool match = parent.matches(device);
                     if( GATT_VERBOSE ) {
                         fprintf_td(stderr, "****** Server GATT::writeCharValue(match %d): %s '%s' @ %u from %s, to\n  %s\n    %s\n",
@@ -505,7 +505,7 @@ class DBTServer01 : public DBTServerTest {
                     return match;
                 }
 
-                void writeCharValueDone(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c) override {
+                void writeCharValueDone(const BTDeviceRef& device, const DBGattServiceRef& s, const DBGattCharRef& c) override {
                     const bool match = parent.matches(device);
                     const jau::TROOctets& value = c->getValue();
                     bool isFinalHandshake = false;
@@ -542,7 +542,7 @@ class DBTServer01 : public DBTServerTest {
                     }
                 }
 
-                bool writeDescValue(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c, DBGattDescRef d, const jau::TROOctets & value, const uint16_t value_offset) override {
+                bool writeDescValue(const BTDeviceRef& device, const DBGattServiceRef& s, const DBGattCharRef& c, const DBGattDescRef& d, const jau::TROOctets & value, const uint16_t value_offset) override {
                     const bool match = parent.matches(device);
                     if( GATT_VERBOSE ) {
                         fprintf_td(stderr, "****** Server GATT::writeDescValue(match %d): %s '%s' @ %u from %s\n  %s\n    %s\n      %s\n",
@@ -552,7 +552,7 @@ class DBTServer01 : public DBTServerTest {
                     }
                     return match;
                 }
-                void writeDescValueDone(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c, DBGattDescRef d) override {
+                void writeDescValueDone(const BTDeviceRef& device, const DBGattServiceRef& s, const DBGattCharRef& c, const DBGattDescRef& d) override {
                     if( GATT_VERBOSE ) {
                         const bool match = parent.matches(device);
                         const jau::TROOctets& value = d->getValue();
@@ -561,7 +561,7 @@ class DBTServer01 : public DBTServerTest {
                     }
                 }
 
-                void clientCharConfigChanged(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c, DBGattDescRef d, const bool notificationEnabled, const bool indicationEnabled) override {
+                void clientCharConfigChanged(const BTDeviceRef& device, const DBGattServiceRef& s, const DBGattCharRef& c, const DBGattDescRef& d, const bool notificationEnabled, const bool indicationEnabled) override {
                     const bool match = parent.matches(device);
                     if( GATT_VERBOSE ) {
                         const jau::TROOctets& value = d->getValue();

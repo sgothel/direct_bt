@@ -149,7 +149,7 @@ class AdapterToServerStatusListener : public AdapterStatusListener {
         (void)timestamp;
     }
 
-    bool deviceFound(BTDeviceRef device, const uint64_t timestamp) override {
+    bool deviceFound(const BTDeviceRef& device, const uint64_t timestamp) override {
         (void)timestamp;
 
         if( BTDeviceRegistry::isWaitingForAnyDevice() ||
@@ -172,13 +172,13 @@ class AdapterToServerStatusListener : public AdapterStatusListener {
         }
     }
 
-    void deviceConnected(BTDeviceRef device, const bool discovered, const uint64_t timestamp) override {
+    void deviceConnected(const BTDeviceRef& device, const bool discovered, const uint64_t timestamp) override {
         fprintf_td(stderr, "****** To Server: CONNECTED (discovered %d): %s\n", discovered, device->toString(true).c_str());
         (void)discovered;
         (void)timestamp;
     }
 
-    void devicePairingState(BTDeviceRef device, const SMPPairingState state, const PairingMode mode, const uint64_t timestamp) override {
+    void devicePairingState(const BTDeviceRef& device, const SMPPairingState state, const PairingMode mode, const uint64_t timestamp) override {
         fprintf_td(stderr, "****** To Server: PAIRING STATE: state %s, mode %s, %s\n",
             to_string(state).c_str(), to_string(mode).c_str(), device->toString().c_str());
         (void)timestamp;
@@ -238,7 +238,7 @@ class AdapterToServerStatusListener : public AdapterStatusListener {
         }
     }
 
-    void deviceReady(BTDeviceRef device, const uint64_t timestamp) override {
+    void deviceReady(const BTDeviceRef& device, const uint64_t timestamp) override {
         (void)timestamp;
         if( BTDeviceRegistry::isWaitingForAnyDevice() ||
             BTDeviceRegistry::isWaitingForDevice(device->getAddressAndType().address, device->getName())
@@ -252,7 +252,7 @@ class AdapterToServerStatusListener : public AdapterStatusListener {
         }
     }
 
-    void deviceDisconnected(BTDeviceRef device, const HCIStatusCode reason, const uint16_t handle, const uint64_t timestamp) override {
+    void deviceDisconnected(const BTDeviceRef& device, const HCIStatusCode reason, const uint16_t handle, const uint64_t timestamp) override {
         fprintf_td(stderr, "****** To Server: DISCONNECTED: Reason 0x%X (%s), old handle %s: %s\n",
                 static_cast<uint8_t>(reason), to_string(reason).c_str(),
                 to_hexstring(handle).c_str(), device->toString(true).c_str());
@@ -281,7 +281,7 @@ class NativeGattToServerCharListener : public BTGattHandler::NativeGattCharListe
         return connectedDeviceToClient;
     }
 
-    void notificationReceived(BTDeviceRef source, const uint16_t char_handle,
+    void notificationReceived(const BTDeviceRef& source, const uint16_t char_handle,
                               const TROOctets& char_value, const uint64_t timestamp) override
     {
         (void)timestamp;
@@ -300,7 +300,7 @@ class NativeGattToServerCharListener : public BTGattHandler::NativeGattCharListe
         }
     }
 
-    void indicationReceived(BTDeviceRef source, const uint16_t char_handle,
+    void indicationReceived(const BTDeviceRef& source, const uint16_t char_handle,
                             const TROOctets& char_value, const uint64_t timestamp,
                             const bool confirmationSent) override
     {
@@ -325,8 +325,8 @@ class NativeGattToServerCharListener : public BTGattHandler::NativeGattCharListe
                      const AttErrorRsp::ErrorCode error_reply,
                      const uint16_t serverMTU,
                      const uint16_t usedMTU,
-                     BTDeviceRef serverReplier,
-                     BTDeviceRef clientRequester) override {
+                     const BTDeviceRef& serverReplier,
+                     const BTDeviceRef& clientRequester) override {
         std::string serverReplierS = serverReplier->getAddressAndType().address.toString();
         std::string clientRequesterS = nullptr != clientRequester ? clientRequester->getAddressAndType().address.toString() : "nil";
 
@@ -343,8 +343,8 @@ class NativeGattToServerCharListener : public BTGattHandler::NativeGattCharListe
                       const jau::TROOctets& data,
                       const jau::darray<Section>& sections,
                       const bool with_response,
-                      BTDeviceRef serverDest,
-                      BTDeviceRef clientSource) override {
+                      const BTDeviceRef& serverDest,
+                      const BTDeviceRef& clientSource) override {
         std::string serverDestS = serverDest->getAddressAndType().address.toString();
         std::string clientSourceS = nullptr != clientSource ? clientSource->getAddressAndType().address.toString() : "nil";
 
@@ -362,8 +362,8 @@ class NativeGattToServerCharListener : public BTGattHandler::NativeGattCharListe
 
     void writeResponse(const AttPDUMsg& pduReply,
                        const AttErrorRsp::ErrorCode error_code,
-                       BTDeviceRef serverSource,
-                       BTDeviceRef clientDest) override {
+                       const BTDeviceRef& serverSource,
+                       const BTDeviceRef& clientDest) override {
         std::string serverSourceS = serverSource->getAddressAndType().address.toString();
         std::string clientDestS = nullptr != clientDest ? clientDest->getAddressAndType().address.toString() : "nil";
 
@@ -379,8 +379,8 @@ class NativeGattToServerCharListener : public BTGattHandler::NativeGattCharListe
                       const AttPDUMsg& pduReply,
                       const AttErrorRsp::ErrorCode error_reply,
                       const jau::TROOctets& data_reply,
-                      BTDeviceRef serverReplier,
-                      BTDeviceRef clientRequester) override {
+                      const BTDeviceRef& serverReplier,
+                      const BTDeviceRef& clientRequester) override {
         std::string serverReplierS = serverReplier->getAddressAndType().address.toString();
         std::string clientRequesterS = nullptr != clientRequester ? clientRequester->getAddressAndType().address.toString() : "nil";
 
@@ -595,20 +595,20 @@ class AdapterToClientStatusListener : public AdapterStatusListener {
         (void)timestamp;
     }
 
-    bool deviceFound(BTDeviceRef device, const uint64_t timestamp) override {
+    bool deviceFound(const BTDeviceRef& device, const uint64_t timestamp) override {
         (void)timestamp;
 
         fprintf_td(stderr, "****** To Client: FOUND__-1: NOP %s\n", device->toString(true).c_str());
         return false;
     }
 
-    void deviceConnected(BTDeviceRef device, const bool discovered, const uint64_t timestamp) override {
+    void deviceConnected(const BTDeviceRef& device, const bool discovered, const uint64_t timestamp) override {
         fprintf_td(stderr, "****** To Client: CONNECTED (discovered %d): %s\n", discovered, device->toString(true).c_str());
         (void)discovered;
         (void)timestamp;
     }
 
-    void devicePairingState(BTDeviceRef device, const SMPPairingState state, const PairingMode mode, const uint64_t timestamp) override {
+    void devicePairingState(const BTDeviceRef& device, const SMPPairingState state, const PairingMode mode, const uint64_t timestamp) override {
         fprintf_td(stderr, "****** To Client: PAIRING STATE: state %s, mode %s, %s\n",
             to_string(state).c_str(), to_string(mode).c_str(), device->toString().c_str());
         (void)timestamp;
@@ -665,7 +665,7 @@ class AdapterToClientStatusListener : public AdapterStatusListener {
         }
     }
 
-    void deviceReady(BTDeviceRef device, const uint64_t timestamp) override {
+    void deviceReady(const BTDeviceRef& device, const uint64_t timestamp) override {
         (void)timestamp;
         {
             jau::sc_atomic_critical sync(sync_data);
@@ -674,7 +674,7 @@ class AdapterToClientStatusListener : public AdapterStatusListener {
         fprintf_td(stderr, "****** To Client: READY-0: Processing %s\n", device->toString(true).c_str());
     }
 
-    void deviceDisconnected(BTDeviceRef device, const HCIStatusCode reason, const uint16_t handle, const uint64_t timestamp) override {
+    void deviceDisconnected(const BTDeviceRef& device, const HCIStatusCode reason, const uint16_t handle, const uint64_t timestamp) override {
         servedClientConnections = servedClientConnections + 1;
         fprintf_td(stderr, "****** DISCONNECTED (count %zu): Reason 0x%X (%s), old handle %s: %s\n",
                 servedClientConnections.load(), static_cast<uint8_t>(reason), to_string(reason).c_str(),

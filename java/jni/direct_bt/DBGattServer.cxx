@@ -637,7 +637,7 @@ class JNIDBGattServerListener : public DBGattServer::Listener {
 
         ~JNIDBGattServerListener() noexcept override = default;
 
-        void connected(BTDeviceRef device, const uint16_t initialMTU) override {
+        void connected(const BTDeviceRef& device, const uint16_t initialMTU) override {
             jobject j_device = JavaGlobalObj::checkAndGetObject(device->getJavaObject(), E_FILE_LINE);
             JNIEnv *env = *jni_env;
 
@@ -645,7 +645,7 @@ class JNIDBGattServerListener : public DBGattServer::Listener {
             java_exception_check_and_throw(env, E_FILE_LINE);
         }
 
-        void disconnected(BTDeviceRef device) override {
+        void disconnected(const BTDeviceRef& device) override {
             jobject j_device = JavaGlobalObj::checkAndGetObject(device->getJavaObject(), E_FILE_LINE);
             JNIEnv *env = *jni_env;
 
@@ -653,7 +653,7 @@ class JNIDBGattServerListener : public DBGattServer::Listener {
             java_exception_check_and_throw(env, E_FILE_LINE);
         }
 
-        void mtuChanged(BTDeviceRef device, const uint16_t mtu) override {
+        void mtuChanged(const BTDeviceRef& device, const uint16_t mtu) override {
             jobject j_device = JavaGlobalObj::checkAndGetObject(device->getJavaObject(), E_FILE_LINE);
             JNIEnv *env = *jni_env;
 
@@ -661,7 +661,7 @@ class JNIDBGattServerListener : public DBGattServer::Listener {
             java_exception_check_and_throw(env, E_FILE_LINE);
         }
 
-        bool readCharValue(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c) override {
+        bool readCharValue(const BTDeviceRef& device, const DBGattServiceRef& s, const DBGattCharRef& c) override {
             jobject j_device = JavaGlobalObj::checkAndGetObject(device->getJavaObject(), E_FILE_LINE);
             jobject j_s = JavaGlobalObj::checkAndGetObject(s->getJavaObject(), E_FILE_LINE);
             jobject j_c = JavaGlobalObj::checkAndGetObject(c->getJavaObject(), E_FILE_LINE);
@@ -672,7 +672,7 @@ class JNIDBGattServerListener : public DBGattServer::Listener {
             return JNI_TRUE == res;
         }
 
-        bool readDescValue(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c, DBGattDescRef d) override {
+        bool readDescValue(const BTDeviceRef& device, const DBGattServiceRef& s, const DBGattCharRef& c, const DBGattDescRef& d) override {
             jobject j_device = JavaGlobalObj::checkAndGetObject(device->getJavaObject(), E_FILE_LINE);
             jobject j_s = JavaGlobalObj::checkAndGetObject(s->getJavaObject(), E_FILE_LINE);
             jobject j_c = JavaGlobalObj::checkAndGetObject(c->getJavaObject(), E_FILE_LINE);
@@ -684,7 +684,7 @@ class JNIDBGattServerListener : public DBGattServer::Listener {
             return JNI_TRUE == res;
         }
 
-        bool writeCharValue(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c, const jau::TROOctets & value, const uint16_t value_offset) override {
+        bool writeCharValue(const BTDeviceRef& device, const DBGattServiceRef& s, const DBGattCharRef& c, const jau::TROOctets & value, const uint16_t value_offset) override {
             jobject j_device = JavaGlobalObj::checkAndGetObject(device->getJavaObject(), E_FILE_LINE);
             jobject j_s = JavaGlobalObj::checkAndGetObject(s->getJavaObject(), E_FILE_LINE);
             jobject j_c = JavaGlobalObj::checkAndGetObject(c->getJavaObject(), E_FILE_LINE);
@@ -700,7 +700,7 @@ class JNIDBGattServerListener : public DBGattServer::Listener {
             env->DeleteLocalRef(j_value);
             return JNI_TRUE == res;
         }
-        void writeCharValueDone(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c) override {
+        void writeCharValueDone(const BTDeviceRef& device, const DBGattServiceRef& s, const DBGattCharRef& c) override {
             jobject j_device = JavaGlobalObj::checkAndGetObject(device->getJavaObject(), E_FILE_LINE);
             jobject j_s = JavaGlobalObj::checkAndGetObject(s->getJavaObject(), E_FILE_LINE);
             jobject j_c = JavaGlobalObj::checkAndGetObject(c->getJavaObject(), E_FILE_LINE);
@@ -710,7 +710,7 @@ class JNIDBGattServerListener : public DBGattServer::Listener {
             java_exception_check_and_throw(env, E_FILE_LINE);
         }
 
-        bool writeDescValue(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c, DBGattDescRef d, const jau::TROOctets & value, const uint16_t value_offset) override {
+        bool writeDescValue(const BTDeviceRef& device, const DBGattServiceRef& s, const DBGattCharRef& c, const DBGattDescRef& d, const jau::TROOctets & value, const uint16_t value_offset) override {
             jobject j_device = JavaGlobalObj::checkAndGetObject(device->getJavaObject(), E_FILE_LINE);
             jobject j_s = JavaGlobalObj::checkAndGetObject(s->getJavaObject(), E_FILE_LINE);
             jobject j_c = JavaGlobalObj::checkAndGetObject(c->getJavaObject(), E_FILE_LINE);
@@ -727,7 +727,7 @@ class JNIDBGattServerListener : public DBGattServer::Listener {
             env->DeleteLocalRef(j_value);
             return JNI_TRUE == res;
         }
-        void writeDescValueDone(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c, DBGattDescRef d) override {
+        void writeDescValueDone(const BTDeviceRef& device, const DBGattServiceRef& s, const DBGattCharRef& c, const DBGattDescRef& d) override {
             jobject j_device = JavaGlobalObj::checkAndGetObject(device->getJavaObject(), E_FILE_LINE);
             jobject j_s = JavaGlobalObj::checkAndGetObject(s->getJavaObject(), E_FILE_LINE);
             jobject j_c = JavaGlobalObj::checkAndGetObject(c->getJavaObject(), E_FILE_LINE);
@@ -738,7 +738,7 @@ class JNIDBGattServerListener : public DBGattServer::Listener {
             java_exception_check_and_throw(env, E_FILE_LINE);
         }
 
-        void clientCharConfigChanged(BTDeviceRef device, DBGattServiceRef s, DBGattCharRef c, DBGattDescRef d, const bool notificationEnabled, const bool indicationEnabled) override {
+        void clientCharConfigChanged(const BTDeviceRef& device, const DBGattServiceRef& s, const DBGattCharRef& c, const DBGattDescRef& d, const bool notificationEnabled, const bool indicationEnabled) override {
             jobject j_device = JavaGlobalObj::checkAndGetObject(device->getJavaObject(), E_FILE_LINE);
             jobject j_s = JavaGlobalObj::checkAndGetObject(s->getJavaObject(), E_FILE_LINE);
             jobject j_c = JavaGlobalObj::checkAndGetObject(c->getJavaObject(), E_FILE_LINE);

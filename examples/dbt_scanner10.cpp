@@ -179,7 +179,7 @@ class MyAdapterStatusListener : public AdapterStatusListener {
         (void)timestamp;
     }
 
-    bool deviceFound(BTDeviceRef device, const uint64_t timestamp) override {
+    bool deviceFound(const BTDeviceRef& device, const uint64_t timestamp) override {
         (void)timestamp;
 
         if( BTDeviceRegistry::isWaitingForAnyDevice() ||
@@ -204,20 +204,20 @@ class MyAdapterStatusListener : public AdapterStatusListener {
         }
     }
 
-    void deviceUpdated(BTDeviceRef device, const EIRDataType updateMask, const uint64_t timestamp) override {
+    void deviceUpdated(const BTDeviceRef& device, const EIRDataType updateMask, const uint64_t timestamp) override {
         if( !QUIET && SHOW_UPDATE_EVENTS ) {
             fprintf_td(stderr, "****** UPDATED: %s of %s\n", to_string(updateMask).c_str(), device->toString(true).c_str());
         }
         (void)timestamp;
     }
 
-    void deviceConnected(BTDeviceRef device, const bool discovered, const uint64_t timestamp) override {
+    void deviceConnected(const BTDeviceRef& device, const bool discovered, const uint64_t timestamp) override {
         fprintf_td(stderr, "****** CONNECTED (discovered %d): %s\n", discovered, device->toString(true).c_str());
         (void)discovered;
         (void)timestamp;
     }
 
-    void devicePairingState(BTDeviceRef device, const SMPPairingState state, const PairingMode mode, const uint64_t timestamp) override {
+    void devicePairingState(const BTDeviceRef& device, const SMPPairingState state, const PairingMode mode, const uint64_t timestamp) override {
         fprintf_td(stderr, "****** PAIRING STATE: state %s, mode %s, %s\n",
             to_string(state).c_str(), to_string(mode).c_str(), device->toString().c_str());
         (void)timestamp;
@@ -277,14 +277,14 @@ class MyAdapterStatusListener : public AdapterStatusListener {
         }
     }
 
-    void deviceReady(BTDeviceRef device, const uint64_t timestamp) override {
+    void deviceReady(const BTDeviceRef& device, const uint64_t timestamp) override {
         (void)timestamp;
         deviceReadyCount++;
         fprintf_td(stderr, "****** READY-0: Processing[%d] %s\n", deviceReadyCount.load(), device->toString(true).c_str());
         processReadyDevice(device); // AdapterStatusListener::deviceReady() explicitly allows prolonged and complex code execution!
     }
 
-    void deviceDisconnected(BTDeviceRef device, const HCIStatusCode reason, const uint16_t handle, const uint64_t timestamp) override {
+    void deviceDisconnected(const BTDeviceRef& device, const HCIStatusCode reason, const uint16_t handle, const uint64_t timestamp) override {
         fprintf_td(stderr, "****** DISCONNECTED: Reason 0x%X (%s), old handle %s: %s\n",
                 static_cast<uint8_t>(reason), to_string(reason).c_str(),
                 to_hexstring(handle).c_str(), device->toString(true).c_str());

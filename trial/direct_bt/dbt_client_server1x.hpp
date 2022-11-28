@@ -151,7 +151,7 @@ class DBTClientServer1x {
                 (void)a;
             }
 
-            void deviceReady(BTDeviceRef device, const uint64_t timestamp) override {
+            void deviceReady(const BTDeviceRef& device, const uint64_t timestamp) override {
                 (void)timestamp;
                 const std::lock_guard<std::mutex> lock(parent.mtx_sync); // RAII-style acquire and relinquish via destructor
                 parent.lastCompletedDevice = device;

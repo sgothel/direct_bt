@@ -316,7 +316,7 @@ namespace direct_bt {
                      * @param charValue the notification value
                      * @param timestamp monotonic timestamp at reception, see jau::getCurrentMilliseconds()
                      */
-                    virtual void notificationReceived(BTDeviceRef source, const uint16_t charHandle,
+                    virtual void notificationReceived(const BTDeviceRef& source, const uint16_t charHandle,
                                                       const jau::TROOctets& charValue, const uint64_t timestamp) = 0;
 
                     /**
@@ -327,7 +327,7 @@ namespace direct_bt {
                      * @param timestamp monotonic timestamp at reception, see jau::getCurrentMilliseconds()
                      * @param confirmationSent if true, the native stack has sent the confirmation, otherwise user is required to do so.
                      */
-                    virtual void indicationReceived(BTDeviceRef source, const uint16_t charHandle,
+                    virtual void indicationReceived(const BTDeviceRef&, const uint16_t charHandle,
                                                     const jau::TROOctets& charValue, const uint64_t timestamp,
                                                     const bool confirmationSent) = 0;
 
@@ -335,23 +335,23 @@ namespace direct_bt {
                      * Informal low-level notification of AttPDUMsg requests to this GATTRole::Server, optional
                      *
                      * @param pduRequest the request
-                     * @param serverDest the GATTRole::Server receiver device, never nullptr
+                     * @param serverDest the GATTRole::Server receiver device, never null
                      * @param clientSource the GATTRole::Client source device, only known and not nullptr for DBGattServer::Mode:FWD GattServerHandler
                      */
                     virtual void requestSent([[maybe_unused]] const AttPDUMsg& pduRequest,
-                                             [[maybe_unused]] BTDeviceRef serverDest,
-                                             [[maybe_unused]] BTDeviceRef clientSource) { }
+                                             [[maybe_unused]] const BTDeviceRef& serverDest,
+                                             [[maybe_unused]] const BTDeviceRef& clientSource) { }
 
                     /**
                      * Informal low-level notification of AttPDUMsg responses from this GATTRole::Server, optional.
                      *
                      * @param pduReply the response
-                     * @param serverSource the GATTRole::Server source device, never nullptr
+                     * @param serverSource the GATTRole::Server source device, never null
                      * @param clientDest the GATTRole::Client receiver device, only known and not nullptr for DBGattServer::Mode:FWD GattServerHandler
                      */
                     virtual void replyReceived([[maybe_unused]] const AttPDUMsg& pduReply,
-                                               [[maybe_unused]] BTDeviceRef serverSource,
-                                               [[maybe_unused]] BTDeviceRef clientDest) { }
+                                               [[maybe_unused]] const BTDeviceRef& serverSource,
+                                               [[maybe_unused]] const BTDeviceRef& clientDest) { }
 
                     /**
                      * Informal notification about a complete MTU exchange request and response to and from this GATTRole::Server, optional.
@@ -361,7 +361,7 @@ namespace direct_bt {
                      * @param error_reply in case of an AttErrorRsp reply, the AttErrorRsp::ErrorCode is passed for convenience, otherwise AttErrorRsp::ErrorCode::NO_ERROR.
                      * @param serverMTU the replied server MTU, passed for convenience
                      * @param usedMTU the MTU minimum of client and server to be used, passed for convenience
-                     * @param serverReplier the GATTRole::Server replier device, never nullptr
+                     * @param serverReplier the GATTRole::Server replier device, never null
                      * @param clientRequester the GATTRole::Client requester device, only known and not nullptr for DBGattServer::Mode:FWD GattServerHandler
                      */
                     virtual void mtuResponse([[maybe_unused]] const uint16_t clientMTU,
@@ -369,8 +369,8 @@ namespace direct_bt {
                                              [[maybe_unused]] const AttErrorRsp::ErrorCode error_reply,
                                              [[maybe_unused]] const uint16_t serverMTU,
                                              [[maybe_unused]] const uint16_t usedMTU,
-                                             [[maybe_unused]] BTDeviceRef serverReplier,
-                                             [[maybe_unused]] BTDeviceRef clientRequester) { }
+                                             [[maybe_unused]] const BTDeviceRef& serverReplier,
+                                             [[maybe_unused]] const BTDeviceRef& clientRequester) { }
                     /**
                      * Informal notification about a completed write request sent to this GATTRole::Server, optional.
                      *
@@ -378,28 +378,28 @@ namespace direct_bt {
                      * @param data the data requested to be written
                      * @param sections list of NativeGattCharListener::Section within given data, requested to be written. Overlapping consecutive sections have already been merged.
                      * @param with_response true if the write requests expects a response, i.e. via AttPDUMsg::Opcode::WRITE_REQ or AttPDUMsg::Opcode::EXECUTE_WRITE_REQ
-                     * @param serverDest the GATTRole::Server receiver device, never nullptr
+                     * @param serverDest the GATTRole::Server receiver device, never null
                      * @param clientSource the GATTRole::Client source device, only known and not nullptr for DBGattServer::Mode:FWD GattServerHandler
                      */
                     virtual void writeRequest([[maybe_unused]] const uint16_t handle,
                                               [[maybe_unused]] const jau::TROOctets& data,
                                               [[maybe_unused]] const jau::darray<Section>& sections,
                                               [[maybe_unused]] const bool with_response,
-                                              [[maybe_unused]] BTDeviceRef serverDest,
-                                              [[maybe_unused]] BTDeviceRef clientSource) { }
+                                              [[maybe_unused]] const BTDeviceRef& serverDest,
+                                              [[maybe_unused]] const BTDeviceRef& clientSource) { }
 
                     /**
                      * Informal notification about a write response received from this GATTRole::Server, optional.
                      *
                      * @param pduReply the write response
                      * @param error_code in case of an AttErrorRsp reply, the AttErrorRsp::ErrorCode is passed for convenience, otherwise AttErrorRsp::ErrorCode::NO_ERROR.
-                     * @param serverSource the GATTRole::Server source device, never nullptr
+                     * @param serverSource the GATTRole::Server source device, never null
                      * @param clientDest the GATTRole::Client receiver device, only known and not nullptr for DBGattServer::Mode:FWD GattServerHandler
                      */
                     virtual void writeResponse([[maybe_unused]] const AttPDUMsg& pduReply,
                                                [[maybe_unused]] const AttErrorRsp::ErrorCode error_code,
-                                               [[maybe_unused]] BTDeviceRef serverSource,
-                                               [[maybe_unused]] BTDeviceRef clientDest) { }
+                                               [[maybe_unused]] const BTDeviceRef& serverSource,
+                                               [[maybe_unused]] const BTDeviceRef& clientDest) { }
 
 
                     /**
@@ -410,7 +410,7 @@ namespace direct_bt {
                      * @param pduReply the response
                      * @param error_reply in case of an AttErrorRsp reply, the AttErrorRsp::ErrorCode is passed for convenience, otherwise AttErrorRsp::ErrorCode::NO_ERROR.
                      * @param data_reply the replied read data at given value_offset, passed for convenience
-                     * @param serverReplier the GATTRole::Server replier device, never nullptr
+                     * @param serverReplier the GATTRole::Server replier device, never null
                      * @param clientRequester the GATTRole::Client requester device, only known and not nullptr for DBGattServer::Mode:FWD GattServerHandler
                      */
                     virtual void readResponse([[maybe_unused]] const uint16_t handle,
@@ -418,8 +418,8 @@ namespace direct_bt {
                                               [[maybe_unused]] const AttPDUMsg& pduReply,
                                               [[maybe_unused]] const AttErrorRsp::ErrorCode error_reply,
                                               [[maybe_unused]] const jau::TROOctets& data_reply,
-                                              [[maybe_unused]] BTDeviceRef serverReplier,
-                                              [[maybe_unused]] BTDeviceRef clientRequester) { }
+                                              [[maybe_unused]] const BTDeviceRef& serverReplier,
+                                              [[maybe_unused]] const BTDeviceRef& clientRequester) { }
 
                     virtual ~NativeGattCharListener() noexcept = default;
 

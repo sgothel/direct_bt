@@ -182,7 +182,7 @@ namespace direct_bt {
              * @see BTDevice::unpair()
              * @see BTDevice::getEIR()
              */
-            virtual bool deviceFound(BTDeviceRef device, const uint64_t timestamp) {
+            virtual bool deviceFound(const BTDeviceRef& device, const uint64_t timestamp) {
                 (void)device;
                 (void)timestamp;
                 return false;
@@ -196,7 +196,7 @@ namespace direct_bt {
              *
              * @see BTDevice::getEIR()
              */
-            virtual void deviceUpdated(BTDeviceRef device, const EIRDataType updateMask, const uint64_t timestamp) {
+            virtual void deviceUpdated(const BTDeviceRef& device, const EIRDataType updateMask, const uint64_t timestamp) {
                 (void)device;
                 (void)updateMask;
                 (void)timestamp;
@@ -213,7 +213,7 @@ namespace direct_bt {
              * @see BTDevice::unpair()
              * @since 2.6.6
              */
-            virtual void deviceConnected(BTDeviceRef device, const bool discovered, const uint64_t timestamp) {
+            virtual void deviceConnected(const BTDeviceRef& device, const bool discovered, const uint64_t timestamp) {
                 (void)device;
                 (void)discovered;
                 (void)timestamp;
@@ -228,7 +228,7 @@ namespace direct_bt {
              * @see BTDevice::setPairingPasskey()
              * @see BTDevice::setPairingNumericComparison()
              */
-            virtual void devicePairingState(BTDeviceRef device, const SMPPairingState state, const PairingMode mode, const uint64_t timestamp) {
+            virtual void devicePairingState(const BTDeviceRef& device, const SMPPairingState state, const PairingMode mode, const uint64_t timestamp) {
                 (void)device;
                 (void)state;
                 (void)mode;
@@ -248,7 +248,7 @@ namespace direct_bt {
              * @see ::SMPPairingState::COMPLETED
              * @see BTDevice::getGattServices()
              */
-            virtual void deviceReady(BTDeviceRef device, const uint64_t timestamp) {
+            virtual void deviceReady(const BTDeviceRef& device, const uint64_t timestamp) {
                 (void)device;
                 (void)timestamp;
             }
@@ -264,7 +264,7 @@ namespace direct_bt {
              * @param timestamp the time in monotonic milliseconds when this event occurred. See BasicTypes::getCurrentMilliseconds().
              * @see BTDevice::unpair()
              */
-            virtual void deviceDisconnected(BTDeviceRef device, const HCIStatusCode reason, const uint16_t handle, const uint64_t timestamp) {
+            virtual void deviceDisconnected(const BTDeviceRef& device, const HCIStatusCode reason, const uint16_t handle, const uint64_t timestamp) {
                 (void)device;
                 (void)reason;
                 (void)handle;
