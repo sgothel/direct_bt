@@ -15,12 +15,6 @@ CPU_COUNT=`getconf _NPROCESSORS_ONLN`
 export LANG=en_US.UTF-8
 export LC_MEASUREMENT=en_US.UTF-8
 
-if ! type time &> /dev/null ; then 
-    time_cmd=""
-else 
-    time_cmd="time"
-fi
-
 buildit() {
     if [ -z "$JAVA_HOME" -o ! -e "$JAVA_HOME" ] ; then
         echo "WARNING: JAVA_HOME $JAVA_HOME does not exist"
@@ -35,6 +29,14 @@ buildit() {
     build_dir="build-$os_name-$archabi"
     echo dist_dir $dist_dir
     echo build_dir $build_dir
+
+    if [ -x /usr/bin/time ] ; then
+        time_cmd="time"
+        echo "time command available: ${time_cmd}"
+    else 
+        time_cmd=""
+        echo "time command not available"
+    fi
 
     cd $rootdir/$build_dir
     ${time_cmd} make -j $CPU_COUNT install
