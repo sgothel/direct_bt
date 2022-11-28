@@ -52,7 +52,7 @@ namespace direct_bt {
 
     class BTException : public jau::RuntimeException {
         public:
-        BTException(std::string const m, const char* file, int line) noexcept
+        BTException(std::string const& m, const char* file, int line) noexcept
         : RuntimeException("BTException", m, file, line) {}
 
         BTException(const char *m, const char* file, int line) noexcept

@@ -173,7 +173,7 @@ namespace direct_bt {
             bool is_open() const noexcept { return is_open_; }
 
             /** The external `is interrupted` callback is used until close(), thereafter it is removed. */
-            void set_interrupted_query(get_boolean_callback_t is_interrupted_cb) noexcept { is_interrupted_extern = is_interrupted_cb; }
+            void set_interrupted_query(get_boolean_callback_t is_interrupted_cb) noexcept { is_interrupted_extern = std::move(is_interrupted_cb); }
 
             /** Returns true if interrupted by internal or external cause, hence shall stop connecting and reading. */
             bool interrupted() const noexcept { return interrupted_int() || interrupted_ext(); }

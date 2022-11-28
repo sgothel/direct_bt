@@ -192,9 +192,9 @@ namespace direct_bt {
              * @param o POctet source to be taken over
              */
             DBGattDesc(DBGattDesc &&o) noexcept
-            : handle(std::move(o.handle)), type(std::move(o.type)),
+            : handle(o.handle), type(std::move(o.type)),
               value(std::move(o.value)),
-              variable_length(std::move(o.variable_length))
+              variable_length(o.variable_length)
             {
                 JAU_TRACE_DBGATT_PRINT("DBGattDesc ctor-move0: %p -> %p", &o, this);
             }
@@ -426,14 +426,14 @@ namespace direct_bt {
              * @param o POctet source to be taken over
              */
             DBGattChar(DBGattChar &&o) noexcept
-            : handle(std::move(o.handle)), end_handle(std::move(o.end_handle)),
-              value_handle(std::move(o.value_handle)), value_type(std::move(o.value_type)),
-              properties(std::move(o.properties)),
+            : handle(o.handle), end_handle(o.end_handle),
+              value_handle(o.value_handle), value_type(std::move(o.value_type)),
+              properties(o.properties),
               descriptors(std::move(o.descriptors)),
               value(std::move(o.value)),
-              variable_length(std::move(o.variable_length)),
-              clientCharConfigIndex(std::move(o.clientCharConfigIndex)),
-              userDescriptionIndex(std::move(o.userDescriptionIndex))
+              variable_length(o.variable_length),
+              clientCharConfigIndex(o.clientCharConfigIndex),
+              userDescriptionIndex(o.userDescriptionIndex)
             {
                 JAU_TRACE_DBGATT_PRINT("DBGattChar: ctor-move0: %p -> %p", &o, this);
             }
@@ -976,8 +976,8 @@ namespace direct_bt {
                 return c;
             }
 
-            bool addListener(ListenerRef l);
-            bool removeListener(ListenerRef l);
+            bool addListener(const ListenerRef& l);
+            bool removeListener(const ListenerRef& l);
             ListenerList_t& listener() { return listenerList; }
 
             std::string toFullString() {

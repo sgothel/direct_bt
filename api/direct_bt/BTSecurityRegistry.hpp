@@ -60,10 +60,10 @@ namespace direct_bt {
             SMPIOCapability io_cap_auto { SMPIOCapability::UNSET };
             int passkey = NO_PASSKEY;
 
-            Entry(EUI48Sub addrSub_)
-            : addrSub(std::move(addrSub_)), nameSub() {}
+            Entry(const EUI48Sub& addrSub_)
+            : addrSub(addrSub_), nameSub() {}
 
-            Entry(std::string  nameSub_)
+            Entry(std::string nameSub_)
             : addrSub(EUI48Sub::ALL_DEVICE), nameSub(std::move(nameSub_)) {}
 
             constexpr bool isSecLevelOrIOCapSet() const noexcept {

@@ -117,8 +117,8 @@ namespace direct_bt {
             std::string short_name;
 
         protected:
-            void setName(const std::string v) noexcept { name = v; }
-            void setShortName(const std::string v) noexcept { short_name = v; }
+            void setName(std::string v) noexcept { name = std::move(v); }
+            void setShortName(std::string v) noexcept { short_name = std::move(v); }
 
         public:
             NameAndShortName() noexcept
@@ -247,10 +247,10 @@ namespace direct_bt {
                 return *this;
             }
             AdapterInfo(AdapterInfo&& o) noexcept
-            : dev_id(std::move(o.dev_id)), addressAndType(std::move(o.addressAndType)), version(std::move(o.version)),
-              manufacturer(std::move(o.manufacturer)),
-              supported_setting(std::move(o.supported_setting)),
-              current_setting(o.current_setting.load()), dev_class(std::move(o.dev_class)),
+            : dev_id(o.dev_id), addressAndType(o.addressAndType), version(o.version),
+              manufacturer(o.manufacturer),
+              supported_setting(o.supported_setting),
+              current_setting(o.current_setting.load()), dev_class(o.dev_class),
               name(std::move(o.name)), short_name(std::move(o.short_name))
             { }
             AdapterInfo& operator=(AdapterInfo &&o) noexcept = delete;
@@ -270,8 +270,8 @@ namespace direct_bt {
                 current_setting = current_setting_;
             }
             void setDevClass(const uint32_t v) noexcept { dev_class = v; }
-            void setName(const std::string v) noexcept { name = v; }
-            void setShortName(const std::string v) noexcept { short_name = v; }
+            void setName(std::string v) noexcept { name = std::move(v); }
+            void setShortName(std::string v) noexcept { short_name = std::move(v); }
 
             constexpr const AdapterSetting& get_supportedSetting() const noexcept { return supported_setting; }
 

@@ -196,8 +196,8 @@ namespace direct_bt {
             constexpr BDAddressAndType() noexcept : address(), type{BDAddressType::BDADDR_UNDEFINED} { }
             BDAddressAndType(const BDAddressAndType &o) noexcept : address(o.address), type(o.type) { }
             BDAddressAndType(BDAddressAndType &&o) noexcept {
-                address = std::move(o.address);
-                type = std::move(o.type);
+                address = o.address;
+                type = o.type;
             }
             constexpr BDAddressAndType& operator=(const BDAddressAndType &o) noexcept {
                 address = o.address;
@@ -205,8 +205,8 @@ namespace direct_bt {
                 return *this;
             }
             BDAddressAndType& operator=(BDAddressAndType &&o) noexcept {
-                address = std::move(o.address);
-                type = std::move(o.type);
+                address = o.address;
+                type = o.type;
                 return *this;
             }
 

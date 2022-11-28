@@ -208,6 +208,8 @@ namespace direct_bt {
                 ClientMaxMTU = 512
             };
 
+            typedef jau::nsize_t size_type;
+            
         private:
             friend BTAdapter;
 
@@ -244,7 +246,6 @@ namespace direct_bt {
 
             ChangedAdapterSetCallbackList mgmtChangedAdapterSetCallbackList;
 
-            typedef jau::nsize_t size_type;
             typedef jau::cow_darray<std::shared_ptr<BTAdapter>, size_type> adapters_t;
             adapters_t adapters;
 

@@ -161,7 +161,7 @@ class DBTServer01 : public DBTServerTest {
         std::mutex mtx_sync;
         BTDeviceRef connectedDevice;
 
-        void setDevice(BTDeviceRef cd) {
+        void setDevice(const BTDeviceRef& cd) {
             const std::lock_guard<std::mutex> lock(mtx_sync); // RAII-style acquire and relinquish via destructor
             connectedDevice = cd;
         }
@@ -603,7 +603,7 @@ class DBTServer01 : public DBTServerTest {
             dbGattServer->addListener( gattServerListener );
         }
 
-        ~DBTServer01() {
+        ~DBTServer01() override {
             fprintf_td(stderr, "****** Server dtor: running_threads %zu\n", running_threads.value());
             running_threads.wait_for( 10_s );
         }
@@ -664,7 +664,7 @@ class DBTServer01 : public DBTServerTest {
         }
 
     private:
-        HCIStatusCode stopAdvertising(std::string msg) {
+        HCIStatusCode stopAdvertising(const std::string& msg) {
             HCIStatusCode status = serverAdapter->stopAdvertising();
             fprintf_td(stderr, "****** Server Stop advertising (%s) result: %s: %s\n", msg.c_str(), to_string(status).c_str(), serverAdapter->toString().c_str());
             return status;
@@ -707,7 +707,7 @@ class DBTServer01 : public DBTServerTest {
         }
 
     private:
-        void processDisconnectedDevice(BTDeviceRef device) {
+        void processDisconnectedDevice(BTDeviceRef device) { // NOLINT(performance-unnecessary-value-param): Pass-by-value out-of-thread
             fprintf_td(stderr, "****** Server Disconnected Device (count %zu, served %zu, left %zu): Start %s\n",
                     1+disconnectCount.load(), servedProtocolSessionsTotal.load(), servingProtocolSessionsLeft.load(), device->toString().c_str());
 

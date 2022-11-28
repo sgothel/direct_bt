@@ -12,14 +12,14 @@
 
 using namespace ieee11073;
 
-static void test_float32_IEEE11073_to_IEEE754(const std::string msg, const uint32_t raw, const float expFloat) {
+static void test_float32_IEEE11073_to_IEEE754(const std::string& msg, const uint32_t raw, const float expFloat) {
     const float has = FloatTypes::float32_IEEE11073_to_IEEE754(raw);
     INFO_STR(msg+": has '"+std::to_string(has));
     INFO_STR(msg+": exp '"+std::to_string(expFloat)+"', diff "+std::to_string(fabsf(has-expFloat)));
     REQUIRE_EPSI_MSG(msg, has, expFloat);
 }
 
-static void test_AbsoluteTime_IEEE11073(const std::string msg, const uint8_t * data_le, const int size, const std::string expStr) {
+static void test_AbsoluteTime_IEEE11073(const std::string& msg, const uint8_t * data_le, const int size, const std::string& expStr) {
     ieee11073::AbsoluteTime has(data_le, size);
     const std::string has_str = has.toString();
     INFO_STR(msg+": has '"+has_str+"', len "+std::to_string(has_str.length()));

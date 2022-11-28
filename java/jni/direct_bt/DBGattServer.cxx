@@ -303,7 +303,7 @@ jlong Java_org_direct_1bt_DBGattChar_ctorImpl(JNIEnv *env, jobject obj,
                 throw jau::InternalError("GetPrimitiveArrayCritical(DBGattDesc* array) is null", E_FILE_LINE);
             }
             for(jau::nsize_t i=0; i < count; ++i) {
-                std::shared_ptr<DBGattDesc> desc_ref = *( (std::shared_ptr<DBGattDesc> *) (intptr_t) jlong_desc_ref_array[i] );
+                std::shared_ptr<DBGattDesc> desc_ref = *( (std::shared_ptr<DBGattDesc> *) (intptr_t) jlong_desc_ref_array[i] ); // NOLINT(performance-no-int-to-ptr)
                 descriptors.push_back( desc_ref );
             }
         }
@@ -431,7 +431,7 @@ jlong Java_org_direct_1bt_DBGattService_ctorImpl(JNIEnv *env, jobject obj,
                 throw jau::InternalError("GetPrimitiveArrayCritical(DBGattChar* array) is null", E_FILE_LINE);
             }
             for(jau::nsize_t i=0; i < count; ++i) {
-                std::shared_ptr<DBGattChar> char_ref = *( (std::shared_ptr<DBGattChar> *) (intptr_t) jlong_char_ref_array[i] );
+                std::shared_ptr<DBGattChar> char_ref = *( (std::shared_ptr<DBGattChar> *) (intptr_t) jlong_char_ref_array[i] ); // NOLINT(performance-no-int-to-ptr)
                 characteristics.push_back( char_ref );
             }
         }
@@ -531,7 +531,7 @@ jlong Java_org_direct_1bt_DBGattServer_ctorImpl(JNIEnv *env, jobject obj,
                 throw jau::InternalError("GetPrimitiveArrayCritical(DBGattService* array) is null", E_FILE_LINE);
             }
             for(jau::nsize_t i=0; i < count; ++i) {
-                std::shared_ptr<DBGattService> service_ref = *( (std::shared_ptr<DBGattService> *) (intptr_t) jlong_service_ref_array[i] );
+                std::shared_ptr<DBGattService> service_ref = *( (std::shared_ptr<DBGattService> *) (intptr_t) jlong_service_ref_array[i] ); // NOLINT(performance-no-int-to-ptr)
                 services.push_back( service_ref );
             }
         }

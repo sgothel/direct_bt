@@ -135,7 +135,7 @@ HCIHandler::HCIConnectionRef HCIHandler::findTrackerConnection(const uint16_t ha
     return nullptr;
 }
 
-HCIHandler::HCIConnectionRef HCIHandler::removeTrackerConnection(const HCIConnectionRef conn) noexcept {
+HCIHandler::HCIConnectionRef HCIHandler::removeTrackerConnection(const HCIConnectionRef& conn) noexcept {
     const std::lock_guard<std::recursive_mutex> lock(mtx_connectionList); // RAII-style acquire and relinquish via destructor
     auto end = connectionList.end();
     for (auto it = connectionList.begin(); it != end; ++it) {
@@ -150,7 +150,7 @@ HCIHandler::HCIConnectionRef HCIHandler::removeTrackerConnection(const HCIConnec
 HCIHandler::size_type HCIHandler::countPendingTrackerConnections() noexcept {
     const std::lock_guard<std::recursive_mutex> lock(mtx_connectionList); // RAII-style acquire and relinquish via destructor
     size_type count = 0;
-    for (auto e : connectionList) {
+    for (const auto& e : connectionList) {
         if ( e->getHandle() == 0 ) {
             count++;
         }
@@ -1041,7 +1041,7 @@ HCIStatusCode HCIHandler::stopAdapter() {
     return res;
 }
 
-HCIStatusCode HCIHandler::resetAdapter(HCIHandler::PostShutdownFunc user_post_shutdown) {
+HCIStatusCode HCIHandler::resetAdapter(const HCIHandler::PostShutdownFunc& user_post_shutdown) {
     if( !isOpen() ) {
         ERR_PRINT("Not connected %s", toString().c_str());
         return HCIStatusCode::DISCONNECTED;

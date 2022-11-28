@@ -36,7 +36,7 @@ using namespace direct_bt;
 void resetStates() {
     std::shared_ptr<BTManager> mngr = BTManager::get();
     jau::darray<BTAdapterRef> adapters = mngr->getAdapters();
-    for(BTAdapterRef a : adapters) {
+    for(const BTAdapterRef& a : adapters) {
         a->removeAllStatusListener();
         // test runs w/o elevated permissions
         // a->stopAdvertising();
@@ -71,7 +71,7 @@ TEST_CASE( "BTManager Bringup Test 00", "[test][BTManager][bringup]" ) {
         jau::fprintf_td(stderr, "%u: %s\n", i, adapters[i]->toString().c_str());
     }
     jau::fprintf_td(stderr, "Adapter: Status Checks\n");
-    for(BTAdapterRef a : adapters) {
+    for(const BTAdapterRef& a : adapters) {
         // test runs w/o elevated permissions
         REQUIRE( false == a->isInitialized() );
         // REQUIRE( false == a->isPowered() );

@@ -50,13 +50,17 @@ namespace ieee11073 {
 
     class RuntimeException : public std::exception {
       protected:
-        RuntimeException(std::string const type, std::string const m, const char* file, int line) noexcept
-        : msg(std::string(type).append(" @ ").append(file).append(":").append(std::to_string(line)).append(": ").append(m)) { }
+        std::string msg;
+        
+        RuntimeException(std::string type, std::string const& m, const char* file, int line) noexcept
+        : msg( std::move(type) ) 
+        { 
+            msg.append(" @ ").append(file).append(":").append(std::to_string(line)).append(": ").append(m);
+        }
 
       public:
-        const std::string msg;
 
-        RuntimeException(std::string const m, const char* file, int line) noexcept
+        RuntimeException(std::string const& m, const char* file, int line) noexcept
         : RuntimeException("RuntimeException", m, file, line) {}
 
         ~RuntimeException() noexcept override = default;

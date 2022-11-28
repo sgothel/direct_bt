@@ -57,28 +57,28 @@ namespace direct_bt {
 
     class SMPException : public jau::RuntimeException {
         protected:
-            SMPException(std::string const type, std::string const m, const char* file, int line) noexcept
-            : RuntimeException(type, m, file, line) {}
+            SMPException(std::string type, std::string const& m, const char* file, int line) noexcept
+            : RuntimeException(std::move(type), m, file, line) {}
 
         public:
-            SMPException(std::string const m, const char* file, int line) noexcept
+            SMPException(std::string const& m, const char* file, int line) noexcept
             : RuntimeException("HCIException", m, file, line) {}
     };
 
     class SMPPacketException : public SMPException {
         public:
-            SMPPacketException(std::string const m, const char* file, int line) noexcept
+            SMPPacketException(std::string const& m, const char* file, int line) noexcept
             : SMPException("SMPPacketException", m, file, line) {}
     };
     class SMPOpcodeException : public SMPException {
         public:
-            SMPOpcodeException(std::string const m, const char* file, int line) noexcept
+            SMPOpcodeException(std::string const& m, const char* file, int line) noexcept
             : SMPException("SMPOpcodeException", m, file, line) {}
     };
 
     class SMPValueException : public SMPException {
         public:
-            SMPValueException(std::string const m, const char* file, int line) noexcept
+            SMPValueException(std::string const& m, const char* file, int line) noexcept
             : SMPException("SMPValueException", m, file, line) {}
     };
 

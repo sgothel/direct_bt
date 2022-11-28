@@ -142,11 +142,11 @@ static bool QUIET = false;
 
 static void connectDiscoveredDevice(BTDeviceRef device);
 
-static void processReadyDevice(BTDeviceRef device);
+static void processReadyDevice(const BTDeviceRef& device);
 
 static void removeDevice(BTDeviceRef device);
 static void resetAdapter(BTAdapter *a, int mode);
-static bool startDiscovery(BTAdapter *a, std::string msg);
+static bool startDiscovery(BTAdapter *a, const std::string& msg);
 
 class MyAdapterStatusListener : public AdapterStatusListener {
 
@@ -354,7 +354,7 @@ class MyGATTEventListener : public BTGattCharListener {
     }
 };
 
-static void connectDiscoveredDevice(BTDeviceRef device) {
+static void connectDiscoveredDevice(BTDeviceRef device) { // NOLINT(performance-unnecessary-value-param): Pass-by-value out-of-thread
     fprintf_td(stderr, "****** Connecting Device: Start %s\n", device->toString().c_str());
 
     const BTSecurityRegistry::Entry* sec = BTSecurityRegistry::getStartOf(device->getAddressAndType().address, device->getName());
@@ -399,7 +399,7 @@ static void connectDiscoveredDevice(BTDeviceRef device) {
     fprintf_td(stderr, "****** Connecting Device: End result %s of %s\n", to_string(res).c_str(), device->toString().c_str());
 }
 
-static void processReadyDevice(BTDeviceRef device) {
+static void processReadyDevice(const BTDeviceRef& device) {
     fprintf_td(stderr, "****** Processing Ready Device: Start %s\n", device->toString().c_str());
 
     const uint64_t t1 = jau::getCurrentMilliseconds();
@@ -602,7 +602,7 @@ exit:
     }
 }
 
-static void removeDevice(BTDeviceRef device) {
+static void removeDevice(BTDeviceRef device) { // NOLINT(performance-unnecessary-value-param): Pass-by-value out-of-thread
     fprintf_td(stderr, "****** Remove Device: removing: %s\n", device->getAddressAndType().toString().c_str());
 
     device->remove();
@@ -614,7 +614,7 @@ static void resetAdapter(BTAdapter *a, int mode) {
     fprintf_td(stderr, "****** Reset Adapter: reset[%d] end: %s, %s\n", mode, to_string(res).c_str(), a->toString().c_str());
 }
 
-static bool startDiscovery(BTAdapter *a, std::string msg) {
+static bool startDiscovery(BTAdapter *a, const std::string& msg) {
     if( useAdapter != EUI48::ALL_DEVICE && useAdapter != a->getAddressAndType().address ) {
         fprintf_td(stderr, "****** Start discovery (%s): Adapter not selected: %s\n", msg.c_str(), a->toString().c_str());
         return false;
@@ -719,8 +719,8 @@ void test() {
         adapter->printDeviceLists();
     });
     {
-        int count = mngr->removeChangedAdapterSetCallback(myChangedAdapterSetFunc);
-        fprintf_td(stderr, "****** EOL Removed ChangedAdapterSetCallback %d\n", count);
+        BTManager::size_type count = mngr->removeChangedAdapterSetCallback(myChangedAdapterSetFunc);
+        fprintf_td(stderr, "****** EOL Removed ChangedAdapterSetCallback %zu\n", (size_t)count);
 
         mngr->close();
     }

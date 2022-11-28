@@ -264,7 +264,7 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
 
   private:
 
-    jobject newJavaBTDevice(JNIEnv *env, BTDeviceRef device, const uint64_t timestamp) {
+    jobject newJavaBTDevice(JNIEnv *env, const BTDeviceRef& device, const uint64_t timestamp) {
         // DBTDevice(final long nativeInstance, final DBTAdapter adptr, final byte byteAddress[/*6*/], final byte byteAddressType,
         //           final long ts_creation, final String name)
         JavaAnonRef adapter_java = device->getAdapter().getJavaObject(); // hold until done!
@@ -293,7 +293,7 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
 
   public:
 
-    bool deviceFound(BTDeviceRef device, const uint64_t timestamp) override {
+    bool deviceFound(const BTDeviceRef& device, const uint64_t timestamp) override {
         JNIEnv *env = *jni_env;
         JavaAnonRef asl_java = getJavaObject(); // hold until done!
         JavaGlobalObj::check(asl_java, E_FILE_LINE);
@@ -313,7 +313,7 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
         return JNI_TRUE == res;
     }
 
-    void deviceUpdated(BTDeviceRef device, const EIRDataType updateMask, const uint64_t timestamp) override {
+    void deviceUpdated(const BTDeviceRef& device, const EIRDataType updateMask, const uint64_t timestamp) override {
         JNIEnv *env = *jni_env;
         JavaAnonRef asl_java = getJavaObject(); // hold until done!
         JavaGlobalObj::check(asl_java, E_FILE_LINE);
@@ -334,7 +334,7 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
         env->DeleteLocalRef(eirDataTypeSet);
     }
 
-    void deviceConnected(BTDeviceRef device, const bool discovered, const uint64_t timestamp) override {
+    void deviceConnected(const BTDeviceRef& device, const bool discovered, const uint64_t timestamp) override {
         JNIEnv *env = *jni_env;
         JavaAnonRef asl_java = getJavaObject(); // hold until done!
         JavaGlobalObj::check(asl_java, E_FILE_LINE);
@@ -357,7 +357,7 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
         env->CallVoidMethod(JavaGlobalObj::GetObject(asl_java), mDeviceConnected, jdevice, (jboolean)discovered, (jlong)timestamp);
         java_exception_check_and_throw(env, E_FILE_LINE);
     }
-    void devicePairingState(BTDeviceRef device, const SMPPairingState state, const PairingMode mode, const uint64_t timestamp) override {
+    void devicePairingState(const BTDeviceRef& device, const SMPPairingState state, const PairingMode mode, const uint64_t timestamp) override {
         JNIEnv *env = *jni_env;
         JavaAnonRef asl_java = getJavaObject(); // hold until done!
         JavaGlobalObj::check(asl_java, E_FILE_LINE);
@@ -382,7 +382,7 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
         env->CallVoidMethod(JavaGlobalObj::GetObject(asl_java), mDevicePairingState, jdevice, jstate, jmode, (jlong)timestamp);
         java_exception_check_and_throw(env, E_FILE_LINE);
     }
-    void deviceReady(BTDeviceRef device, const uint64_t timestamp) override {
+    void deviceReady(const BTDeviceRef& device, const uint64_t timestamp) override {
         JNIEnv *env = *jni_env;
         JavaAnonRef asl_java = getJavaObject(); // hold until done!
         JavaGlobalObj::check(asl_java, E_FILE_LINE);
@@ -399,7 +399,7 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
         env->CallVoidMethod(JavaGlobalObj::GetObject(asl_java), mDeviceReady, jdevice, (jlong)timestamp);
         java_exception_check_and_throw(env, E_FILE_LINE);
     }
-    void deviceDisconnected(BTDeviceRef device, const HCIStatusCode reason, const uint16_t handle, const uint64_t timestamp) override {
+    void deviceDisconnected(const BTDeviceRef& device, const HCIStatusCode reason, const uint16_t handle, const uint64_t timestamp) override {
         JNIEnv *env = *jni_env;
         JavaAnonRef asl_java = getJavaObject(); // hold until done!
         JavaGlobalObj::check(asl_java, E_FILE_LINE);

@@ -128,7 +128,7 @@ std::string BTGattChar::toString() const noexcept {
     if( 0 < descriptorList.size() ) {
         bool comma = false;
         desc_str = ", descr[";
-        for(auto cd : descriptorList) {
+        for(const auto& cd : descriptorList) {
              if( comma ) {
                 desc_str += ", ";
             }

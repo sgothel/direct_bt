@@ -204,23 +204,23 @@ namespace direct_bt {
 
     class AttException : public jau::RuntimeException {
         protected:
-            AttException(std::string const type, std::string const m, const char* file, int line) noexcept
-            : RuntimeException(type, m, file, line) {}
+            AttException(std::string type, std::string const& m, const char* file, int line) noexcept
+            : RuntimeException(std::move(type), m, file, line) {}
 
         public:
-            AttException(std::string const m, const char* file, int line) noexcept
+            AttException(std::string const& m, const char* file, int line) noexcept
             : RuntimeException("AttException", m, file, line) {}
     };
 
     class AttOpcodeException : public AttException {
         public:
-            AttOpcodeException(std::string const m, const char* file, int line) noexcept
+            AttOpcodeException(std::string const& m, const char* file, int line) noexcept
             : AttException("AttOpcodeException", m, file, line) {}
     };
 
     class AttValueException : public AttException {
         public:
-            AttValueException(std::string const m, const char* file, int line) noexcept
+            AttValueException(std::string const& m, const char* file, int line) noexcept
             : AttException("AttValueException", m, file, line) {}
     };
 

@@ -892,7 +892,7 @@ BTGattCharRef BTGattHandler::findCharacterisicsByValueHandle(const jau::darray<B
     return nullptr;
 }
 
-BTGattCharRef BTGattHandler::findCharacterisicsByValueHandle(const BTGattServiceRef service, const uint16_t charValueHandle) noexcept {
+BTGattCharRef BTGattHandler::findCharacterisicsByValueHandle(const BTGattServiceRef& service, const uint16_t charValueHandle) noexcept {
     for(auto decl : service->characteristicList) {
         if( charValueHandle == decl->value_handle ) {
             return decl;
@@ -901,7 +901,7 @@ BTGattCharRef BTGattHandler::findCharacterisicsByValueHandle(const BTGattService
     return nullptr;
 }
 
-bool BTGattHandler::initClientGatt(std::shared_ptr<BTGattHandler> shared_this, bool& already_init) noexcept {
+bool BTGattHandler::initClientGatt(const std::shared_ptr<BTGattHandler>& shared_this, bool& already_init) noexcept {
     const std::lock_guard<std::recursive_mutex> lock(mtx_command);
     already_init = clientMTUExchanged && services.size() > 0 && nullptr != genericAccess;
     if( already_init ) {
@@ -959,7 +959,7 @@ bool BTGattHandler::initClientGatt(std::shared_ptr<BTGattHandler> shared_this, b
     return true;
 }
 
-bool BTGattHandler::discoverCompletePrimaryServices(std::shared_ptr<BTGattHandler> shared_this) noexcept {
+bool BTGattHandler::discoverCompletePrimaryServices(const std::shared_ptr<BTGattHandler>& shared_this) noexcept {
     const std::lock_guard<std::recursive_mutex> lock(mtx_command); // RAII-style acquire and relinquish via destructor
     if( !discoverPrimaryServices(shared_this, services) ) {
         return false;
@@ -977,7 +977,7 @@ bool BTGattHandler::discoverCompletePrimaryServices(std::shared_ptr<BTGattHandle
     return true;
 }
 
-bool BTGattHandler::discoverPrimaryServices(std::shared_ptr<BTGattHandler> shared_this, jau::darray<BTGattServiceRef> & result) noexcept {
+bool BTGattHandler::discoverPrimaryServices(const std::shared_ptr<BTGattHandler>& shared_this, jau::darray<BTGattServiceRef> & result) noexcept {
     {
         // validate shared_this first!
         BTGattHandler *given_this = shared_this.get();
@@ -1589,6 +1589,6 @@ std::string BTGattHandler::toString() const noexcept {
            ", Native "+std::to_string(nativeGattCharListenerList.size())+
            "], l2capWorker[running "+std::to_string(l2cap_reader_service.is_running())+
            ", shallStop "+std::to_string(l2cap_reader_service.shall_stop())+
-           ", thread_id "+jau::to_hexstring((void*)l2cap_reader_service.thread_id())+
+           ", thread_id "+jau::to_hexstring((void*)l2cap_reader_service.thread_id())+ // NOLINT(performance-no-int-to-ptr)
            "], "+getStateString()+"]";
 }

@@ -472,10 +472,10 @@ namespace direct_bt {
                                                       uint16_t latency, uint16_t supervision_timeout) noexcept;
             friend HCIStatusCode BTDevice::connectBREDR(const uint16_t pkt_type, const uint16_t clock_offset, const uint8_t role_switch) noexcept;
             friend void BTDevice::processL2CAPSetup(BTDeviceRef sthis);
-            friend bool BTDevice::updatePairingState(BTDeviceRef sthis, const MgmtEvent& evt, const HCIStatusCode evtStatus, SMPPairingState claimed_state) noexcept;
-            friend void BTDevice::hciSMPMsgCallback(BTDeviceRef sthis, const SMPPDUMsg& msg, const HCIACLData::l2cap_frame& source) noexcept;
+            friend bool BTDevice::updatePairingState(const BTDeviceRef& sthis, const MgmtEvent& evt, const HCIStatusCode evtStatus, SMPPairingState claimed_state) noexcept;
+            friend void BTDevice::hciSMPMsgCallback(const BTDeviceRef& sthis, const SMPPDUMsg& msg, const HCIACLData::l2cap_frame& source) noexcept;
             friend void BTDevice::processDeviceReady(BTDeviceRef sthis, const uint64_t timestamp);
-            friend bool BTDevice::connectGATT(std::shared_ptr<BTDevice> sthis) noexcept;
+            friend bool BTDevice::connectGATT(const std::shared_ptr<BTDevice>& sthis) noexcept;
             friend jau::darray<BTGattServiceRef> BTDevice::getGattServices() noexcept;
 
             bool lockConnect(const BTDevice & device, const bool wait, const SMPIOCapability io_cap) noexcept;
@@ -502,7 +502,7 @@ namespace direct_bt {
             void removeSharedDevice(const BTDevice & device) noexcept;
 
             static SMPKeyBinRef findSMPKeyBin(key_list_t & keys, BDAddressAndType const & remoteAddress) noexcept;
-            static bool removeSMPKeyBin(key_list_t & keys, BDAddressAndType const & remoteAddress, const bool remove_file, const std::string key_path_) noexcept;
+            static bool removeSMPKeyBin(key_list_t & keys, BDAddressAndType const & remoteAddress, const bool remove_file, const std::string& key_path_) noexcept;
             SMPKeyBinRef findSMPKeyBin(BDAddressAndType const & remoteAddress) noexcept;
             /** Adding a SMPKeyBin will remove previous entry. */
             bool addSMPKeyBin(const SMPKeyBinRef& key, const bool write_file) noexcept;
@@ -516,7 +516,7 @@ namespace direct_bt {
             void l2capServerWork(jau::service_runner& sr) noexcept;
             void l2capServerInit(jau::service_runner& sr) noexcept;
             void l2capServerEnd(jau::service_runner& sr) noexcept;
-            std::unique_ptr<L2CAPClient> get_l2cap_connection(std::shared_ptr<BTDevice> device);
+            std::unique_ptr<L2CAPClient> get_l2cap_connection(const std::shared_ptr<BTDevice>& device);
 
             void mgmtEvNewSettingsMgmt(const MgmtEvent& e) noexcept;
             void updateAdapterSettings(const bool off_thread, const AdapterSetting new_settings, const bool sendEvent, const uint64_t timestamp) noexcept;
@@ -558,8 +558,8 @@ namespace direct_bt {
 
             void hciSMPMsgCallback(const BDAddressAndType & addressAndType,
                                    const SMPPDUMsg& msg, const HCIACLData::l2cap_frame& source) noexcept;
-            void sendDevicePairingState(BTDeviceRef device, const SMPPairingState state, const PairingMode mode, uint64_t timestamp) noexcept;
-            void notifyPairingStageDone(BTDeviceRef device, uint64_t timestamp) noexcept;
+            void sendDevicePairingState(const BTDeviceRef& device, const SMPPairingState state, const PairingMode mode, uint64_t timestamp) noexcept;
+            void notifyPairingStageDone(const BTDeviceRef& device, uint64_t timestamp) noexcept;
             void sendDeviceReady(BTDeviceRef device, uint64_t timestamp) noexcept;
 
             jau::service_runner discovery_service;
@@ -1208,7 +1208,7 @@ namespace direct_bt {
              * @see DBGattServer::setServicesHandles()
              * @since 2.5.3
              */
-            HCIStatusCode startAdvertising(DBGattServerRef gattServerData_,
+            HCIStatusCode startAdvertising(const DBGattServerRef& gattServerData_,
                                            EInfoReport& eir,
                                            EIRDataType adv_mask = EIRDataType::FLAGS | EIRDataType::SERVICE_UUID,
                                            EIRDataType scanrsp_mask = EIRDataType::NAME | EIRDataType::CONN_IVAL,
@@ -1260,7 +1260,7 @@ namespace direct_bt {
              * @see DBGattServer::setServicesHandles()
              * @since 2.4.0
              */
-            HCIStatusCode startAdvertising(DBGattServerRef gattServerData_,
+            HCIStatusCode startAdvertising(const DBGattServerRef& gattServerData_,
                                            const uint16_t adv_interval_min=160, const uint16_t adv_interval_max=480,
                                            const AD_PDU_Type adv_type=AD_PDU_Type::ADV_IND,
                                            const uint8_t adv_chan_map=0x07,

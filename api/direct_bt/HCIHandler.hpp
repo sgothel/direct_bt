@@ -316,7 +316,7 @@ namespace direct_bt {
             }
 
             HCIConnectionRef findTrackerConnection(const uint16_t handle) noexcept;
-            HCIConnectionRef removeTrackerConnection(const HCIConnectionRef conn) noexcept;
+            HCIConnectionRef removeTrackerConnection(const HCIConnectionRef& conn) noexcept;
             size_type countPendingTrackerConnections() noexcept;
             size_type getTrackerConnectionCount() noexcept;
 
@@ -485,7 +485,7 @@ namespace direct_bt {
              *
              * @return HCIStatusCode
              */
-            HCIStatusCode resetAdapter(PostShutdownFunc user_post_shutdown);
+            HCIStatusCode resetAdapter(const PostShutdownFunc& user_post_shutdown);
 
             /**
              * HCI Reset Command

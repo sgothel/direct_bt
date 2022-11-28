@@ -133,7 +133,7 @@ void HCIComm::close() noexcept {
             if( tid_self != _tid_read ) {
                 int kerr;
                 if( 0 != ( kerr = ::pthread_kill(_tid_read, SIGALRM) ) ) {
-                    ERR_PRINT("HCIComm::close: pthread_kill read %p FAILED: %d", (void*)_tid_read, kerr);
+                    ERR_PRINT("HCIComm::close: pthread_kill read %p FAILED: %d", (void*)_tid_read, kerr); // NOLINT(performance-no-int-to-ptr)
                 }
             }
         }

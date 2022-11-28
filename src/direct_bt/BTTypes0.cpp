@@ -690,7 +690,7 @@ EIRDataType EInfoReport::set(const EInfoReport& eir) noexcept {
     if( eir.isSet( EIRDataType::SERVICE_UUID) ) {
         const jau::darray<std::shared_ptr<const jau::uuid_t>>& services_ = eir.getServices();
         bool added = false;
-        for(auto uuid : services_) {
+        for(const auto& uuid : services_) {
             added = addService(uuid) | added;
         }
         if( added ) {
@@ -907,7 +907,7 @@ std::string EInfoReport::toString(const bool includeServices) const noexcept {
 
     if( includeServices && services.size() > 0 && isSet(EIRDataType::SERVICE_UUID) ) {
         out.append("\n");
-        for(auto p : services) {
+        for(const auto& p : services) {
             out.append("  ").append(p->toUUID128String()).append(", ").append(std::to_string(static_cast<int>(p->getTypeSize()))).append(" bytes\n");
         }
     }
@@ -1204,7 +1204,7 @@ jau::nsize_t EInfoReport::write_data(EIRDataType write_mask, uint8_t * data, jau
     }
     if( is_set(mask, EIRDataType::SERVICE_UUID) ) {
         jau::darray<std::shared_ptr<const jau::uuid_t>> uuid16s, uuid32s, uuid128s;
-        for(auto p : services) {
+        for(const auto& p : services) {
             switch( p->getTypeSizeInt() ) {
                 case 2:
                     uuid16s.push_back(p);
@@ -1228,7 +1228,7 @@ jau::nsize_t EInfoReport::write_data(EIRDataType write_mask, uint8_t * data, jau
             count    += ad_sz + 1;
             *data_i++ = ad_sz;
             *data_i++ = direct_bt::number(services_complete ? GAP_T::UUID16_COMPLETE : GAP_T::UUID16_INCOMPLETE);
-            for(auto p : uuid16s) {
+            for(const auto& p : uuid16s) {
                 data_i += p->put(data_i, 0, true /* le */);
             }
         }
@@ -1241,7 +1241,7 @@ jau::nsize_t EInfoReport::write_data(EIRDataType write_mask, uint8_t * data, jau
             count    += ad_sz + 1;
             *data_i++ = ad_sz;
             *data_i++ = direct_bt::number(services_complete ? GAP_T::UUID32_COMPLETE : GAP_T::UUID32_INCOMPLETE);
-            for(auto p : uuid32s) {
+            for(const auto& p : uuid32s) {
                 data_i += p->put(data_i, 0, true /* le */);
             }
         }
@@ -1254,7 +1254,7 @@ jau::nsize_t EInfoReport::write_data(EIRDataType write_mask, uint8_t * data, jau
             count    += ad_sz + 1;
             *data_i++ = ad_sz;
             *data_i++ = direct_bt::number(services_complete ? GAP_T::UUID128_COMPLETE : GAP_T::UUID128_INCOMPLETE);
-            for(auto p : uuid128s) {
+            for(const auto& p : uuid128s) {
                 data_i += p->put(data_i, 0, true /* le */);
             }
         }

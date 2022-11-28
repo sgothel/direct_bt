@@ -80,11 +80,11 @@ static BTDeviceRef connectedDevice = nullptr;
 
 static jau::relaxed_atomic_nsize_t servedConnections = 0;
 
-static bool startAdvertising(BTAdapter *a, std::string msg);
-static bool stopAdvertising(BTAdapter *a, std::string msg);
-static void processDisconnectedDevice(BTDeviceRef device);
+static bool startAdvertising(BTAdapter *a, std::string msg); // NOLINT(performance-unnecessary-value-param): Pass-by-value out-of-thread
+static bool stopAdvertising(BTAdapter *a, std::string msg); // NOLINT(performance-unnecessary-value-param): Pass-by-value out-of-thread
+static void processDisconnectedDevice(BTDeviceRef device); // NOLINT(performance-unnecessary-value-param): Pass-by-value out-of-thread
 
-static void setDevice(const BTDeviceRef cd) {
+static void setDevice(const BTDeviceRef& cd) {
     jau::sc_atomic_critical sync(sync_data);
     connectedDevice = cd;
 }
@@ -543,7 +543,7 @@ static const AD_PDU_Type adv_type=AD_PDU_Type::ADV_IND;
 static const uint8_t adv_chan_map=0x07;
 static const uint8_t filter_policy=0x00;
 
-static bool startAdvertising(BTAdapter *a, std::string msg) {
+static bool startAdvertising(BTAdapter *a, std::string msg) { // NOLINT(performance-unnecessary-value-param): Pass-by-value out-of-thread
     if( useAdapter != EUI48::ALL_DEVICE && useAdapter != a->getAddressAndType().address ) {
         fprintf_td(stderr, "****** Start advertising (%s): Adapter not selected: %s\n", msg.c_str(), a->toString().c_str());
         return false;
@@ -579,7 +579,7 @@ static bool startAdvertising(BTAdapter *a, std::string msg) {
     return HCIStatusCode::SUCCESS == status;
 }
 
-static bool stopAdvertising(BTAdapter *a, std::string msg) {
+static bool stopAdvertising(BTAdapter *a, std::string msg) { // NOLINT(performance-unnecessary-value-param): Pass-by-value out-of-thread
     if( useAdapter != EUI48::ALL_DEVICE && useAdapter != a->getAddressAndType().address ) {
         fprintf_td(stderr, "****** Stop advertising (%s): Adapter not selected: %s\n", msg.c_str(), a->toString().c_str());
         return false;
@@ -589,7 +589,7 @@ static bool stopAdvertising(BTAdapter *a, std::string msg) {
     return HCIStatusCode::SUCCESS == status;
 }
 
-static void processDisconnectedDevice(BTDeviceRef device) {
+static void processDisconnectedDevice(BTDeviceRef device) { // NOLINT(performance-unnecessary-value-param): Pass-by-value out-of-thread
     fprintf_td(stderr, "****** Disconnected Device (count %zu): Start %s\n",
             servedConnections.load(), device->toString().c_str());
 

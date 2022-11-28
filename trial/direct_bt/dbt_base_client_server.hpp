@@ -97,7 +97,7 @@ class BaseDBTClientServer {
         void resetStates() {
             std::shared_ptr<BTManager> mngr = BTManager::get();
             jau::darray<BTAdapterRef> adapters = mngr->getAdapters();
-            for(BTAdapterRef a : adapters) {
+            for(const BTAdapterRef& a : adapters) {
                 a->removeAllStatusListener();
                 a->stopAdvertising();
                 a->stopDiscovery();

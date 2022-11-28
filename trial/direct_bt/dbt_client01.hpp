@@ -302,7 +302,7 @@ class DBTClient01 : public DBTClientTest {
             this->do_disconnect_randomly = do_disconnect_randomly_;
         }
 
-        ~DBTClient01() {
+        ~DBTClient01() override {
             fprintf_td(stderr, "****** Client dtor: running_threads %zu\n", running_threads.value());
             running_threads.wait_for( 10_s );
         }
@@ -348,7 +348,7 @@ class DBTClient01 : public DBTClientTest {
             indicationsReceived = 0;
         }
 
-        void connectDiscoveredDevice(BTDeviceRef device) {
+        void connectDiscoveredDevice(BTDeviceRef device) { // NOLINT(performance-unnecessary-value-param): Pass-by-value out-of-thread
             fprintf_td(stderr, "****** Client Connecting Device: Start %s\n", device->toString().c_str());
 
             resetLastProcessingStats();
@@ -396,7 +396,7 @@ class DBTClient01 : public DBTClientTest {
             running_threads.count_down();
         }
 
-        void processReadyDevice(BTDeviceRef device) {
+        void processReadyDevice(BTDeviceRef device) { // NOLINT(performance-unnecessary-value-param): Pass-by-value out-of-thread
             fprintf_td(stderr, "****** Client Processing Ready Device: Start %s\n", device->toString().c_str());
 
             const uint64_t t1 = jau::getCurrentMilliseconds();
@@ -549,7 +549,7 @@ class DBTClient01 : public DBTClientTest {
                 }
                 {
                     int i = 0;
-                    for(BTGattCharListenerRef gcl : gattListener) {
+                    for(const BTGattCharListenerRef& gcl : gattListener) {
                         if( !device->removeCharListener(gcl) ) {
                             fprintf_td(stderr, "Client Error: Failed to remove GattListener[%d/%zu]: %s @ %s\n",
                                     i, gattListener.size(), gcl->toString().c_str(), device->toString().c_str());
@@ -565,7 +565,7 @@ class DBTClient01 : public DBTClientTest {
                     cmd.setVerbose(true);
                     const bool cmd_resolved = cmd.isResolved();
                     fprintf_td(stderr, "FinalCommand test: %s, resolved %d\n", cmd.toString().c_str(), cmd_resolved);
-                    const int data_sz = DBTConstants::FailHandshakeCommandData.size();
+                    const size_t data_sz = DBTConstants::FailHandshakeCommandData.size();
                     POctets cmd_data(data_sz, endian::little);
                     if( success ) {
                         cmd_data.put_bytes_nc(0, DBTConstants::SuccessHandshakeCommandData.data(), data_sz);
@@ -627,7 +627,7 @@ class DBTClient01 : public DBTClientTest {
             running_threads.count_down();
         }
 
-        void removeDevice(BTDeviceRef device) {
+        void removeDevice(BTDeviceRef device) { // NOLINT(performance-unnecessary-value-param): Pass-by-value out-of-thread
             fprintf_td(stderr, "****** Client Remove Device: removing: %s\n", device->getAddressAndType().toString().c_str());
 
             if( do_remove_device ) {

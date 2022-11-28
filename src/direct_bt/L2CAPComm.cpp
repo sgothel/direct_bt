@@ -429,7 +429,7 @@ bool L2CAPClient::close_impl() noexcept {
             int kerr;
             if( 0 != ( kerr = ::pthread_kill(_tid_read, SIGALRM) ) ) {
                 ERR_PRINT("L2CAPClient::close: pthread_kill read %p FAILED: %d; dev_id %u, dd %d, %s, psm %s, cid %s; %s",
-                          (void*)_tid_read, kerr,
+                          (void*)_tid_read, kerr, // NOLINT(performance-no-int-to-ptr)
                           adev_id, socket_.load(), remoteAddressAndType.toString().c_str(),
                           to_string(psm).c_str(), to_string(cid).c_str(),
                           getStateString().c_str());
@@ -440,7 +440,7 @@ bool L2CAPClient::close_impl() noexcept {
             int kerr;
             if( 0 != ( kerr = ::pthread_kill(_tid_connect, SIGALRM) ) ) {
                 ERR_PRINT("L2CAPClient::close: Start: pthread_kill connect %p FAILED: %d; dev_id %u, dd %d, %s, psm %s, cid %s; %s",
-                          (void*)_tid_connect, kerr,
+                          (void*)_tid_connect, kerr, // NOLINT(performance-no-int-to-ptr)
                           adev_id, socket_.load(), remoteAddressAndType.toString().c_str(),
                           to_string(psm).c_str(), to_string(cid).c_str(),
                           getStateString().c_str());
@@ -798,7 +798,7 @@ bool L2CAPServer::close_impl() noexcept {
             int kerr;
             if( 0 != ( kerr = ::pthread_kill(_tid_accept, SIGALRM) ) ) {
                 ERR_PRINT("L2CAPServer::close: Start: pthread_kill connect %p FAILED: %d; dev_id %u, dd %d, psm %s, cid %s, local %s",
-                          (void*)_tid_accept, kerr,
+                          (void*)_tid_accept, kerr, // NOLINT(performance-no-int-to-ptr)
                           adev_id, socket_.load(), to_string(psm).c_str(), to_string(cid).c_str(),
                           localAddressAndType.toString().c_str());
             }

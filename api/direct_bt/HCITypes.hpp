@@ -59,22 +59,22 @@ namespace direct_bt {
 
     class HCIException : public jau::RuntimeException {
         protected:
-            HCIException(std::string const type, std::string const m, const char* file, int line) noexcept
-            : RuntimeException(type, m, file, line) {}
+            HCIException(std::string type, std::string const& m, const char* file, int line) noexcept
+            : RuntimeException(std::move(type), m, file, line) {}
 
         public:
-            HCIException(std::string const m, const char* file, int line) noexcept
+            HCIException(std::string const& m, const char* file, int line) noexcept
             : RuntimeException("HCIException", m, file, line) {}
     };
 
     class HCIPacketException : public HCIException {
         public:
-            HCIPacketException(std::string const m, const char* file, int line) noexcept
+            HCIPacketException(std::string const& m, const char* file, int line) noexcept
             : HCIException("HCIPacketException", m, file, line) {}
     };
     class HCIOpcodeException : public HCIException {
         public:
-            HCIOpcodeException(std::string const m, const char* file, int line) noexcept
+            HCIOpcodeException(std::string const& m, const char* file, int line) noexcept
             : HCIException("HCIOpcodeException", m, file, line) {}
     };
 

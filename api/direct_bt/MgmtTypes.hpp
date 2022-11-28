@@ -55,17 +55,17 @@ namespace direct_bt {
 
     class MgmtException : public jau::RuntimeException {
         protected:
-            MgmtException(std::string const type, std::string const m, const char* file, int line) noexcept
-            : RuntimeException(type, m, file, line) {}
+            MgmtException(std::string type, std::string const& m, const char* file, int line) noexcept
+            : RuntimeException(std::move(type), m, file, line) {}
 
         public:
-            MgmtException(std::string const m, const char* file, int line) noexcept
+            MgmtException(std::string const& m, const char* file, int line) noexcept
             : RuntimeException("MgmtException", m, file, line) {}
     };
 
     class MgmtOpcodeException : public MgmtException {
         public:
-            MgmtOpcodeException(std::string const m, const char* file, int line) noexcept
+            MgmtOpcodeException(std::string const& m, const char* file, int line) noexcept
             : MgmtException("MgmtOpcodeException", m, file, line) {}
     };
 

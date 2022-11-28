@@ -125,7 +125,7 @@ bool SMPKeyBin::createAndWrite(const BTDevice& device, const std::string& path, 
 std::vector<SMPKeyBin> SMPKeyBin::readAll(const std::string& dname, const bool verbose_) {
     std::vector<SMPKeyBin> res;
     std::vector<std::string> fnames = get_file_list(dname);
-    for(std::string fname : fnames) {
+    for(const std::string& fname : fnames) {
         SMPKeyBin f = read(fname, verbose_);
         if( f.isValid() ) {
             res.push_back(f);
@@ -137,7 +137,7 @@ std::vector<SMPKeyBin> SMPKeyBin::readAll(const std::string& dname, const bool v
 std::vector<SMPKeyBin> SMPKeyBin::readAllForLocalAdapter(const BDAddressAndType& localAddress, const std::string& dname, const bool verbose_) {
     std::vector<SMPKeyBin> res;
     std::vector<SMPKeyBin> all = readAll(dname, verbose_);
-    for(SMPKeyBin f : all) {
+    for(const SMPKeyBin& f : all) {
         if( localAddress == f.getLocalAddrAndType() ) {
             res.push_back(f);
         }

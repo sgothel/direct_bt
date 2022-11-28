@@ -548,7 +548,7 @@ HCIStatusCode BTDevice::connectDefault() noexcept
     }
 }
 
-void BTDevice::notifyConnected(std::shared_ptr<BTDevice> sthis, const uint16_t handle, const SMPIOCapability io_cap) noexcept {
+void BTDevice::notifyConnected(const std::shared_ptr<BTDevice>& sthis, const uint16_t handle, const SMPIOCapability io_cap) noexcept {
     // coming from connected callback, update state and spawn-off connectGATT in background if appropriate (LE)
     jau::sc_atomic_critical sync(sync_data);
     DBG_PRINT("BTDevice::notifyConnected: Start: handle %s -> %s, io %s -> %s, %s",
@@ -565,7 +565,7 @@ void BTDevice::notifyConnected(std::shared_ptr<BTDevice> sthis, const uint16_t h
     (void)sthis; // not used yet
 }
 
-void BTDevice::notifyLEFeatures(std::shared_ptr<BTDevice> sthis, const LE_Features features) noexcept {
+void BTDevice::notifyLEFeatures(const std::shared_ptr<BTDevice>& sthis, const LE_Features features) noexcept {
     DBG_PRINT("BTDevice::notifyLEFeatures: %s -> %s, %s",
             direct_bt::to_string(le_features).c_str(),
             direct_bt::to_string(features).c_str(),
@@ -588,7 +588,7 @@ void BTDevice::notifyLEPhyUpdateComplete(const HCIStatusCode status, const LE_PH
     }
 }
 
-void BTDevice::processL2CAPSetup(std::shared_ptr<BTDevice> sthis) {
+void BTDevice::processL2CAPSetup(std::shared_ptr<BTDevice> sthis) { // NOLINT(performance-unnecessary-value-param): Pass-by-value out-of-thread
     bool callProcessDeviceReady = false;
     bool callDisconnect = false;
     bool smp_auto = false;
@@ -679,7 +679,7 @@ void BTDevice::processL2CAPSetup(std::shared_ptr<BTDevice> sthis) {
             adapter.dev_id, callDisconnect, callProcessDeviceReady, smp_auto, toString().c_str());
 }
 
-void BTDevice::processDeviceReady(std::shared_ptr<BTDevice> sthis, const uint64_t timestamp) {
+void BTDevice::processDeviceReady(std::shared_ptr<BTDevice> sthis, const uint64_t timestamp) { // NOLINT(performance-unnecessary-value-param): Pass-by-value out-of-thread
     DBG_PRINT("BTDevice::processDeviceReady: %s", toString().c_str());
     PairingMode pmode;
     SMPPairingState pstate;
@@ -776,7 +776,7 @@ std::string BTDevice::PairingData::toString(const uint16_t dev_id, const BDAddre
     return res;
 }
 
-bool BTDevice::updatePairingState(std::shared_ptr<BTDevice> sthis, const MgmtEvent& evt, const HCIStatusCode evtStatus, SMPPairingState claimed_state) noexcept {
+bool BTDevice::updatePairingState(const std::shared_ptr<BTDevice>& sthis, const MgmtEvent& evt, const HCIStatusCode evtStatus, SMPPairingState claimed_state) noexcept {
     std::unique_lock<std::recursive_mutex> lock_pairing(mtx_pairing); // RAII-style acquire and relinquish via destructor
     const std::string timestamp = jau::to_decstring(jau::environment::getElapsedMillisecond(evt.getTimestamp()), ',', 9);
 
@@ -1140,7 +1140,7 @@ bool BTDevice::updatePairingState(std::shared_ptr<BTDevice> sthis, const MgmtEve
     return false;
 }
 
-void BTDevice::hciSMPMsgCallback(std::shared_ptr<BTDevice> sthis, const SMPPDUMsg& msg, const HCIACLData::l2cap_frame& source) noexcept {
+void BTDevice::hciSMPMsgCallback(const std::shared_ptr<BTDevice>& sthis, const SMPPDUMsg& msg, const HCIACLData::l2cap_frame& source) noexcept {
     std::unique_lock<std::recursive_mutex> lock_pairing(mtx_pairing); // RAII-style acquire and relinquish via destructor
     const bool msg_sent = HCIACLData::l2cap_frame::PBFlag::START_NON_AUTOFLUSH_HOST == source.pb_flag; // from from Host to Controller
     const std::string msg_sent_s = msg_sent ? "sent" : "received";
@@ -1912,7 +1912,7 @@ void BTDevice::disconnectGATT(const int caller) noexcept {
     DBG_PRINT("BTDevice::disconnectGATT: end");
 }
 
-bool BTDevice::connectGATT(std::shared_ptr<BTDevice> sthis) noexcept {
+bool BTDevice::connectGATT(const std::shared_ptr<BTDevice>& sthis) noexcept {
     if( !isConnected || !allowDisconnect) {
         ERR_PRINT("Device not connected: %s", toString().c_str());
         return false;

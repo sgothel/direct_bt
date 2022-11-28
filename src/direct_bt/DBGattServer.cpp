@@ -84,14 +84,14 @@ std::string direct_bt::to_string(const DBGattServer::Mode m) noexcept {
 static jau::cow_darray<DBGattServer::ListenerRef>::equal_comparator _listenerRefEqComparator =
         [](const DBGattServer::ListenerRef &a, const DBGattServer::ListenerRef &b) -> bool { return *a == *b; };
 
-bool DBGattServer::addListener(ListenerRef l) {
+bool DBGattServer::addListener(const ListenerRef& l) {
     if( nullptr == l ) {
         throw jau::IllegalArgumentException("Listener ref is null", E_FILE_LINE);
     }
     return listenerList.push_back_unique(l, _listenerRefEqComparator);
 }
 
-bool DBGattServer::removeListener(ListenerRef l) {
+bool DBGattServer::removeListener(const ListenerRef& l) {
     if( nullptr == l ) {
         ERR_PRINT("Listener ref is null");
         return false;

@@ -496,7 +496,7 @@ namespace direct_bt {
             DBGattServerRef gattServerData;
             /** Always set, never nullptr */
             std::unique_ptr<GattServerHandler> gattServerHandler;
-            static std::unique_ptr<GattServerHandler> selectGattServerHandler(BTGattHandler& gh, DBGattServerRef gattServerData) noexcept;
+            static std::unique_ptr<GattServerHandler> selectGattServerHandler(BTGattHandler& gh, const DBGattServerRef& gattServerData) noexcept;
 
             GattServiceList_t services;
             std::shared_ptr<GattGenericAccessSvc> genericAccess = nullptr;
@@ -538,7 +538,7 @@ namespace direct_bt {
              * @see initClientGatt()
              * @see discoverCompletePrimaryServices()
              */
-            bool discoverPrimaryServices(std::shared_ptr<BTGattHandler> shared_this, GattServiceList_t& result) noexcept;
+            bool discoverPrimaryServices(const std::shared_ptr<BTGattHandler>& shared_this, GattServiceList_t& result) noexcept;
 
             /**
              * Discover all characteristics of a service and declaration attributes _only_.
@@ -575,7 +575,7 @@ namespace direct_bt {
              * @return true if successful, otherwise false
              * @see initClientGatt()
              */
-            bool discoverCompletePrimaryServices(std::shared_ptr<BTGattHandler> shared_this) noexcept;
+            bool discoverCompletePrimaryServices(const std::shared_ptr<BTGattHandler>& shared_this) noexcept;
 
         public:
             /**
@@ -639,7 +639,7 @@ namespace direct_bt {
              * Returns nullptr if not found.
              * </p>
              */
-            BTGattCharRef findCharacterisicsByValueHandle(const BTGattServiceRef service, const uint16_t charValueHandle) noexcept;
+            BTGattCharRef findCharacterisicsByValueHandle(const BTGattServiceRef& service, const uint16_t charValueHandle) noexcept;
 
             /**
              * Initialize the connection and internal data set for GATT client operations:
@@ -655,7 +655,7 @@ namespace direct_bt {
              * @see clientMTUExchange()
              * @see discoverCompletePrimaryServices()
              */
-            bool initClientGatt(std::shared_ptr<BTGattHandler> shared_this, bool& already_init) noexcept;
+            bool initClientGatt(const std::shared_ptr<BTGattHandler>& shared_this, bool& already_init) noexcept;
 
             /**
              * Returns a reference of the internal kept BTGattService list.

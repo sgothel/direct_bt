@@ -43,7 +43,7 @@ typedef std::shared_ptr<DBTEndpoint> DBTEndpointRef;
 class DBTEndpoint {
 
     public:
-        virtual ~DBTEndpoint() {}
+        virtual ~DBTEndpoint() = default;
 
         /**
          * Return name of this endpoint,
@@ -86,7 +86,7 @@ class DBTEndpoint {
          */
         virtual bool initAdapter(BTAdapterRef adapter) = 0;
 
-        static void checkInitializedState(const DBTEndpointRef endp) {
+        static void checkInitializedState(const DBTEndpointRef& endp) {
             BTAdapterRef adapter = endp->getAdapter();
             REQUIRE( true == adapter->isInitialized() );
             REQUIRE( true == adapter->isPowered() );
@@ -99,7 +99,7 @@ class DBTEndpoint {
 
         static void myChangedAdapterSetFunc(const bool added, BTAdapterRef& adapter) {
             if( added ) {
-                for(DBTEndpointRef endpt : cas_endpts ) {
+                for(const DBTEndpointRef& endpt : cas_endpts ) {
                     if( nullptr == endpt->getAdapter() ) {
                         if( endpt->initAdapter( adapter ) ) {
                             endpt->setAdapter(adapter);
@@ -110,7 +110,7 @@ class DBTEndpoint {
                 }
                 jau::fprintf_td(stderr, "****** Adapter ADDED__: Ignored: %s\n", adapter->toString().c_str());
             } else {
-                for(DBTEndpointRef endpt : cas_endpts ) {
+                for(const DBTEndpointRef& endpt : cas_endpts ) {
                     if( nullptr != endpt->getAdapter() && *adapter == *endpt->getAdapter() ) {
                         endpt->setAdapter(nullptr);
                         jau::fprintf_td(stderr, "****** Adapter REMOVED: %s\n", adapter->toString().c_str());
@@ -126,13 +126,13 @@ class DBTEndpoint {
             cas_endpts = std::move( endpts );
             ChangedAdapterSetCallback casc = jau::bind_free(&DBTEndpoint::myChangedAdapterSetFunc);
             manager->addChangedAdapterSetCallback(casc);
-            for(DBTEndpointRef endpt : cas_endpts ) {
+            for(const DBTEndpointRef& endpt : cas_endpts ) {
                 REQUIRE( nullptr != endpt->getAdapter() );
             }
             return casc;
         }
 
-        static void startDiscovery(BTAdapterRef adapter, const bool current_exp_discovering_state) {
+        static void startDiscovery(const BTAdapterRef& adapter, const bool current_exp_discovering_state) {
             REQUIRE( false == adapter->isAdvertising() );
             REQUIRE( current_exp_discovering_state == adapter->isDiscovering());
 
@@ -145,7 +145,7 @@ class DBTEndpoint {
             REQUIRE( BTRole::Master == adapter->getRole() );
         }
 
-        static void stopDiscovery(BTAdapterRef adapter, const bool current_exp_discovering_state) {
+        static void stopDiscovery(const BTAdapterRef& adapter, const bool current_exp_discovering_state) {
             REQUIRE( false == adapter->isAdvertising() );
             REQUIRE( current_exp_discovering_state == adapter->isDiscovering() );
             REQUIRE( BTRole::Master == adapter->getRole() );

@@ -574,15 +574,15 @@ void BTAdapter::printDeviceLists() noexcept {
     weak_device_list_t _sharedDevices, _discoveredDevices, _connectedDevices, _pausingDiscoveryDevice;
     {
         const std::lock_guard<std::mutex> lock(mtx_sharedDevices); // RAII-style acquire and relinquish via destructor
-        for(BTDeviceRef d : sharedDevices) { _sharedDevices.push_back(d); }
+        for(const BTDeviceRef& d : sharedDevices) { _sharedDevices.push_back(d); }
     }
     {
         const std::lock_guard<std::mutex> lock(mtx_discoveredDevices); // RAII-style acquire and relinquish via destructor
-        for(BTDeviceRef d : discoveredDevices) { _discoveredDevices.push_back(d); }
+        for(const BTDeviceRef& d : discoveredDevices) { _discoveredDevices.push_back(d); }
     }
     {
         const std::lock_guard<std::mutex> lock(mtx_connectedDevices); // RAII-style acquire and relinquish via destructor
-        for(BTDeviceRef d : connectedDevices) { _connectedDevices.push_back(d); }
+        for(const BTDeviceRef& d : connectedDevices) { _connectedDevices.push_back(d); }
     }
     {
         const std::lock_guard<std::mutex> lock(mtx_pausingDiscoveryDevices); // RAII-style acquire and relinquish via destructor
@@ -655,9 +655,9 @@ void BTAdapter::setServerConnSecurity(const BTSecurityLevel sec_level, const SMP
     io_cap_server = io_cap;
 }
 
-void BTAdapter::setSMPKeyPath(const std::string path) noexcept {
+void BTAdapter::setSMPKeyPath(std::string path) noexcept {
     jau::sc_atomic_critical sync(sync_data);
-    key_path = path;
+    key_path = std::move(path);
 
     std::vector<SMPKeyBin> keys = SMPKeyBin::readAllForLocalAdapter(getAddressAndType(), key_path, jau::environment::get().debug /* verbose_ */);
     for(SMPKeyBin f : keys) {
@@ -1415,7 +1415,7 @@ BTAdapter::SMPKeyBinRef BTAdapter::findSMPKeyBin(key_list_t & keys, BDAddressAnd
     }
     return nullptr;
 }
-bool BTAdapter::removeSMPKeyBin(key_list_t & keys, BDAddressAndType const & remoteAddress, const bool remove_file, const std::string key_path_) noexcept {
+bool BTAdapter::removeSMPKeyBin(key_list_t & keys, BDAddressAndType const & remoteAddress, const bool remove_file, const std::string& key_path_) noexcept {
     for (auto it = keys.begin(); it != keys.end(); ++it) {
         const SMPKeyBinRef& k = *it;
         if ( nullptr != k && remoteAddress == k->getRemoteAddrAndType() ) {
@@ -1457,7 +1457,7 @@ bool BTAdapter::removeSMPKeyBin(BDAddressAndType const & remoteAddress, const bo
 
 // *************************************************
 
-HCIStatusCode BTAdapter::startAdvertising(DBGattServerRef gattServerData_,
+HCIStatusCode BTAdapter::startAdvertising(const DBGattServerRef& gattServerData_,
                                EInfoReport& eir, EIRDataType adv_mask, EIRDataType scanrsp_mask,
                                const uint16_t adv_interval_min, const uint16_t adv_interval_max,
                                const AD_PDU_Type adv_type,
@@ -1526,7 +1526,7 @@ HCIStatusCode BTAdapter::startAdvertising(DBGattServerRef gattServerData_,
     return status;
 }
 
-HCIStatusCode BTAdapter::startAdvertising(DBGattServerRef gattServerData_,
+HCIStatusCode BTAdapter::startAdvertising(const DBGattServerRef& gattServerData_,
                                const uint16_t adv_interval_min, const uint16_t adv_interval_max,
                                const AD_PDU_Type adv_type,
                                const uint8_t adv_chan_map,
@@ -1539,7 +1539,7 @@ HCIStatusCode BTAdapter::startAdvertising(DBGattServerRef gattServerData_,
     eir.setName(getName());
     eir.setConnInterval(10, 24); // default
     if( nullptr != gattServerData_ ) {
-        for(DBGattServiceRef& s : gattServerData_->getServices()) {
+        for(const DBGattServiceRef& s : gattServerData_->getServices()) {
             eir.addService(s->getType());
         }
     }
@@ -1590,7 +1590,7 @@ std::string BTAdapter::toString(bool includeDiscoveredDevices) const noexcept {
         device_list_t devices = getDiscoveredDevices();
         if( devices.size() > 0 ) {
             out.append("\n");
-            for(auto p : devices) {
+            for(const auto& p : devices) {
                  if( nullptr != p ) {
                     out.append("  ").append(p->toString()).append("\n");
                 }
@@ -1838,7 +1838,7 @@ void BTAdapter::l2capServerWork(jau::service_runner& sr) noexcept {
     }
 }
 
-std::unique_ptr<L2CAPClient> BTAdapter::get_l2cap_connection(std::shared_ptr<BTDevice> device) {
+std::unique_ptr<L2CAPClient> BTAdapter::get_l2cap_connection(const std::shared_ptr<BTDevice>& device) {
     if( BTRole::Slave == getRole() ) {
         const BDAddressAndType& clientAddrAndType = device->getAddressAndType();
         const jau::fraction_i64 timeout = L2CAP_CLIENT_CONNECT_TIMEOUT_MS;
@@ -2579,7 +2579,7 @@ void BTAdapter::hciSMPMsgCallback(const BDAddressAndType & addressAndType,
     device->hciSMPMsgCallback(device, msg, source);
 }
 
-void BTAdapter::sendDevicePairingState(BTDeviceRef device, const SMPPairingState state, const PairingMode mode, uint64_t timestamp) noexcept
+void BTAdapter::sendDevicePairingState(const BTDeviceRef& device, const SMPPairingState state, const PairingMode mode, uint64_t timestamp) noexcept
 {
     if( BTRole::Slave == getRole() ) {
         // PERIPHERAL_ADAPTER_MANAGES_SMP_KEYS
@@ -2626,7 +2626,7 @@ void BTAdapter::sendDevicePairingState(BTDeviceRef device, const SMPPairingState
     }
 }
 
-void BTAdapter::notifyPairingStageDone(BTDeviceRef device, uint64_t timestamp) noexcept {
+void BTAdapter::notifyPairingStageDone(const BTDeviceRef& device, uint64_t timestamp) noexcept {
     if( DiscoveryPolicy::PAUSE_CONNECTED_UNTIL_PAIRED == discovery_policy ) {
         removeDevicePausingDiscovery(*device);
     }

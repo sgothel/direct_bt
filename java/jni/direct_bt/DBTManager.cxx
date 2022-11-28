@@ -66,7 +66,7 @@ struct BooleanMgmtCBContext {
 };
 typedef std::shared_ptr<BooleanMgmtCBContext> BooleanMgmtCBContextRef;
 
-static void _addMgmtCBOnce(JNIEnv *env, BTManager & mgmt, JNIGlobalRef jmgmtRef, MgmtEvent::Opcode opc,
+static void _addMgmtCBOnce(JNIEnv *env, BTManager & mgmt, const JNIGlobalRef& jmgmtRef, MgmtEvent::Opcode opc,
                            const std::string &jmethodName, const std::string &jmethodArgs)
 {
     try {

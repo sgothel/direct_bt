@@ -15,7 +15,7 @@
         "-DCMAKE_CXX_COMPILER=/usr/bin/clang++",
         "-DCMAKE_CXX_CLANG_TIDY=/usr/bin/clang-tidy;-p;${workspaceFolder}/build-vscode",
         "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
-        "-DBUILD_TESTING=ON",
+        "-DBUILD_TRIAL=ON",
         "-DBUILDJAVA=ON"
     ],
     "clangd.arguments": [

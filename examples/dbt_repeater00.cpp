@@ -79,10 +79,10 @@ static BTAdapterRef adapterToServer = nullptr;
 static BTDeviceRef connectedDeviceToServer = nullptr;
 static std::atomic<int> serverDeviceReadyCount = 0;
 
-static void connectToDiscoveredServer(BTDeviceRef device);
-static void processReadyToServer(BTDeviceRef device);
-static void removeDeviceToServer(BTDeviceRef device);
-static bool startDiscoveryToServer(BTAdapter *a, std::string msg);
+static void connectToDiscoveredServer(BTDeviceRef device); // NOLINT(performance-unnecessary-value-param): Pass-by-value out-of-thread
+static void processReadyToServer(const BTDeviceRef& device);
+static void removeDeviceToServer(BTDeviceRef device); // NOLINT(performance-unnecessary-value-param): Pass-by-value out-of-thread
+static bool startDiscoveryToServer(BTAdapter *a, std::string msg); // NOLINT(performance-unnecessary-value-param): Pass-by-value out-of-thread
 
 static DiscoveryPolicy discoveryPolicy = DiscoveryPolicy::PAUSE_CONNECTED_UNTIL_DISCONNECTED;
 static const bool le_scan_active = true; // default value
@@ -108,9 +108,9 @@ static jau::relaxed_atomic_nsize_t servedClientConnections = 0;
 static jau::nsize_t MAX_SERVED_CONNECTIONS = 0; // unlimited
 static BTDeviceRef connectedDeviceToClient = nullptr;
 
-static bool startAdvertisingToClient(BTAdapterRef a, std::string msg);
-static bool stopAdvertisingToClient(BTAdapterRef a, std::string msg);
-static void processDisconnectedDeviceToClient(BTDeviceRef device);
+static bool startAdvertisingToClient(const BTAdapterRef& a, const std::string& msg);
+static bool stopAdvertisingToClient(const BTAdapterRef& a, const std::string& msg);
+static void processDisconnectedDeviceToClient(BTDeviceRef device); // NOLINT(performance-unnecessary-value-param): Pass-by-value out-of-thread
 
 static bool QUIET = false;
 
@@ -274,7 +274,7 @@ class AdapterToServerStatusListener : public AdapterStatusListener {
 class NativeGattToServerCharListener : public BTGattHandler::NativeGattCharListener {
   public:
 
-    NativeGattToServerCharListener() {}
+    NativeGattToServerCharListener() = default;
 
     BTDeviceRef getToClient() noexcept {
         jau::sc_atomic_critical sync(sync_data);
@@ -398,7 +398,7 @@ class NativeGattToServerCharListener : public BTGattHandler::NativeGattCharListe
 
 };
 
-static void connectToDiscoveredServer(BTDeviceRef device) {
+static void connectToDiscoveredServer(BTDeviceRef device) { // NOLINT(performance-unnecessary-value-param): Pass-by-value out-of-thread
     fprintf_td(stderr, "****** To Server: Connecting Device: Start %s\n", device->toString().c_str());
 
     const BTSecurityRegistry::Entry* sec = BTSecurityRegistry::getStartOf(device->getAddressAndType().address, device->getName());
@@ -443,7 +443,7 @@ static void connectToDiscoveredServer(BTDeviceRef device) {
     fprintf_td(stderr, "****** To Server: Connecting Device: End result %s of %s\n", to_string(res).c_str(), device->toString().c_str());
 }
 
-static void processReadyToServer(BTDeviceRef device) {
+static void processReadyToServer(const BTDeviceRef& device) {
     fprintf_td(stderr, "****** To Server: Processing Ready Device: Start %s\n", device->toString().c_str());
 
     SMPKeyBin::createAndWrite(*device, CLIENT_KEY_PATH, true /* verbose */);
@@ -492,7 +492,7 @@ static void processReadyToServer(BTDeviceRef device) {
 
 }
 
-static void removeDeviceToServer(BTDeviceRef device) {
+static void removeDeviceToServer(BTDeviceRef device) { // NOLINT(performance-unnecessary-value-param): Pass-by-value out-of-thread
     fprintf_td(stderr, "****** To Server: Remove Device: %s\n", device->getAddressAndType().toString().c_str());
 
     {
@@ -505,7 +505,7 @@ static void removeDeviceToServer(BTDeviceRef device) {
     device->remove();
 }
 
-static void resetConnectionToServer(BTDeviceRef device) {
+static void resetConnectionToServer(BTDeviceRef device) { // NOLINT(performance-unnecessary-value-param): Pass-by-value out-of-thread
     fprintf_td(stderr, "****** To Server: Disconnected: %s\n", device->toString().c_str());
     device->disconnect(HCIStatusCode::DISCONNECTED);
 
@@ -519,7 +519,7 @@ static void resetConnectionToServer(BTDeviceRef device) {
     }
 }
 
-static bool startDiscoveryToServer(BTAdapter *a, std::string msg) {
+static bool startDiscoveryToServer(BTAdapter *a, std::string msg) { // NOLINT(performance-unnecessary-value-param): Pass-by-value out-of-thread
     if( adapterToServerAddr != EUI48::ALL_DEVICE && adapterToServerAddr != a->getAddressAndType().address ) {
         fprintf_td(stderr, "****** To Server: Start discovery (%s): Adapter not selected: %s\n", msg.c_str(), a->toString().c_str());
         return false;
@@ -695,7 +695,7 @@ class AdapterToClientStatusListener : public AdapterStatusListener {
 
 };
 
-static void processDisconnectedDeviceToClient(BTDeviceRef device) {
+static void processDisconnectedDeviceToClient(BTDeviceRef device) { // NOLINT(performance-unnecessary-value-param): Pass-by-value out-of-thread
     fprintf_td(stderr, "****** To Client: Disconnected Device (count %zu): Start %s\n",
             servedClientConnections.load(), device->toString().c_str());
 
@@ -719,7 +719,7 @@ static void processDisconnectedDeviceToClient(BTDeviceRef device) {
     fprintf_td(stderr, "****** To Client: Disonnected Device: End %s\n", device->toString().c_str());
 }
 
-static bool startAdvertisingToClient(BTAdapterRef a, std::string msg) {
+static bool startAdvertisingToClient(const BTAdapterRef& a, const std::string& msg) {
     BTDeviceRef devToServer;
     {
         jau::sc_atomic_critical sync(sync_data);
@@ -755,7 +755,7 @@ static bool startAdvertisingToClient(BTAdapterRef a, std::string msg) {
     return HCIStatusCode::SUCCESS == status;
 }
 
-static bool stopAdvertisingToClient(BTAdapterRef a, std::string msg) {
+static bool stopAdvertisingToClient(const BTAdapterRef& a, const std::string& msg) {
     HCIStatusCode status = a->stopAdvertising();
     fprintf_td(stderr, "****** To Client: Stop advertising (%s) result: %s: %s\n", msg.c_str(), to_string(status).c_str(), a->toString().c_str());
     return HCIStatusCode::SUCCESS == status;
@@ -900,8 +900,8 @@ void test() {
         adapter->printDeviceLists();
     });
     {
-        int count = mngr->removeChangedAdapterSetCallback(myChangedAdapterSetFunc);
-        fprintf_td(stderr, "****** EOL Removed ChangedAdapterSetCallback %d\n", count);
+        BTManager::size_type count = mngr->removeChangedAdapterSetCallback(myChangedAdapterSetFunc);
+        fprintf_td(stderr, "****** EOL Removed ChangedAdapterSetCallback %zu\n", (size_t)count);
 
         mngr->close();
     }

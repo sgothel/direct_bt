@@ -61,7 +61,7 @@ class DBTClientTest : public DBTEndpoint {
 
         virtual HCIStatusCode stopDiscovery(const std::string& msg) = 0;
 
-        static void startDiscovery(DBTClientTestRef client, const bool current_exp_discovering_state, const std::string& msg) {
+        static void startDiscovery(const DBTClientTestRef& client, const bool current_exp_discovering_state, const std::string& msg) {
             BTAdapterRef adapter = client->getAdapter();
             REQUIRE( false == adapter->isAdvertising() );
             REQUIRE( current_exp_discovering_state == adapter->isDiscovering() );
@@ -75,7 +75,7 @@ class DBTClientTest : public DBTEndpoint {
             REQUIRE( BTRole::Master == adapter->getRole() );
         }
 
-        static void stopDiscovery(DBTClientTestRef client, const bool current_exp_discovering_state, const std::string& msg) {
+        static void stopDiscovery(const DBTClientTestRef& client, const bool current_exp_discovering_state, const std::string& msg) {
             BTAdapterRef adapter = client->getAdapter();
             REQUIRE( false == adapter->isAdvertising() );
             REQUIRE( current_exp_discovering_state == adapter->isDiscovering() );

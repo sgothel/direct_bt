@@ -93,8 +93,8 @@ class DBTClientServer1x {
     void test8x_fullCycle(const std::string& suffix,
                           const int max_connections_per_session, const bool expSuccess,
                           const bool server_client_order,
-                          std::shared_ptr<DBTServerTest> server, const BTSecurityLevel secLevelServer, const ExpectedPairing serverExpPairing,
-                          std::shared_ptr<DBTClientTest> client, const BTSecurityLevel secLevelClient, const ExpectedPairing clientExpPairing)
+                          const std::shared_ptr<DBTServerTest>& server, const BTSecurityLevel secLevelServer, const ExpectedPairing serverExpPairing,
+                          const std::shared_ptr<DBTClientTest>& client, const BTSecurityLevel secLevelClient, const ExpectedPairing clientExpPairing)
     {
         (void)secLevelServer;
         (void)serverExpPairing;
@@ -318,7 +318,7 @@ class DBTClientServer1x {
                 DBTEndpoint::stopDiscovery(adapter, true /* current_exp_discovering_state */);
             }
         }
-        const int count = manager->removeChangedAdapterSetCallback(myChangedAdapterSetFunc);
-        fprintf_td(stderr, "****** EOL Removed ChangedAdapterSetCallback %d\n", count);
+        const BTManager::size_type count = manager->removeChangedAdapterSetCallback(myChangedAdapterSetFunc);
+        fprintf_td(stderr, "****** EOL Removed ChangedAdapterSetCallback %zu\n", (size_t)count);
     }
 };

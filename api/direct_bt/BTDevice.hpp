@@ -170,8 +170,8 @@ namespace direct_bt {
             EIRDataType update(GattGenericAccessSvc const &data, const uint64_t timestamp) noexcept;
 
             void notifyDisconnected() noexcept;
-            void notifyConnected(std::shared_ptr<BTDevice> sthis, const uint16_t handle, const SMPIOCapability io_cap) noexcept;
-            void notifyLEFeatures(std::shared_ptr<BTDevice> sthis, const LE_Features features) noexcept;
+            void notifyConnected(const std::shared_ptr<BTDevice>& sthis, const uint16_t handle, const SMPIOCapability io_cap) noexcept;
+            void notifyLEFeatures(const std::shared_ptr<BTDevice>& sthis, const LE_Features features) noexcept;
             void notifyLEPhyUpdateComplete(const HCIStatusCode status, const LE_PHYs Tx, const LE_PHYs Rx) noexcept;
 
             /**
@@ -203,7 +203,7 @@ namespace direct_bt {
 
             bool checkPairingKeyDistributionComplete() const noexcept;
 
-            bool updatePairingState(std::shared_ptr<BTDevice> sthis, const MgmtEvent& evt, const HCIStatusCode evtStatus, SMPPairingState claimed_state) noexcept;
+            bool updatePairingState(const std::shared_ptr<BTDevice>& sthis, const MgmtEvent& evt, const HCIStatusCode evtStatus, SMPPairingState claimed_state) noexcept;
 
             /**
              * Forwarded from HCIHandler -> BTAdapter -> this BTDevice
@@ -211,7 +211,7 @@ namespace direct_bt {
              * Will be initiated by processL2CAPSetup()'s security_level setup after connectLE(..), i.e. notifyConnected() and notifyLEFeatures().
              * </p>
              */
-            void hciSMPMsgCallback(std::shared_ptr<BTDevice> sthis, const SMPPDUMsg& msg, const HCIACLData::l2cap_frame& source) noexcept;
+            void hciSMPMsgCallback(const std::shared_ptr<BTDevice>& sthis, const SMPPDUMsg& msg, const HCIACLData::l2cap_frame& source) noexcept;
 
             /**
              * Setup GATT via connectGATT() off-thread.
@@ -232,7 +232,7 @@ namespace direct_bt {
              * The GATTHandler is managed by this device instance and closed via disconnectGATT().
              * </p>
              */
-            bool connectGATT(std::shared_ptr<BTDevice> sthis) noexcept;
+            bool connectGATT(const std::shared_ptr<BTDevice>& sthis) noexcept;
 
             /**
              * Will be performed within disconnect() and notifyDisconnected().

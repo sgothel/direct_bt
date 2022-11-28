@@ -61,7 +61,7 @@ TEST_CASE( "BTManager Bringup Trial 00.1", "[trial][BTManager][bringup]" ) {
     }
 
     jau::fprintf_td(stderr, "Adapter: Status Checks\n");
-    for(BTAdapterRef a : adapters) {
+    for(const BTAdapterRef& a : adapters) {
         REQUIRE( false == a->isInitialized() );
         REQUIRE( false == a->isPowered() );
         REQUIRE( BTRole::Master == a->getRole() ); // default role

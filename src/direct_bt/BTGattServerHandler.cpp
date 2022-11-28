@@ -1261,7 +1261,7 @@ class FwdGattServerHandler : public BTGattHandler::GattServerHandler {
         }
 };
 
-std::unique_ptr<BTGattHandler::GattServerHandler> BTGattHandler::selectGattServerHandler(BTGattHandler& gh, DBGattServerRef gattServerData) noexcept {
+std::unique_ptr<BTGattHandler::GattServerHandler> BTGattHandler::selectGattServerHandler(BTGattHandler& gh, const DBGattServerRef& gattServerData) noexcept {
     if( nullptr != gattServerData ) {
         switch( gattServerData->getMode() ) {
             case DBGattServer::Mode::DB: {
