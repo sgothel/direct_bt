@@ -71,14 +71,14 @@ namespace direct_bt {
 
     enum MgmtConstU16 : uint16_t {
         MGMT_INDEX_NONE          = 0xFFFF,
-        /* Net length, guaranteed to be null-terminated */
-        MGMT_MAX_NAME_LENGTH        = 248+1,
-        MGMT_MAX_SHORT_NAME_LENGTH  =  10+1
     };
 
 
     enum MgmtSizeConst : jau::nsize_t {
-        MGMT_HEADER_SIZE       = 6
+        MGMT_HEADER_SIZE       = 6,
+        /* Net length, guaranteed to be null-terminated */
+        MGMT_MAX_NAME_LENGTH        = 248+1,
+        MGMT_MAX_SHORT_NAME_LENGTH  =  10+1
     };
 
     enum class MgmtStatus : uint8_t {
@@ -598,7 +598,7 @@ namespace direct_bt {
 
         public:
             MgmtSetLocalNameCmd(const uint16_t dev_id, const std::string & name, const std::string & short_name)
-            : MgmtCommand(Opcode::SET_LOCAL_NAME, dev_id, MgmtConstU16::MGMT_MAX_NAME_LENGTH + MgmtConstU16::MGMT_MAX_SHORT_NAME_LENGTH)
+            : MgmtCommand(Opcode::SET_LOCAL_NAME, dev_id, MGMT_MAX_NAME_LENGTH + MGMT_MAX_SHORT_NAME_LENGTH)
             {
                 /**
                  * BlueZ/Kernel Bug Workaround:
@@ -613,12 +613,12 @@ namespace direct_bt {
                  * Same goes for `hdev->dev_name`, `HCI_MAX_NAME_LENGTH` and `MGMT_MAX_NAME_LENGTH`
                  * throughout `append_eir_data_to_buf(..)` and `set_local_name(..)`.
                  */
-                pdu.bzero_nc(MGMT_HEADER_SIZE, MgmtConstU16::MGMT_MAX_NAME_LENGTH + MgmtConstU16::MGMT_MAX_SHORT_NAME_LENGTH);
-                pdu.put_string_nc(MGMT_HEADER_SIZE, name, MgmtConstU16::MGMT_MAX_NAME_LENGTH-1, true);
-                pdu.put_string_nc(MGMT_HEADER_SIZE+MgmtConstU16::MGMT_MAX_NAME_LENGTH, short_name, MgmtConstU16::MGMT_MAX_SHORT_NAME_LENGTH-1, true);
+                pdu.bzero_nc(MGMT_HEADER_SIZE, MGMT_MAX_NAME_LENGTH + MGMT_MAX_SHORT_NAME_LENGTH);
+                pdu.put_string_nc(MGMT_HEADER_SIZE, name, MGMT_MAX_NAME_LENGTH-1, true);
+                pdu.put_string_nc(MGMT_HEADER_SIZE+MGMT_MAX_NAME_LENGTH, short_name, MGMT_MAX_SHORT_NAME_LENGTH-1, true);
             }
             const std::string getName() const noexcept { return pdu.get_string_nc(MGMT_HEADER_SIZE); }
-            const std::string getShortName() const noexcept { return pdu.get_string_nc(MGMT_HEADER_SIZE + MgmtConstU16::MGMT_MAX_NAME_LENGTH); }
+            const std::string getShortName() const noexcept { return pdu.get_string_nc(MGMT_HEADER_SIZE + MGMT_MAX_NAME_LENGTH); }
     };
 
     /**
@@ -1617,7 +1617,7 @@ namespace direct_bt {
             }
 
         public:
-            static jau::nsize_t namesDataSize() noexcept { return MgmtConstU16::MGMT_MAX_NAME_LENGTH + MgmtConstU16::MGMT_MAX_SHORT_NAME_LENGTH; }
+            static jau::nsize_t namesDataSize() noexcept { return MGMT_MAX_NAME_LENGTH + MGMT_MAX_SHORT_NAME_LENGTH; }
             static jau::nsize_t getRequiredTotalSize() noexcept { return MGMT_HEADER_SIZE + namesDataSize(); }
 
             MgmtEvtLocalNameChanged(const uint8_t* buffer, const jau::nsize_t buffer_len)
@@ -1626,14 +1626,14 @@ namespace direct_bt {
                 checkOpcode(getOpcode(), Opcode::LOCAL_NAME_CHANGED);
             }
             MgmtEvtLocalNameChanged(const uint16_t dev_id, const std::string & name, const std::string & short_name)
-            : MgmtEvent(Opcode::LOCAL_NAME_CHANGED, dev_id, MgmtConstU16::MGMT_MAX_NAME_LENGTH + MgmtConstU16::MGMT_MAX_SHORT_NAME_LENGTH)
+            : MgmtEvent(Opcode::LOCAL_NAME_CHANGED, dev_id, MGMT_MAX_NAME_LENGTH + MGMT_MAX_SHORT_NAME_LENGTH)
             {
-                pdu.put_string_nc(MGMT_HEADER_SIZE, name, MgmtConstU16::MGMT_MAX_NAME_LENGTH, true);
-                pdu.put_string_nc(MGMT_HEADER_SIZE+MgmtConstU16::MGMT_MAX_NAME_LENGTH, short_name, MgmtConstU16::MGMT_MAX_SHORT_NAME_LENGTH, true);
+                pdu.put_string_nc(MGMT_HEADER_SIZE, name, MGMT_MAX_NAME_LENGTH, true);
+                pdu.put_string_nc(MGMT_HEADER_SIZE+MGMT_MAX_NAME_LENGTH, short_name, MGMT_MAX_SHORT_NAME_LENGTH, true);
             }
 
             const std::string getName() const noexcept { return pdu.get_string_nc(MGMT_HEADER_SIZE); }
-            const std::string getShortName() const noexcept { return pdu.get_string_nc(MGMT_HEADER_SIZE + MgmtConstU16::MGMT_MAX_NAME_LENGTH); }
+            const std::string getShortName() const noexcept { return pdu.get_string_nc(MGMT_HEADER_SIZE + MGMT_MAX_NAME_LENGTH); }
 
             std::shared_ptr<NameAndShortName> toNameAndShortName() const noexcept;
     };
@@ -2752,7 +2752,7 @@ namespace direct_bt {
             }
 
         public:
-            static jau::nsize_t infoDataSize() noexcept { return 20 + MgmtConstU16::MGMT_MAX_NAME_LENGTH + MgmtConstU16::MGMT_MAX_SHORT_NAME_LENGTH; }
+            static jau::nsize_t infoDataSize() noexcept { return 20 + MGMT_MAX_NAME_LENGTH + MGMT_MAX_SHORT_NAME_LENGTH; }
             static jau::nsize_t getRequiredTotalSize() noexcept { return MGMT_HEADER_SIZE + 3 + infoDataSize(); }
 
             MgmtEvtAdapterInfo(const uint8_t* buffer, const jau::nsize_t buffer_len)
@@ -2769,7 +2769,7 @@ namespace direct_bt {
                                                        | ( pdu.get_uint8_nc(getDataOffset()+18) << 8 )
                                                        | ( pdu.get_uint8_nc(getDataOffset()+19) << 16 ); }
             std::string getName() const noexcept { return pdu.get_string_nc(getDataOffset()+20); }
-            std::string getShortName() const noexcept { return pdu.get_string_nc(getDataOffset()+20+MgmtConstU16::MGMT_MAX_NAME_LENGTH); }
+            std::string getShortName() const noexcept { return pdu.get_string_nc(getDataOffset()+20+MGMT_MAX_NAME_LENGTH); }
 
             std::unique_ptr<AdapterInfo> toAdapterInfo() const noexcept;
             bool updateAdapterInfo(AdapterInfo& info) const noexcept;
