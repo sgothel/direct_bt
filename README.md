@@ -43,7 +43,7 @@ to GATT indications and notifications.
 - *libdirect_bt.so* for the core C++ implementation.
 - *libjavadirect_bt.so* for the Java binding.
 
-*Direct-BT* is C++17 conform and shall upgrade towards C++20 when widely available on all target platforms.
+*Direct-BT* is C++17 and C++20 conform.
 
 Some elaboration on the implementation details
 > The host-side of HCI, L2CAP etc is usually implemented within the OS, e.g. *Linux/BlueZ* Kernel.
@@ -244,23 +244,41 @@ systemctl mask bluetooth
 
 ### Build Dependencies
 - CMake 3.13+ but >= 3.18 is recommended
-- gcc >= 8.3.0
-  - or clang >= 10.0
+- C++ compiler
+  - gcc >= 8.3.0 (C++17)
+  - gcc >= 10.2.1 (C++17 and C++20)
+  - clang >= 15 (C++17 and C++20)
+- Optional for `lint` validation
+  - clang-tidy >= 15
+- Optional for `vscodium` integration
+  - clangd >= 15
+  - clang-tools >= 15
+  - clang-format >= 15
 - Optional
   - libunwind8 >= 1.2.1
-  - For Java support
-    - OpenJDK >= 11
-    - junit4 >= 4.12
+  - libcurl4 >= 7.74 (tested, lower may work)
+- Optional Java support
+  - OpenJDK >= 11
+  - junit4 >= 4.12
+
+#### Install on Debian or Ubuntu
 
 Installing build dependencies for Debian >= 11 and Ubuntu >= 20.04:
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~{.sh}
 apt install git
 apt install build-essential g++ gcc libc-dev libpthread-stubs0-dev 
+apt install clang-15 clang-tidy-15 clangd-15 clang-tools-15 clang-format-15
 apt install libunwind8 libunwind-dev
 apt install openjdk-17-jdk openjdk-17-jre junit4
 apt install cmake cmake-extras extra-cmake-modules pkg-config
 apt install doxygen graphviz
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If using optional clang toolchain, 
+perhaps change the clang version-suffix of above clang install line to the appropriate version.
+
+After complete clang installation, you might want to setup the latest version as your default.
+For Debian you can use this [clang alternatives setup script](https://jausoft.com/cgit/jaulib.git/tree/scripts/setup_clang_alternatives.sh).
 
 ### Build Procedure
 The following is covered with [a convenient build script](https://jausoft.com/cgit/direct_bt.git/tree/scripts/build.sh).
@@ -304,6 +322,18 @@ Building with enabled *trial* and *testing* , i.e. live testing with 2 Bluetooth
 -DBUILD_TRIAL=ON
 ~~~~~~~~~~~~~
 
+Using clang instead of gcc:
+~~~~~~~~~~~~~
+-DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_CXX_COMPILER=/usr/bin/clang++
+~~~~~~~~~~~~~
+
+Building with clang and clang-tidy `lint` validation
+~~~~~~~~~~~~~
+-DCMAKE_C_COMPILER=/usr/bin/clang 
+-DCMAKE_CXX_COMPILER=/usr/bin/clang++ 
+-DCMAKE_CXX_CLANG_TIDY=/usr/bin/clang-tidy;-p;$rootdir/$build_dir
+~~~~~~~~~~~~~
+
 Disable stripping native lib even in non debug build:
 ~~~~~~~~~~~~~
 -DUSE_STRIP=OFF
@@ -329,11 +359,6 @@ Override default javac debug arguments `source,lines`:
 Building debug and instrumentation (sanitizer) build:
 ~~~~~~~~~~~~~
 -DDEBUG=ON -DINSTRUMENTATION=ON
-~~~~~~~~~~~~~
-
-Using clang instead of gcc:
-~~~~~~~~~~~~~
--DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_CXX_COMPILER=/usr/bin/clang++
 ~~~~~~~~~~~~~
 
 Cross-compiling on a different system:
@@ -405,6 +430,56 @@ a Raspi-arm64, Raspi-armhf or PC-amd64 target image.
 
 ## Build Status
 *Will be updated*
+
+## IDE Integration
+
+### Eclipse 
+IDE integration configuration files are provided for 
+- [Eclipse](https://download.eclipse.org/eclipse/downloads/) with extensions
+  - [CDT](https://github.com/eclipse-cdt/) or [CDT @ eclipse.org](https://projects.eclipse.org/projects/tools.cdt)
+  - Not used due to lack of subproject include file and symbol resolution:
+    - `CMake Support`, install `C/C++ CMake Build Support` with ID `org.eclipse.cdt.cmake.feature.group`
+
+From the project root directory, prepare the `Debug` folder using `cmake`
+~~~~~~~~~~~~~
+./scripts/eclipse-cmake-prepare.sh
+~~~~~~~~~~~~~
+
+The existing project setup is just using `external build` via `make`.
+
+You can import the project to your workspace via `File . Import...` and `Existing Projects into Workspace` menu item.
+
+For Eclipse one might need to adjust some setting in the `.project` and `.cproject` (CDT) 
+via Eclipse settings UI, but it should just work out of the box.
+
+### VSCodium or VS Code
+
+IDE integration configuration files are provided for 
+- [VSCodium](https://vscodium.com/) or [VS Code](https://code.visualstudio.com/) with extensions
+  - [vscode-clangd](https://github.com/clangd/vscode-clangd)
+  - [twxs.cmake](https://github.com/twxs/vs.language.cmake)
+  - [ms-vscode.cmake-tools](https://github.com/microsoft/vscode-cmake-tools)
+  - [notskm.clang-tidy](https://github.com/notskm/vscode-clang-tidy)
+  - Java Support
+    - [redhat.java](https://github.com/redhat-developer/vscode-java#readme)
+      - Notable, `.settings/org.eclipse.jdt.core.prefs` describes the `lint` behavior
+    - [vscjava.vscode-java-test](https://github.com/Microsoft/vscode-java-test)
+    - [vscjava.vscode-java-debug](https://github.com/Microsoft/java-debug)
+    - [vscjava.vscode-maven](https://github.com/Microsoft/vscode-maven/)
+  - [cschlosser.doxdocgen](https://github.com/cschlosser/doxdocgen)
+  - [jerrygoyal.shortcut-menu-bar](https://github.com/GorvGoyl/Shortcut-Menu-Bar-VSCode-Extension)
+
+For VSCodium one might copy the [example root-workspace file](https://jausoft.com/cgit/direct_bt.git/tree/.vscode/direct_bt.code-workspace_example)
+to the parent folder of this project (*note the filename change*) and adjust the `path` to your filesystem.
+~~~~~~~~~~~~~
+cp .vscode/direct_bt.code-workspace_example ../direct_bt.code-workspace
+vi ../direct_bt.code-workspace
+~~~~~~~~~~~~~
+Then you can open it via `File . Open Workspace from File...` menu item.
+- All listed extensions are referenced in this workspace file to be installed via the IDE
+- The [local settings.json](.vscode/settings.json) has `clang-tidy` enabled
+  - If using `clang-tidy` is too slow, just remove it from the settings file.
+  - `clangd` will still contain a good portion of `clang-tidy` checks
 
 
 ## Support & Sponsorship

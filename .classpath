@@ -16,5 +16,6 @@
 		</attributes>
 	</classpathentry>
 	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/4"/>
+	<classpathentry kind="var" path="JUNIT_HOME" sourcepath="/JUNIT_SRC_HOME"/>
 	<classpathentry kind="output" path="build-eclipse-amd64/"/>
 </classpath>
