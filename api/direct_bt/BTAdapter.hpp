@@ -361,12 +361,12 @@ namespace direct_bt {
             const uint16_t dev_id;
 
         private:
-            jau::ordered_atomic<BTRole, std::memory_order::memory_order_relaxed> btRole; // = BTRole::Master (default)
+            jau::ordered_atomic<BTRole, std::memory_order_relaxed> btRole; // = BTRole::Master (default)
             HCIHandler hci;
 
-            jau::ordered_atomic<AdapterSetting, std::memory_order::memory_order_relaxed> old_settings;
-            jau::ordered_atomic<ScanType, std::memory_order::memory_order_relaxed> currentMetaScanType; // = ScanType::NONE
-            jau::ordered_atomic<DiscoveryPolicy, std::memory_order::memory_order_relaxed> discovery_policy; // = DiscoveryPolicy::PAUSE_CONNECTED_UNTIL_READY
+            jau::ordered_atomic<AdapterSetting, std::memory_order_relaxed> old_settings;
+            jau::ordered_atomic<ScanType, std::memory_order_relaxed> currentMetaScanType; // = ScanType::NONE
+            jau::ordered_atomic<DiscoveryPolicy, std::memory_order_relaxed> discovery_policy; // = DiscoveryPolicy::PAUSE_CONNECTED_UNTIL_READY
 
             jau::relaxed_atomic_bool scan_filter_dup; //  = true;
 
