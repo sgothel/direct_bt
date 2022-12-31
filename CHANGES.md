@@ -4,6 +4,10 @@
 
 ## Changes
 
+**3.0.1**
+* C++20 clean
+* Fixed certain C++17 and C++20 compiler and clang-tidy warnings
+
 **3.0.0**
 * Added and passed clang-tidy diagnostics, multiple issues revealed
   - Using 'const T&' as method argument type where applicable
