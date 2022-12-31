@@ -975,7 +975,7 @@ namespace direct_bt {
              */
             constexpr jau::nsize_t getDataOffset() const noexcept { return 1; /* default: opcode */ }
 
-            constexpr_cxx20 virtual std::string getName() const noexcept {
+            virtual std::string getName() const noexcept {
                 return "SMPPDUMsg";
             }
 
@@ -1172,7 +1172,7 @@ namespace direct_bt {
                 return responder_key_dist;
             }
 
-            constexpr_cxx20 std::string getName() const noexcept override {
+            std::string getName() const noexcept override {
                 return "SMPPairingMsg";
             }
 
@@ -1257,7 +1257,7 @@ namespace direct_bt {
              */
             constexpr jau::uint128_t getConfirmValue() const noexcept { return jau::get_uint128(pdu.get_ptr(), 1); }
 
-            constexpr_cxx20 std::string getName() const noexcept override {
+            std::string getName() const noexcept override {
                 return "SMPPairConfirm";
             }
 
@@ -1353,7 +1353,7 @@ namespace direct_bt {
              */
             constexpr jau::uint128_t getRand() const noexcept { return jau::get_uint128(pdu.get_ptr(), 1); }
 
-            constexpr_cxx20 std::string getName() const noexcept override {
+            std::string getName() const noexcept override {
                 return "SMPPairRand";
             }
 
@@ -1424,7 +1424,7 @@ namespace direct_bt {
                 return static_cast<ReasonCode>(pdu.get_uint8_nc(1));
             }
 
-            constexpr_cxx20 std::string getName() const noexcept override {
+            std::string getName() const noexcept override {
                 return "SMPPairFailed";
             }
 
@@ -1490,7 +1490,7 @@ namespace direct_bt {
              */
             constexpr jau::uint256_t getPubKeyY() const noexcept { return jau::get_uint256(pdu.get_ptr(), 1+32); }
 
-            constexpr_cxx20 std::string getName() const noexcept override {
+            std::string getName() const noexcept override {
                 return "SMPPairPubKey";
             }
 
@@ -1550,7 +1550,7 @@ namespace direct_bt {
              */
             constexpr jau::uint128_t getDHKeyCheck() const noexcept { return jau::get_uint128(pdu.get_ptr(), 1); }
 
-            constexpr_cxx20 std::string getName() const noexcept override {
+            std::string getName() const noexcept override {
                 return "SMPPairDHKeyCheck";
             }
 
@@ -1614,7 +1614,7 @@ namespace direct_bt {
                 return static_cast<TypeCode>(pdu.get_uint8_nc(1));
             }
 
-            constexpr_cxx20 std::string getName() const noexcept override {
+            std::string getName() const noexcept override {
                 return "SMPPasskeyNotify";
             }
 
@@ -1683,7 +1683,7 @@ namespace direct_bt {
              */
             constexpr jau::uint128_t getLTK() const noexcept { return jau::get_uint128(pdu.get_ptr(), 1); }
 
-            constexpr_cxx20 std::string getName() const noexcept override {
+            std::string getName() const noexcept override {
                 return "SMPEncInfo";
             }
 
@@ -1762,7 +1762,7 @@ namespace direct_bt {
              */
             constexpr uint64_t getRand() const noexcept { return jau::get_uint64(pdu.get_ptr(), 1+2); }
 
-            constexpr_cxx20 std::string getName() const noexcept override {
+            std::string getName() const noexcept override {
                 return "SMPMasterIdent";
             }
 
@@ -1834,7 +1834,7 @@ namespace direct_bt {
              */
             constexpr jau::uint128_t getIRK() const noexcept { return jau::get_uint128(pdu.get_ptr(), 1); }
 
-            constexpr_cxx20 std::string getName() const noexcept override {
+            std::string getName() const noexcept override {
                 return "SMPIdentInfo";
             }
 
@@ -1903,7 +1903,7 @@ namespace direct_bt {
              */
             inline EUI48 getAddress() const noexcept { return pdu.get_eui48_nc(1+1); }
 
-            constexpr_cxx20 std::string getName() const noexcept override {
+            std::string getName() const noexcept override {
                 return "SMPIdentAddrInfo";
             }
 
@@ -1974,7 +1974,7 @@ namespace direct_bt {
              */
             constexpr jau::uint128_t getCSRK() const noexcept { return jau::get_uint128(pdu.get_ptr(), 1); }
 
-            constexpr_cxx20 std::string getName() const noexcept override {
+            std::string getName() const noexcept override {
                 return "SMPSignInfo";
             }
 
@@ -2041,7 +2041,7 @@ namespace direct_bt {
                 return is_set(authReqMask, bit);
             }
 
-            constexpr_cxx20 std::string getName() const noexcept override {
+            std::string getName() const noexcept override {
                 return "SMPSecurityReq";
             }
 
