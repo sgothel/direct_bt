@@ -523,7 +523,11 @@ void HCIHandler::hciReaderWork(jau::service_runner& sr) noexcept {
                 WARN_PRINT("dev_id %u: IO RECV Drop (%u oldest elements of %u capacity, ring full) - %s",
                         dev_id, dropCount, hciEventRing.capacity(), toString().c_str());
             }
-            hciEventRing.putBlocking( std::move( event ), jau::fractions_i64::zero );
+            if( !hciEventRing.putBlocking( std::move( event ), jau::fractions_i64::zero ) ) {
+                ERR_PRINT2("hciEventRing put: %s", hciEventRing.toString().c_str());
+                sr.set_shall_stop();
+                return;
+            }
         } else if( event->isMetaEvent(HCIMetaEventType::LE_ADVERTISING_REPORT) ) {
             // issue callbacks for the translated AD events
             jau::darray<std::unique_ptr<EInfoReport>> eirlist = EInfoReport::read_ad_reports(event->getParam(), event->getParamSize());

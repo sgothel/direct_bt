@@ -104,7 +104,11 @@ void BTManager::mgmtReaderWork(jau::service_runner& sr) noexcept {
                 mgmtEventRing.drop(dropCount);
                 WARN_PRINT("BTManager-IO RECV Drop (%u oldest elements of %u capacity, ring full)", dropCount, mgmtEventRing.capacity());
             }
-            mgmtEventRing.putBlocking( std::move( event ), 0_s );
+            if( !mgmtEventRing.putBlocking( std::move( event ), 0_s ) ) {
+                ERR_PRINT2("mgmtEventRing put: %s", mgmtEventRing.toString().c_str());
+                sr.set_shall_stop();
+                return;
+            }
         } else if( MgmtEvent::Opcode::INDEX_ADDED == opc ) {
             COND_PRINT(env.DEBUG_EVENT, "BTManager-IO RECV (ADD) %s", event->toString().c_str());
             std::thread adapterAddedThread(&BTManager::processAdapterAdded, this, std::move( event) ); // @suppress("Invalid arguments")

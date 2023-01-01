@@ -122,7 +122,11 @@ void SMPHandler::smpReaderWork(jau::service_runner& sr) noexcept {
                 smpPDURing.drop(dropCount);
                 WARN_PRINT("SMPHandler-IO RECV Drop (%u oldest elements of %u capacity, ring full)", dropCount, smpPDURing.capacity());
             }
-            smpPDURing.putBlocking( std::move(smpPDU), 0_s );
+            if( !smpPDURing.putBlocking( std::move(smpPDU), 0_s ) ) {
+                ERR_PRINT2("smpPDURing put: %s", smpPDURing.toString().c_str());
+                sr.set_shall_stop();
+                return;
+            }
         }
     } else if( len == L2CAPClient::number(L2CAPClient::RWExitCode::INTERRUPTED) ) {
         WORDY_PRINT("SMPHandler::reader: l2cap read: IRQed res %d (%s); %s",

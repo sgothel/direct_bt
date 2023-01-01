@@ -526,7 +526,11 @@ void BTGattHandler::l2capReaderWork(jau::service_runner& sr) noexcept {
             }
         } else if( AttPDUMsg::OpcodeType::RESPONSE == opc_type ) {
             COND_PRINT(env.DEBUG_DATA, "GATTHandler::reader: Ring: %s", attPDU->toString().c_str());
-            attPDURing.putBlocking( std::move(attPDU), 0_s );
+            if( !attPDURing.putBlocking( std::move(attPDU), 0_s ) ) {
+                ERR_PRINT2("attPDURing put: %s", attPDURing.toString().c_str());
+                sr.set_shall_stop();
+                return;
+            }
         } else if( AttPDUMsg::OpcodeType::REQUEST == opc_type ) {
             if( !replyAttPDUReq( std::move( attPDU ) ) ) {
                 ERR_PRINT2("ATT Reply: %s", toString().c_str());
