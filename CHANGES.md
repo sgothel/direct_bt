@@ -4,6 +4,9 @@
 
 ## Changes
 
+**3.1.0**
+* jaulib v1.1.0
+
 **3.0.1**
 * C++20 clean
 * Fixed certain C++17 and C++20 compiler and clang-tidy warnings
