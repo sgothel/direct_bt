@@ -183,7 +183,7 @@ public class BTFactory {
 
         boolean isJaulibAvail = false;
         try {
-            isJaulibAvail = null != Class.forName("org.jau.sys.PlatformProps", true /* initializeClazz */, BTFactory.class.getClassLoader());
+            isJaulibAvail = null != Class.forName("org.jau.sys.RuntimeProps", true /* initializeClazz */, BTFactory.class.getClassLoader());
         } catch( final Throwable t ) {
             if( DEBUG ) {
                 System.err.println("BTFactory Caught: "+t.getMessage());
@@ -193,7 +193,7 @@ public class BTFactory {
         JAULIB_AVAILABLE = isJaulibAvail;
 
         if( isJaulibAvail ) {
-            JAULIB_JARCACHE_USED = org.jau.sys.PlatformProps.USE_TEMP_JAR_CACHE;
+            JAULIB_JARCACHE_USED = org.jau.sys.RuntimeProps.USE_TEMP_JAR_CACHE;
         } else {
             JAULIB_JARCACHE_USED = false;
         }
