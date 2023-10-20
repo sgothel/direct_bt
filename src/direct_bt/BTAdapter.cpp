@@ -1891,7 +1891,10 @@ jau::fraction_i64 BTAdapter::smp_timeoutfunc(jau::simple_timer& timer) {
                 }
             } else {
                 const uint32_t smp_events = device->smp_events;
-                DBG_PRINT("BTAdapter::smp_timeoutfunc(dev_id %d): SMP Timeout: Ignore-1 %u: %s", dev_id, smp_events, device->toString().c_str());
+                if( 0 < smp_events ) {
+                    DBG_PRINT("BTAdapter::smp_timeoutfunc(dev_id %d): SMP Timeout: Ignore-1 %u: %s", dev_id, smp_events, device->toString().c_str());
+                    device->smp_events = 0;
+                }
             }
         });
     }

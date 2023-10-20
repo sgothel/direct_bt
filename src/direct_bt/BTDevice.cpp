@@ -1102,6 +1102,7 @@ bool BTDevice::updatePairingState(const std::shared_ptr<BTDevice>& sthis, const 
         adapter.sendDevicePairingState(sthis, claimed_state, mode, evt.getTimestamp());
 
         if( is_device_ready ) {
+            smp_events = 0;
             adapter.notifyPairingStageDone(sthis, evt.getTimestamp());
             std::thread dc(&BTDevice::processDeviceReady, this, sthis, evt.getTimestamp()); // @suppress("Invalid arguments")
             dc.detach();
@@ -1406,6 +1407,7 @@ void BTDevice::hciSMPMsgCallback(const std::shared_ptr<BTDevice>& sthis, const S
     adapter.sendDevicePairingState(sthis, pstate, pmode, msg.getTimestamp());
 
     if( is_device_ready ) {
+        smp_events = 0;
         adapter.notifyPairingStageDone(sthis, msg.getTimestamp());
         std::thread dc(&BTDevice::processDeviceReady, this, sthis, msg.getTimestamp()); // @suppress("Invalid arguments")
         dc.detach();
