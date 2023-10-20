@@ -876,6 +876,36 @@ HCIStatusCode BTManager::uploadLinkKey(const uint16_t dev_id, const BDAddressAnd
     }
 }
 
+MgmtStatus BTManager::userPINCodeReply(const uint16_t dev_id, const BDAddressAndType & addressAndType, const std::string& pinCode) noexcept {
+    if constexpr ( USE_LINUX_BT_SECURITY ) {
+        MgmtPinCodeReplyCmd cmd(dev_id, addressAndType, pinCode);
+        std::unique_ptr<MgmtEvent> res = sendWithReply(cmd);
+        if( nullptr != res && res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
+            const MgmtEvtCmdComplete &res1 = *static_cast<const MgmtEvtCmdComplete *>(res.get());
+            // FIXME: Analyze address + addressType result?
+            return res1.getStatus();
+        }
+        return MgmtStatus::TIMEOUT;
+    } else {
+        return MgmtStatus::NOT_SUPPORTED;
+    }
+}
+
+MgmtStatus BTManager::userPINCodeNegativeReply(const uint16_t dev_id, const BDAddressAndType & addressAndType) noexcept {
+    if constexpr ( USE_LINUX_BT_SECURITY ) {
+        MgmtPinCodeNegativeReplyCmd cmd(dev_id, addressAndType);
+        std::unique_ptr<MgmtEvent> res = sendWithReply(cmd);
+        if( nullptr != res && res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
+            const MgmtEvtCmdComplete &res1 = *static_cast<const MgmtEvtCmdComplete *>(res.get());
+            // FIXME: Analyze address + addressType result?
+            return res1.getStatus();
+        }
+        return MgmtStatus::TIMEOUT;
+    } else {
+        return MgmtStatus::NOT_SUPPORTED;
+    }
+}
+
 MgmtStatus BTManager::userPasskeyReply(const uint16_t dev_id, const BDAddressAndType & addressAndType, const uint32_t passkey) noexcept {
     if constexpr ( USE_LINUX_BT_SECURITY ) {
         MgmtUserPasskeyReplyCmd cmd(dev_id, addressAndType, passkey);

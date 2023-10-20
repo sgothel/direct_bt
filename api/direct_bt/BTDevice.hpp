@@ -899,6 +899,9 @@ namespace direct_bt {
              */
             bool isConnSecurityAutoEnabled() const noexcept;
 
+            HCIStatusCode setPairingPINCode(const std::string& pinCode) noexcept;
+            HCIStatusCode setPairingPINCodeNegative() noexcept;
+
             /**
              * Method sets the given passkey entry, see ::PairingMode::PASSKEY_ENTRY_ini.
              * <p>

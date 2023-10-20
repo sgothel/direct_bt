@@ -1724,6 +1724,48 @@ bool BTDevice::isConnSecurityAutoEnabled() const noexcept {
     return SMPIOCapability::UNSET != pairing_data.ioCap_auto;
 }
 
+HCIStatusCode BTDevice::setPairingPINCode(const std::string& pinCode) noexcept {
+    const std::unique_lock<std::recursive_mutex> lock_pairing(mtx_pairing); // RAII-style acquire and relinquish via destructor
+
+    if( !isSMPPairingAllowingInput(pairing_data.state, SMPPairingState::PASSKEY_EXPECTED) &&
+        !isSMPPairingAllowingInput(pairing_data.state, SMPPairingState::KEY_DISTRIBUTION) )
+    {
+        WARN_PRINT("BTDevice:mgmt:SMP: PINCODE '%s', state %s, wrong state", pinCode.c_str(), to_string(pairing_data.state).c_str());
+    }
+    if constexpr ( USE_LINUX_BT_SECURITY ) {
+        const BTManagerRef& mngr = adapter.getManager();
+        MgmtStatus res = mngr->userPINCodeReply(adapter.dev_id, addressAndType, pinCode);
+        DBG_PRINT("BTDevice:mgmt:SMP: PINCODE '%s', state %s, result %s",
+            pinCode.c_str(), to_string(pairing_data.state).c_str(), to_string(res).c_str());
+        return HCIStatusCode::SUCCESS;
+    } else if constexpr ( SMP_SUPPORTED_BY_OS ) {
+        return HCIStatusCode::NOT_SUPPORTED;
+    } else {
+        return HCIStatusCode::NOT_SUPPORTED;
+    }
+}
+
+HCIStatusCode BTDevice::setPairingPINCodeNegative() noexcept {
+    const std::unique_lock<std::recursive_mutex> lock_pairing(mtx_pairing); // RAII-style acquire and relinquish via destructor
+
+    if( !isSMPPairingAllowingInput(pairing_data.state, SMPPairingState::PASSKEY_EXPECTED) &&
+        !isSMPPairingAllowingInput(pairing_data.state, SMPPairingState::KEY_DISTRIBUTION) )
+    {
+        WARN_PRINT("BTDevice:mgmt:SMP: PINCODE_NEGATIVE, state %s, wrong state", to_string(pairing_data.state).c_str());
+    }
+    if constexpr ( USE_LINUX_BT_SECURITY ) {
+        const BTManagerRef& mngr = adapter.getManager();
+        MgmtStatus res = mngr->userPINCodeNegativeReply(adapter.dev_id, addressAndType);
+        DBG_PRINT("BTDevice:mgmt:SMP: PINCODE NEGATIVE, state %s, result %s",
+            to_string(pairing_data.state).c_str(), to_string(res).c_str());
+        return HCIStatusCode::SUCCESS;
+    } else if constexpr ( SMP_SUPPORTED_BY_OS ) {
+        return HCIStatusCode::NOT_SUPPORTED;
+    } else {
+        return HCIStatusCode::NOT_SUPPORTED;
+    }
+}
+
 HCIStatusCode BTDevice::setPairingPasskey(const uint32_t passkey) noexcept {
     const std::unique_lock<std::recursive_mutex> lock_pairing(mtx_pairing); // RAII-style acquire and relinquish via destructor
 
@@ -1735,7 +1777,7 @@ HCIStatusCode BTDevice::setPairingPasskey(const uint32_t passkey) noexcept {
     if constexpr ( USE_LINUX_BT_SECURITY ) {
         const BTManagerRef& mngr = adapter.getManager();
         MgmtStatus res = mngr->userPasskeyReply(adapter.dev_id, addressAndType, passkey);
-        DBG_PRINT("BTDevice:mgmt:SMP: PASSKEY '%d', state %s, result %s",
+        DBG_PRINT("BTDevice:mgmt:SMP: PASSKEY '%u', state %s, result %s",
             passkey, to_string(pairing_data.state).c_str(), to_string(res).c_str());
         return HCIStatusCode::SUCCESS;
     } else if constexpr ( SMP_SUPPORTED_BY_OS ) {

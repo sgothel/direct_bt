@@ -502,6 +502,8 @@ namespace direct_bt {
             HCIStatusCode uploadLinkKey(const uint16_t dev_id, const MgmtLinkKeyInfo &key) noexcept;
             HCIStatusCode uploadLinkKey(const uint16_t dev_id, const BDAddressAndType & addressAndType, const SMPLinkKey& lk) noexcept;
 
+            MgmtStatus userPINCodeReply(const uint16_t dev_id, const BDAddressAndType & addressAndType, const std::string& pinCode) noexcept;
+            MgmtStatus userPINCodeNegativeReply(const uint16_t dev_id, const BDAddressAndType & addressAndType) noexcept;
             MgmtStatus userPasskeyReply(const uint16_t dev_id, const BDAddressAndType & addressAndType, const uint32_t passkey) noexcept;
             MgmtStatus userPasskeyNegativeReply(const uint16_t dev_id, const BDAddressAndType & addressAndType) noexcept;
             MgmtStatus userConfirmReply(const uint16_t dev_id, const BDAddressAndType & addressAndType, const bool positive) noexcept;

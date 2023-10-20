@@ -852,13 +852,26 @@ namespace direct_bt {
 
         public:
             MgmtPinCodeReplyCmd(const uint16_t dev_id, const BDAddressAndType& addressAndType,
-                                const uint8_t pin_len, const jau::TROOctets &pin_code)
+                                const jau::TROOctets& pin_code)
             : MgmtCommand(Opcode::PIN_CODE_REPLY, dev_id, 6+1+1+16)
             {
+                const uint8_t pin_len = static_cast<uint8_t>( std::min<jau::nsize_t>(16, pin_code.size()) );
                 pdu.put_eui48_nc(MGMT_HEADER_SIZE, addressAndType.address);
                 pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, direct_bt::number(addressAndType.type));
                 pdu.put_uint8_nc(MGMT_HEADER_SIZE+7, pin_len);
-                pdu.put_octets_nc(MGMT_HEADER_SIZE+8, pin_code);
+                pdu.bzero_nc(MGMT_HEADER_SIZE+8, 16);
+                pdu.put_octets_nc(MGMT_HEADER_SIZE+8, pin_code, 0, pin_len);
+            }
+            MgmtPinCodeReplyCmd(const uint16_t dev_id, const BDAddressAndType& addressAndType,
+                                const std::string& pin_code)
+            : MgmtCommand(Opcode::PIN_CODE_REPLY, dev_id, 6+1+1+16)
+            {
+                const uint8_t pin_len = static_cast<uint8_t>( std::min<size_t>(16, pin_code.size()) );
+                pdu.put_eui48_nc(MGMT_HEADER_SIZE, addressAndType.address);
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE+6, direct_bt::number(addressAndType.type));
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE+7, pin_len);
+                pdu.bzero_nc(MGMT_HEADER_SIZE+8, 16);
+                pdu.put_string_nc(MGMT_HEADER_SIZE+8, pin_code, pin_len, false /* EOS */);
             }
             const EUI48& getAddress() const noexcept { return *reinterpret_cast<const EUI48 *>( pdu.get_ptr_nc(MGMT_HEADER_SIZE + 0) ); } // mgmt_addr_info
             BDAddressType getAddressType() const noexcept { return static_cast<BDAddressType>(pdu.get_uint8_nc(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
