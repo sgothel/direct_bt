@@ -332,8 +332,8 @@ namespace direct_bt {
 
             /** Flag signaling whether initialize() has been called, regardless of success. */
             jau::sc_atomic_bool adapter_initialized;
-            /** Flag signaling whether initialize() has powered-on this adapter. */
-            jau::sc_atomic_bool adapter_poweredon_at_init;
+            /** Flag signaling whether adapter was powered-off at initialize() */
+            jau::sc_atomic_bool adapter_poweredoff_at_init;
 
             LE_Features le_features;
 
@@ -863,13 +863,14 @@ namespace direct_bt {
              * if not powered on before.
              * </p>
              * @param btMode the desired adapter's BTMode, defaults to BTMode::DUAL
+             * @param powerOn true to leave adapter powered-on (default), otherwise leave it off             *
              * @return HCIStatusCode::SUCCESS or an error state on failure (e.g. power-on)
              * @see isInitialized()
              * @see close()
              * @see setPowered()
              * @since 2.4.0
              */
-            HCIStatusCode initialize(const BTMode btMode=BTMode::DUAL) noexcept;
+            HCIStatusCode initialize(const BTMode btMode=BTMode::DUAL, const bool powerOn=true) noexcept;
 
             /**
              * Returns true, if initialize() has already been called for this adapter, otherwise false.

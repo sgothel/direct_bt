@@ -411,12 +411,12 @@ namespace direct_bt {
              * </p>
              * @param adapterInfo reference for the AdapterInfo, updated to reflect the new initialized values.
              * @param dev_id the adapter's device id
-             * @param btRole the desired adapter's BTRole (currently ignored)
              * @param btMode the desired adapter's BTMode
+             * @param powerOn true to leave adapter powered-on, otherwise leave it off
              * @return HCIStatusCode::SUCCESS or an error state on failure (e.g. power-on)
              */
             HCIStatusCode initializeAdapter(AdapterInfo& adapterInfo, const uint16_t dev_id,
-                                            const BTRole btRole, const BTMode btMode) noexcept;
+                                            const BTMode btMode, const bool powerOn) noexcept;
 
             /**
              * Read default connection parameter for given adapter to the kernel.

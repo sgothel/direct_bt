@@ -631,14 +631,15 @@ static bool initAdapter(std::shared_ptr<BTAdapter>& adapter) {
     }
     // Initialize with defaults and power-on
     if( !adapter->isInitialized() ) {
-        HCIStatusCode status = adapter->initialize( btMode );
+        HCIStatusCode status = adapter->initialize( btMode, false );
         if( HCIStatusCode::SUCCESS != status ) {
             fprintf_td(stderr, "initAdapter: Adapter initialization failed: %s: %s\n",
                     to_string(status).c_str(), adapter->toString().c_str());
             return false;
         }
-    } else if( !adapter->setPowered( true ) ) {
-        fprintf_td(stderr, "initAdapter: Already initialized adapter power-on failed:: %s\n", adapter->toString().c_str());
+    }
+    if( !adapter->setPowered( true ) ) {
+        fprintf_td(stderr, "initAdapter: Adapter power-on failed:: %s\n", adapter->toString().c_str());
         return false;
     }
     // adapter is powered-on

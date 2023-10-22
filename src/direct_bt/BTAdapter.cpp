@@ -376,7 +376,7 @@ BTAdapter::BTAdapter(const BTAdapter::ctor_cookie& cc, BTManagerRef mgmt_, Adapt
   debug_lock(jau::environment::getBooleanProperty("direct_bt.debug.adapter.lock", false)),
   mgmt( std::move(mgmt_) ),
   adapterInfo( std::move(adapterInfo_) ),
-  adapter_initialized( false ), adapter_poweredon_at_init( false ),
+  adapter_initialized( false ), adapter_poweredoff_at_init( true ),
   le_features( LE_Features::NONE ),
   hci_uses_ext_scan( false ), hci_uses_ext_conn( false ), hci_uses_ext_adv( false ),
   visibleAddressAndType( adapterInfo_.addressAndType ),
@@ -444,11 +444,8 @@ void BTAdapter::close() noexcept {
 
     poweredOff(true /* active */, "close");
 
-    if( adapter_poweredon_at_init ) {
-        adapter_poweredon_at_init = false;
-        if( isPowered() ) {
-            setPowered(false);
-        }
+    if( adapter_poweredoff_at_init && isPowered() ) {
+        setPowered(false);
     }
 
     DBG_PRINT("BTAdapter::close: close[HCI, l2cap_srv]: ...");
@@ -711,12 +708,13 @@ HCIStatusCode BTAdapter::uploadKeys(SMPKeyBin& bin, const bool write) noexcept {
     return HCIStatusCode::SUCCESS;
 }
 
-HCIStatusCode BTAdapter::initialize(const BTMode btMode) noexcept {
+HCIStatusCode BTAdapter::initialize(const BTMode btMode, const bool powerOn) noexcept {
     const bool was_powered = adapterInfo.isCurrentSettingBitSet(AdapterSetting::POWERED);
     adapter_initialized = true;
+    adapter_poweredoff_at_init = was_powered;
 
     // Also fails if unable to power-on and not powered-on!
-    HCIStatusCode status = mgmt->initializeAdapter(adapterInfo, dev_id, BTRole::None /* unused */, btMode);
+    HCIStatusCode status = mgmt->initializeAdapter(adapterInfo, dev_id, btMode, powerOn);
     if( HCIStatusCode::SUCCESS != status ) {
         WARN_PRINT("Adapter[%d]: Failed initializing (1): res0 %s, powered[before %d, now %d], %s - %s",
                 dev_id, to_string(status).c_str(),
@@ -725,17 +723,13 @@ HCIStatusCode BTAdapter::initialize(const BTMode btMode) noexcept {
         return status;
     }
     const bool is_powered = adapterInfo.isCurrentSettingBitSet(AdapterSetting::POWERED);
-    if( !was_powered ) {
-        adapter_poweredon_at_init = true;
-    }
     if( !enableListening(true) ) {
         return HCIStatusCode::INTERNAL_FAILURE;
     }
     updateAdapterSettings(false /* off_thread */, adapterInfo.getCurrentSettingMask(), false /* sendEvent */, 0);
 
-    WORDY_PRINT("BTAdapter::initialize: Adapter[%d]: OK: powered[before %d, init_on %d, now %d], %s",
-            dev_id, was_powered, adapter_poweredon_at_init.load(), is_powered,
-            toString().c_str());
+    WORDY_PRINT("BTAdapter::initialize: Adapter[%d]: OK: powered[%d -> %d], %s",
+            dev_id, was_powered, is_powered, toString().c_str());
     return HCIStatusCode::SUCCESS;
 }
 

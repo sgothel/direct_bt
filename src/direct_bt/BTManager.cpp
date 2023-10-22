@@ -223,7 +223,7 @@ fail:
 }
 
 HCIStatusCode BTManager::initializeAdapter(AdapterInfo& adapterInfo, const uint16_t dev_id,
-                                           const BTRole btRole, const BTMode btMode) noexcept {
+                                           const BTMode btMode, const bool powerOn) noexcept {
     /**
      * We set BTManager::defaultIOCapability, i.e. SMPIOCapability::NO_INPUT_NO_OUTPUT,
      * which may be overridden for each connection by BTDevice/BTAdapter!
@@ -307,7 +307,6 @@ HCIStatusCode BTManager::initializeAdapter(AdapterInfo& adapterInfo, const uint1
         setMode(dev_id, MgmtCommand::Opcode::SET_CONNECTABLE, 0, current_settings);
     }
 #else
-    (void)btRole;
     setMode(dev_id, MgmtCommand::Opcode::SET_CONNECTABLE, 0, current_settings); // '1' not required for BTRole::Slave
 #endif
     setMode(dev_id, MgmtCommand::Opcode::SET_FAST_CONNECTABLE, 0, current_settings);
@@ -330,7 +329,9 @@ HCIStatusCode BTManager::initializeAdapter(AdapterInfo& adapterInfo, const uint1
         }
     }
 
-    setMode(dev_id, MgmtCommand::Opcode::SET_POWERED, 1, current_settings);
+    if( powerOn ) {
+        setMode(dev_id, MgmtCommand::Opcode::SET_POWERED, 1, current_settings);
+    }
 
     /**
      * Update AdapterSettings post settings
@@ -352,7 +353,7 @@ HCIStatusCode BTManager::initializeAdapter(AdapterInfo& adapterInfo, const uint1
             ABORT("initializeAdapter dev_id=%d != dev_id=%d: %s", adapterInfo.dev_id, dev_id, adapterInfo.toString().c_str());
         }
     }
-    if( !adapterInfo.isCurrentSettingBitSet(AdapterSetting::POWERED) ) {
+    if( powerOn && !adapterInfo.isCurrentSettingBitSet(AdapterSetting::POWERED) ) {
         ERR_PRINT("initializeAdapter[%d, BTMode %s]: Fail: Couldn't power-on: %s",
                 dev_id, to_string(btMode).c_str(), adapterInfo.toString().c_str());
         goto fail;
