@@ -677,24 +677,24 @@ class DBTClient01 : public DBTClientTest {
 
             // Initialize with defaults and power-on
             if( !adapter->isInitialized() ) {
-                HCIStatusCode status = adapter->initialize( btMode );
+                HCIStatusCode status = adapter->initialize( btMode, false );
                 if( HCIStatusCode::SUCCESS != status ) {
                     fprintf_td(stderr, "initClientAdapter: Adapter initialization failed: %s: %s\n",
                             to_string(status).c_str(), adapter->toString().c_str());
                     return false;
                 }
-            } else if( !adapter->setPowered( true ) ) {
-                fprintf_td(stderr, "initClientAdapter: Already initialized adapter power-on failed:: %s\n", adapter->toString().c_str());
+            } else if( !adapter->setPowered( false ) ) {
+                fprintf_td(stderr, "initClientAdapter: Already initialized adapter power-off failed:: %s\n", adapter->toString().c_str());
                 return false;
             }
-            // adapter is powered-on
+            // adapter is powered-off
             fprintf_td(stderr, "initClientAdapter.1: %s\n", adapter->toString().c_str());
             {
                 const LE_Features le_feats = adapter->getLEFeatures();
                 fprintf_td(stderr, "initClientAdapter: LE_Features %s\n", to_string(le_feats).c_str());
             }
 
-            if( adapter->setPowered(false) ) {
+            {
                 HCIStatusCode status = adapter->setName(adapterName, adapterShortName);
                 if( HCIStatusCode::SUCCESS == status ) {
                     fprintf_td(stderr, "initClientAdapter: setLocalName OK: %s\n", adapter->toString().c_str());
@@ -707,9 +707,6 @@ class DBTClient01 : public DBTClientTest {
                     fprintf_td(stderr, "initClientAdapter: setPower.2 on failed: %s\n", adapter->toString().c_str());
                     return false;
                 }
-            } else {
-                fprintf_td(stderr, "initClientAdapter: setPowered.2 off failed: %s\n", adapter->toString().c_str());
-                return false;
             }
             // adapter is powered-on
             fprintf_td(stderr, "initClientAdapter.2: %s\n", adapter->toString().c_str());

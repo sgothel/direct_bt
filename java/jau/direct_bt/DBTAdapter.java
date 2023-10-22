@@ -283,6 +283,12 @@ public class DBTAdapter extends DBTObject implements BTAdapter
     public final native boolean setPowered(final boolean power_on);
 
     @Override
+    public final HCIStatusCode setPrivacy(final boolean enable) {
+        return HCIStatusCode.get( setPrivacyImpl( enable ) );
+    }
+    private native byte setPrivacyImpl(boolean enable);
+
+    @Override
     public final native boolean getSecureConnectionsEnabled();
 
     @Override
@@ -310,15 +316,10 @@ public class DBTAdapter extends DBTObject implements BTAdapter
     public final native void setSMPKeyPath(final String path);
 
     @Override
-    public final HCIStatusCode initialize() {
-        return initialize(BTMode.DUAL);
+    public final HCIStatusCode initialize(final BTMode btMode, final boolean powerOn) {
+        return HCIStatusCode.get( initializeImpl(btMode.value, powerOn) );
     }
-
-    @Override
-    public final HCIStatusCode initialize(final BTMode btMode) {
-        return HCIStatusCode.get( initializeImpl(btMode.value) );
-    }
-    private native byte initializeImpl(final byte btModeInt);
+    private native byte initializeImpl(final byte btModeInt, final boolean powerOn);
 
     @Override
     public final native boolean isInitialized();

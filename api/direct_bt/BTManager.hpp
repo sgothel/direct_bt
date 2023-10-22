@@ -416,6 +416,7 @@ namespace direct_bt {
              * @param btMode the desired adapter's BTMode
              * @param powerOn true to leave adapter powered-on, otherwise leave it off
              * @return HCIStatusCode::SUCCESS or an error state on failure (e.g. power-on)
+             * @since 3.2.0
              */
             HCIStatusCode initializeAdapter(AdapterInfo& adapterInfo, const uint16_t dev_id,
                                             const BTMode btMode, const bool powerOn) noexcept;

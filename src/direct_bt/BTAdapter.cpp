@@ -1517,11 +1517,12 @@ HCIStatusCode BTAdapter::startAdvertising(const DBGattServerRef& gattServerData_
     }
     if constexpr ( USE_LINUX_BT_SECURITY ) {
         SMPIOCapability pre_io_cap { SMPIOCapability::UNSET };
-        const bool res_iocap = mgmt->setIOCapability(dev_id, SMPIOCapability::NO_INPUT_NO_OUTPUT, pre_io_cap);
+        // SMPIOCapability new_io_cap { SMPIOCapability::DISPLAY_ONLY };
+        SMPIOCapability new_io_cap { SMPIOCapability::NO_INPUT_NO_OUTPUT };
+        const bool res_iocap = mgmt->setIOCapability(dev_id, new_io_cap, pre_io_cap);
         DBG_PRINT("BTAdapter::startAdvertising: dev_id %u, setIOCapability[%s -> %s]: result %d",
-            dev_id, to_string(pre_io_cap).c_str(), to_string(SMPIOCapability::NO_INPUT_NO_OUTPUT).c_str(), res_iocap);
+            dev_id, to_string(pre_io_cap).c_str(), to_string(new_io_cap).c_str(), res_iocap);
     }
-    // FIXME?? std::this_thread::sleep_for(std::chrono::milliseconds(100)); // wait a little (FIXME: Fast restart of advertising error)
     l2cap_service.start();
 
     // set minimum ...
@@ -1541,7 +1542,7 @@ HCIStatusCode BTAdapter::startAdvertising(const DBGattServerRef& gattServerData_
     }
 
     const EUI48 peer_bdaddr=EUI48::ANY_DEVICE;
-    const HCILEOwnAddressType own_mac_type=HCILEOwnAddressType::PUBLIC;
+    const HCILEOwnAddressType own_mac_type=visibleMACType;
     const HCILEOwnAddressType peer_mac_type=HCILEOwnAddressType::PUBLIC;
 
     HCIStatusCode status = hci.le_start_adv(eir, adv_mask, scanrsp_mask,
@@ -2579,7 +2580,16 @@ void BTAdapter::mgmtEvDeviceUnpairedMgmt(const MgmtEvent& e) noexcept {
 }
 void BTAdapter::mgmtEvPinCodeRequestMgmt(const MgmtEvent& e) noexcept {
     const MgmtEvtPinCodeRequest &event = *static_cast<const MgmtEvtPinCodeRequest *>(&e);
+
+    BTDeviceRef device = findConnectedDevice(event.getAddress(), event.getAddressType());
+    if( nullptr == device ) {
+        WORDY_PRINT("BTAdapter:hci:SMP: dev_id %d: Device not tracked: address[%s, %s], %s",
+                dev_id, event.getAddress().toString().c_str(), to_string(event.getAddressType()).c_str(),
+                event.toString().c_str());
+        return;
+    }
     DBG_PRINT("BTAdapter:mgmt:PinCodeRequest: %s", event.toString().c_str());
+    // FIXME: device->updatePairingState(device, e, HCIStatusCode::SUCCESS, SMPPairingState::PASSKEY_EXPECTED);
 }
 void BTAdapter::mgmtEvAuthFailedMgmt(const MgmtEvent& e) noexcept {
     const MgmtEvtAuthFailed &event = *static_cast<const MgmtEvtAuthFailed *>(&e);
@@ -2605,6 +2615,7 @@ void BTAdapter::mgmtEvUserConfirmRequestMgmt(const MgmtEvent& e) noexcept {
         return;
     }
     // FIXME: Pass confirm_hint and value?
+    DBG_PRINT("BTAdapter:mgmt:UserConfirmRequest: %s", event.toString().c_str());
     device->updatePairingState(device, e, HCIStatusCode::SUCCESS, SMPPairingState::NUMERIC_COMPARE_EXPECTED);
 }
 void BTAdapter::mgmtEvUserPasskeyRequestMgmt(const MgmtEvent& e) noexcept {
@@ -2617,6 +2628,7 @@ void BTAdapter::mgmtEvUserPasskeyRequestMgmt(const MgmtEvent& e) noexcept {
                 event.toString().c_str());
         return;
     }
+    DBG_PRINT("BTAdapter:mgmt:UserPasskeyRequest: %s", event.toString().c_str());
     device->updatePairingState(device, e, HCIStatusCode::SUCCESS, SMPPairingState::PASSKEY_EXPECTED);
 }
 

@@ -134,8 +134,8 @@ static bool GATT_PING_ENABLED = false;
 static bool REMOVE_DEVICE = true;
 
 // Default from dbt_peripheral00.cpp or DBTPeripheral00.java
-static std::unique_ptr<uuid_t> cmd_uuid = jau::uuid_t::create(std::string("d0ca6bf3-3d52-4760-98e5-fc5883e93712"));
-static std::unique_ptr<uuid_t> cmd_rsp_uuid = jau::uuid_t::create(std::string("d0ca6bf3-3d53-4760-98e5-fc5883e93712"));
+static std::unique_ptr<uuid_t> cmd_uuid = nullptr; // jau::uuid_t::create(std::string("d0ca6bf3-3d52-4760-98e5-fc5883e93712"));
+static std::unique_ptr<uuid_t> cmd_rsp_uuid = nullptr; // jau::uuid_t::create(std::string("d0ca6bf3-3d53-4760-98e5-fc5883e93712"));
 static uint8_t cmd_arg = 0x44;
 
 static bool SHOW_UPDATE_EVENTS = false;
@@ -438,6 +438,15 @@ static void processReadyDevice(const BTDeviceRef& device) {
         if( 0 == primServices.size() ) {
             fprintf_td(stderr, "****** Processing Ready Device: getServices() failed %s\n", device->toString().c_str());
             goto exit;
+        }
+        {
+            const BTSecurityRegistry::Entry* sec = BTSecurityRegistry::getStartOf(device->getAddressAndType().address, device->getName());
+            if( nullptr != sec && sec->getPairingPasskey() != BTSecurityRegistry::Entry::NO_PASSKEY ) {
+                char pin[6+1];
+                snprintf(pin, sizeof(pin), "%06u", static_cast<uint32_t>( sec->getPairingPasskey() )%1000000_u32 );
+                // device->setPairingPasskey( static_cast<uint32_t>( sec->getPairingPasskey() ) );
+                device->setPairingPINCode( pin );
+            }
         }
 
         const uint64_t t5 = jau::getCurrentMilliseconds();

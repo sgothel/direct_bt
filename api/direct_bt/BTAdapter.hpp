@@ -747,6 +747,12 @@ namespace direct_bt {
              */
             bool setPowered(const bool power_on) noexcept;
 
+            /**
+             * Toggle adapter privacy address mode, i.e. resolvable random address including IRK.
+             * @param enable toggle to enable or disable (default)
+             * @return HCIStatusCode::SUCCESS or an error state on failure
+             * @since 3.2.0
+             */
             HCIStatusCode setPrivacy(const bool enable) noexcept;
 
             /**
@@ -866,15 +872,15 @@ namespace direct_bt {
              * Calling the method will allow close() to power-off the adapter,
              * if not powered on before.
              * </p>
-             * @param btMode the desired adapter's BTMode, defaults to BTMode::DUAL
+             * @param btMode the desired adapter's BTMode, default is BTMode::DUAL
              * @param powerOn true to leave adapter powered-on (default), otherwise leave it off             *
              * @return HCIStatusCode::SUCCESS or an error state on failure (e.g. power-on)
              * @see isInitialized()
              * @see close()
              * @see setPowered()
-             * @since 2.4.0
+             * @since 3.2.0
              */
-            HCIStatusCode initialize(const BTMode btMode=BTMode::DUAL, const bool powerOn=true) noexcept;
+            HCIStatusCode initialize(const BTMode btMode, const bool powerOn) noexcept;
 
             /**
              * Returns true, if initialize() has already been called for this adapter, otherwise false.

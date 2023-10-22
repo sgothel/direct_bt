@@ -679,20 +679,20 @@ public class DBTClient01 implements DBTClientTest {
 
         // Initialize with defaults and power-on
         if( !adapter.isInitialized() ) {
-            final HCIStatusCode status = adapter.initialize( btMode );
+            final HCIStatusCode status = adapter.initialize( btMode, false );
             if( HCIStatusCode.SUCCESS != status ) {
                 PrintUtil.fprintf_td(System.err, "initClientAdapter: Adapter initialization failed: %s: %s\n",
                         status.toString(), adapter.toString());
                 return false;
             }
-        } else if( !adapter.setPowered( true ) ) {
-            PrintUtil.fprintf_td(System.err, "initClientAdapter: Already initialized adapter power-on failed:: %s\n", adapter.toString());
+        } else if( !adapter.setPowered( false ) ) {
+            PrintUtil.fprintf_td(System.err, "initClientAdapter: Already initialized adapter power-off failed:: %s\n", adapter.toString());
             return false;
         }
-        // adapter is powered-on
+        // adapter is powered-off
         PrintUtil.fprintf_td(System.err, "initClientAdapter.1: %s\n", adapter.toString());
 
-        if( adapter.setPowered(false) ) {
+        {
             final HCIStatusCode status = adapter.setName(adapterName, adapterShortName);
             if( HCIStatusCode.SUCCESS == status ) {
                 PrintUtil.fprintf_td(System.err, "initClientAdapter: setLocalName OK: %s\n", adapter.toString());
@@ -704,8 +704,6 @@ public class DBTClient01 implements DBTClientTest {
                 PrintUtil.fprintf_td(System.err, "initClientAdapter: setPower.2 on failed: %s\n", adapter.toString());
                 return false;
             }
-        } else {
-            PrintUtil.fprintf_td(System.err, "initClientAdapter: setPowered.2 off failed: %s\n", adapter.toString());
         }
         // adapter is powered-on
         PrintUtil.println(System.err, "initClientAdapter.2: "+adapter.toString());

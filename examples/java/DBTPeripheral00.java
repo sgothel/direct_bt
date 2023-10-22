@@ -654,20 +654,20 @@ public class DBTPeripheral00 {
         }
         if( !adapter.isInitialized() ) {
             // Initialize with defaults and power-on
-            final HCIStatusCode status = adapter.initialize( btMode );
+            final HCIStatusCode status = adapter.initialize( btMode, false );
             if( HCIStatusCode.SUCCESS != status ) {
                 PrintUtil.fprintf_td(System.err, "initAdapter: initialization failed: %s: %s\n",
                         status.toString(), adapter.toString());
                 return false;
             }
-        } else if( !adapter.setPowered( true ) ) {
-            PrintUtil.fprintf_td(System.err, "initAdapter: setPower.1 on failed: %s\n", adapter.toString());
+        } else if( !adapter.setPowered( false ) ) {
+            PrintUtil.fprintf_td(System.err, "initAdapter: setPower.1 off failed: %s\n", adapter.toString());
             return false;
         }
-        // adapter is powered-on
+        // adapter is powered-off
         PrintUtil.println(System.err, "initAdapter.1: "+adapter.toString());
 
-        if( adapter.setPowered(false) ) {
+        {
             HCIStatusCode status = adapter.setName(adapter_name, adapter_short_name);
             if( HCIStatusCode.SUCCESS == status ) {
                 PrintUtil.fprintf_td(System.err, "initAdapter: setLocalName OK: %s\n", adapter.toString());
@@ -702,8 +702,6 @@ public class DBTPeripheral00 {
                 PrintUtil.fprintf_td(System.err, "initAdapter: setPower.2 on failed: %s\n", adapter.toString());
                 return false;
             }
-        } else {
-            PrintUtil.fprintf_td(System.err, "initAdapter: setPowered.2 off failed: %s\n", adapter.toString());
         }
         PrintUtil.println(System.err, "initAdapter.2: "+adapter.toString());
 

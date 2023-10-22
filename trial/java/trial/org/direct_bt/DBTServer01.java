@@ -766,20 +766,20 @@ public class DBTServer01 implements DBTServerTest {
 
         if( !adapter.isInitialized() ) {
             // Initialize with defaults and power-on
-            final HCIStatusCode status = adapter.initialize( btMode );
+            final HCIStatusCode status = adapter.initialize( btMode, false );
             if( HCIStatusCode.SUCCESS != status ) {
                 PrintUtil.fprintf_td(System.err, "initServerAdapter: initialization failed: %s: %s\n",
                         status.toString(), adapter.toString());
                 return false;
             }
-        } else if( !adapter.setPowered( true ) ) {
-            PrintUtil.fprintf_td(System.err, "initServerAdapter: setPower.1 on failed: %s\n", adapter.toString());
+        } else if( !adapter.setPowered( false ) ) {
+            PrintUtil.fprintf_td(System.err, "initServerAdapter: setPower.1 off failed: %s\n", adapter.toString());
             return false;
         }
-        // adapter is powered-on
+        // adapter is powered-off
         PrintUtil.println(System.err, "initServerAdapter.1: "+adapter.toString());
 
-        if( adapter.setPowered(false) ) {
+        {
             HCIStatusCode status = adapter.setName(adapterName, adapterShortName);
             if( HCIStatusCode.SUCCESS == status ) {
                 PrintUtil.fprintf_td(System.err, "initServerAdapter: setLocalName OK: %s\n", adapter.toString());
@@ -814,8 +814,6 @@ public class DBTServer01 implements DBTServerTest {
                 PrintUtil.fprintf_td(System.err, "initServerAdapter: setPower.2 on failed: %s\n", adapter.toString());
                 return false;
             }
-        } else {
-            PrintUtil.fprintf_td(System.err, "initServerAdapter: setPowered.2 off failed: %s\n", adapter.toString());
         }
         // adapter is powered-on
         PrintUtil.println(System.err, "initServerAdapter.2: "+adapter.toString());

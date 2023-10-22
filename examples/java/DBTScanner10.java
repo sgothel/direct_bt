@@ -608,7 +608,7 @@ public class DBTScanner10 {
         }
         // Initialize with defaults and power-on
         if( !adapter.isInitialized() ) {
-            final HCIStatusCode status = adapter.initialize( btMode );
+            final HCIStatusCode status = adapter.initialize( btMode, true );
             if( HCIStatusCode.SUCCESS != status ) {
                 PrintUtil.fprintf_td(System.err, "initAdapter: Adapter initialization failed: %s: %s\n",
                         status.toString(), adapter.toString());

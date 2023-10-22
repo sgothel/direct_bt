@@ -536,7 +536,7 @@ static bool initAdapterToServer(std::shared_ptr<BTAdapter>& adapter) {
     }
     // Initialize with defaults and power-on
     if( !adapter->isInitialized() ) {
-        HCIStatusCode status = adapter->initialize( btMode );
+        HCIStatusCode status = adapter->initialize( btMode, true );
         if( HCIStatusCode::SUCCESS != status ) {
             fprintf_td(stderr, "initAdapterToServer: Adapter initialization failed: %s: %s\n",
                     to_string(status).c_str(), adapter->toString().c_str());
@@ -768,20 +768,20 @@ static bool initAdapterToClient(std::shared_ptr<BTAdapter>& adapter) {
     }
     if( !adapter->isInitialized() ) {
         // Initialize with defaults and power-on
-        const HCIStatusCode status = adapter->initialize( btMode );
+        const HCIStatusCode status = adapter->initialize( btMode, false );
         if( HCIStatusCode::SUCCESS != status ) {
             fprintf_td(stderr, "initAdapterToClient: initialize failed: %s: %s\n",
                     to_string(status).c_str(), adapter->toString().c_str());
             return false;
         }
-    } else if( !adapter->setPowered( true ) ) {
-        fprintf_td(stderr, "initAdapterToClient: setPower.1 on failed: %s\n", adapter->toString().c_str());
+    } else if( !adapter->setPowered( false ) ) {
+        fprintf_td(stderr, "initAdapterToClient: setPower.1 off failed: %s\n", adapter->toString().c_str());
         return false;
     }
-    // adapter is powered-on
+    // adapter is powered-off
     fprintf_td(stderr, "initAdapterToClient.1: %s\n", adapter->toString().c_str());
 
-    if( adapter->setPowered(false) ) {
+    {
         HCIStatusCode status = adapter->setName(adapterToClientName, adapterToClientShortName);
         if( HCIStatusCode::SUCCESS == status ) {
             fprintf_td(stderr, "initAdapterToClient: setLocalName OK: %s\n", adapter->toString().c_str());
@@ -816,9 +816,6 @@ static bool initAdapterToClient(std::shared_ptr<BTAdapter>& adapter) {
             fprintf_td(stderr, "initAdapterToClient: setPower.2 on failed: %s\n", adapter->toString().c_str());
             return false;
         }
-    } else {
-        fprintf_td(stderr, "initAdapterToClient: setPowered.2 off failed: %s\n", adapter->toString().c_str());
-        return false;
     }
     fprintf_td(stderr, "initAdapterToClient.2: %s\n", adapter->toString().c_str());
 

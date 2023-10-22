@@ -579,6 +579,14 @@ public interface BTAdapter extends BTObject
     boolean setPowered(final boolean power_on);
 
     /**
+     * Toggle adapter privacy address mode, i.e. resolvable random address including IRK.
+     * @param enable toggle to enable or disable (default)
+     * @return HCIStatusCode::SUCCESS or an error state on failure
+     * @since 3.2.0
+     */
+    HCIStatusCode setPrivacy(boolean enable);
+
+    /**
      * Returns whether Secure Connections (SC) is enabled.
      * @see #setSecureConnections(boolean)
      * @since 2.4.0
@@ -675,39 +683,16 @@ public interface BTAdapter extends BTObject
      * Calling the method will allow close() to power-off the adapter,
      * if not powered on before.
      * </p>
-     * <p>
-     * This override uses {@link BTMode#DUAL}
-     * </p>
-     * @return {@link HCIStatusCode#SUCCESS} or an error state on failure (e.g. power-on)
-     * @see #initialize(BTMode)
-     * @see #isInitialized()
-     * @see #close()
-     * @see #setPowered(boolean)
-     * @since 2.4.0
-     */
-    HCIStatusCode initialize();
-
-    /**
-     * Initialize the adapter with default values, including power-on.
-     * <p>
-     * Method shall be issued on the desired adapter found via {@link BTManager.ChangedAdapterSetListener}.
-     * </p>
-     * <p>
-     * While initialization, the adapter is first powered-off, setup and then powered-on.
-     * </p>
-     * <p>
-     * Calling the method will allow close() to power-off the adapter,
-     * if not powered on before.
-     * </p>
      * @param btMode the desired adapter's {@link BTMode}, default shall be {@link BTMode#DUAL}
+     * @param powerOn true to leave adapter powered-on, otherwise leave it off             *
      * @return {@link HCIStatusCode#SUCCESS} or an error state on failure (e.g. power-on)
      * @see #isInitialized()
      * @see #initialize()
      * @see #close()
      * @see #setPowered(boolean)
-     * @since 2.4.0
+     * @since 3.2.0
      */
-    HCIStatusCode initialize(final BTMode btMode);
+    HCIStatusCode initialize(final BTMode btMode, boolean powerOn);
 
     /**
      * Returns true, if {@link #initialize(BTMode)} has already been called for this adapter, otherwise false.

@@ -913,6 +913,20 @@ jboolean Java_jau_direct_1bt_DBTAdapter_setPowered(JNIEnv *env, jobject obj, jbo
     return JNI_FALSE;
 }
 
+jbyte Java_jau_direct_1bt_DBTAdapter_setPrivacyImpl(JNIEnv *env, jobject obj, jboolean enable) {
+    try {
+        shared_ptr_ref<BTAdapter> adapter(env, obj); // hold until done
+        JavaAnonRef adapter_java = adapter->getJavaObject(); // hold until done!
+        JavaGlobalObj::check(adapter_java, E_FILE_LINE);
+
+        HCIStatusCode res = adapter->setPrivacy(JNI_TRUE == enable ? true : false);
+        return (jbyte) number(res);
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return (jbyte) number(HCIStatusCode::INTERNAL_FAILURE);
+}
+
 jboolean Java_jau_direct_1bt_DBTAdapter_getSecureConnectionsEnabled(JNIEnv *env, jobject obj) {
     try {
         shared_ptr_ref<BTAdapter> adapter(env, obj); // hold until done
@@ -985,14 +999,14 @@ void Java_jau_direct_1bt_DBTAdapter_setSMPKeyPath(JNIEnv *env, jobject obj, jstr
     }
 }
 
-jbyte Java_jau_direct_1bt_DBTAdapter_initializeImpl(JNIEnv *env, jobject obj, jbyte jbtMode) {
+jbyte Java_jau_direct_1bt_DBTAdapter_initializeImpl(JNIEnv *env, jobject obj, jbyte jbtMode, jboolean powerOn) {
     try {
         shared_ptr_ref<BTAdapter> adapter(env, obj); // hold until done
         JavaAnonRef adapter_java = adapter->getJavaObject(); // hold until done!
         JavaGlobalObj::check(adapter_java, E_FILE_LINE);
 
         const BTMode btMode = static_cast<BTMode>(jbtMode);
-        HCIStatusCode res = adapter->initialize(btMode);
+        HCIStatusCode res = adapter->initialize(btMode, JNI_TRUE == powerOn);
         return (jbyte) number(res);
     } catch(...) {
         rethrow_and_raise_java_exception(env);
