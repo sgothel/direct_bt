@@ -113,6 +113,7 @@ static uint64_t timestamp_t0;
 
 static EUI48 useAdapter = EUI48::ALL_DEVICE;
 static BTMode btMode = BTMode::DUAL;
+static bool use_privacy = false;
 
 static DiscoveryPolicy discoveryPolicy = DiscoveryPolicy::PAUSE_CONNECTED_UNTIL_READY; // default value
 static bool le_scan_active = true; // default value
@@ -637,6 +638,7 @@ static bool initAdapter(std::shared_ptr<BTAdapter>& adapter) {
                     to_string(status).c_str(), adapter->toString().c_str());
             return false;
         }
+        adapter->setPrivacy(use_privacy);
     }
     if( !adapter->setPowered( true ) ) {
         fprintf_td(stderr, "initAdapter: Adapter power-on failed:: %s\n", adapter->toString().c_str());
@@ -768,6 +770,8 @@ int main(int argc, char *argv[])
             btMode = to_BTMode(argv[++i]);
         } else if( !strcmp("-adapter", argv[i]) && argc > (i+1) ) {
             useAdapter = EUI48( std::string(argv[++i]) );
+        } else if( !strcmp("-privacy", argv[i]) ) {
+            use_privacy = true;
         } else if( !strcmp("-dev", argv[i]) && argc > (i+1) ) {
             std::string addrOrNameSub = std::string(argv[++i]);
             BTDeviceRegistry::addToWaitForDevices( addrOrNameSub );
@@ -819,6 +823,7 @@ int main(int argc, char *argv[])
                     "[-scanPassive] "
                     "[-resetEachCon connectionCount] "
                     "[-adapter <adapter_address>] "
+                    "[-privacy] "
                     "(-dev <device_[address|name]_sub>)* "
                     "(-seclevel <device_[address|name]_sub> <int_sec_level>)* "
                     "(-iocap <device_[address|name]_sub> <int_iocap>)* "
@@ -840,7 +845,7 @@ int main(int argc, char *argv[])
     fprintf_td(stderr, "REMOVE_DEVICE %d\n", REMOVE_DEVICE);
     fprintf_td(stderr, "SHOW_UPDATE_EVENTS %d\n", SHOW_UPDATE_EVENTS);
     fprintf_td(stderr, "QUIET %d\n", QUIET);
-    fprintf_td(stderr, "adapter %s\n", useAdapter.toString().c_str());
+    fprintf_td(stderr, "adapter %s, privacy %d\n", useAdapter.toString().c_str(), use_privacy);
     fprintf_td(stderr, "btmode %s\n", to_string(btMode).c_str());
     fprintf_td(stderr, "discoveryPolicy %s\n", to_string(discoveryPolicy).c_str());
     fprintf_td(stderr, "scanActive %s\n", to_string(le_scan_active).c_str());

@@ -30,6 +30,7 @@
 #include <cstdio>
 
 #include <algorithm>
+#include <random>
 
 #include <jau/debug.hpp>
 
@@ -331,6 +332,7 @@ bool BTAdapter::enableListening(const bool enable) noexcept {
         ok = mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::PAIR_DEVICE_COMPLETE, jau::bind_member(this, &BTAdapter::mgmtEvPairDeviceCompleteMgmt)) && ok;
         ok = mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::NEW_LONG_TERM_KEY, jau::bind_member(this, &BTAdapter::mgmtEvNewLongTermKeyMgmt)) && ok;
         ok = mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::NEW_LINK_KEY, jau::bind_member(this, &BTAdapter::mgmtEvNewLinkKeyMgmt)) && ok;
+        ok = mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::NEW_IRK, jau::bind_member(this, &BTAdapter::mgmtEvNewIdentityResolvingKeyMgmt)) && ok;
 
         if( !ok ) {
             ERR_PRINT("Could not add all required MgmtEventCallbacks to DBTManager: %s", toString().c_str());
@@ -381,6 +383,7 @@ BTAdapter::BTAdapter(const BTAdapter::ctor_cookie& cc, BTManagerRef mgmt_, Adapt
   hci_uses_ext_scan( false ), hci_uses_ext_conn( false ), hci_uses_ext_adv( false ),
   visibleAddressAndType( adapterInfo_.addressAndType ),
   visibleMACType( HCILEOwnAddressType::PUBLIC ),
+  privacyIRK(),
   dev_id( adapterInfo.dev_id ),
   btRole ( BTRole::Master ),
   hci( dev_id ),
@@ -621,6 +624,42 @@ bool BTAdapter::setPowered(const bool power_on) noexcept {
     const AdapterSetting new_settings = adapterInfo.setCurrentSettingMask(settings);
     updateAdapterSettings(false /* off_thread */, new_settings, false /* sendEvent */, 0);
     return power_on == isAdapterSettingBitSet(new_settings, AdapterSetting::POWERED);
+}
+
+HCIStatusCode BTAdapter::setPrivacy(const bool enable) noexcept {
+    jau::uint128_t irk;
+    if( enable ) {
+        std::unique_ptr<std::random_device> rng_hw = std::make_unique<std::random_device>();
+        for(int i=0; i<4; ++i) {
+            std::uint32_t v = (*rng_hw)();
+            irk.data[4*i+0] = v & 0x000000ffu;
+            irk.data[4*i+1] = ( v & 0x0000ff00u ) >>  8;
+            irk.data[4*i+2] = ( v & 0x00ff0000u ) >> 16;
+            irk.data[4*i+3] = ( v & 0xff000000u ) >> 24;
+        }
+    } else {
+        irk.clear();
+    }
+    AdapterSetting settings = adapterInfo.getCurrentSettingMask();
+    HCIStatusCode res = mgmt->setPrivacy(dev_id, enable ? 0x01 : 0x00, irk, settings);
+    if( HCIStatusCode::SUCCESS == res ) {
+        if( enable ) {
+            // FIXME: Not working for LE set scan param etc ..
+            // TODO visibleAddressAndType = ???
+            // visibleMACType = HCILEOwnAddressType::RESOLVABLE_OR_RANDOM;
+            visibleMACType = HCILEOwnAddressType::RESOLVABLE_OR_PUBLIC;
+            // visibleMACType = HCILEOwnAddressType::RANDOM;
+        } else {
+            visibleAddressAndType = adapterInfo.addressAndType;
+            visibleMACType = HCILEOwnAddressType::PUBLIC;
+            privacyIRK.address = adapterInfo.addressAndType.address;
+            privacyIRK.address_type = adapterInfo.addressAndType.type;
+            privacyIRK.irk.clear();
+        }
+    }
+    const AdapterSetting new_settings = adapterInfo.setCurrentSettingMask(settings);
+    updateAdapterSettings(false /* off_thread */, new_settings, true /* sendEvent */, 0);
+    return res;
 }
 
 HCIStatusCode BTAdapter::setSecureConnections(const bool enable) noexcept {
@@ -2333,6 +2372,32 @@ void BTAdapter::mgmtEvNewLinkKeyMgmt(const MgmtEvent& e) noexcept {
     } else {
         WORDY_PRINT("BTAdapter::mgmt:NewLinkKey(dev_id %d): Device not tracked: %s",
             dev_id, event.toString().c_str());
+    }
+}
+
+void BTAdapter::mgmtEvNewIdentityResolvingKeyMgmt(const MgmtEvent& e) noexcept {
+    const MgmtEvtNewIdentityResolvingKey& event = *static_cast<const MgmtEvtNewIdentityResolvingKey *>(&e);
+    const EUI48& randomAddress = event.getRandomAddress();
+    const MgmtIdentityResolvingKeyInfo& irk = event.getIdentityResolvingKey();
+    if( adapterInfo.addressAndType.address == irk.address && adapterInfo.addressAndType.type == irk.address_type ) {
+        // setPrivacy ...
+        visibleAddressAndType.address = randomAddress;
+        visibleAddressAndType.type = BDAddressType::BDADDR_LE_RANDOM;
+        visibleMACType = HCILEOwnAddressType::RESOLVABLE_OR_RANDOM;
+        privacyIRK = irk;
+        WORDY_PRINT("BTAdapter::mgmt:NewIdentityResolvingKey(dev_id %d): Host Adapter: %s",
+            dev_id, event.toString().c_str());
+    } else {
+        BTDeviceRef device = findConnectedDevice(randomAddress, BDAddressType::BDADDR_UNDEFINED);
+        if( nullptr != device ) {
+            // TODO: Notify our remove BDDevice instance about the resolved address!
+            // TODO: Support Random Address resolution!
+            WORDY_PRINT("BTAdapter::mgmt:NewIdentityResolvingKey(dev_id %d): Device found (Resolvable not yet supported): %s, %s",
+                dev_id, event.toString().c_str(), device->toString().c_str());
+        } else {
+            WORDY_PRINT("BTAdapter::mgmt:NewIdentityResolvingKey(dev_id %d): Device not tracked: %s",
+                dev_id, event.toString().c_str());
+        }
     }
 }
 

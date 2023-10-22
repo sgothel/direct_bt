@@ -724,6 +724,14 @@ std::vector<MgmtDefaultParam> BTManager::readDefaultSysParam(const uint16_t dev_
     return std::vector<MgmtDefaultParam>();
 }
 
+HCIStatusCode BTManager::setPrivacy(const uint16_t dev_id, const uint8_t privacy, const jau::uint128_t& irk, AdapterSetting& current_settings) noexcept {
+    MgmtSetPrivacyCmd req(dev_id, privacy, irk);
+    MgmtStatus res = handleCurrentSettingsReply(sendWithReply(req), current_settings);
+    DBG_PRINT("BTManager::setPrivacy[%d]: %s, result %s %s", dev_id,
+            req.toString().c_str(), to_string(res).c_str(), to_string(current_settings).c_str());
+    return to_HCIStatusCode( res );
+}
+
 HCIStatusCode BTManager::setDefaultConnParam(const uint16_t dev_id,
                                              const uint16_t conn_min_interval, const uint16_t conn_max_interval,
                                              const uint16_t conn_latency, const uint16_t supervision_timeout) noexcept {

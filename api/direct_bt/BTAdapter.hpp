@@ -349,6 +349,7 @@ namespace direct_bt {
              */
             BDAddressAndType visibleAddressAndType;
             HCILEOwnAddressType visibleMACType;
+            MgmtIdentityResolvingKeyInfo privacyIRK;
 
         public:
             typedef jau::nsize_t size_type;
@@ -527,6 +528,7 @@ namespace direct_bt {
             void mgmtEvPairDeviceCompleteMgmt(const MgmtEvent& e) noexcept;
             void mgmtEvNewLongTermKeyMgmt(const MgmtEvent& e) noexcept;
             void mgmtEvNewLinkKeyMgmt(const MgmtEvent& e) noexcept;
+            void mgmtEvNewIdentityResolvingKeyMgmt(const MgmtEvent& e) noexcept;
 
             void mgmtEvHCIAnyHCI(const MgmtEvent& e) noexcept;
             void mgmtEvDeviceDiscoveringHCI(const MgmtEvent& e) noexcept;
@@ -744,6 +746,8 @@ namespace direct_bt {
              * @see initialize()
              */
             bool setPowered(const bool power_on) noexcept;
+
+            HCIStatusCode setPrivacy(const bool enable) noexcept;
 
             /**
              * Returns whether Secure Connections (SC) is enabled.

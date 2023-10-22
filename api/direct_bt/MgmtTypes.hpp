@@ -826,6 +826,34 @@ namespace direct_bt {
     };
 
     /**
+     * uint8_t privacy 0x00 disabled, 0x01 always on (discoverable + pairing), 0x02 limited (not when discoverable, bondable)
+     * jau::uint128_t irk Identity Resolving Key
+     */
+    class MgmtSetPrivacyCmd : public MgmtCommand
+    {
+        protected:
+            std::string valueString() const noexcept override {
+                const jau::uint128_t& irk = getIdentityResolvingKey();
+                return "param[size "+std::to_string(getParamSize())+", data[privacy "+std::to_string(getPrivacy())+
+                        ", irk "+jau::bytesHexString(irk.data, 0, sizeof(irk), true /* lsbFirst */)+"]]";
+            }
+
+        public:
+            MgmtSetPrivacyCmd(const uint16_t dev_id, const uint8_t privacy, const jau::uint128_t& irk)
+            : MgmtCommand(Opcode::SET_PRIVACY, dev_id, 1 + sizeof(irk))
+            {
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE, privacy);
+                memcpy(pdu.get_wptr_nc(MGMT_HEADER_SIZE+1), &irk, sizeof(irk));
+            }
+
+            uint8_t getPrivacy() const noexcept { return pdu.get_uint8_nc(MGMT_HEADER_SIZE); }
+
+            const jau::uint128_t& getIdentityResolvingKey() const {
+                return *reinterpret_cast<const jau::uint128_t *>( pdu.get_ptr_nc(MGMT_HEADER_SIZE + 1) );
+            }
+    };
+
+    /**
      * mgmt_addr_info { EUI48, uint8_t type },
      */
     class MgmtGetConnectionInfoCmd : public MgmtCmdAdressInfoMeta
