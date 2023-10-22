@@ -323,6 +323,8 @@ namespace direct_bt {
              */
             bool removeAdapter(BTAdapter* adapter) noexcept;
 
+            MgmtStatus handleCurrentSettingsReply(std::unique_ptr<MgmtEvent>&& reply, AdapterSetting& current_settings) noexcept;
+
         public:
             BTManager(const BTManager&) = delete;
             void operator=(const BTManager&) = delete;

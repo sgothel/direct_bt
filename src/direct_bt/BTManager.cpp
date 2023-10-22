@@ -667,27 +667,30 @@ SMPIOCapability BTManager::getIOCapability(const uint16_t dev_id) const noexcept
     return SMPIOCapability::UNSET;
 }
 
-bool BTManager::setMode(const uint16_t dev_id, const MgmtCommand::Opcode opc, const uint8_t mode, AdapterSetting& current_settings) noexcept {
-    const jau::fraction_i64& timeout = MgmtCommand::Opcode::SET_POWERED == opc ? env.MGMT_SET_POWER_COMMAND_TIMEOUT : env.MGMT_COMMAND_REPLY_TIMEOUT;
-    MgmtUint8Cmd req(opc, dev_id, mode);
-    std::unique_ptr<MgmtEvent> reply = sendWithReply(req, timeout);
-    MgmtStatus res;
+MgmtStatus BTManager::handleCurrentSettingsReply(std::unique_ptr<MgmtEvent>&& reply, AdapterSetting& current_settings) noexcept {
     if( nullptr != reply ) {
         if( reply->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
             const MgmtEvtCmdComplete &reply1 = *static_cast<const MgmtEvtCmdComplete *>(reply.get());
-            res = reply1.getStatus();
+            MgmtStatus res = reply1.getStatus();
             if( MgmtStatus::SUCCESS == res ) {
                 reply1.getCurrentSettings(current_settings);
             }
+            return res;
         } else if( reply->getOpcode() == MgmtEvent::Opcode::CMD_STATUS ) {
             const MgmtEvtCmdStatus &reply1 = *static_cast<const MgmtEvtCmdStatus *>(reply.get());
-            res = reply1.getStatus();
+            return reply1.getStatus();
         } else {
-            res = MgmtStatus::UNKNOWN_COMMAND;
+            return MgmtStatus::UNKNOWN_COMMAND;
         }
     } else {
-        res = MgmtStatus::TIMEOUT;
+        return MgmtStatus::TIMEOUT;
     }
+}
+
+bool BTManager::setMode(const uint16_t dev_id, const MgmtCommand::Opcode opc, const uint8_t mode, AdapterSetting& current_settings) noexcept {
+    const jau::fraction_i64& timeout = MgmtCommand::Opcode::SET_POWERED == opc ? env.MGMT_SET_POWER_COMMAND_TIMEOUT : env.MGMT_COMMAND_REPLY_TIMEOUT;
+    MgmtUint8Cmd req(opc, dev_id, mode);
+    MgmtStatus res = handleCurrentSettingsReply(sendWithReply(req, timeout), current_settings);
     DBG_PRINT("BTManager::setMode[%d, %s]: %s, result %s %s", dev_id,
             MgmtCommand::getOpcodeString(opc).c_str(), jau::to_hexstring(mode).c_str(),
             to_string(res).c_str(), to_string(current_settings).c_str());
@@ -696,24 +699,7 @@ bool BTManager::setMode(const uint16_t dev_id, const MgmtCommand::Opcode opc, co
 
 MgmtStatus BTManager::setDiscoverable(const uint16_t dev_id, const uint8_t state, const uint16_t timeout_sec, AdapterSetting& current_settings) noexcept {
     MgmtSetDiscoverableCmd req(dev_id, state, timeout_sec);
-    std::unique_ptr<MgmtEvent> reply = sendWithReply(req);
-    MgmtStatus res;
-    if( nullptr != reply ) {
-        if( reply->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
-            const MgmtEvtCmdComplete &reply1 = *static_cast<const MgmtEvtCmdComplete *>(reply.get());
-            res = reply1.getStatus();
-            if( MgmtStatus::SUCCESS == res ) {
-                reply1.getCurrentSettings(current_settings);
-            }
-        } else if( reply->getOpcode() == MgmtEvent::Opcode::CMD_STATUS ) {
-            const MgmtEvtCmdStatus &reply1 = *static_cast<const MgmtEvtCmdStatus *>(reply.get());
-            res = reply1.getStatus();
-        } else {
-            res = MgmtStatus::UNKNOWN_COMMAND;
-        }
-    } else {
-        res = MgmtStatus::TIMEOUT;
-    }
+    MgmtStatus res = handleCurrentSettingsReply(sendWithReply(req), current_settings);
     DBG_PRINT("BTManager::setDiscoverable[%d]: %s, result %s %s", dev_id,
             req.toString().c_str(), to_string(res).c_str(), to_string(current_settings).c_str());
     return res;
