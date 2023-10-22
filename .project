@@ -30,6 +30,13 @@
 		<nature>org.eclipse.cdt.managedbuilder.core.managedBuildNature</nature>
 		<nature>org.eclipse.cdt.managedbuilder.core.ScannerConfigNature</nature>
 	</natures>
+	<linkedResources>
+		<link>
+			<name>JNI_INC</name>
+			<type>2</type>
+			<location>/usr/lib/jvm/default-java/include</location>
+		</link>
+	</linkedResources>
 	<filteredResources>
 		<filter>
 			<id>1669038595126</id>
