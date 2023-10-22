@@ -345,9 +345,10 @@ namespace direct_bt {
             bool hci_uses_ext_adv;
 
             /**
-             * Either the adapter's initially reported public address or a random address setup via HCI before discovery or advertising.
+             * Either the adapter's initially reported public identity address or a random address setup via HCI before discovery or advertising.
              */
             BDAddressAndType visibleAddressAndType;
+            HCILEOwnAddressType visibleMACType;
 
         public:
             typedef jau::nsize_t size_type;

@@ -300,7 +300,7 @@ HCIStatusCode BTDevice::connectLE(const uint16_t le_scan_interval, const uint16_
         WARN_PRINT("Adapter not powered: %s, %s", adapter.toString().c_str(), toString().c_str());
         return HCIStatusCode::NOT_POWERED;
     }
-    HCILEOwnAddressType hci_own_mac_type = HCILEOwnAddressType::PUBLIC;
+    HCILEOwnAddressType hci_own_mac_type = adapter.visibleMACType;
     HCILEPeerAddressType hci_peer_mac_type;
 
     switch( addressAndType.type ) {

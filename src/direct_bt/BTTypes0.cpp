@@ -96,14 +96,14 @@ BDAddressType direct_bt::to_BDAddressType(const HCILEOwnAddressType hciOwnAddrTy
     }
 }
 
-HCILEOwnAddressType direct_bt::to_HCILEOwnAddressType(const BDAddressType addrType) noexcept {
+HCILEOwnAddressType direct_bt::to_HCILEOwnAddressType(const BDAddressType addrType, bool resolvable) noexcept {
     switch(addrType) {
         case BDAddressType::BDADDR_LE_PUBLIC:
             return HCILEOwnAddressType::PUBLIC;
 
         case BDAddressType::BDADDR_LE_RANDOM:
             /** FIXME: Sufficient mapping for adapter put in random address mode? */
-            return HCILEOwnAddressType::RANDOM;
+            return resolvable ? HCILEOwnAddressType::RESOLVABLE_OR_RANDOM : HCILEOwnAddressType::RANDOM;
 
         case BDAddressType::BDADDR_BREDR:
             [[fallthrough]];

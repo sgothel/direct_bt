@@ -160,7 +160,7 @@ namespace direct_bt {
     };
     constexpr uint8_t number(const HCILEOwnAddressType rhs) noexcept { return static_cast<uint8_t>(rhs); }
     BDAddressType to_BDAddressType(const HCILEOwnAddressType hciOwnAddrType) noexcept;
-    HCILEOwnAddressType to_HCILEOwnAddressType(const BDAddressType addrType) noexcept;
+    HCILEOwnAddressType to_HCILEOwnAddressType(const BDAddressType addrType, bool resolvable) noexcept;
     std::string to_string(const HCILEOwnAddressType type) noexcept;
 
 

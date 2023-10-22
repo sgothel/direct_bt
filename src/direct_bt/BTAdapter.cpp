@@ -380,6 +380,7 @@ BTAdapter::BTAdapter(const BTAdapter::ctor_cookie& cc, BTManagerRef mgmt_, Adapt
   le_features( LE_Features::NONE ),
   hci_uses_ext_scan( false ), hci_uses_ext_conn( false ), hci_uses_ext_adv( false ),
   visibleAddressAndType( adapterInfo_.addressAndType ),
+  visibleMACType( HCILEOwnAddressType::PUBLIC ),
   dev_id( adapterInfo.dev_id ),
   btRole ( BTRole::Master ),
   hci( dev_id ),
@@ -1124,11 +1125,8 @@ HCIStatusCode BTAdapter::startDiscovery(const DiscoveryPolicy policy, const bool
 
     discovery_policy = policy;
 
-    // TODO: Potential changing adapter address mode to random and updating 'visibleAddressAndType'!
-    const BDAddressType usedAddrType = BDAddressType::BDADDR_LE_PUBLIC;
-    const HCILEOwnAddressType own_mac_type=to_HCILEOwnAddressType(usedAddrType);
     // if le_enable_scan(..) is successful, it will issue 'mgmtEvDeviceDiscoveringHCI(..)' immediately, which updates currentMetaScanType.
-    const HCIStatusCode status = hci.le_start_scan(filter_dup, le_scan_active, own_mac_type,
+    const HCIStatusCode status = hci.le_start_scan(filter_dup, le_scan_active, visibleMACType,
                                                    le_scan_interval, le_scan_window, filter_policy);
 
     if( _print_device_lists || jau::environment::get().verbose ) {
