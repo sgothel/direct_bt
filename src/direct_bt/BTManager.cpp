@@ -257,6 +257,11 @@ HCIStatusCode BTManager::initializeAdapter(AdapterInfo& adapterInfo, const uint1
     current_settings = adapterInfo.getCurrentSettingMask();
 
     setMode(dev_id, MgmtCommand::Opcode::SET_POWERED, 0, current_settings);
+    {
+        jau::uint128_t zero_privacy_irk;
+        zero_privacy_irk.clear();
+        setPrivacy(dev_id, 0x00, zero_privacy_irk, current_settings);
+    }
 
     switch ( btMode ) {
         case BTMode::DUAL:
@@ -264,8 +269,8 @@ HCIStatusCode BTManager::initializeAdapter(AdapterInfo& adapterInfo, const uint1
             setDiscoverable(dev_id, 0, 0, current_settings);
             setMode(dev_id, MgmtCommand::Opcode::SET_LE, 1, current_settings);
             if constexpr ( USE_LINUX_BT_SECURITY ) {
-                setMode(dev_id, MgmtCommand::Opcode::SET_SECURE_CONN, sc_on_param, current_settings);
                 setMode(dev_id, MgmtCommand::Opcode::SET_SSP, ssp_on_param, current_settings);
+                setMode(dev_id, MgmtCommand::Opcode::SET_SECURE_CONN, sc_on_param, current_settings);
             }
             break;
         case BTMode::BREDR:
@@ -273,8 +278,8 @@ HCIStatusCode BTManager::initializeAdapter(AdapterInfo& adapterInfo, const uint1
             setDiscoverable(dev_id, 0, 0, current_settings);
             setMode(dev_id, MgmtCommand::Opcode::SET_LE, 0, current_settings);
             if constexpr ( USE_LINUX_BT_SECURITY ) {
-                setMode(dev_id, MgmtCommand::Opcode::SET_SECURE_CONN, 0, current_settings);
                 setMode(dev_id, MgmtCommand::Opcode::SET_SSP, ssp_on_param, current_settings);
+                setMode(dev_id, MgmtCommand::Opcode::SET_SECURE_CONN, 0, current_settings);
             }
             break;
         case BTMode::NONE:
@@ -283,8 +288,8 @@ HCIStatusCode BTManager::initializeAdapter(AdapterInfo& adapterInfo, const uint1
             setMode(dev_id, MgmtCommand::Opcode::SET_BREDR, 0, current_settings);
             setMode(dev_id, MgmtCommand::Opcode::SET_LE, 1, current_settings);
             if constexpr ( USE_LINUX_BT_SECURITY ) {
-                setMode(dev_id, MgmtCommand::Opcode::SET_SECURE_CONN, sc_on_param, current_settings);
                 setMode(dev_id, MgmtCommand::Opcode::SET_SSP, 0, current_settings); // SSP not available in LE single mode
+                setMode(dev_id, MgmtCommand::Opcode::SET_SECURE_CONN, sc_on_param, current_settings);
             }
             break;
     }
@@ -294,8 +299,8 @@ HCIStatusCode BTManager::initializeAdapter(AdapterInfo& adapterInfo, const uint1
         setMode(dev_id, MgmtCommand::Opcode::SET_IO_CAPABILITY, direct_bt::number(BTManager::defaultIOCapability), current_settings);
         setMode(dev_id, MgmtCommand::Opcode::SET_BONDABLE, 1, current_settings); // required for pairing
     } else {
-        setMode(dev_id, MgmtCommand::Opcode::SET_SECURE_CONN, 0, current_settings);
         setMode(dev_id, MgmtCommand::Opcode::SET_SSP, 0, current_settings);
+        setMode(dev_id, MgmtCommand::Opcode::SET_SECURE_CONN, 0, current_settings);
         setMode(dev_id, MgmtCommand::Opcode::SET_DEBUG_KEYS, 0, current_settings);
         setMode(dev_id, MgmtCommand::Opcode::SET_BONDABLE, 0, current_settings);
     }
