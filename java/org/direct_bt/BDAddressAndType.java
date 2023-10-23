@@ -60,6 +60,11 @@ public class BDAddressAndType {
         this.type = BDAddressType.BDADDR_UNDEFINED;
     }
 
+    public BDAddressAndType(final BDAddressAndType o) {
+        this.address = o.address;
+        this.type = o.type;
+    }
+
     /**
      * Returns true if the {@link BDAddressType} is a LE address type.
      */

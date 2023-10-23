@@ -122,6 +122,8 @@ namespace direct_bt {
                 bool use_sc;
                 bool encryption_enabled;
 
+                std::uint32_t passKey_resp;
+
                 SMPAuthReqs     authReqs_init, authReqs_resp;
                 SMPIOCapability ioCap_init,    ioCap_resp;
                 SMPOOBDataFlag  oobFlag_init,  oobFlag_resp;
@@ -608,6 +610,20 @@ namespace direct_bt {
              * @return HCIStatusCode::SUCCESS if the command has been accepted, otherwise HCIStatusCode may disclose reason for rejection.
              */
             HCIStatusCode disconnect(const HCIStatusCode reason=HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION ) noexcept;
+
+            /**
+             * Returns the responder SMP passkey, ranging from [0..999999].
+             * <p>
+             * Authentication (MITM) PASSKEY (produced by this responder adapter, acting as peripheral GATT server) and shall be displayed for the initiating remote device, see PairingMode::PASSKEY_ENTRY_ini
+             * </p>
+             * @see ::SMPPairingState::PASSKEY_NOTIFY
+             * @see ::SMPPairingState::COMPLETED
+             * @see AdapterStatusListener::deviceReady()
+             */
+            std::uint32_t getResponderSMPPassKey() const noexcept;
+
+            /** Returns getResponderSMPPassKey() as a canonical string, e.g. '012345'. */
+            std::string getResponderSMPPassKeyString() const noexcept { return toPassKeyString(getResponderSMPPassKey()); }
 
             /**
              * Returns the available ::SMPKeyType mask for the responder (LL slave) or initiator (LL master).

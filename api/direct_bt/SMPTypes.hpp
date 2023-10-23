@@ -106,41 +106,46 @@ namespace direct_bt {
      */
     enum class SMPPairingState : uint8_t {
         /** No pairing in process. Current PairingMode shall be PairingMode::NONE. */
-        NONE                        = 0,
+        NONE                        =  0,
 
         /** Pairing failed. Current PairingMode shall be PairingMode::NONE. */
-        FAILED                      = 1,
+        FAILED                      =  1,
 
         /**
          * Phase 0: Pairing requested by responding (slave)  device via SMPSecurityReqMsg.<br>
          * Signals initiating (host) device to start the Pairing Feature Exchange.<br>
          * Current PairingMode shall be PairingMode::NEGOTIATING.
          */
-        REQUESTED_BY_RESPONDER      = 2,
+        REQUESTED_BY_RESPONDER      =  2,
 
         /**
          * Phase 1: Pairing requested by initiating (master) device via SMPPairingMsg.<br>
          * Starts the Pairing Feature Exchange.<br>
          * Current PairingMode shall be PairingMode::NEGOTIATING.
          */
-        FEATURE_EXCHANGE_STARTED    = 3,
+        FEATURE_EXCHANGE_STARTED    =  3,
 
         /**
          * Phase 1: Pairing responded by responding (slave)  device via SMPPairingMsg.<br>
          * Completes the Pairing Feature Exchange. Optional user input shall be given for Phase 2.<br>
          * Current PairingMode shall be set to a definitive value.
          */
-        FEATURE_EXCHANGE_COMPLETED  = 4,
+        FEATURE_EXCHANGE_COMPLETED  =  4,
 
         /** Phase 2: Authentication (MITM) PASSKEY expected now, see PairingMode::PASSKEY_ENTRY_ini */
-        PASSKEY_EXPECTED            = 5,
+        PASSKEY_EXPECTED            =  5,
         /** Phase 2: Authentication (MITM) Numeric Comparison Reply expected now, see PairingMode::NUMERIC_COMPARE_ini */
-        NUMERIC_COMPARE_EXPECTED    = 6,
+        NUMERIC_COMPARE_EXPECTED    =  6,
+        /**
+         * Phase 2: Authentication (MITM) PASSKEY (produced by this responder adapter, acting as peripheral GATT server) and shall be displayed for the initiating remote device, see PairingMode::PASSKEY_ENTRY_ini.<br>
+         * User application shall display BTDevice::getResponderSMPPassKeyString().
+         */
+        PASSKEY_NOTIFY              =  7,
         /** Phase 2: Authentication (MITM) OOB data expected now, see PairingMode::OUT_OF_BAND */
-        OOB_EXPECTED                = 7,
+        OOB_EXPECTED                =  8,
 
         /** Phase 3: Key & value distribution started after SMPPairConfirmMsg or SMPPairPubKeyMsg (LE Secure Connection) exchange between initiating (master) and responding (slave) device. */
-        KEY_DISTRIBUTION            = 8,
+        KEY_DISTRIBUTION            =  9,
 
         /**
          * Phase 3: Key & value distribution completed by responding (slave) device sending SMPIdentInfoMsg (#1) , SMPIdentAddrInfoMsg (#2) or SMPSignInfoMsg (#3),<br>
@@ -149,9 +154,12 @@ namespace direct_bt {
          * The link is assumed to be encrypted from here on and AdapterStatusListener::deviceReady() gets called on all listener.
          * </p>
          */
-        COMPLETED                   = 9
+        COMPLETED                   = 10
     };
     std::string to_string(const SMPPairingState state) noexcept;
+
+    /** Returns given passKey ranging [0..999999] as a canonical string, e.g. '012345'. */
+    std::string toPassKeyString(const std::uint32_t passKey) noexcept;
 
     /**
      * Returns true if the given SMPPairingState indicates an active pairing process,
@@ -222,6 +230,12 @@ namespace direct_bt {
         return static_cast<uint8_t>(rhs);
     }
     std::string to_string(const SMPIOCapability ioc) noexcept;
+    constexpr bool hasSMPIOCapabilityAnyIO(const SMPIOCapability ioc) noexcept {
+        return ioc == SMPIOCapability::DISPLAY_ONLY ||
+               ioc == SMPIOCapability::DISPLAY_YES_NO ||
+               ioc == SMPIOCapability::KEYBOARD_ONLY ||
+               ioc == SMPIOCapability::KEYBOARD_DISPLAY;
+    }
     constexpr bool hasSMPIOCapabilityBinaryInput(const SMPIOCapability ioc) noexcept {
         return ioc == SMPIOCapability::DISPLAY_YES_NO ||
                ioc == SMPIOCapability::KEYBOARD_ONLY ||

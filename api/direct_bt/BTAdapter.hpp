@@ -556,6 +556,7 @@ namespace direct_bt {
             void mgmtEvPinCodeRequestMgmt(const MgmtEvent& e) noexcept;
             void mgmtEvUserConfirmRequestMgmt(const MgmtEvent& e) noexcept;
             void mgmtEvUserPasskeyRequestMgmt(const MgmtEvent& e) noexcept;
+            void mgmtEvPasskeyNotifyMgmt(const MgmtEvent& e) noexcept;
             void mgmtEvAuthFailedMgmt(const MgmtEvent& e) noexcept;
             void mgmtEvDeviceUnpairedMgmt(const MgmtEvent& e) noexcept;
 

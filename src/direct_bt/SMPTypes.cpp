@@ -53,6 +53,7 @@ static void append_bitstr(std::string& out, T mask, T bit, const std::string& bi
         X(FEATURE_EXCHANGE_COMPLETED) \
         X(PASSKEY_EXPECTED) \
         X(NUMERIC_COMPARE_EXPECTED) \
+        X(PASSKEY_NOTIFY) \
         X(OOB_EXPECTED) \
         X(KEY_DISTRIBUTION) \
         X(COMPLETED)
@@ -65,6 +66,14 @@ std::string direct_bt::to_string(const SMPPairingState state) noexcept {
         default: ; // fall through intended
     }
     return "Unknown SMP PairingState";
+}
+
+std::string direct_bt::toPassKeyString(const std::uint32_t passKey) noexcept {
+    std::string pin;
+    pin.reserve(6+1); // including EOS for snprintf
+    pin.resize(6);
+    snprintf(&pin[0], pin.capacity(), "%06u", passKey%1000000u );
+    return pin;
 }
 
 #define IOCAP_ENUM(X) \

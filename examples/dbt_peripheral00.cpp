@@ -302,6 +302,15 @@ class MyAdapterStatusListener : public AdapterStatusListener {
                 }
                 // next: KEY_DISTRIBUTION or FAILED
               } break;
+            case SMPPairingState::PASSKEY_NOTIFY: {
+                fprintf_td(stderr, "****** \n");
+                fprintf_td(stderr, "****** \n");
+                fprintf_td(stderr, "****** Confirm on your device %s\n", device->getName().c_str());
+                fprintf_td(stderr, "****** PassKey: %s\n", device->getResponderSMPPassKeyString().c_str());
+                fprintf_td(stderr, "****** \n");
+                fprintf_td(stderr, "****** \n");
+                // next: KEY_DISTRIBUTION or FAILED
+              } break;
             case SMPPairingState::OOB_EXPECTED:
                 // FIXME: ABORT
                 break;
@@ -679,7 +688,7 @@ static bool initAdapter(std::shared_ptr<BTAdapter>& adapter) {
     std::shared_ptr<AdapterStatusListener> asl( std::make_shared<MyAdapterStatusListener>() );
     adapter->addStatusListener( asl );
 
-    adapter->setServerConnSecurity(adapter_sec_level, SMPIOCapability::UNSET);
+    adapter->setServerConnSecurity(adapter_sec_level, SMPIOCapability::DISPLAY_ONLY);
 
     if( !startAdvertising(adapter.get(), "initAdapter") ) {
         adapter->removeStatusListener( asl );
@@ -712,6 +721,8 @@ static void myChangedAdapterSetFunc(const bool added, std::shared_ptr<BTAdapter>
 }
 
 void test() {
+    std::shared_ptr<BTManager> mngr = BTManager::get();
+
     timestamp_t0 = getCurrentMilliseconds();
 
     fprintf_td(stderr, "****** Test Start\n");
@@ -719,7 +730,6 @@ void test() {
     std::shared_ptr<MyGATTServerListener> listener = std::make_shared<MyGATTServerListener>();
     dbGattServer->addListener( listener );
 
-    std::shared_ptr<BTManager> mngr = BTManager::get();
     mngr->addChangedAdapterSetCallback(myChangedAdapterSetFunc);
 
     while( !RUN_ONLY_ONCE || 0 == servedConnections ) {

@@ -67,11 +67,16 @@ public enum SMPPairingState {
     PASSKEY_EXPECTED((byte)5),
     /** Phase 2: Authentication (MITM) Numeric Comparison Reply expected, see {@link PairingMode#NUMERIC_COMPARE_ini} */
     NUMERIC_COMPARE_EXPECTED((byte)6),
+    /**
+     * Phase 2: Authentication (MITM) PASSKEY has been produced (this device is responder, peripheral GATT server) and shall be displayed for the remote device, see {@link PairingMode#NUMERIC_COMPARE_ini}.<br>
+     * User application shall display {@link BTDevice#getResponderSMPPassKeyString()}.
+     */
+    PASSKEY_NOTIFY((byte)7),
     /** Phase 2: Authentication (MITM) OOB data expected, see {@link PairingMode#OUT_OF_BAND} */
-    OOB_EXPECTED((byte)7),
+    OOB_EXPECTED((byte)8),
 
     /** Phase 3: Key & value distribution started after SMPPairConfirmMsg or SMPPairPubKeyMsg (LE Secure Connection) exchange between initiating (master) and responding (slave) device. */
-    KEY_DISTRIBUTION((byte)8),
+    KEY_DISTRIBUTION((byte)9),
 
     /**
      * Phase 3: Key & value distribution completed by responding (slave) device sending SMPIdentInfoMsg (#1) , SMPIdentAddrInfoMsg (#2) or SMPSignInfoMsg (#3),<br>
@@ -80,7 +85,7 @@ public enum SMPPairingState {
      * The link is assumed to be encrypted from here on and {@link AdapterStatusListener#deviceReady(BluetoothDevice, long)} gets called on all listener.
      * </p>
      */
-    COMPLETED((byte)9);
+    COMPLETED((byte)10);
 
     public final byte value;
 

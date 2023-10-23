@@ -327,6 +327,7 @@ bool BTAdapter::enableListening(const bool enable) noexcept {
         ok = mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::PIN_CODE_REQUEST, jau::bind_member(this, &BTAdapter::mgmtEvPinCodeRequestMgmt)) && ok;
         ok = mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::USER_CONFIRM_REQUEST, jau::bind_member(this, &BTAdapter::mgmtEvUserConfirmRequestMgmt)) && ok;
         ok = mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::USER_PASSKEY_REQUEST, jau::bind_member(this, &BTAdapter::mgmtEvUserPasskeyRequestMgmt)) && ok;
+        ok = mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::PASSKEY_NOTIFY, jau::bind_member(this, &BTAdapter::mgmtEvPasskeyNotifyMgmt)) && ok;
         ok = mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::AUTH_FAILED, jau::bind_member(this, &BTAdapter::mgmtEvAuthFailedMgmt)) && ok;
         ok = mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::DEVICE_UNPAIRED, jau::bind_member(this, &BTAdapter::mgmtEvDeviceUnpairedMgmt)) && ok;
         ok = mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::PAIR_DEVICE_COMPLETE, jau::bind_member(this, &BTAdapter::mgmtEvPairDeviceCompleteMgmt)) && ok;
@@ -2630,6 +2631,20 @@ void BTAdapter::mgmtEvUserPasskeyRequestMgmt(const MgmtEvent& e) noexcept {
     }
     DBG_PRINT("BTAdapter:mgmt:UserPasskeyRequest: %s", event.toString().c_str());
     device->updatePairingState(device, e, HCIStatusCode::SUCCESS, SMPPairingState::PASSKEY_EXPECTED);
+}
+
+void BTAdapter::mgmtEvPasskeyNotifyMgmt(const MgmtEvent& e) noexcept {
+    const MgmtEvtPasskeyNotify &event = *static_cast<const MgmtEvtPasskeyNotify *>(&e);
+
+    BTDeviceRef device = findConnectedDevice(event.getAddress(), event.getAddressType());
+    if( nullptr == device ) {
+        WORDY_PRINT("BTAdapter:hci:SMP: dev_id %d: Device not tracked: address[%s, %s], %s",
+                dev_id, event.getAddress().toString().c_str(), to_string(event.getAddressType()).c_str(),
+                event.toString().c_str());
+        return;
+    }
+    DBG_PRINT("BTAdapter:mgmt:PasskeyNotify: %s", event.toString().c_str());
+    device->updatePairingState(device, e, HCIStatusCode::SUCCESS, SMPPairingState::PASSKEY_NOTIFY);
 }
 
 void BTAdapter::hciSMPMsgCallback(const BDAddressAndType & addressAndType,

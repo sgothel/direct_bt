@@ -768,6 +768,7 @@ std::string BTDevice::PairingData::toString(const uint16_t dev_id, const BDAddre
     res.append("  - IOCap "+to_string(ioCap_resp)+"\n");
     res.append("  - EncSz "+std::to_string(maxEncsz_resp)+"\n");
     res.append("  - Keys  "+to_string(keys_resp_has)+" / "+to_string(keys_resp_exp)+"\n");
+    res.append("    - PassKey "+toPassKeyString(passKey_resp)+"\n");
     res.append("    - "+ltk_resp.toString()+"\n");
     res.append("    - "+lk_resp.toString()+"\n");
     res.append("    - "+irk_resp.toString()+"\n");
@@ -834,6 +835,14 @@ bool BTDevice::updatePairingState(const std::shared_ptr<BTDevice>& sthis, const 
                     claimed_state = pairing_data.state; // suppress
                     std::thread dc(&BTDevice::setPairingNumericComparison, sthis, true);
                     dc.detach();
+                }
+                break;
+            case SMPPairingState::PASSKEY_NOTIFY:
+                if( MgmtEvent::Opcode::PASSKEY_NOTIFY == mgmtEvtOpcode ) {
+                    // we must be in slave/responder mode, i.e. peripheral/GATT-server providing auth passkey
+                    const MgmtEvtPasskeyNotify& event = *static_cast<const MgmtEvtPasskeyNotify *>(&evt);
+                    mode = PairingMode::PASSKEY_ENTRY_ini;
+                    pairing_data.passKey_resp = event.getPasskey();
                 }
                 break;
             case SMPPairingState::OOB_EXPECTED:
@@ -1864,6 +1873,8 @@ void BTDevice::clearSMPStates(const bool connected) noexcept {
     pairing_data.use_sc = false;
     pairing_data.encryption_enabled = false;
 
+    pairing_data.passKey_resp = 0;
+
     pairing_data.authReqs_resp = SMPAuthReqs::NONE;
     pairing_data.ioCap_resp    = SMPIOCapability::NO_INPUT_NO_OUTPUT;
     pairing_data.oobFlag_resp  = SMPOOBDataFlag::OOB_AUTH_DATA_NOT_PRESENT;
@@ -2312,6 +2323,10 @@ exit:
             toString().c_str());
 
     return res;
+}
+
+std::uint32_t BTDevice::getResponderSMPPassKey() const noexcept {
+    return pairing_data.passKey_resp;
 }
 
 HCIStatusCode BTDevice::unpair() noexcept {

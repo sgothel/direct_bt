@@ -105,6 +105,20 @@ public interface BTDevice extends BTObject
     HCIStatusCode disconnect() throws BTException;
 
     /**
+     * Returns the responder SMP passkey, ranging from [0..999999].
+     * <p>
+     * Authentication (MITM) PASSKEY (produced by this responder adapter, acting as peripheral GATT server) and shall be displayed for the initiating remote device, see {@link PairingMode#PASSKEY_ENTRY_ini}
+     * </p>
+     * @see SMPPairingState#PASSKEY_NOTIFY
+     * @see SMPPairingState#COMPLETED
+     * @see AdapterStatusListener#deviceReady(BTDevice, long)
+     */
+    int getResponderSMPPassKey();
+
+    /** Returns {@link #getResponderSMPPassKey()} as a canonical string, e.g. '012345'. */
+    String getResponderSMPPassKeyString();
+
+    /**
      * {@code jau.direct_bt}: Establish a default HCI connection to this device, using certain default parameter.
      * <p>
      * BT Core Spec v5.2: Vol 4, Part E HCI: 7.8.12 LE Create Connection command <br>
