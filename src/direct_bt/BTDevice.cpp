@@ -2307,6 +2307,15 @@ HCIStatusCode BTDevice::disconnect(const HCIStatusCode reason) noexcept {
     }
 
 exit:
+    {
+        // Start resolving from scratch
+        HCIStatusCode res2 = hci.le_del_from_resolv_list(addressAndType);
+        if( HCIStatusCode::SUCCESS != res2 ) {
+            jau::INFO_PRINT("BTDevice::disconnect: DEL FROM RESOLV LIST failed %s for %s",
+                    to_string(res2).c_str(), toString().c_str());
+        }
+    }
+
     if( HCIStatusCode::SUCCESS != res ) {
         // In case of an already pulled or disconnected HCIHandler (e.g. power-off)
         // or in case the hci->disconnect() itself fails,

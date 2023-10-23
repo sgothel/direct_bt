@@ -255,6 +255,11 @@ bool BTAdapter::updateDataFromHCI() noexcept {
     hci_uses_ext_conn = hci.use_ext_conn();
     hci_uses_ext_adv  = hci.use_ext_adv();
 
+    status = hci.le_clear_resolv_list();
+    if( HCIStatusCode::SUCCESS != status ) {
+        jau::INFO_PRINT("Adapter[%d]: CLEAR RESOLV LIST failed %s", dev_id, to_string(status).c_str());
+    }
+
     WORDY_PRINT("BTAdapter::updateDataFromHCI: Adapter[%d]: POWERED, %s - %s, hci_ext[scan %d, conn %d], features: %s",
             dev_id, version.toString().c_str(), adapterInfo.toString().c_str(),
             hci_uses_ext_scan, hci_uses_ext_conn,
