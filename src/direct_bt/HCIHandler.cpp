@@ -1116,8 +1116,8 @@ HCIStatusCode HCIHandler::getLocalVersion(HCILocalVersion &version) noexcept {
     HCIStatusCode status;
     std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_lv, &status);
     if( nullptr == ev || nullptr == ev_lv || HCIStatusCode::SUCCESS != status ) {
-        ERR_PRINT("READ_LOCAL_VERSION: 0x%x (%s) - %s",
-                number(status), to_string(status).c_str(), toString().c_str());
+        ERR_PRINT("%s: 0x%x (%s) - %s",
+                to_string(req0.getOpcode()), number(status), to_string(status).c_str(), toString().c_str());
         bzero(&version, sizeof(version));
     } else {
         version.hci_ver = ev_lv->hci_ver;
@@ -1531,7 +1531,7 @@ HCIStatusCode HCIHandler::le_read_phy(const uint16_t conn_handle, const BDAddres
     std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_phy, &status);
 
     if( nullptr == ev || nullptr == ev_phy || HCIStatusCode::SUCCESS != status ) {
-        ERR_PRINT("LE_READ_PHY: 0x%x (%s) - %s",
+        ERR_PRINT("%s: 0x%x (%s) - %s", to_string(req0.getOpcode()),
                 number(status), to_string(status).c_str(), toString().c_str());
     } else {
         const uint16_t conn_handle_rcvd = jau::le_to_cpu(ev_phy->handle);
@@ -1584,7 +1584,7 @@ HCIStatusCode HCIHandler::le_set_default_phy(const LE_PHYs Tx, const LE_PHYs Rx)
     std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_status, &status);
 
     if( nullptr == ev || nullptr == ev || HCIStatusCode::SUCCESS != status ) {
-        ERR_PRINT("LE_SET_PHY: 0x%x (%s) - %s", number(status), to_string(status).c_str(), toString().c_str());
+        ERR_PRINT("%s: 0x%x (%s) - %s", to_string(req0.getOpcode()), number(status), to_string(status).c_str(), toString().c_str());
     }
     return status;
 }
@@ -1627,7 +1627,7 @@ HCIStatusCode HCIHandler::le_set_phy(const uint16_t conn_handle, const BDAddress
     std::unique_ptr<HCIEvent> ev = processCommandStatus(req0, &status);
 
     if( nullptr == ev || nullptr == ev || HCIStatusCode::SUCCESS != status ) {
-        ERR_PRINT("LE_SET_PHY: 0x%x (%s) - %s", number(status), to_string(status).c_str(), toString().c_str());
+        ERR_PRINT("%s: 0x%x (%s) - %s", to_string(req0.getOpcode()), number(status), to_string(status).c_str(), toString().c_str());
     }
     return status;
 }
