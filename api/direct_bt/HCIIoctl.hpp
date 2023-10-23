@@ -1600,6 +1600,20 @@ struct hci_cp_le_write_def_data_len {
 	__le16	tx_time;
 } __packed;
 
+#define HCI_OP_LE_ADD_TO_RESOLV_LIST    0x2027
+struct hci_cp_le_add_to_resolv_list {
+    __u8     bdaddr_type;
+    bdaddr_t bdaddr;
+    __u8     peer_irk[16];
+    __u8     local_irk[16];
+} __packed;
+
+#define HCI_OP_LE_DEL_FROM_RESOLV_LIST  0x2028
+struct hci_cp_le_del_from_resolv_list {
+    __u8     bdaddr_type;
+    bdaddr_t bdaddr;
+} __packed;
+
 #define HCI_OP_LE_CLEAR_RESOLV_LIST	0x2029
 
 #define HCI_OP_LE_READ_RESOLV_LIST_SIZE	0x202a
@@ -1608,7 +1622,32 @@ struct hci_rp_le_read_resolv_list_size {
 	__u8	size;
 } __packed;
 
+// FIXME: May not be supported by Linux/BlueZ
+#define HCI_OP_LE_READ_PEER_RESOLV_ADDR 0x202b
+struct hci_cp_le_read_peer_resolv_addr {
+    __u8     peer_id_addr_type;
+    bdaddr_t peer_id_addr;
+} __packed;
+struct hci_rp_le_read_peer_resolv_addr {
+    __u8     status;
+    bdaddr_t peer_resolv_addr;
+} __packed;
+
+// FIXME: May not be supported by Linux/BlueZ
+#define HCI_OP_LE_READ_LOCAL_RESOLV_ADDR 0x202c
+struct hci_cp_le_read_local_resolv_addr {
+    __u8     peer_id_addr_type;
+    bdaddr_t peer_id_addr;
+} __packed;
+struct hci_rp_le_read_local_resolv_addr {
+    __u8     status;
+    bdaddr_t local_resolv_addr;
+} __packed;
+
 #define HCI_OP_LE_SET_ADDR_RESOLV_ENABLE 0x202d
+struct hci_cp_le_set_addr_resolv_enable {
+    __u8     enable;
+} __packed;
 
 #define HCI_OP_LE_READ_MAX_DATA_LEN	0x202f
 struct hci_rp_le_read_max_data_len {
