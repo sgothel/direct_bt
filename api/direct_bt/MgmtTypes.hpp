@@ -1958,7 +1958,7 @@ namespace direct_bt {
             std::string baseString() const noexcept override {
                 return MgmtEvent::baseString()+", address["+getAddress().toString()+
                        ", "+to_string(getAddressType())+
-                       "], confirm_hint "+jau::to_hexstring(getConfirmHint())+", value "+jau::to_hexstring(getValue());
+                       "], confirm_hint "+std::to_string(getConfirmHint())+", value "+std::to_string(getValue());
             }
 
         public:
@@ -1988,6 +1988,41 @@ namespace direct_bt {
             MgmtEvtUserPasskeyRequest(const uint8_t* buffer, const jau::nsize_t buffer_len)
             : MgmtEvtAdressInfoMeta(Opcode::USER_PASSKEY_REQUEST, buffer, buffer_len)
             { }
+    };
+
+    /**
+     * mgmt_addr_info { EUI48, uint8_t type },
+     * uint32_t passkey
+     * uint8_t entered
+     *
+     * BT Core Spec v5.2: Vol 4, Part E HCI: 7.7.42 User Confirmation Request event
+     * BT Core Spec v5.2: Vol 4, Part E HCI: 7.1.30 User Confirmation Request Reply command
+     */
+    class MgmtEvtPasskeyNotify: public MgmtEvent
+    {
+        protected:
+            std::string baseString() const noexcept override {
+                return MgmtEvent::baseString()+", address["+getAddress().toString()+
+                       ", "+to_string(getAddressType())+
+                       "], passkey "+std::to_string(getPasskey())+", entered "+std::to_string(getEntered());
+            }
+
+        public:
+            MgmtEvtPasskeyNotify(const uint8_t* buffer, const jau::nsize_t buffer_len)
+            : MgmtEvent(buffer, buffer_len, 6+1+4+1)
+            {
+                checkOpcode(getOpcode(), Opcode::PASSKEY_NOTIFY);
+            }
+
+            const EUI48& getAddress() const noexcept { return *reinterpret_cast<const EUI48 *>( pdu.get_ptr_nc(MGMT_HEADER_SIZE + 0) ); } // mgmt_addr_info
+            BDAddressType getAddressType() const noexcept { return static_cast<BDAddressType>(pdu.get_uint8_nc(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
+
+            uint32_t getPasskey() const noexcept { return pdu.get_uint32_nc(MGMT_HEADER_SIZE+6+1); }
+            uint8_t getEntered() const noexcept { return pdu.get_uint8_nc(MGMT_HEADER_SIZE+6+1+4); }
+
+            jau::nsize_t getDataOffset() const noexcept override { return MGMT_HEADER_SIZE+6+1+4+1; }
+            jau::nsize_t getDataSize() const noexcept override { return 0; }
+            const uint8_t* getData() const noexcept override { return nullptr; }
     };
 
     /**

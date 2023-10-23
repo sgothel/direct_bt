@@ -450,6 +450,8 @@ std::unique_ptr<MgmtEvent> MgmtEvent::getSpecialized(const uint8_t * buffer, jau
             return std::make_unique<MgmtEvtUserConfirmRequest>(buffer, buffer_size);
         case MgmtEvent::Opcode::USER_PASSKEY_REQUEST:
             return std::make_unique<MgmtEvtUserPasskeyRequest>(buffer, buffer_size);
+        case MgmtEvent::Opcode::PASSKEY_NOTIFY:
+            return std::make_unique<MgmtEvtPasskeyNotify>(buffer, buffer_size);
         case Opcode::AUTH_FAILED:
             return std::make_unique<MgmtEvtAuthFailed>(buffer, buffer_size);
         case MgmtEvent::Opcode::DEVICE_FOUND:

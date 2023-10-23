@@ -488,13 +488,13 @@ next1:
         addMgmtEventCallback(-1, MgmtEvent::Opcode::PIN_CODE_REQUEST, jau::bind_member(this, &BTManager::mgmtEventAnyCB));
         addMgmtEventCallback(-1, MgmtEvent::Opcode::USER_CONFIRM_REQUEST, jau::bind_member(this, &BTManager::mgmtEventAnyCB));
         addMgmtEventCallback(-1, MgmtEvent::Opcode::USER_PASSKEY_REQUEST, jau::bind_member(this, &BTManager::mgmtEventAnyCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::PASSKEY_NOTIFY, jau::bind_member(this, &BTManager::mgmtEventAnyCB));
         addMgmtEventCallback(-1, MgmtEvent::Opcode::AUTH_FAILED, jau::bind_member(this, &BTManager::mgmtEventAnyCB));
         addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_FOUND, jau::bind_member(this, &BTManager::mgmtEventAnyCB));
         addMgmtEventCallback(-1, MgmtEvent::Opcode::DISCOVERING, jau::bind_member(this, &BTManager::mgmtEventAnyCB));
         addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_BLOCKED, jau::bind_member(this, &BTManager::mgmtEventAnyCB));
         addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_UNBLOCKED, jau::bind_member(this, &BTManager::mgmtEventAnyCB));
         addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_UNPAIRED, jau::bind_member(this, &BTManager::mgmtEventAnyCB));
-        addMgmtEventCallback(-1, MgmtEvent::Opcode::PASSKEY_NOTIFY, jau::bind_member(this, &BTManager::mgmtEventAnyCB));
         addMgmtEventCallback(-1, MgmtEvent::Opcode::NEW_IRK, jau::bind_member(this, &BTManager::mgmtEventAnyCB));
         addMgmtEventCallback(-1, MgmtEvent::Opcode::NEW_CSRK, jau::bind_member(this, &BTManager::mgmtEventAnyCB));
         addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_WHITELIST_ADDED, jau::bind_member(this, &BTManager::mgmtEventAnyCB));
