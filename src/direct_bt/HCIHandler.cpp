@@ -1994,6 +1994,10 @@ std::unique_ptr<HCIEvent> HCIHandler::receiveCommandComplete(HCICommand &req,
         }
         return nullptr; // timeout
     } else if( nullptr == ev_cc ) {
+        if( ev->isEvent(HCIEventType::CMD_STATUS) ) {
+            HCICommandStatusEvent * ev_cs = static_cast<HCICommandStatusEvent*>(ev.get());
+            *status = ev_cs->getStatus();
+        }
         if( !quiet || jau::environment::get().verbose ) {
             WARN_PRINT("%s -> %s: Status 0x%2.2X (%s), errno %d %s: res %s, req %s - %s",
                     to_string(req.getOpcode()).c_str(), to_string(evc).c_str(),
