@@ -1,3 +1,6 @@
 [submodule "jaulib"]
 	path = jaulib
 	url = ../jaulib
+[submodule "tinycrypt"]
+	path = tinycrypt
+	url = ../tinycrypt
