@@ -412,6 +412,14 @@ namespace direct_bt {
                 return 0 != ( sup_commands[37] & ( 1 << 7 ) );
             }
 
+            bool use_resolv_add() const noexcept         { return 0 != ( sup_commands[34] & ( 1 << 3 ) ); }
+            bool use_resolv_del() const noexcept         { return 0 != ( sup_commands[34] & ( 1 << 4 ) ); }
+            bool use_resolv_clear() const noexcept       { return 0 != ( sup_commands[34] & ( 1 << 5 ) ); }
+            bool use_resolv_size() const noexcept        { return 0 != ( sup_commands[34] & ( 1 << 6 ) ); }
+            bool use_resolv_readPeerRA() const noexcept  { return 0 != ( sup_commands[34] & ( 1 << 7 ) ); }
+            bool use_resolv_readLocalRA() const noexcept { return 0 != ( sup_commands[35] & ( 1 << 0 ) ); }
+            bool use_resolv_enable() const noexcept      { return 0 != ( sup_commands[35] & ( 1 << 1 ) ); }
+
             /** Use extended advertising if LE_Features::LE_Ext_Adv is set (Bluetooth 5.0). */
             bool use_ext_adv() const noexcept {
                 return is_set(le_ll_feats, LE_Features::LE_Ext_Adv);
@@ -712,6 +720,44 @@ namespace direct_bt {
              */
             HCIStatusCode disconnect(const uint16_t conn_handle, const BDAddressAndType& peerAddressAndType,
                                      const HCIStatusCode reason=HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION) noexcept;
+
+            /**
+             * BT Core Spec v5.2: Vol 4, Part E HCI: 7.8.38 LE Add Device To Resolving List command
+             */
+            HCIStatusCode le_add_to_resolv_list(const BDAddressAndType& peerIdentityAddressAndType,
+                                                jau::uint128_t& peer_irk, jau::uint128_t& local_irk) noexcept;
+            /**
+             * BT Core Spec v5.2: Vol 4, Part E HCI: 7.8.39 LE Remove Device From Resolving List command
+             */
+            HCIStatusCode le_del_from_resolv_list(const BDAddressAndType& peerIdentityAddressAndType) noexcept;
+            /**
+             * BT Core Spec v5.2: Vol 4, Part E HCI: 7.8.40 LE Clear Resolving List command
+             */
+            HCIStatusCode le_clear_resolv_list() noexcept;
+            /**
+             * BT Core Spec v5.2: Vol 4, Part E HCI: 7.8.41 LE Read Resolving List Size command
+             */
+            HCIStatusCode le_read_resolv_list_size(uint32_t& size_res) noexcept;
+            /**
+             * BT Core Spec v5.2: Vol 4, Part E HCI: 7.8.42 LE Read Peer Resolvable Address command
+             * <p>
+             * FIXME: May not be supported by Linux/BlueZ
+             * </p>
+             */
+            HCIStatusCode le_read_peer_resolv_addr(const BDAddressAndType& peerIdentityAddressAndType,
+                                                   jau::EUI48& peerResolvableAddress) noexcept;
+            /**
+             * BT Core Spec v5.2: Vol 4, Part E HCI: 7.8.43 LE Read Local Resolvable Address command
+             * <p>
+             * FIXME: May not be supported by Linux/BlueZ
+             * </p>
+             */
+            HCIStatusCode le_read_local_resolv_addr(const BDAddressAndType& peerIdentityAddressAndType,
+                                                    jau::EUI48& localResolvableAddress) noexcept;
+            /**
+             * BT Core Spec v5.2: Vol 4, Part E HCI: 7.8.44 LE Set Address Resolution Enable command
+             */
+            HCIStatusCode le_set_addr_resolv_enable(const bool enable) noexcept;
 
             /**
              * Request and return LE_PHYs bit for the given connection.

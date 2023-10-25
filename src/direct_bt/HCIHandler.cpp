@@ -77,10 +77,10 @@ __pack( struct hci_rp_status {
     __u8    status;
 } );
 
+
 HCIHandler::HCIConnectionRef HCIHandler::addOrUpdateHCIConnection(jau::darray<HCIConnectionRef> &list,
-                                                      const BDAddressAndType& addressAndType, const uint16_t handle) noexcept {
+                                                                  const BDAddressAndType& addressAndType, const uint16_t handle) noexcept {
     const std::lock_guard<std::recursive_mutex> lock(mtx_connectionList); // RAII-style acquire and relinquish via destructor
-    // remove all old entry with given address first
     auto end = list.end();
     for (auto it = list.begin(); it != end; ++it) {
         HCIConnectionRef conn = *it;
@@ -648,7 +648,7 @@ std::unique_ptr<HCIEvent> HCIHandler::getNextCmdCompleteReply(HCICommand &req, H
             HCICommandStatusEvent * ev_cs = static_cast<HCICommandStatusEvent*>(ev.get());
             HCIStatusCode status = ev_cs->getStatus();
             if( HCIStatusCode::SUCCESS != status ) {
-                WARN_PRINT("dev_id %u: CMD_STATUS 0x%2.2X (%s), errno %d %s: res %s, req %s - %s",
+                DBG_WARN_PRINT("dev_id %u: CMD_STATUS 0x%2.2X (%s), errno %d %s: res %s, req %s - %s",
                         dev_id, number(status), to_string(status).c_str(), errno, strerror(errno),
                         ev_cs->toString().c_str(), req.toString().c_str(), toString().c_str());
                 break; // error status, leave loop
@@ -1118,7 +1118,7 @@ HCIStatusCode HCIHandler::getLocalVersion(HCILocalVersion &version) noexcept {
     std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_lv, &status);
     if( nullptr == ev || nullptr == ev_lv || HCIStatusCode::SUCCESS != status ) {
         ERR_PRINT("%s: 0x%x (%s) - %s",
-                to_string(req0.getOpcode()), number(status), to_string(status).c_str(), toString().c_str());
+                to_string(req0.getOpcode()).c_str(), number(status), to_string(status).c_str(), toString().c_str());
         bzero(&version, sizeof(version));
     } else {
         version.hci_ver = ev_lv->hci_ver;
@@ -1502,6 +1502,7 @@ HCIStatusCode HCIHandler::disconnect(const uint16_t conn_handle, const BDAddress
 
 HCIStatusCode HCIHandler::le_add_to_resolv_list(const BDAddressAndType& peerIdentityAddressAndType,
                                     jau::uint128_t& peer_irk, jau::uint128_t& local_irk) noexcept {
+    if( !use_resolv_add() ) { return HCIStatusCode::UNKNOWN_COMMAND; }
     HCIStatusCode status;
     HCIStructCommand<hci_cp_le_add_to_resolv_list> req0(HCIOpcode::LE_ADD_TO_RESOLV_LIST);
     hci_cp_le_add_to_resolv_list * cp = req0.getWStruct();
@@ -1512,12 +1513,13 @@ HCIStatusCode HCIHandler::le_add_to_resolv_list(const BDAddressAndType& peerIden
     const hci_rp_status * ev_res;
     std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_res, &status, true /* quiet */);
     if( nullptr == ev || nullptr == ev_res || HCIStatusCode::SUCCESS != status ) {
-        DBG_PRINT("%s: 0x%x (%s) - %s", to_string(req0.getOpcode()), number(status), to_string(status).c_str(), toString().c_str());
+        DBG_PRINT("%s: 0x%x (%s) - %s", to_string(req0.getOpcode()).c_str(), number(status), to_string(status).c_str(), toString().c_str());
     }
     return status;
 }
 
 HCIStatusCode HCIHandler::le_del_from_resolv_list(const BDAddressAndType& peerIdentityAddressAndType) noexcept {
+    if( !use_resolv_del() ) { return HCIStatusCode::UNKNOWN_COMMAND; }
     HCIStatusCode status;
     HCIStructCommand<hci_cp_le_del_from_resolv_list> req0(HCIOpcode::LE_DEL_FROM_RESOLV_LIST);
     hci_cp_le_del_from_resolv_list * cp = req0.getWStruct();
@@ -1526,30 +1528,32 @@ HCIStatusCode HCIHandler::le_del_from_resolv_list(const BDAddressAndType& peerId
     const hci_rp_status * ev_res;
     std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_res, &status, true /* quiet */);
     if( nullptr == ev || nullptr == ev_res || HCIStatusCode::SUCCESS != status ) {
-        DBG_PRINT("%s: 0x%x (%s) - %s", to_string(req0.getOpcode()), number(status), to_string(status).c_str(), toString().c_str());
+        DBG_PRINT("%s: 0x%x (%s) - %s", to_string(req0.getOpcode()).c_str(), number(status), to_string(status).c_str(), toString().c_str());
     }
     return status;
 }
 
 HCIStatusCode HCIHandler::le_clear_resolv_list() noexcept {
+    if( !use_resolv_clear() ) { return HCIStatusCode::UNKNOWN_COMMAND; }
     HCIStatusCode status;
     HCICommand req0(HCIOpcode::LE_CLEAR_RESOLV_LIST, 0);
     const hci_rp_status * ev_res;
     std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_res, &status, true /* quiet */);
     if( nullptr == ev || nullptr == ev_res || HCIStatusCode::SUCCESS != status ) {
-        DBG_PRINT("%s: 0x%x (%s) - %s", to_string(req0.getOpcode()), number(status), to_string(status).c_str(), toString().c_str());
+        DBG_PRINT("%s: 0x%x (%s) - %s", to_string(req0.getOpcode()).c_str(), number(status), to_string(status).c_str(), toString().c_str());
     }
     return status;
 }
 
 HCIStatusCode HCIHandler::le_read_resolv_list_size(uint32_t& size_res) noexcept {
+    if( !use_resolv_size() ) { return HCIStatusCode::UNKNOWN_COMMAND; }
     size_res = 0;
     HCIStatusCode status;
     HCICommand req0(HCIOpcode::LE_READ_RESOLV_LIST_SIZE, 0);
     const hci_rp_le_read_resolv_list_size * ev_res;
     std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_res, &status, true /* quiet */);
     if( nullptr == ev || nullptr == ev_res || HCIStatusCode::SUCCESS != status ) {
-        DBG_PRINT("%s: 0x%x (%s) - %s", to_string(req0.getOpcode()), number(status), to_string(status).c_str(), toString().c_str());
+        DBG_PRINT("%s: 0x%x (%s) - %s", to_string(req0.getOpcode()).c_str(), number(status), to_string(status).c_str(), toString().c_str());
     } else if( nullptr != ev_res && HCIStatusCode::SUCCESS != status ) {
         size_res = ev_res->size;
     }
@@ -1558,6 +1562,7 @@ HCIStatusCode HCIHandler::le_read_resolv_list_size(uint32_t& size_res) noexcept 
 
 HCIStatusCode HCIHandler::le_read_peer_resolv_addr(const BDAddressAndType& peerIdentityAddressAndType,
                                                    jau::EUI48& peerResolvableAddress) noexcept {
+    if( !use_resolv_readPeerRA() ) { return HCIStatusCode::UNKNOWN_COMMAND; }
     peerResolvableAddress.clear();
     HCIStatusCode status;
     HCIStructCommand<hci_cp_le_read_peer_resolv_addr> req0(HCIOpcode::LE_READ_PEER_RESOLV_ADDR);
@@ -1567,7 +1572,7 @@ HCIStatusCode HCIHandler::le_read_peer_resolv_addr(const BDAddressAndType& peerI
     const hci_rp_le_read_peer_resolv_addr * ev_res;
     std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_res, &status, true /* quiet */);
     if( nullptr == ev || nullptr == ev_res || HCIStatusCode::SUCCESS != status ) {
-        DBG_PRINT("%s: 0x%x (%s) - %s", to_string(req0.getOpcode()), number(status), to_string(status).c_str(), toString().c_str());
+        DBG_PRINT("%s: 0x%x (%s) - %s", to_string(req0.getOpcode()).c_str(), number(status), to_string(status).c_str(), toString().c_str());
     } else if( nullptr != ev_res && HCIStatusCode::SUCCESS != status ) {
         peerResolvableAddress = jau::le_to_cpu(ev_res->peer_resolv_addr);
     }
@@ -1576,6 +1581,7 @@ HCIStatusCode HCIHandler::le_read_peer_resolv_addr(const BDAddressAndType& peerI
 
 HCIStatusCode HCIHandler::le_read_local_resolv_addr(const BDAddressAndType& peerIdentityAddressAndType,
                                                     jau::EUI48& localResolvableAddress) noexcept {
+    if( !use_resolv_readLocalRA() ) { return HCIStatusCode::UNKNOWN_COMMAND; }
     localResolvableAddress.clear();
     HCIStatusCode status;
     HCIStructCommand<hci_cp_le_read_local_resolv_addr> req0(HCIOpcode::LE_READ_LOCAL_RESOLV_ADDR);
@@ -1585,7 +1591,7 @@ HCIStatusCode HCIHandler::le_read_local_resolv_addr(const BDAddressAndType& peer
     const hci_rp_le_read_local_resolv_addr * ev_res;
     std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_res, &status, true /* quiet */);
     if( nullptr == ev || nullptr == ev_res || HCIStatusCode::SUCCESS != status ) {
-        DBG_PRINT("%s: 0x%x (%s) - %s", to_string(req0.getOpcode()), number(status), to_string(status).c_str(), toString().c_str());
+        DBG_PRINT("%s: 0x%x (%s) - %s", to_string(req0.getOpcode()).c_str(), number(status), to_string(status).c_str(), toString().c_str());
     } else if( nullptr != ev_res && HCIStatusCode::SUCCESS != status ) {
         localResolvableAddress = jau::le_to_cpu(ev_res->local_resolv_addr);
     }
@@ -1593,6 +1599,7 @@ HCIStatusCode HCIHandler::le_read_local_resolv_addr(const BDAddressAndType& peer
 }
 
 HCIStatusCode HCIHandler::le_set_addr_resolv_enable(const bool enable) noexcept {
+    if( !use_resolv_enable() ) { return HCIStatusCode::UNKNOWN_COMMAND; }
     HCIStatusCode status;
     HCIStructCommand<hci_cp_le_set_addr_resolv_enable> req0(HCIOpcode::LE_SET_ADDR_RESOLV_ENABLE);
     hci_cp_le_set_addr_resolv_enable * cp = req0.getWStruct();
@@ -1600,7 +1607,7 @@ HCIStatusCode HCIHandler::le_set_addr_resolv_enable(const bool enable) noexcept 
     const hci_rp_status * ev_res;
     std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_res, &status, true /* quiet */);
     if( nullptr == ev || nullptr == ev_res || HCIStatusCode::SUCCESS != status ) {
-        DBG_PRINT("%s: 0x%x (%s) - %s", to_string(req0.getOpcode()), number(status), to_string(status).c_str(), toString().c_str());
+        DBG_PRINT("%s: 0x%x (%s) - %s", to_string(req0.getOpcode()).c_str(), number(status), to_string(status).c_str(), toString().c_str());
     }
     return status;
 }
@@ -1637,7 +1644,7 @@ HCIStatusCode HCIHandler::le_read_phy(const uint16_t conn_handle, const BDAddres
     std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_phy, &status);
 
     if( nullptr == ev || nullptr == ev_phy || HCIStatusCode::SUCCESS != status ) {
-        ERR_PRINT("%s: 0x%x (%s) - %s", to_string(req0.getOpcode()),
+        ERR_PRINT("%s: 0x%x (%s) - %s", to_string(req0.getOpcode()).c_str(),
                 number(status), to_string(status).c_str(), toString().c_str());
     } else {
         const uint16_t conn_handle_rcvd = jau::le_to_cpu(ev_phy->handle);
@@ -1690,7 +1697,7 @@ HCIStatusCode HCIHandler::le_set_default_phy(const LE_PHYs Tx, const LE_PHYs Rx)
     std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_status, &status);
 
     if( nullptr == ev || nullptr == ev || HCIStatusCode::SUCCESS != status ) {
-        ERR_PRINT("%s: 0x%x (%s) - %s", to_string(req0.getOpcode()), number(status), to_string(status).c_str(), toString().c_str());
+        ERR_PRINT("%s: 0x%x (%s) - %s", to_string(req0.getOpcode()).c_str(), number(status), to_string(status).c_str(), toString().c_str());
     }
     return status;
 }
@@ -1733,7 +1740,7 @@ HCIStatusCode HCIHandler::le_set_phy(const uint16_t conn_handle, const BDAddress
     std::unique_ptr<HCIEvent> ev = processCommandStatus(req0, &status);
 
     if( nullptr == ev || nullptr == ev || HCIStatusCode::SUCCESS != status ) {
-        ERR_PRINT("%s: 0x%x (%s) - %s", to_string(req0.getOpcode()), number(status), to_string(status).c_str(), toString().c_str());
+        ERR_PRINT("%s: 0x%x (%s) - %s", to_string(req0.getOpcode()).c_str(), number(status), to_string(status).c_str(), toString().c_str());
     }
     return status;
 }
