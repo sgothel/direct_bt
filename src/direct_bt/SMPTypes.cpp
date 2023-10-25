@@ -33,6 +33,7 @@
 #include <jau/debug.hpp>
 
 #include "SMPTypes.hpp"
+#include "SMPCrypto.hpp"
 
 using namespace direct_bt;
 
@@ -310,6 +311,13 @@ bool SMPIdentityResolvingKey::isResponder() const noexcept {
     return ( SMPIdentityResolvingKey::Property::RESPONDER & properties ) != SMPIdentityResolvingKey::Property::NONE;
 }
 
+bool SMPIdentityResolvingKey::matches(const EUI48& rpa) noexcept {
+    return smp_crypto_rpa_irk_matches(irk, rpa); // irk.id_address == this->addressAndType
+}
+
+bool SMPIdentityResolvingKey::matches(const jau::uint128_t& irk, const EUI48& rpa) noexcept {
+    return smp_crypto_rpa_irk_matches(irk, rpa);
+}
 
 #define CSRKPROP_ENUM(X,M) \
     X(SMPSignatureResolvingKey::Property,RESPONDER,M) \

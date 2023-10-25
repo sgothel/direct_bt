@@ -735,7 +735,7 @@ namespace direct_bt {
 
             /**
              * Returns a copy of the Identity Resolving Key (IRK), valid after connection and SMP pairing has been completed.
-             * @param responder true will return the responder's IRK info (remote device, LL slave), otherwise the initiator's (the LL master).
+             * @param responder true will return the responder's IRK info (LL slave), otherwise the initiator's (LL master).
              * @return the resulting key
              * @see ::SMPPairingState::COMPLETED
              * @see AdapterStatusListener::deviceReady()
@@ -754,6 +754,13 @@ namespace direct_bt {
              * @since 2.4.0
              */
             void setIdentityResolvingKey(const SMPIdentityResolvingKey& irk) noexcept;
+
+            /**
+             * Returns true if this remote device's IRK matches the given random private address (rpa)
+             * @param rpa random private address
+             * @see getIdentityResolvingKey()
+             */
+            bool matches_irk(BDAddressAndType rpa) noexcept;
 
             /**
              * Returns a copy of the Signature Resolving Key (CSRK), valid after connection and SMP pairing has been completed.

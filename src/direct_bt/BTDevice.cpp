@@ -1608,6 +1608,13 @@ void BTDevice::setIdentityResolvingKey(const SMPIdentityResolvingKey& irk) noexc
     }
 }
 
+bool BTDevice::matches_irk(BDAddressAndType rpa) noexcept {
+    // self_is_responder == true: responder's IRK info (LL slave), else the initiator's (LL master)
+    const bool self_is_responder = BTRole::Slave == btRole;
+    SMPIdentityResolvingKey irk = getIdentityResolvingKey(self_is_responder);
+    return irk.matches(rpa.address); // irk.id_address == this->addressAndType
+}
+
 SMPSignatureResolvingKey BTDevice::getSignatureResolvingKey(const bool responder) const noexcept {
     jau::sc_atomic_critical sync(sync_data);
     return responder ? pairing_data.csrk_resp : pairing_data.csrk_init;

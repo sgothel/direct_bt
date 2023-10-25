@@ -616,6 +616,12 @@ namespace direct_bt {
 
         bool isResponder() const noexcept;
 
+        /** Returns true if this IRK matches the given random private address (RPA). */
+        bool matches(const EUI48& rpa) noexcept;
+
+        /** Returns true if the given IRK matches the given random private address (RPA). This static variant is a helper for the Java binding, use matches(). */
+        static bool matches(const jau::uint128_t& irk, const EUI48& rpa) noexcept;
+
         void clear() noexcept {
             bzero(reinterpret_cast<void *>(this), sizeof(SMPIdentityResolvingKey));
         }

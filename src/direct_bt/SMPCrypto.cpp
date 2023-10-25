@@ -33,24 +33,151 @@
 #include <memory>
 #include <cstdint>
 
-#include <jau/int_types.hpp>
-#include <jau/byte_util.hpp>
-#include <jau/eui48.hpp>
 #include <jau/debug.hpp>
 
-#include "BTAddress.hpp"
+#include "SMPCrypto.hpp"
 
-#define USE_SMP_CRYPTO_ 0
-inline constexpr const bool USE_SMP_CRYPTO = false;
+#define USE_SMP_CRYPTO_AES128_ 1
+// #define USE_SMP_CRYPTO_CMAC_ 1
+#define USE_SMP_CRYPTO_F5_ 0
 
-#if USE_SMP_CRYPTO_
-    // #include <tinycrypt/constants.h>
-    // #include <tinycrypt/aes.h>
+inline constexpr const bool USE_SMP_CRYPTO_IRK = true;
+inline constexpr const bool USE_SMP_CRYPTO_F5 = false;
+
+#include <tinycrypt/constants.h>
+
+#if USE_SMP_CRYPTO_AES128_
+    #include <tinycrypt/aes.h>
+#endif
+#if USE_SMP_CRYPTO_CMAC_
     // #include <tinycrypt/utils.h>
     #include <tinycrypt/cmac_mode.h>
 #endif
 
 namespace direct_bt {
+
+/**
+ * @brief Swap one buffer content into another
+ *
+ * Copy the content of src buffer into dst buffer in reversed order,
+ * i.e.: src[n] will be put in dst[end-n]
+ * Where n is an index and 'end' the last index in both arrays.
+ * The 2 memory pointers must be pointing to different areas, and have
+ * a minimum size of given length.
+ *
+ * @param dst A valid pointer on a memory area where to copy the data in
+ * @param src A valid pointer on a memory area where to copy the data from
+ * @param length Size of both dst and src memory areas
+ */
+static inline void sys_memcpy_swap(void *dst, const void *src, size_t length)
+{
+    uint8_t *pdst = (uint8_t *)dst;
+    const uint8_t *psrc = (const uint8_t *)src;
+
+    /**
+    __ASSERT(((psrc < pdst && (psrc + length) <= pdst) ||
+          (psrc > pdst && (pdst + length) <= psrc)),
+         "Source and destination buffers must not overlap"); */
+
+    psrc += length - 1;
+
+    for (; length > 0; length--) {
+        *pdst++ = *psrc--;
+    }
+}
+
+/**
+ * @brief Swap buffer content
+ *
+ * In-place memory swap, where final content will be reversed.
+ * I.e.: buf[n] will be put in buf[end-n]
+ * Where n is an index and 'end' the last index of buf.
+ *
+ * @param buf A valid pointer on a memory area to swap
+ * @param length Size of buf memory area
+ */
+static inline void sys_mem_swap(void *buf, size_t length)
+{
+    size_t i;
+
+    for (i = 0; i < (length/2); i++) {
+        uint8_t tmp = ((uint8_t *)buf)[i];
+
+        ((uint8_t *)buf)[i] = ((uint8_t *)buf)[length - 1 - i];
+        ((uint8_t *)buf)[length - 1 - i] = tmp;
+    }
+}
+
+static int bt_encrypt_le(const uint8_t key[16], const uint8_t plaintext[16],
+                         uint8_t enc_data[16])
+{
+    struct tc_aes_key_sched_struct s;
+    uint8_t tmp[16];
+
+    // BT_DBG("key %s", bt_hex(key, 16));
+    // BT_DBG("plaintext %s", bt_hex(plaintext, 16));
+
+    sys_memcpy_swap(tmp, key, 16);
+
+    if (tc_aes128_set_encrypt_key(&s, tmp) == TC_CRYPTO_FAIL) {
+        return -EINVAL;
+    }
+
+    sys_memcpy_swap(tmp, plaintext, 16);
+
+    if (tc_aes_encrypt(enc_data, tmp, &s) == TC_CRYPTO_FAIL) {
+        return -EINVAL;
+    }
+
+    sys_mem_swap(enc_data, 16);
+
+    // BT_DBG("enc_data %s", bt_hex(enc_data, 16));
+
+    return 0;
+}
+
+static int smp_crypto_ah(const uint8_t irk[16], const uint8_t r[3], uint8_t out[3])
+{
+    uint8_t res[16];
+    int err;
+
+    // BT_DBG("irk %s", bt_hex(irk, 16));
+    // BT_DBG("r %s", bt_hex(r, 3));
+
+    /* r' = padding || r */
+    std::memcpy(res, r, 3);
+    (void)std::memset(res + 3, 0, 13);
+
+    err = bt_encrypt_le(irk, res, res);
+    if (err) {
+        return err;
+    }
+
+    /* The output of the random address function ah is:
+     *      ah(h, r) = e(k, r') mod 2^24
+     * The output of the security function e is then truncated to 24 bits
+     * by taking the least significant 24 bits of the output of e as the
+     * result of ah.
+     */
+    std::memcpy(out, res, 3);
+
+    return 0;
+}
+
+bool smp_crypto_rpa_irk_matches(const jau::uint128_t irk, const EUI48& rpa) noexcept {
+    if constexpr ( !USE_SMP_CRYPTO_IRK ) {
+        return false;
+    }
+    // DBG_PRINT("IRK %s bdaddr %s", bt_hex(irk, 16), bt_addr_str(addr));
+    uint8_t hash[3];
+    int err = smp_crypto_ah(irk.data, &rpa.b[3], hash);
+    if (err) {
+        return false;
+    }
+    return !memcmp(rpa.b, hash, 3);
+}
+
+#if USE_SMP_CRYPTO_F5_
 
 /**
  * Cypher based Message Authentication Code (CMAC) with AES 128 bit
@@ -62,7 +189,7 @@ namespace direct_bt {
  */
 static bool bt_smp_aes_cmac(const jau::uint128_t& key, const uint8_t *in, size_t len, jau::uint128_t& out)
 {
-#if USE_SMP_CRYPTO_
+#if defined(USE_SMP_CRYPTO_CMAC_) && defined(USE_SMP_CRYPTO_AES128_)
     struct tc_aes_key_sched_struct sched;
     struct tc_cmac_struct state;
 
@@ -98,9 +225,9 @@ static bool bt_smp_aes_cmac(const jau::uint128_t& key, const uint8_t *in, size_t
  */
 bool smp_crypto_f5(const jau::uint256_t w, const jau::uint128_t n1, const jau::uint128_t n2,
                    const BDAddressAndType& a1, const BDAddressAndType& a2,
-                   jau::uint128_t& mackey, jau::uint128_t& ltk)
+                   jau::uint128_t& mackey, jau::uint128_t& ltk) noexcept
 {
-    if constexpr ( !USE_SMP_CRYPTO ) {
+    if constexpr ( !USE_SMP_CRYPTO_F5 ) {
         return false;
     }
 
@@ -161,5 +288,7 @@ bool smp_crypto_f5(const jau::uint256_t w, const jau::uint128_t n1, const jau::u
 
     return true;
 }
+
+#endif /* USE_SMP_CRYPTO_F5_ */
 
 } // namespace direct_bt
