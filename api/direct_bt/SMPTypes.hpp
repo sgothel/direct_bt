@@ -613,6 +613,8 @@ namespace direct_bt {
         Property properties;
         /** Identity Resolving Key (IRK) */
         jau::uint128_t irk;
+        /** Identity Address for the IRK */
+        EUI48 id_address;
 
         bool isResponder() const noexcept;
 
@@ -628,7 +630,7 @@ namespace direct_bt {
 
         std::string toString() const noexcept { // hex-fmt aligned with btmon
             return "IRK[props "+getPropertyString(properties)+
-                   ", irk "+jau::bytesHexString(irk.data, 0, sizeof(irk), true /* lsbFirst */)+
+                   ", id "+id_address.toString()+", irk "+jau::bytesHexString(irk.data, 0, sizeof(irk), true /* lsbFirst */)+
                    "]";
         }
     } );

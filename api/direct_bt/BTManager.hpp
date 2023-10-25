@@ -500,9 +500,13 @@ namespace direct_bt {
              */
             bool isValidLongTermKeyAddressAndType(const EUI48 &address, const BDAddressType &address_type) const noexcept;
 
-            HCIStatusCode uploadLongTermKey(const uint16_t dev_id, const jau::darray<MgmtLongTermKeyInfo> &keys) noexcept;
+            HCIStatusCode uploadLongTermKey(const uint16_t dev_id, const jau::darray<MgmtLongTermKey> &keys) noexcept;
             HCIStatusCode uploadLongTermKey(const BTRole adapterRole,
                                             const uint16_t dev_id, const BDAddressAndType & addressAndType, const jau::darray<SMPLongTermKey>& ltks) noexcept;
+
+            HCIStatusCode uploadIdentityResolvingKey(const uint16_t dev_id, const jau::darray<MgmtIdentityResolvingKey> &keys) noexcept;
+            HCIStatusCode uploadIdentityResolvingKey(const uint16_t dev_id, const jau::darray<SMPIdentityResolvingKey>& irks) noexcept;
+            HCIStatusCode clearIdentityResolvingKeys(const uint16_t dev_id) noexcept;
 
             HCIStatusCode uploadLinkKey(const uint16_t dev_id, const MgmtLinkKeyInfo &key) noexcept;
             HCIStatusCode uploadLinkKey(const uint16_t dev_id, const BDAddressAndType & addressAndType, const SMPLinkKey& lk) noexcept;

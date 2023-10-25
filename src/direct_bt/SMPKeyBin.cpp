@@ -66,7 +66,7 @@ SMPKeyBin SMPKeyBin::create(const BTDevice& device) {
     const SMPPairingState pstate = device.getPairingState();
     const PairingMode pmode = device.getPairingMode(); // Skip PairingMode::PRE_PAIRED (write again)
 
-    SMPKeyBin smpKeyBin(device.getAdapter().getAddressAndType(), device.getAddressAndType(),
+    SMPKeyBin smpKeyBin(device.getAdapter().getRole(), device.getAdapter().getAddressAndType(), device.getAddressAndType(),
                         device.getConnSecurityLevel(), device.getConnIOCapability());
 
     if( ( BTSecurityLevel::NONE  < sec_lvl && SMPPairingState::COMPLETED == pstate && PairingMode::NEGOTIATING < pmode ) ||
@@ -146,7 +146,7 @@ std::vector<SMPKeyBin> SMPKeyBin::readAllForLocalAdapter(const BDAddressAndType&
 }
 
 std::string SMPKeyBin::toString() const noexcept {
-    std::string res = "SMPKeyBin[local "+localAddress.toString()+", remote "+remoteAddress.toString()+
+    std::string res = "SMPKeyBin[local["+to_string(localRole)+", "+localAddress.toString()+"], remote "+remoteAddress.toString()+
                       ", SC "+std::to_string(uses_SC())+", sec "+to_string(sec_level)+", io "+to_string(io_cap)+
                       ", ";
     if( isVersionValid() ) {
@@ -283,6 +283,7 @@ bool SMPKeyBin::write(const std::string& path, const bool overwrite) const noexc
     jau::put_uint64(buffer, 0, ts_creation_sec, true /* littleEndian */);
     file.write((char*)buffer, sizeof(ts_creation_sec));
 
+    file.write((char*)&localRole, sizeof(localRole));
     {
         localAddress.address.put(buffer, 0, jau::endian::little);
         file.write((char*)buffer, sizeof(localAddress.address.b));
@@ -369,6 +370,7 @@ bool SMPKeyBin::read(const std::string& fname) {
         err = true;
     }
     if( !err && 7+7+4 <= remaining ) {
+        file.read((char*)&localRole, sizeof(localRole));
         {
             file.read((char*)buffer, sizeof(localAddress.address.b));
             localAddress.address = jau::EUI48(buffer, jau::endian::little);

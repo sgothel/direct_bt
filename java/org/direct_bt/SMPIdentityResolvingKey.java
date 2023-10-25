@@ -25,6 +25,9 @@
 
 package org.direct_bt;
 
+import java.nio.ByteOrder;
+
+import org.jau.net.EUI48;
 import org.jau.util.BasicTypes;
 
 /**
@@ -38,7 +41,7 @@ import org.jau.util.BasicTypes;
  * </p>
  * @since 2.4.0
  */
-public class SMPIdentityResolvingKey {
+public final class SMPIdentityResolvingKey {
     /**
      * {@link SMPIdentityResolvingKey} Property Bits
      */
@@ -121,11 +124,14 @@ public class SMPIdentityResolvingKey {
     /** Identity Resolving Key (IRK) */
     public byte irk[/*16*/];
 
+    /** Identity Address for the IRK */
+    public EUI48 id_address;
+
     /**
      * Size of the byte stream representation in bytes
      * @see #put(byte[], int)
      */
-    public static final int byte_size = 1+16;
+    public static final int byte_size = 1+16+6;
 
     /** Construct instance via given source byte array */
     public SMPIdentityResolvingKey(final byte source[], final int pos) {
@@ -137,6 +143,7 @@ public class SMPIdentityResolvingKey {
     public SMPIdentityResolvingKey() {
         properties = new Properties((byte)0);
         irk        = new byte[16];
+        id_address = new EUI48();
     }
 
     /**
@@ -155,6 +162,7 @@ public class SMPIdentityResolvingKey {
         }
         properties = new Properties(source[pos++]);
         System.arraycopy(source, pos, irk, 0, 16); pos+=16;
+        id_address = new EUI48(source, pos, ByteOrder.nativeOrder()); pos+=6;
     }
 
     /**
@@ -174,14 +182,18 @@ public class SMPIdentityResolvingKey {
         }
         sink[pos++] = properties.mask;
         System.arraycopy(irk,  0, sink, pos, 16); pos+=16;
+        System.arraycopy(id_address.b, 0, sink, pos, 6); pos+=6;
     }
 
     public final boolean isResponder() { return properties.isSet(PropertyType.RESPONDER); }
 
+    /** Returns true if this IRK matches the given random private address (RPA). */
+    public native boolean matches(final EUI48 rpa);
+
     @Override
     public String toString() { // hex-fmt aligned with btmon
         return "IRK[props "+properties.toString()+
-               ", irk "+BasicTypes.bytesHexString(irk, 0, -1, true /* lsbFirst */)+
+               ", id "+id_address+", irk "+BasicTypes.bytesHexString(irk, 0, -1, true /* lsbFirst */)+
                "]";
     }
 

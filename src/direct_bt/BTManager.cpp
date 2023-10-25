@@ -254,6 +254,12 @@ HCIStatusCode BTManager::initializeAdapter(AdapterInfo& adapterInfo, const uint1
         }
     }
     DBG_PRINT("initializeAdapter[%d, BTMode %s]: Start: %s", dev_id, to_string(btMode).c_str(), adapterInfo.toString().c_str());
+
+    {
+        HCIStatusCode res0 = clearIdentityResolvingKeys(dev_id);
+        DBG_PRINT("initializeAdapter[%d]: clearIdentityResolvingKeys: %s", dev_id, to_string(res0).c_str());
+    }
+
     current_settings = adapterInfo.getCurrentSettingMask();
 
     setMode(dev_id, MgmtCommand::Opcode::SET_POWERED, 0, current_settings);
@@ -789,7 +795,7 @@ bool BTManager::isValidLongTermKeyAddressAndType(const EUI48 &address, const BDA
     }
 }
 
-HCIStatusCode BTManager::uploadLongTermKey(const uint16_t dev_id, const jau::darray<MgmtLongTermKeyInfo> &keys) noexcept {
+HCIStatusCode BTManager::uploadLongTermKey(const uint16_t dev_id, const jau::darray<MgmtLongTermKey> &keys) noexcept {
     if constexpr ( USE_LINUX_BT_SECURITY ) {
         // const bool is_valid_ltk_addr = isValidLongTermKeyAddressAndType(key.address, key.address_type);
         MgmtLoadLongTermKeyCmd req(dev_id, keys);
@@ -824,14 +830,67 @@ HCIStatusCode BTManager::uploadLongTermKey(const BTRole adapterRole,
                                            const jau::darray<SMPLongTermKey>& ltks) noexcept
 {
     if constexpr ( USE_LINUX_BT_SECURITY ) {
-        jau::darray<MgmtLongTermKeyInfo> mgmt_keys;
+        jau::darray<MgmtLongTermKey> mgmt_keys;
         for(SMPLongTermKey ltk : ltks) {
             const MgmtLTKType key_type = to_MgmtLTKType(ltk.properties);
             mgmt_keys.push_back( { addressAndType.address, addressAndType.type, key_type,
-                                   MgmtLongTermKeyInfo::to_role( adapterRole, ltk.isResponder() ),
+                                   MgmtLongTermKey::to_role( adapterRole, ltk.isResponder() ),
                                    ltk.enc_size, ltk.ediv, ltk.rand, ltk.ltk } );
         }
         return uploadLongTermKey(dev_id, mgmt_keys);
+    } else {
+        return HCIStatusCode::NOT_SUPPORTED;
+    }
+}
+
+HCIStatusCode BTManager::uploadIdentityResolvingKey(const uint16_t dev_id, const jau::darray<MgmtIdentityResolvingKey> &keys) noexcept {
+    if constexpr ( USE_LINUX_BT_SECURITY ) {
+        MgmtLoadIdentityResolvingKeyCmd req(dev_id, keys);
+        HCIStatusCode res;
+        std::unique_ptr<MgmtEvent> reply = sendWithReply(req);
+        if( nullptr != reply ) {
+            if( reply->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
+                res = to_HCIStatusCode( static_cast<const MgmtEvtCmdComplete *>(reply.get())->getStatus() );
+            } else if( reply->getOpcode() == MgmtEvent::Opcode::CMD_STATUS ) {
+                res = to_HCIStatusCode( static_cast<const MgmtEvtCmdStatus *>(reply.get())->getStatus() );
+            } else {
+                res = HCIStatusCode::UNKNOWN_COMMAND;
+            }
+        } else {
+            res = HCIStatusCode::TIMEOUT;
+        }
+        if( HCIStatusCode::SUCCESS != res ) {
+            WARN_PRINT("(dev_id %d): %s, result %s", dev_id,
+                    req.toString().c_str(), to_string(res).c_str());
+        } else {
+            DBG_PRINT("BTManager::uploadIdentityResolvingKeyInfo(dev_id %d): %s, result %s", dev_id,
+                    req.toString().c_str(), to_string(res).c_str());
+        }
+        return res;
+    } else {
+        return HCIStatusCode::NOT_SUPPORTED;
+    }
+}
+
+HCIStatusCode BTManager::uploadIdentityResolvingKey(const uint16_t dev_id, const jau::darray<SMPIdentityResolvingKey>& irks) noexcept
+{
+    if constexpr ( USE_LINUX_BT_SECURITY ) {
+        jau::darray<MgmtIdentityResolvingKey> mgmt_keys;
+        for(SMPIdentityResolvingKey irk : irks) {
+            mgmt_keys.push_back( { irk.id_address, BDAddressType::BDADDR_LE_PUBLIC, irk.irk } );
+        }
+        return uploadIdentityResolvingKey(dev_id, mgmt_keys);
+    } else {
+        return HCIStatusCode::NOT_SUPPORTED;
+    }
+}
+
+HCIStatusCode BTManager::clearIdentityResolvingKeys(const uint16_t dev_id) noexcept {
+    if constexpr ( USE_LINUX_BT_SECURITY ) {
+        jau::darray<MgmtIdentityResolvingKey> mgmt_keys; // intentionally empty
+        // BDAddressAndType addressAndType(jau::EUI48(), BDAddressType::BDADDR_LE_PUBLIC);
+        // mgmt_keys.push_back( { addressAndType.address, addressAndType.type, jau::uint128_t() } );
+        return uploadIdentityResolvingKey(dev_id, mgmt_keys); // MgmtLoadIdentityResolvingKeyCmd -> hci_smp_irks_clear
     } else {
         return HCIStatusCode::NOT_SUPPORTED;
     }

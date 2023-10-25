@@ -73,41 +73,41 @@ import org.jau.sys.Clock;
  * @see BTDevice#uploadKeys()
  */
 public class SMPKeyBin {
-        public static final short VERSION = (short)0b0101010101010101 + (short)5; // bitpattern + version
+        public static final short VERSION = (short)0b0101010101010101 + (short)6; // bitpattern + version
 
         private short version;                          //  2
         private short size;                             //  2
         private long ts_creation_sec;                   //  8
+        private BTRole localRole;                       //  1
         private final BDAddressAndType localAddress;    //  7
         private final BDAddressAndType remoteAddress;   //  7
         private BTSecurityLevel sec_level;;             //  1
         private SMPIOCapability io_cap;                 //  1
 
         private final SMPKeyMask keys_init;             //  1
-        private final SMPKeyMask keys_resp;             //  1
+        private final SMPKeyMask keys_resp;             //  1 -> 31
 
         private SMPLongTermKey ltk_init;                // 28 (optional)
-        private SMPIdentityResolvingKey  irk_init;      // 17 (optional)
+        private SMPIdentityResolvingKey  irk_init;      // 23 (optional)
         private SMPSignatureResolvingKey csrk_init;     // 17 (optional)
         private SMPLinkKey               lk_init;       // 18 (optional)
 
         private SMPLongTermKey ltk_resp;                // 28 (optional)
-        private SMPIdentityResolvingKey  irk_resp;      // 17 (optional)
+        private SMPIdentityResolvingKey  irk_resp;      // 23 (optional)
         private SMPSignatureResolvingKey csrk_resp;     // 17 (optional)
         private SMPLinkKey               lk_resp;       // 18 (optional)
 
-        private static final int byte_size_max = 190;
-        private static final int byte_size_min =  30;
+        private static final int byte_size_max = 205;
+        private static final int byte_size_min =  31;
 
-        // Min-Max: 30 - 190 bytes
-
-        boolean verbose;
+        boolean verbose = true;
 
         final private short calcSize() {
             short s = 0;
             s += 2; // sizeof(version);
             s += 2; // sizeof(size);
             s += 8; // sizeof(ts_creation_sec);
+            s += 1; // sizeof(localRole);
             s += 6; // sizeof(localAddress.address);
             s += 1; // sizeof(localAddress.type);
             s += 6; // sizeof(remoteAddress.address);
@@ -116,7 +116,7 @@ public class SMPKeyBin {
             s += 1; // sizeof(io_cap);
 
             s += 1; // sizeof(keys_init);
-            s += 1; // sizeof(keys_resp);
+            s += 1; // sizeof(keys_resp); // -> 31
 
             if( hasLTKInit() ) {
                 s += SMPLongTermKey.byte_size; // sizeof(ltk_init);
@@ -164,7 +164,7 @@ public class SMPKeyBin {
             final SMPPairingState pstate = device.getPairingState();
             final PairingMode pmode = device.getPairingMode(); // Skip PairingMode::PRE_PAIRED (write again)
 
-            final SMPKeyBin smpKeyBin = new SMPKeyBin(device.getAdapter().getAddressAndType(), device.getAddressAndType(),
+            final SMPKeyBin smpKeyBin = new SMPKeyBin(device.getAdapter().getRole(), device.getAdapter().getAddressAndType(), device.getAddressAndType(),
                                                       device.getConnSecurityLevel(), device.getConnIOCapability());
 
             if( ( BTSecurityLevel.NONE.value  < sec_lvl.value && SMPPairingState.COMPLETED == pstate && PairingMode.NEGOTIATING.value < pmode.value ) ||
@@ -283,13 +283,14 @@ public class SMPKeyBin {
             return read(getFilename(path, device), verbose_);
         }
 
-        public SMPKeyBin(final BDAddressAndType localAddress_,
+        public SMPKeyBin(final BTRole localRole_, final BDAddressAndType localAddress_,
                          final BDAddressAndType remoteAddress_,
                          final BTSecurityLevel sec_level_, final SMPIOCapability io_cap_)
         {
             version = VERSION;
             this.size = 0;
             this.ts_creation_sec = Clock.wallClockSeconds();
+            this.localRole = localRole_;
             this.localAddress = localAddress_;
             this.remoteAddress = remoteAddress_;
             this.sec_level = sec_level_;
@@ -315,6 +316,7 @@ public class SMPKeyBin {
             version = VERSION;
             size = 0;
             ts_creation_sec = 0;
+            localRole = BTRole.None;
             localAddress = new BDAddressAndType();
             remoteAddress = new BDAddressAndType();
             sec_level = BTSecurityLevel.UNSET;
@@ -344,6 +346,9 @@ public class SMPKeyBin {
 
         /** Returns the creation timestamp in seconds since Unix epoch */
         final public long getCreationTime() { return ts_creation_sec; }
+
+        /** Return the local adapter {@link BTRole}. */
+        final public BTRole getLocalRole() { return localRole; }
 
         /** Return the local adapter address. */
         final public BDAddressAndType getLocalAddrAndType() { return localAddress; }
@@ -421,13 +426,20 @@ public class SMPKeyBin {
         final public void setVerbose(final boolean v) { verbose = v; }
 
         final public boolean isValid() {
+            // local_is_responder == true: responder's IRK info (LL slave), else the initiator's (LL master)
+            final boolean local_is_responder = BTRole.Slave.equals(localRole);
+            final BDAddressAndType responderAddress = local_is_responder ? localAddress : remoteAddress;
+            final BDAddressAndType initiatorAddress = local_is_responder ? remoteAddress : localAddress;
+
             return isVersionValid() && isSizeValid() &&
                    BTSecurityLevel.UNSET != sec_level &&
                    SMPIOCapability.UNSET != io_cap &&
                    ( !hasLTKInit() || ltk_init.isValid() ) &&
                    ( !hasLTKResp() || ltk_resp.isValid() ) &&
                    ( !hasLKInit()  || lk_init.isValid() )  &&
-                   ( !hasLKResp()  || lk_resp.isValid() );
+                   ( !hasLKResp()  || lk_resp.isValid() ) &&
+                   ( !hasIRKInit()  || irk_init.id_address.equals(initiatorAddress.address) ) &&
+                   ( !hasIRKResp()  || irk_resp.id_address.equals(responderAddress.address) );
         }
 
         /**
@@ -457,7 +469,7 @@ public class SMPKeyBin {
         @Override
         final public String toString() {
             final StringBuilder res = new StringBuilder();
-            res.append("SMPKeyBin[local").append(localAddress.toString()).append(", remote ").append(remoteAddress.toString()).append(", SC ").append(uses_SC()).append(", sec ").append(sec_level).append(", io ").append(io_cap).append(", ");
+            res.append("SMPKeyBin[local[").append(localRole.toString()).append(", ").append(localAddress.toString()).append("], remote ").append(remoteAddress.toString()).append(", SC ").append(uses_SC()).append(", sec ").append(sec_level).append(", io ").append(io_cap).append(", ");
             if( isVersionValid() ) {
                 boolean comma = false;
                 res.append("Init[");
@@ -579,6 +591,7 @@ public class SMPKeyBin {
                 out.write( (byte)( size >> 8 ) );
 
                 writeLong(ts_creation_sec, out, buffer);
+                out.write(localRole.value);
                 {
                     localAddress.address.put(buffer, 0, ByteOrder.LITTLE_ENDIAN);
                     out.write(buffer, 0, localAddress.address.b.length);
@@ -677,18 +690,18 @@ public class SMPKeyBin {
                 } else {
                     err = true;
                 }
-                if( !err && 7+7+4 <= remaining ) {
+                if( !err && 1+7+7+4 <= remaining ) {
+                    localRole = BTRole.get(buffer[i++]);
                     localAddress.address = new EUI48(buffer, i, ByteOrder.LITTLE_ENDIAN); i+=6;
                     localAddress.type = BDAddressType.get(buffer[i++]);
                     remoteAddress.address = new EUI48(buffer, i, ByteOrder.LITTLE_ENDIAN); i+=6;
                     remoteAddress.type = BDAddressType.get(buffer[i++]);
                     sec_level = BTSecurityLevel.get(buffer[i++]);
                     io_cap = SMPIOCapability.get(buffer[i++]);
-
                     keys_init.mask = buffer[i++];
                     keys_resp.mask = buffer[i++];
 
-                    remaining -= 7+7+4;
+                    remaining -= 1+7+7+4;
                 } else {
                     err = true;
                 }

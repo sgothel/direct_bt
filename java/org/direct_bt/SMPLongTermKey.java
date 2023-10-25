@@ -38,7 +38,7 @@ import org.jau.util.BasicTypes;
  * </p>
  * @since 2.2.0
  */
-public class SMPLongTermKey {
+public final class SMPLongTermKey {
     /**
      * {@link SMPLongTermKey} Property Bits
      */

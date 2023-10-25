@@ -39,7 +39,7 @@ import org.jau.util.BasicTypes;
  * </p>
  * @since 2.4.0
  */
-public class SMPLinkKey {
+public final class SMPLinkKey {
     /**
      * Link Key Types compatible with Mgmt's MgmtLinkKeyType and hence MgmtLinkKeyInfo
      */

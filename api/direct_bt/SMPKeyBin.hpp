@@ -78,31 +78,33 @@ class BTAdapter; // forward
  */
 class SMPKeyBin {
     public:
-        constexpr static const uint16_t VERSION = (uint16_t)0b0101010101010101U + (uint16_t)5U; // bitpattern + version
+        constexpr static const uint16_t VERSION = (uint16_t)0b0101010101010101U + (uint16_t)6U; // bitpattern + version
 
     private:
         uint16_t version;                       //  2
         uint16_t size;                          //  2
         uint64_t ts_creation_sec;               //  8
+        BTRole localRole;                       //  1
         BDAddressAndType localAddress;          //  7
         BDAddressAndType remoteAddress;         //  7
         BTSecurityLevel sec_level;              //  1
         SMPIOCapability io_cap;                 //  1
 
         SMPKeyType keys_init;                   //  1
-        SMPKeyType keys_resp;                   //  1
+        SMPKeyType keys_resp;                   //  1 -> 31
 
         SMPLongTermKey           ltk_init;      // 28 (optional)
-        SMPIdentityResolvingKey  irk_init;      // 17 (optional)
+        SMPIdentityResolvingKey  irk_init;      // 23 (optional)
         SMPSignatureResolvingKey csrk_init;     // 17 (optional)
         SMPLinkKey               lk_init;       // 19 (optional)
 
         SMPLongTermKey           ltk_resp;      // 28 (optional)
-        SMPIdentityResolvingKey  irk_resp;      // 17 (optional)
+        SMPIdentityResolvingKey  irk_resp;      // 23 (optional)
         SMPSignatureResolvingKey csrk_resp;     // 17 (optional)
         SMPLinkKey               lk_resp;       // 19 (optional)
 
-        // Min-Max: 30 - 190 bytes
+        constexpr static const int byte_size_max = 205;
+        constexpr static const int byte_size_min =  31;
 
         bool verbose;
 
@@ -111,6 +113,7 @@ class SMPKeyBin {
             s += sizeof(version);
             s += sizeof(size);
             s += sizeof(ts_creation_sec);
+            s += sizeof(localRole);
             s += sizeof(localAddress.address);
             s += sizeof(localAddress.type);
             s += sizeof(remoteAddress.address);
@@ -234,11 +237,12 @@ class SMPKeyBin {
         static std::vector<SMPKeyBin> readAll(const std::string& dname, const bool verbose_);
         static std::vector<SMPKeyBin> readAllForLocalAdapter(const BDAddressAndType& localAddress, const std::string& dname, const bool verbose_);
 
-        SMPKeyBin(BDAddressAndType localAddress_,
+        SMPKeyBin(BTRole localRole_, BDAddressAndType localAddress_,
                   BDAddressAndType remoteAddress_,
                   const BTSecurityLevel sec_level_, const SMPIOCapability io_cap_)
         : version(VERSION), size(0),
           ts_creation_sec( jau::getWallClockSeconds() ),
+          localRole(localRole_),
           localAddress(std::move(localAddress_)), remoteAddress(std::move(remoteAddress_)),
           sec_level(sec_level_), io_cap(io_cap_),
           keys_init(SMPKeyType::NONE), keys_resp(SMPKeyType::NONE),
@@ -250,6 +254,7 @@ class SMPKeyBin {
         SMPKeyBin()
         : version(VERSION), size(0),
           ts_creation_sec(0),
+          localRole(BTRole::None),
           localAddress(), remoteAddress(),
           sec_level(BTSecurityLevel::UNSET), io_cap(SMPIOCapability::UNSET),
           keys_init(SMPKeyType::NONE), keys_resp(SMPKeyType::NONE),
@@ -266,6 +271,9 @@ class SMPKeyBin {
 
         /** Returns the creation timestamp in seconds since Unix epoch */
         constexpr uint64_t getCreationTime() const noexcept { return ts_creation_sec; }
+
+        /** Return the local adapter BTRole. */
+        constexpr BTRole getLocalRole() const noexcept { return localRole; }
 
         /** Return the local adapter address. */
         constexpr const BDAddressAndType& getLocalAddrAndType() const noexcept { return localAddress; }
@@ -354,13 +362,20 @@ class SMPKeyBin {
          *
          */
         constexpr bool isValid() const noexcept {
+            // local_is_responder == true: responder's IRK info (LL slave), else the initiator's (LL master)
+            const bool local_is_responder = BTRole::Slave == localRole;
+            const BDAddressAndType& responderAddress = local_is_responder ? localAddress : remoteAddress;
+            const BDAddressAndType& initiatorAddress = local_is_responder ? remoteAddress : localAddress;
+
             return isVersionValid() && isSizeValid() &&
                    BTSecurityLevel::UNSET != sec_level &&
                    SMPIOCapability::UNSET != io_cap &&
                    ( !hasLTKInit() || ltk_init.isValid() ) &&
                    ( !hasLTKResp() || ltk_resp.isValid() ) &&
                    ( !hasLKInit()  || lk_init.isValid() )  &&
-                   ( !hasLKResp()  || lk_resp.isValid() );
+                   ( !hasLKResp()  || lk_resp.isValid() ) &&
+                   ( !hasIRKInit()  || irk_init.id_address == initiatorAddress.address ) &&
+                   ( !hasIRKResp()  || irk_resp.id_address == responderAddress.address );
         }
 
         std::string toString() const noexcept;
