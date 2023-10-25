@@ -211,7 +211,7 @@ public class DBTServer01 implements DBTServerTest {
                       new DBGattChar( DBGattChar.UUID16.MODEL_NUMBER_STRING /* value_type_ */,
                                   new GattCharPropertySet(GattCharPropertySet.Type.Read),
                                   new ArrayList<DBGattDesc>(/* intentionally w/o Desc */ ),
-                                  make_gvalue("2.4.0-pre") /* value */ ),
+                                  make_gvalue("3.2.0-pre") /* value */ ),
                       new DBGattChar( DBGattChar.UUID16.SERIAL_NUMBER_STRING /* value_type_ */,
                                   new GattCharPropertySet(GattCharPropertySet.Type.Read),
                                   new ArrayList<DBGattDesc>(/* intentionally w/o Desc */ ),

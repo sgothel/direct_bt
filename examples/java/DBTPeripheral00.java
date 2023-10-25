@@ -81,6 +81,7 @@ public class DBTPeripheral00 {
     String adapter_name = "TestDev001_J";
     String adapter_short_name = "TDev001J";
     BTSecurityLevel adapter_sec_level = BTSecurityLevel.UNSET;
+    SMPIOCapability adapter_sec_io_cap = SMPIOCapability.UNSET;
     boolean SHOW_UPDATE_EVENTS = false;
     boolean RUN_ONLY_ONCE = false;
     private final Object sync_lock = new Object();
@@ -268,7 +269,9 @@ public class DBTPeripheral00 {
 
         @Override
         public void deviceUpdated(final BTDevice device, final EIRDataTypeSet updateMask, final long timestamp) {
-            if( SHOW_UPDATE_EVENTS ) {
+            if( updateMask.isSet(EIRDataTypeSet.DataType.BDADDR) ) {
+                PrintUtil.println(System.err, "****** UPDATED (ADDR-RESOLVED): "+updateMask+" of "+device);
+            } else if( SHOW_UPDATE_EVENTS ) {
                 PrintUtil.println(System.err, "****** UPDATED: "+updateMask+" of "+device);
             }
         }
@@ -320,6 +323,15 @@ public class DBTPeripheral00 {
                     }
                     // next: KEY_DISTRIBUTION or FAILED
                   } break;
+                case PASSKEY_NOTIFY: {
+                    PrintUtil.println(System.err, "****** ");
+                    PrintUtil.println(System.err, "****** ");
+                    PrintUtil.println(System.err, "****** Confirm on your device "+device.getName());
+                    PrintUtil.println(System.err, "****** PassKey: "+device.getResponderSMPPassKeyString());
+                    PrintUtil.println(System.err, "****** ");
+                    PrintUtil.println(System.err, "****** ");
+                    // next: KEY_DISTRIBUTION or FAILED
+                } break;
                 case OOB_EXPECTED:
                     // FIXME: ABORT
                     break;
@@ -593,6 +605,21 @@ public class DBTPeripheral00 {
             PrintUtil.fprintf_td(System.err, "****** Start advertising (%s): Adapter not selected: %s\n", msg, adapter.toString());
             return false;
         }
+
+        {
+            final LE_Features le_feats = adapter.getLEFeatures();
+            PrintUtil.fprintf_td(System.err, "initAdapter: LE_Features %s\n", le_feats.toString());
+        }
+        if( adapter.getBTMajorVersion() > 4 ) {
+            final LE_PHYs Tx = new LE_PHYs( LE_PHYs.PHY.LE_2M );
+            final LE_PHYs Rx = new LE_PHYs( LE_PHYs.PHY.LE_2M );
+            final HCIStatusCode res = adapter.setDefaultLE_PHY(Tx, Rx);
+            PrintUtil.fprintf_td(System.err, "initAdapter: Set Default LE PHY: status %s: Tx %s, Rx %s\n",
+                                res.toString(), Tx.toString(), Rx.toString());
+        }
+
+        adapter.setServerConnSecurity(adapter_sec_level, adapter_sec_io_cap);
+
         final EInfoReport eir = new EInfoReport();
         final EIRDataTypeSet adv_mask = new EIRDataTypeSet();
         final EIRDataTypeSet scanrsp_mask = new EIRDataTypeSet();
@@ -705,24 +732,11 @@ public class DBTPeripheral00 {
         }
         PrintUtil.println(System.err, "initAdapter.2: "+adapter.toString());
 
-        {
-            final LE_Features le_feats = adapter.getLEFeatures();
-            PrintUtil.fprintf_td(System.err, "initAdapter: LE_Features %s\n", le_feats.toString());
-        }
-        if( adapter.getBTMajorVersion() > 4 ) {
-            final LE_PHYs Tx = new LE_PHYs( LE_PHYs.PHY.LE_2M );
-            final LE_PHYs Rx = new LE_PHYs( LE_PHYs.PHY.LE_2M );
-            final HCIStatusCode res = adapter.setDefaultLE_PHY(Tx, Rx);
-            PrintUtil.fprintf_td(System.err, "initAdapter: Set Default LE PHY: status %s: Tx %s, Rx %s\n",
-                                res.toString(), Tx.toString(), Rx.toString());
-        }
         adapter.setSMPKeyPath(DBTConstants.SERVER_KEY_PATH);
 
         // adapter is powered-on
         final AdapterStatusListener asl = new MyAdapterStatusListener();
         adapter.addStatusListener( asl );
-
-        adapter.setServerConnSecurity(adapter_sec_level, SMPIOCapability.UNSET);
 
         if( !startAdvertising(adapter, "initAdapter") ) {
             adapter.removeStatusListener( asl );
@@ -853,7 +867,9 @@ public class DBTPeripheral00 {
                 } else if( arg.equals("-seclevel") && args.length > (i+1) ) {
                     final int sec_level_i = Integer.valueOf(args[++i]).intValue();
                     test.adapter_sec_level = BTSecurityLevel.get( (byte)( sec_level_i & 0xff ) );
-                    System.err.println("Set adapter sec_level "+test.adapter_sec_level);
+                } else if( arg.equals("-iocap") && args.length > (i+1) ) {
+                    final int v = Integer.valueOf(args[++i]).intValue();
+                    test.adapter_sec_io_cap = SMPIOCapability.get( (byte)( v & 0xff ) );
                 } else if( arg.equals("-once") ) {
                     test.RUN_ONLY_ONCE = true;
                 }
@@ -863,6 +879,7 @@ public class DBTPeripheral00 {
                     "[-name <adapter_name>] "+
                     "[-short_name <adapter_short_name>] "+
                     "[-seclevel <int_sec_level>]* "+
+                    "[-iocap <int_iocap>]* "+
                     "[-mtu <max att_mtu>] " +
                     "[-once] "+
                     "[-verbose] [-debug] "+
@@ -882,6 +899,7 @@ public class DBTPeripheral00 {
         PrintUtil.fprintf_td(System.err, "name %s (short %s)\n", test.adapter_name, test.adapter_short_name);
         PrintUtil.println(System.err, "adapter mtu "+test.dbGattServer.getMaxAttMTU());
         PrintUtil.println(System.err, "adapter sec_level "+test.adapter_sec_level);
+        PrintUtil.println(System.err, "adapter io_cap "+test.adapter_sec_io_cap);
         PrintUtil.println(System.err, "once "+test.RUN_ONLY_ONCE);
         PrintUtil.println(System.err, "GattServer "+test.dbGattServer.toString());
 

@@ -263,7 +263,7 @@ public abstract class DBTClientServer1x extends BaseDBTClientServer {
             // Validating Security Mode
             //
             final SMPKeyBin clientKeys = SMPKeyBin.read(DBTConstants.CLIENT_KEY_PATH, lastCompletedDevice, true /* verbose */);
-            Assert.assertTrue(clientKeys.isValid());
+            Assert.assertTrue(clientKeys.toString(), clientKeys.isValid());
             final BTSecurityLevel clientKeysSecLevel = clientKeys.getSecLevel();
             Assert.assertEquals(secLevelClient, clientKeysSecLevel);
             {

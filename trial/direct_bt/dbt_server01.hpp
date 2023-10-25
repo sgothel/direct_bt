@@ -107,7 +107,7 @@ class DBTServer01 : public DBTServerTest {
                           std::make_shared<DBGattChar>( std::make_unique<const jau::uuid16_t>(GattCharacteristicType::MODEL_NUMBER_STRING) /* value_type_ */,
                                       BTGattChar::PropertyBitVal::Read,
                                       jau::darray<DBGattDescRef>() /* intentionally empty */,
-                                      make_poctets("2.4.0-pre") /* value */ ),
+                                      make_poctets("3.2.0-pre") /* value */ ),
                           std::make_shared<DBGattChar>( std::make_unique<const jau::uuid16_t>(GattCharacteristicType::SERIAL_NUMBER_STRING) /* value_type_ */,
                                       BTGattChar::PropertyBitVal::Read,
                                       jau::darray<DBGattDescRef>() /* intentionally empty */,

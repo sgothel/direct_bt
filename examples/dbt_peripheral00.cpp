@@ -73,6 +73,7 @@ static std::string adapter_name = "TestDev001_N";
 static std::string adapter_short_name = "TDev001N";
 static std::shared_ptr<BTAdapter> chosenAdapter = nullptr;
 static BTSecurityLevel adapter_sec_level = BTSecurityLevel::UNSET;
+static SMPIOCapability adapter_sec_io_cap = SMPIOCapability::UNSET;
 static bool SHOW_UPDATE_EVENTS = false;
 static bool RUN_ONLY_ONCE = false;
 static jau::sc_atomic_bool sync_data;
@@ -243,7 +244,9 @@ class MyAdapterStatusListener : public AdapterStatusListener {
     }
 
     void deviceUpdated(const BTDeviceRef& device, const EIRDataType updateMask, const uint64_t timestamp) override {
-        if( SHOW_UPDATE_EVENTS ) {
+        if( is_set(updateMask, EIRDataType::BDADDR)) {
+            fprintf_td(stderr, "****** UPDATED (ADDR-RESOLVED): %s of %s\n", to_string(updateMask).c_str(), device->toString(true).c_str());
+        } else if( SHOW_UPDATE_EVENTS ) {
             fprintf_td(stderr, "****** UPDATED: %s of %s\n", to_string(updateMask).c_str(), device->toString(true).c_str());
         }
         (void)timestamp;
@@ -297,7 +300,7 @@ class MyAdapterStatusListener : public AdapterStatusListener {
                     std::thread dc(&BTDevice::setPairingNumericComparison, device, sec->getPairingNumericComparison());
                     dc.detach();
                 } else {
-                    std::thread dc(&BTDevice::setPairingNumericComparison, device, false);
+                    std::thread dc(&BTDevice::setPairingNumericComparison, device, true); // FIXME
                     dc.detach();
                 }
                 // next: KEY_DISTRIBUTION or FAILED
@@ -557,6 +560,20 @@ static bool startAdvertising(BTAdapter *a, std::string msg) { // NOLINT(performa
         fprintf_td(stderr, "****** Start advertising (%s): Adapter not selected: %s\n", msg.c_str(), a->toString().c_str());
         return false;
     }
+
+    {
+        const LE_Features le_feats = a->getLEFeatures();
+        fprintf_td(stderr, "startAdvertising: LE_Features %s\n", to_string(le_feats).c_str());
+    }
+    if( a->getBTMajorVersion() > 4 ) {
+        LE_PHYs Tx { LE_PHYs::LE_2M }, Rx { LE_PHYs::LE_2M };
+        HCIStatusCode res = a->setDefaultLE_PHY(Tx, Rx);
+        fprintf_td(stderr, "startAdvertising: Set Default LE PHY: status %s: Tx %s, Rx %s\n",
+                to_string(res).c_str(), to_string(Tx).c_str(), to_string(Rx).c_str());
+    }
+
+    a->setServerConnSecurity(adapter_sec_level, adapter_sec_io_cap);
+
     EInfoReport eir;
     EIRDataType adv_mask = EIRDataType::FLAGS | EIRDataType::SERVICE_UUID;
     EIRDataType scanrsp_mask = EIRDataType::NAME | EIRDataType::CONN_IVAL;
@@ -673,23 +690,10 @@ static bool initAdapter(std::shared_ptr<BTAdapter>& adapter) {
     }
     fprintf_td(stderr, "initAdapter.2: %s\n", adapter->toString().c_str());
 
-    {
-        const LE_Features le_feats = adapter->getLEFeatures();
-        fprintf_td(stderr, "initAdapter: LE_Features %s\n", to_string(le_feats).c_str());
-    }
-    if( adapter->getBTMajorVersion() > 4 ) {
-        LE_PHYs Tx { LE_PHYs::LE_2M }, Rx { LE_PHYs::LE_2M };
-        HCIStatusCode res = adapter->setDefaultLE_PHY(Tx, Rx);
-        fprintf_td(stderr, "initAdapter: Set Default LE PHY: status %s: Tx %s, Rx %s\n",
-                to_string(res).c_str(), to_string(Tx).c_str(), to_string(Rx).c_str());
-    }
     adapter->setSMPKeyPath(SERVER_KEY_PATH);
 
     std::shared_ptr<AdapterStatusListener> asl( std::make_shared<MyAdapterStatusListener>() );
     adapter->addStatusListener( asl );
-
-    adapter->setServerConnSecurity(adapter_sec_level, SMPIOCapability::DISPLAY_ONLY);
-
     if( !startAdvertising(adapter.get(), "initAdapter") ) {
         adapter->removeStatusListener( asl );
         return false;
@@ -789,7 +793,8 @@ int main(int argc, char *argv[])
             dbGattServer->setMaxAttMTU( atoi(argv[++i]) );
         } else if( !strcmp("-seclevel", argv[i]) && argc > (i+1) ) {
             adapter_sec_level = to_BTSecurityLevel(atoi(argv[++i]));
-            fprintf(stderr, "Set adapter sec_level %s\n", to_string(adapter_sec_level).c_str());
+        } else if( !strcmp("-iocap", argv[i]) && argc > (i+1) ) {
+            adapter_sec_io_cap = to_SMPIOCapability(atoi(argv[++i]));
         } else if( !strcmp("-once", argv[i]) ) {
             RUN_ONLY_ONCE = true;
         }
@@ -802,6 +807,7 @@ int main(int argc, char *argv[])
                     "[-short_name <adapter_short_name>] "
                     "[-mtu <max att_mtu>] "
                     "[-seclevel <int_sec_level>]* "
+                    "[-iocap <int_iocap>]* "
                     "[-once] "
                     "[-dbt_verbose true|false] "
                     "[-dbt_debug true|false|adapter.event,gatt.data,hci.event,hci.scan_ad_eir,mgmt.event] "
@@ -818,6 +824,7 @@ int main(int argc, char *argv[])
     fprintf_td(stderr, "adapter name %s (short %s)\n", adapter_name.c_str(), adapter_short_name.c_str());
     fprintf_td(stderr, "adapter mtu %d\n", (int)dbGattServer->getMaxAttMTU());
     fprintf_td(stderr, "adapter sec_level %s\n", to_string(adapter_sec_level).c_str());
+    fprintf_td(stderr, "adapter io_cap %s\n", to_string(adapter_sec_io_cap).c_str());
     fprintf_td(stderr, "once %d\n", (int)RUN_ONLY_ONCE);
     fprintf_td(stderr, "GattServer %s\n", dbGattServer->toString().c_str());
     fprintf_td(stderr, "GattServer.services: %s\n", dbGattServer->getServices().get_info().c_str());

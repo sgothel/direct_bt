@@ -19,7 +19,7 @@ logbasename=~/$bname
 logfile=$logbasename.log
 rm -f $logfile
 
-echo 'core_%e.%p' | sudo tee /proc/sys/kernel/core_pattern 2>/dev/null
+# echo 'core_%e.%p' | sudo tee /proc/sys/kernel/core_pattern 2>/dev/null
 ulimit -c unlimited
 
 # run as root 'dpkg-reconfigure locales' enable 'en_US.UTF-8'
