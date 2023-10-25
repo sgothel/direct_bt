@@ -248,7 +248,9 @@ BTAdapter::size_type BTAdapter::disconnectAllDevices(const HCIStatusCode reason)
     auto end = devices.end();
     for (auto it = devices.begin(); it != end; ++it) {
         if( nullptr != *it ) {
-            (*it)->disconnect(reason); // will erase device from list via removeConnectedDevice(..) above
+            BTDevice& dev = **it;
+            dev.disconnect(reason); // will erase device from list via removeConnectedDevice(..) above, if successful
+            removeConnectedDevice(dev); // just in case disconnect didn't went through, e.g. power-off
         }
     }
     return count;
@@ -1549,6 +1551,7 @@ HCIStatusCode BTAdapter::startAdvertising(const DBGattServerRef& gattServerData_
     const jau::nsize_t connCount = getConnectedDeviceCount();
     if( 0 < connCount ) { // FIXME: May shall not be a restriction
         WARN_PRINT("Not allowed (%d connections open/pending): %s", connCount, toString(true).c_str());
+        printDeviceLists();
         return HCIStatusCode::COMMAND_DISALLOWED;
     }
     if( jau::environment::get().debug ) {
