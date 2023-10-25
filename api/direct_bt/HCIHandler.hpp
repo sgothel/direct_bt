@@ -372,16 +372,6 @@ namespace direct_bt {
             bool initSupCommands() noexcept;
 
         public:
-            /**
-             * Reset all internal states, i.e. connection and disconnect lists.
-             * <p>
-             * Must be explicitly called with `powered_on=true` when adapter is powered on!
-             * </p>
-             * @param powered_on indicates whether the adapter is powered on or not
-             * @see initSupCommands()
-             */
-            bool resetAllStates(const bool powered_on) noexcept;
-
             HCIHandler(const HCIHandler&) = delete;
             void operator=(const HCIHandler&) = delete;
 
@@ -496,17 +486,20 @@ namespace direct_bt {
             HCIStatusCode resetAdapter(const PostShutdownFunc& user_post_shutdown);
 
             /**
-             * HCI Reset Command
-             *
-             * Consider using resetAdapter().
-             *
-             * <pre>
-             * BT Core Spec v5.2: Vol 4, Part E HCI: 7.3.2 Reset command
-             * </pre>
+             * Reset all internal states, i.e. connection and disconnect lists.
+             * <p>
+             * Must be explicitly called with `powered_on=true` when adapter is powered on!
+             * </p>
+             * @param powered_on indicates whether the adapter is powered on or not
+             * @see initSupCommands()
              * @see resetAdapter()
              */
-            HCIStatusCode reset() noexcept;
+            bool resetAllStates(const bool powered_on) noexcept;
 
+        private:
+            HCIStatusCode resetHCI() noexcept;
+
+        public:
             HCIStatusCode getLocalVersion(HCILocalVersion &version) noexcept;
 
             /**

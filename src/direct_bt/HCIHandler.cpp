@@ -932,20 +932,6 @@ HCIStatusCode HCIHandler::le_read_remote_features(const uint16_t conn_handle, co
     return status;
 }
 
-bool HCIHandler::resetAllStates(const bool powered_on) noexcept {
-    const std::lock_guard<std::recursive_mutex> lock(mtx_connectionList); // RAII-style acquire and relinquish via destructor
-    connectionList.clear();
-    disconnectCmdList.clear();
-    currentScanType = ScanType::NONE;
-    advertisingEnabled = false;
-    zeroSupCommands();
-    if( powered_on ) {
-        return initSupCommands();
-    } else {
-        return true;
-    }
-}
-
 void HCIHandler::close() noexcept {
     // Avoid disconnect re-entry -> potential deadlock
     bool expConn = true; // C++11, exp as value since C++20
@@ -1083,27 +1069,34 @@ HCIStatusCode HCIHandler::resetAdapter(const HCIHandler::PostShutdownFunc& user_
     return res;
 }
 
-HCIStatusCode HCIHandler::reset() noexcept {
-    if( !isOpen() ) {
-        ERR_PRINT("Not connected %s", toString().c_str());
-        return HCIStatusCode::DISCONNECTED;
+bool HCIHandler::resetAllStates(const bool powered_on) noexcept {
+    const std::lock_guard<std::recursive_mutex> lock(mtx_connectionList); // RAII-style acquire and relinquish via destructor
+    connectionList.clear();
+    disconnectCmdList.clear();
+    currentScanType = ScanType::NONE;
+    advertisingEnabled = false;
+    zeroSupCommands();
+    if( powered_on ) {
+        return initSupCommands();
+    } else {
+        return true;
     }
+}
+
+HCIStatusCode HCIHandler::resetHCI() noexcept {
     HCIStatusCode res = HCIStatusCode::INTERNAL_FAILURE;
 
     const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
-    DBG_PRINT("HCIHandler<%u>::reset.0: %s", dev_id, toString().c_str());
+    DBG_PRINT("HCIHandler<%u>::Reset HCI.0: %s", dev_id, toString().c_str());
 
     HCICommand req0(HCIOpcode::RESET, 0);
 
     const hci_rp_status * ev_status;
     std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_status, &res);
     if( nullptr == ev ) {
-        return HCIStatusCode::INTERNAL_TIMEOUT; // timeout
+        res = HCIStatusCode::INTERNAL_TIMEOUT; // timeout
     }
-    if( HCIStatusCode::SUCCESS == res ) {
-        res = resetAllStates(true) ? HCIStatusCode::SUCCESS : HCIStatusCode::FAILED;
-    }
-    DBG_PRINT("HCIHandler<%u>::reset.X: %s - %s", dev_id, to_string(res).c_str(), toString().c_str());
+    DBG_PRINT("HCIHandler<%u>::Reset HCI.X: %s - %s", dev_id, to_string(res).c_str(), toString().c_str());
     return res;
 }
 
