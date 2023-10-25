@@ -117,9 +117,10 @@ public enum SMPPairingState {
             case (byte) 0x04: return FEATURE_EXCHANGE_COMPLETED;
             case (byte) 0x05: return PASSKEY_EXPECTED;
             case (byte) 0x06: return NUMERIC_COMPARE_EXPECTED;
-            case (byte) 0x07: return OOB_EXPECTED;
-            case (byte) 0x08: return KEY_DISTRIBUTION;
-            case (byte) 0x09: return COMPLETED;
+            case (byte) 0x07: return PASSKEY_NOTIFY;
+            case (byte) 0x08: return OOB_EXPECTED;
+            case (byte) 0x09: return KEY_DISTRIBUTION;
+            case (byte) 0x0a: return COMPLETED;
             default: return NONE;
         }
     }
