@@ -218,6 +218,38 @@ namespace direct_bt {
             }
 
             /**
+             * Returns true if this address and type refers to a static public LE identity address,
+             * which does not require address resolution via an Identity Resolving Key (IRK).<br>
+             * Either ::BDAddressType::BDADDR_LE_PUBLIC or ::BDAddressType::BDADDR_LE_RANDOM of sub-type ::BLERandomAddressType::STATIC_PUBLIC.
+             */
+            constexpr bool isIdentityLEAddress() const noexcept {
+                if( BDAddressType::BDADDR_LE_RANDOM == type ) {
+                    return BLERandomAddressType::STATIC_PUBLIC == getBLERandomAddressType();
+                } else {
+                    return BDAddressType::BDADDR_LE_PUBLIC == type;
+                }
+            }
+
+            /**
+             * Returns true if this address and type refers to a public static identity address,
+             * which does not require address resolution via an Identity Resolving Key (IRK).<br>
+             * This includes ::BDAddressType::BDADDR_LE_RANDOM of sub-type ::BLERandomAddressType::STATIC_PUBLIC
+             * <p>
+             * Returns false if this address is of type ::BDAddressType::BDADDR_LE_RANDOM,
+             * excluding sub-type ::BLERandomAddressType::STATIC_PUBLIC
+             * and not of type ::BDAddressType::BDADDR_LE_PUBLIC or ::BDAddressType::BDADDR_BREDR.
+             * </p>
+             */
+            constexpr bool isIdentityAddress() const noexcept {
+                if( BDAddressType::BDADDR_LE_RANDOM == type ) {
+                    return BLERandomAddressType::STATIC_PUBLIC == getBLERandomAddressType();
+                } else {
+                    return BDAddressType::BDADDR_LE_PUBLIC == type ||
+                           BDAddressType::BDADDR_BREDR == type;
+                }
+            }
+
+            /**
              * Returns true if the BDAddressType is a BREDR address type.
              */
             constexpr bool isBREDRAddress() const noexcept { return BDAddressType::BDADDR_BREDR == type; }

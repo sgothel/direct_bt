@@ -29,6 +29,7 @@ import java.lang.ref.WeakReference;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.direct_bt.AdapterStatusListener;
@@ -63,7 +64,8 @@ public class DBTDevice extends DBTObject implements BTDevice
     /** Device's adapter weak back-reference */
     private final WeakReference<DBTAdapter> wbr_adapter;
 
-    private final BDAddressAndType addressAndType;
+    private BDAddressAndType addressAndType;
+    private final BDAddressAndType visibleAddressAndType;
     private final long ts_creation;
     volatile long ts_last_discovery;
     volatile long ts_last_update;
@@ -85,7 +87,8 @@ public class DBTDevice extends DBTObject implements BTDevice
     {
         super(nativeInstance, compHash(java.util.Arrays.hashCode(byteAddress), 31+byteAddressType));
         this.wbr_adapter = new WeakReference<DBTAdapter>(adptr);
-        this.addressAndType = new BDAddressAndType(new EUI48(byteAddress, ByteOrder.nativeOrder()), BDAddressType.get(byteAddressType));
+        this.visibleAddressAndType = new BDAddressAndType(byteAddress, 0, byteAddressType);
+        this.addressAndType = new BDAddressAndType(this.visibleAddressAndType);
         if( BDAddressType.BDADDR_UNDEFINED == addressAndType.type ) {
             throw new IllegalArgumentException("Unsupported given native addresstype "+byteAddressType);
         }
@@ -97,6 +100,16 @@ public class DBTDevice extends DBTObject implements BTDevice
         initImpl();
         // FIXME enableTrustedNotificationsImpl(trustedNotificationsCB);
     }
+
+    /* pp */ void updateAddress() {
+        final byte byteAddress[/*6*/] = getAddressImpl();
+        final byte byteAddressType = getAddressTypeImpl();
+        if( null != byteAddress && 0 != byteAddressType ) {
+            addressAndType = new BDAddressAndType(byteAddress, 0, byteAddressType);
+        }
+    }
+    private native byte[] getAddressImpl();
+    private native byte getAddressTypeImpl();
 
     @Override
     public void close() {
@@ -143,11 +156,15 @@ public class DBTDevice extends DBTObject implements BTDevice
             return false;
         }
         final DBTDevice other = (DBTDevice)obj;
-        return addressAndType.equals(other.addressAndType);
+        return addressAndType.equals(other.addressAndType) ||
+               visibleAddressAndType.equals(other.visibleAddressAndType); // FIXME: Evaluate if OK w/o collisions
     }
 
     @Override
     public BDAddressAndType getAddressAndType() { return addressAndType; }
+
+    @Override
+    public BDAddressAndType getVisibleAddressAndType() { return visibleAddressAndType; }
 
     @Override
     public String getName() {

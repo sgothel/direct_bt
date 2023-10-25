@@ -77,6 +77,20 @@ __pack( struct hci_rp_status {
     __u8    status;
 } );
 
+HCIHandler::HCIConnectionRef HCIHandler::setResolvHCIConnectionAddr(jau::darray<HCIConnectionRef> &list,
+                                                                    const BDAddressAndType& visibleAddressAndType,
+                                                                    const BDAddressAndType& addressAndType) noexcept {
+    const std::lock_guard<std::recursive_mutex> lock(mtx_connectionList); // RAII-style acquire and relinquish via destructor
+    auto end = list.end();
+    for (auto it = list.begin(); it != end; ++it) {
+        HCIConnectionRef conn = *it;
+        if ( conn->equals(visibleAddressAndType) ) {
+            conn->setResolvAddrAndType(addressAndType);
+            return conn; // done
+        }
+    }
+    return nullptr;
+}
 
 HCIHandler::HCIConnectionRef HCIHandler::addOrUpdateHCIConnection(jau::darray<HCIConnectionRef> &list,
                                                                   const BDAddressAndType& addressAndType, const uint16_t handle) noexcept {

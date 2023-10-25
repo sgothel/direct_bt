@@ -75,31 +75,31 @@ SMPKeyBin SMPKeyBin::create(const BTDevice& device) {
         const SMPKeyType keys_resp = device.getAvailableSMPKeys(true /* responder */);
         const SMPKeyType keys_init = device.getAvailableSMPKeys(false /* responder */);
 
-        if( ( SMPKeyType::ENC_KEY & keys_init ) != SMPKeyType::NONE ) {
+        if( is_set(keys_init, SMPKeyType::ENC_KEY) ) {
             smpKeyBin.setLTKInit( device.getLongTermKey(false /* responder */) );
         }
-        if( ( SMPKeyType::ENC_KEY & keys_resp ) != SMPKeyType::NONE ) {
+        if( is_set(keys_resp, SMPKeyType::ENC_KEY) ) {
             smpKeyBin.setLTKResp( device.getLongTermKey(true  /* responder */) );
         }
 
-        if( ( SMPKeyType::ID_KEY & keys_init ) != SMPKeyType::NONE ) {
+        if( is_set(keys_init, SMPKeyType::ID_KEY) ) {
             smpKeyBin.setIRKInit( device.getIdentityResolvingKey(false /* responder */) );
         }
-        if( ( SMPKeyType::ID_KEY & keys_resp ) != SMPKeyType::NONE ) {
+        if( is_set(keys_resp, SMPKeyType::ID_KEY) ) {
             smpKeyBin.setIRKResp( device.getIdentityResolvingKey(true  /* responder */) );
         }
 
-        if( ( SMPKeyType::SIGN_KEY & keys_init ) != SMPKeyType::NONE ) {
+        if( is_set(keys_init, SMPKeyType::SIGN_KEY) ) {
             smpKeyBin.setCSRKInit( device.getSignatureResolvingKey(false /* responder */) );
         }
-        if( ( SMPKeyType::SIGN_KEY & keys_resp ) != SMPKeyType::NONE ) {
+        if( is_set(keys_resp, SMPKeyType::SIGN_KEY) ) {
             smpKeyBin.setCSRKResp( device.getSignatureResolvingKey(true  /* responder */) );
         }
 
-        if( ( SMPKeyType::LINK_KEY & keys_init ) != SMPKeyType::NONE ) {
+        if( is_set(keys_init, SMPKeyType::LINK_KEY) ) {
             smpKeyBin.setLKInit( device.getLinkKey(false /* responder */) );
         }
-        if( ( SMPKeyType::LINK_KEY & keys_resp ) != SMPKeyType::NONE ) {
+        if( is_set(keys_resp, SMPKeyType::LINK_KEY) ) {
             smpKeyBin.setLKResp( device.getLinkKey(true  /* responder */) );
         }
     } else {

@@ -64,7 +64,8 @@ BTDevice::BTDevice(const ctor_cookie& cc, BTAdapter & a, EInfoReport const & r)
   smp_events(0),
   pairing_data { },
   ts_creation(ts_last_discovery),
-  addressAndType{r.getAddress(), r.getAddressType()}
+  visibleAddressAndType{r.getAddress(), r.getAddressType()},
+  addressAndType(visibleAddressAndType)
 {
     (void)cc;
 
@@ -134,9 +135,10 @@ EInfoReportRef BTDevice::getEIRScanRsp() noexcept {
 std::string BTDevice::toString(bool includeDiscoveredServices) const noexcept {
     const uint64_t t0 = jau::getCurrentMilliseconds();
     jau::sc_atomic_critical sync(sync_data);
+    std::string resaddr_s = visibleAddressAndType != addressAndType ? ", visible "+visibleAddressAndType.toString() : "";
     std::shared_ptr<const EInfoReport> eir_ = eir;
     std::string eir_s = BTRole::Slave == getRole() ? ", "+eir_->toString( includeDiscoveredServices ) : "";
-    std::string out("Device["+to_string(getRole())+", "+addressAndType.toString()+", name['"+name+
+    std::string out("Device["+to_string(getRole())+", "+addressAndType.toString()+resaddr_s+", name['"+name+
             "'], age[total "+std::to_string(t0-ts_creation)+", ldisc "+std::to_string(t0-ts_last_discovery)+", lup "+std::to_string(t0-ts_last_update)+
             "]ms, connected["+std::to_string(allowDisconnect)+"/"+std::to_string(isConnected)+", handle "+jau::to_hexstring(hciConnHandle)+
             ", phy[Tx "+direct_bt::to_string(le_phy_tx)+", Rx "+direct_bt::to_string(le_phy_rx)+
@@ -175,6 +177,33 @@ void BTDevice::clearData() noexcept {
     // allowDisconnect = false; // already done
     // supervision_timeout = 0; // already done
     // clearSMPStates( false  /* connected */); // already done
+}
+
+bool BTDevice::updateIdentityAddress(BDAddressAndType const & identityAddress, bool sendEvent) noexcept {
+    if( BDAddressType::BDADDR_LE_PUBLIC != addressAndType.type && addressAndType != identityAddress ) {
+        addressAndType  = identityAddress;
+        adapter.hci.setResolvHCIConnectionAddr(visibleAddressAndType, addressAndType);
+        if( sendEvent ) {
+            std::shared_ptr<BTDevice> sharedInstance = getSharedInstance();
+            if( nullptr == sharedInstance ) {
+                ERR_PRINT("Device unknown to adapter and not tracked: %s", toString().c_str());
+            } else {
+                adapter.sendDeviceUpdated("Address Resolution", sharedInstance, jau::getCurrentMilliseconds(), EIRDataType::BDADDR | EIRDataType::BDADDR_TYPE);
+            }
+        }
+        return true;
+    } else {
+        return false;
+    }
+}
+
+bool BTDevice::updateVisibleAddress(BDAddressAndType const & randomPrivateAddress) noexcept {
+    if( visibleAddressAndType != randomPrivateAddress ) {
+        visibleAddressAndType = randomPrivateAddress;
+        return true;
+    } else {
+        return false;
+    }
 }
 
 EIRDataType BTDevice::update(EInfoReport const & data) noexcept {
@@ -558,10 +587,15 @@ void BTDevice::notifyConnected(const std::shared_ptr<BTDevice>& sthis, const uin
     allowDisconnect = true;
     isConnected = true;
     hciConnHandle = handle;
+    SMPIOCapability io_cap_pre = pairing_data.ioCap_conn;
     if( SMPIOCapability::UNSET == pairing_data.ioCap_conn ) {
         pairing_data.ioCap_conn = io_cap;
     }
-    DBG_PRINT("BTDevice::notifyConnected: End: %s", toString().c_str());
+    DBG_PRINT("BTDevice::notifyConnected: End: io_cap %s: %s -> %s, %s",
+            to_string(io_cap).c_str(),
+            to_string(io_cap_pre).c_str(),
+            to_string(pairing_data.ioCap_conn).c_str(),
+            toString().c_str());
     (void)sthis; // not used yet
 }
 
@@ -1566,10 +1600,10 @@ HCIStatusCode BTDevice::uploadKeys() noexcept {
         // LTKs
         {
             jau::darray<SMPLongTermKey> ltks;
-            if( ( SMPKeyType::ENC_KEY & pairing_data.keys_init_has ) != SMPKeyType::NONE ) {
+            if( is_set(pairing_data.keys_init_has, SMPKeyType::ENC_KEY) ) {
                 ltks.push_back(pairing_data.ltk_init);
             }
-            if( ( SMPKeyType::ENC_KEY & pairing_data.keys_resp_has ) != SMPKeyType::NONE ) {
+            if( is_set(pairing_data.keys_resp_has, SMPKeyType::ENC_KEY) ) {
                 ltks.push_back(pairing_data.ltk_resp);
             }
             if( ltks.size() > 0 ) {
@@ -1584,10 +1618,10 @@ HCIStatusCode BTDevice::uploadKeys() noexcept {
         // IRKs
         {
             jau::darray<SMPIdentityResolvingKey> irks;
-            if( ( SMPKeyType::ID_KEY & pairing_data.keys_init_has ) != SMPKeyType::NONE ) {
+            if( is_set(pairing_data.keys_init_has, SMPKeyType::ID_KEY) ) {
                 irks.push_back(pairing_data.irk_init);
             }
-            if( ( SMPKeyType::ID_KEY & pairing_data.keys_resp_has ) != SMPKeyType::NONE ) {
+            if( is_set(pairing_data.keys_resp_has, SMPKeyType::ID_KEY) ) {
                 irks.push_back(pairing_data.irk_resp);
             }
             if( irks.size() > 0 ) {
@@ -1607,13 +1641,13 @@ HCIStatusCode BTDevice::uploadKeys() noexcept {
 
         if( BTRole::Slave == btRole ) {
             // Remote device is slave (peripheral, responder), we are master (initiator)
-            if( ( SMPKeyType::LINK_KEY & pairing_data.keys_init_has ) != SMPKeyType::NONE ) {
+            if( is_set(pairing_data.keys_init_has, SMPKeyType::LINK_KEY) ) {
                 res = mngr->uploadLinkKey(adapter.dev_id, addressAndType, pairing_data.lk_init);
                 DBG_PRINT("BTDevice::uploadKeys.LK[adapter master]: %s", to_string(res).c_str());
             }
         } else {
             // Remote device is master (initiator), we are slave (peripheral, responder)
-            if( ( SMPKeyType::LINK_KEY & pairing_data.keys_resp_has ) != SMPKeyType::NONE ) {
+            if( is_set(pairing_data.keys_resp_has, SMPKeyType::LINK_KEY) ) {
                 res = mngr->uploadLinkKey(adapter.dev_id, addressAndType, pairing_data.lk_resp);
                 DBG_PRINT("BTDevice::uploadKeys.LK[adapter slave]: %s", to_string(res).c_str());
             }
@@ -1667,8 +1701,12 @@ void BTDevice::setIdentityResolvingKey(const SMPIdentityResolvingKey& irk) noexc
 bool BTDevice::matches_irk(BDAddressAndType rpa) noexcept {
     // self_is_responder == true: responder's IRK info (LL slave), else the initiator's (LL master)
     const bool self_is_responder = BTRole::Slave == btRole;
-    SMPIdentityResolvingKey irk = getIdentityResolvingKey(self_is_responder);
-    return irk.matches(rpa.address); // irk.id_address == this->addressAndType
+    if( is_set(self_is_responder ? pairing_data.keys_resp_has : pairing_data.keys_init_has, SMPKeyType::ID_KEY) ) {
+        SMPIdentityResolvingKey irk = getIdentityResolvingKey(self_is_responder);
+        return irk.matches(rpa.address); // irk.id_address == this->addressAndType
+    } else {
+        return false;
+    }
 }
 
 SMPSignatureResolvingKey BTDevice::getSignatureResolvingKey(const bool responder) const noexcept {

@@ -66,15 +66,37 @@ std::string direct_bt::to_string(const DiscoveryPolicy v) noexcept {
     return "Unknown DiscoveryPolicy "+jau::to_hexstring(number(v));
 }
 
-BTDeviceRef BTAdapter::findDevice(device_list_t & devices, const EUI48 & address, const BDAddressType addressType) noexcept {
+BTDeviceRef BTAdapter::findDevice(HCIHandler& hci, device_list_t & devices, const EUI48 & address, const BDAddressType addressType) noexcept {
+    BDAddressAndType rpa(address, addressType);
     const jau::nsize_t size = devices.size();
     for (jau::nsize_t i = 0; i < size; ++i) {
         BTDeviceRef & e = devices[i];
-        if ( nullptr != e && address == e->getAddressAndType().address &&
-             ( addressType == e->getAddressAndType().type || addressType == BDAddressType::BDADDR_UNDEFINED )
+        if ( nullptr != e &&
+             (
+               ( address == e->getAddressAndType().address &&
+                 ( addressType == e->getAddressAndType().type || addressType == BDAddressType::BDADDR_UNDEFINED )
+               ) ||
+               ( address == e->getVisibleAddressAndType().address &&
+                 ( addressType == e->getVisibleAddressAndType().type || addressType == BDAddressType::BDADDR_UNDEFINED )
+               )
+             )
            )
         {
+            if( !rpa.isIdentityAddress() ) {
+                e->updateVisibleAddress(rpa);
+                hci.setResolvHCIConnectionAddr(rpa, e->getAddressAndType());
+            }
             return e;
+        }
+    }
+    if( !rpa.isIdentityAddress() ) {
+        for (jau::nsize_t i = 0; i < size; ++i) {
+            BTDeviceRef & e = devices[i];
+            if ( nullptr != e && e->matches_irk(rpa) ) {
+                e->updateVisibleAddress(rpa);
+                hci.setResolvHCIConnectionAddr(rpa, e->getAddressAndType());
+                return e;
+            }
         }
     }
     return nullptr;
@@ -98,8 +120,12 @@ BTDeviceRef BTAdapter::findWeakDevice(weak_device_list_t & devices, const EUI48 
         BTDeviceRef e = w.lock();
         if( nullptr == e ) {
             devices.erase(it); // erase and move it to next element
-        } else if ( address == e->getAddressAndType().address &&
-                    ( addressType == e->getAddressAndType().type || addressType == BDAddressType::BDADDR_UNDEFINED )
+        } else if ( ( address == e->getAddressAndType().address &&
+                      ( addressType == e->getAddressAndType().type || addressType == BDAddressType::BDADDR_UNDEFINED )
+                    ) ||
+                    ( address == e->getVisibleAddressAndType().address &&
+                      ( addressType == e->getVisibleAddressAndType().type || addressType == BDAddressType::BDADDR_UNDEFINED )
+                    )
                   )
         {
             return e;
@@ -230,7 +256,7 @@ BTAdapter::size_type BTAdapter::disconnectAllDevices(const HCIStatusCode reason)
 
 BTDeviceRef BTAdapter::findConnectedDevice (const EUI48 & address, const BDAddressType & addressType) noexcept {
     const std::lock_guard<std::mutex> lock(mtx_connectedDevices); // RAII-style acquire and relinquish via destructor
-    return findDevice(connectedDevices, address, addressType);
+    return findDevice(hci, connectedDevices, address, addressType);
 }
 
 jau::nsize_t BTAdapter::getConnectedDeviceCount() const noexcept {
@@ -255,9 +281,13 @@ bool BTAdapter::updateDataFromHCI() noexcept {
     hci_uses_ext_conn = hci.use_ext_conn();
     hci_uses_ext_adv  = hci.use_ext_adv();
 
+    status = hci.le_set_addr_resolv_enable(true);
+    if( HCIStatusCode::SUCCESS != status ) {
+        jau::INFO_PRINT("Adapter[%d]: ENABLE RESOLV LIST: %s", dev_id, to_string(status).c_str());
+    }
     status = hci.le_clear_resolv_list();
     if( HCIStatusCode::SUCCESS != status ) {
-        jau::INFO_PRINT("Adapter[%d]: CLEAR RESOLV LIST failed %s", dev_id, to_string(status).c_str());
+        jau::INFO_PRINT("Adapter[%d]: CLEAR RESOLV LIST: %s", dev_id, to_string(status).c_str());
     }
 
     WORDY_PRINT("BTAdapter::updateDataFromHCI: Adapter[%d]: POWERED, %s - %s, hci_ext[scan %d, conn %d], features: %s",
@@ -339,6 +369,11 @@ bool BTAdapter::enableListening(const bool enable) noexcept {
         ok = mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::NEW_LONG_TERM_KEY, jau::bind_member(this, &BTAdapter::mgmtEvNewLongTermKeyMgmt)) && ok;
         ok = mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::NEW_LINK_KEY, jau::bind_member(this, &BTAdapter::mgmtEvNewLinkKeyMgmt)) && ok;
         ok = mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::NEW_IRK, jau::bind_member(this, &BTAdapter::mgmtEvNewIdentityResolvingKeyMgmt)) && ok;
+
+        if( debug_event || jau::environment::get().debug ) {
+            ok = mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::DEVICE_CONNECTED, jau::bind_member(this, &BTAdapter::mgmtEvDeviceConnectedMgmt)) && ok;
+            ok = mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::DEVICE_DISCONNECTED, jau::bind_member(this, &BTAdapter::mgmtEvMgmtAnyMgmt)) && ok;
+        }
 
         if( !ok ) {
             ERR_PRINT("Could not add all required MgmtEventCallbacks to DBTManager: %s", toString().c_str());
@@ -509,8 +544,8 @@ void BTAdapter::poweredOff(bool active, const std::string& msg) noexcept {
         stopDiscoveryImpl(true /* forceDiscoveringEvent */, false /* temporary */);
     }
 
-    // Removes all device references from the lists: connectedDevices, discoveredDevices, sharedDevices
-    disconnectAllDevices();
+    // Removes all device references from the lists: connectedDevices, discoveredDevices
+    disconnectAllDevices(HCIStatusCode::NOT_POWERED);
     removeDiscoveredDevices();
 
     // ensure all hci states are reset.
@@ -551,9 +586,10 @@ void BTAdapter::printDeviceList(const std::string& prefix, const BTAdapter::devi
         } else if( (*it)->isValidInstance() /** TODO: See above */ ) {
             jau::PLAIN_PRINT(true, "  - %d / %zu: invalid", (idx+1), sz);
         } else {
-            jau::PLAIN_PRINT(true, "  - %d / %zu: %s, name '%s'", (idx+1), sz,
+            jau::PLAIN_PRINT(true, "  - %d / %zu: %s, name '%s', visible %s", (idx+1), sz,
                     (*it)->getAddressAndType().toString().c_str(),
-                    (*it)->getName().c_str() );
+                    (*it)->getName().c_str(),
+                    (*it)->getVisibleAddressAndType().toString().c_str());
         }
         PRAGMA_DISABLE_WARNING_POP
     }
@@ -570,9 +606,10 @@ void BTAdapter::printWeakDeviceList(const std::string& prefix, BTAdapter::weak_d
         } else if( !e->isValidInstance() ) {
             jau::PLAIN_PRINT(true, "  - %d / %zu: invalid", (idx+1), sz);
         } else {
-            jau::PLAIN_PRINT(true, "  - %d / %zu: %s, name '%s'", (idx+1), sz,
+            jau::PLAIN_PRINT(true, "  - %d / %zu: %s, name '%s', visible %s", (idx+1), sz,
                     e->getAddressAndType().toString().c_str(),
-                    e->getName().c_str() );
+                    e->getName().c_str(),
+                    e->getVisibleAddressAndType().toString().c_str());
         }
     }
 }
@@ -1327,7 +1364,7 @@ exit:
 
 BTDeviceRef BTAdapter::findDiscoveredDevice (const EUI48 & address, const BDAddressType addressType) noexcept {
     const std::lock_guard<std::mutex> lock(mtx_discoveredDevices); // RAII-style acquire and relinquish via destructor
-    return findDevice(discoveredDevices, address, addressType);
+    return findDevice(hci, discoveredDevices, address, addressType);
 }
 
 bool BTAdapter::addDiscoveredDevice(BTDeviceRef const &device) noexcept {
@@ -1417,7 +1454,7 @@ void BTAdapter::removeSharedDevice(const BTDevice & device) noexcept {
 
 BTDeviceRef BTAdapter::findSharedDevice (const EUI48 & address, const BDAddressType addressType) noexcept {
     const std::lock_guard<std::mutex> lock(mtx_sharedDevices); // RAII-style acquire and relinquish via destructor
-    return findDevice(sharedDevices, address, addressType);
+    return findDevice(hci, sharedDevices, address, addressType);
 }
 
 // *************************************************
@@ -1691,6 +1728,10 @@ void BTAdapter::mgmtEvHCIAnyHCI(const MgmtEvent& e) noexcept {
     DBG_PRINT("BTAdapter:hci::Any: %s", e.toString().c_str());
     (void)e;
 }
+void BTAdapter::mgmtEvMgmtAnyMgmt(const MgmtEvent& e) noexcept {
+    DBG_PRINT("BTAdapter:mgmt:Any: %s", e.toString().c_str());
+    (void)e;
+}
 
 void BTAdapter::mgmtEvDeviceDiscoveringHCI(const MgmtEvent& e) noexcept {
     const MgmtEvtDiscovering &event = *static_cast<const MgmtEvtDiscovering *>(&e);
@@ -1813,7 +1854,7 @@ void BTAdapter::updateAdapterSettings(const bool off_thread, const AdapterSettin
     if( justPoweredOff ) {
         // Adapter has been powered off, close connections and cleanup off-thread.
         if( off_thread ) {
-            std::thread bg(&BTAdapter::poweredOff, this, false, "powered_off.0"); // @suppress("Invalid arguments")
+            std::thread bg(&BTAdapter::poweredOff, this, false, "adapter_settings.0"); // @suppress("Invalid arguments")
             bg.detach();
         } else {
             poweredOff(false, "powered_off.1");
@@ -1861,8 +1902,8 @@ void BTAdapter::l2capServerEnd(jau::service_runner& sr) noexcept {
 void BTAdapter::l2capServerWork(jau::service_runner& sr) noexcept {
     (void)sr;
     std::unique_ptr<L2CAPClient> l2cap_att_ = l2cap_att_srv.accept();
-    if( BTRole::Slave == getRole() && nullptr != l2cap_att_ ) {
-        DBG_PRINT("L2CAP-ACCEPT: BTAdapter::l2capServer connected.1: %s", l2cap_att_->toString().c_str());
+    if( BTRole::Slave == getRole() && nullptr != l2cap_att_ && l2cap_att_->getRemoteAddressAndType().isIdentityLEAddress() ) {
+        DBG_PRINT("L2CAP-ACCEPT: BTAdapter::l2capServer connected.1: (public) %s", l2cap_att_->toString().c_str());
 
         std::unique_lock<std::mutex> lock(mtx_l2cap_att); // RAII-style acquire and relinquish via destructor
         l2cap_att = std::move( l2cap_att_ );
@@ -1870,7 +1911,7 @@ void BTAdapter::l2capServerWork(jau::service_runner& sr) noexcept {
         cv_l2cap_att.notify_all(); // notify waiting getter
 
     } else if( nullptr != l2cap_att_ ) {
-        DBG_PRINT("L2CAP-ACCEPT: BTAdapter::l2capServer connected.2: %s", l2cap_att_->toString().c_str());
+        DBG_PRINT("L2CAP-ACCEPT: BTAdapter::l2capServer connected.2: (ignored) %s", l2cap_att_->toString().c_str());
     } else {
         DBG_PRINT("L2CAP-ACCEPT: BTAdapter::l2capServer connected.0: nullptr");
     }
@@ -1960,6 +2001,8 @@ void BTAdapter::mgmtEvDeviceConnectedHCI(const MgmtEvent& e) noexcept {
         ad_report.setAddress( event.getAddress() );
         ad_report.read_data(event.getData(), event.getDataSize());
     }
+    DBG_PRINT("BTAdapter::mgmtEvDeviceConnectedHCI(dev_id %d): Event %s, AD EIR %s",
+            dev_id, e.toString().c_str(), ad_report.toString(true).c_str());
 
     int new_connect = 0;
     bool device_discovered = true;
@@ -2079,6 +2122,19 @@ void BTAdapter::mgmtEvDeviceConnectedHCI(const MgmtEvent& e) noexcept {
         // Hence .. induce it right after connect
         device->notifyLEFeatures(device, LE_Features::LE_Encryption);
     }
+}
+void BTAdapter::mgmtEvDeviceConnectedMgmt(const MgmtEvent& e) noexcept {
+    const MgmtEvtDeviceConnected &event = *static_cast<const MgmtEvtDeviceConnected *>(&e);
+    EInfoReport ad_report;
+    {
+        ad_report.setSource(EInfoReport::Source::EIR, false);
+        ad_report.setTimestamp(event.getTimestamp());
+        ad_report.setAddressType(event.getAddressType());
+        ad_report.setAddress( event.getAddress() );
+        ad_report.read_data(event.getData(), event.getDataSize());
+    }
+    DBG_PRINT("BTAdapter::mgmtEvDeviceConnectedMgmt(dev_id %d): Event %s, AD EIR %s",
+            dev_id, e.toString().c_str(), ad_report.toString(true).c_str());
 }
 
 void BTAdapter::mgmtEvConnectFailedHCI(const MgmtEvent& e) noexcept {
@@ -2347,7 +2403,7 @@ void BTAdapter::mgmtEvPairDeviceCompleteMgmt(const MgmtEvent& e) noexcept {
 
 void BTAdapter::mgmtEvNewLongTermKeyMgmt(const MgmtEvent& e) noexcept {
     const MgmtEvtNewLongTermKey& event = *static_cast<const MgmtEvtNewLongTermKey *>(&e);
-    const MgmtLongTermKeyInfo& ltk_info = event.getLongTermKey();
+    const MgmtLongTermKey& ltk_info = event.getLongTermKey();
     BTDeviceRef device = findConnectedDevice(ltk_info.address, ltk_info.address_type);
     if( nullptr != device ) {
         const bool ok = ltk_info.enc_size > 0 && ltk_info.key_type != MgmtLTKType::NONE;
@@ -2385,7 +2441,7 @@ void BTAdapter::mgmtEvNewLinkKeyMgmt(const MgmtEvent& e) noexcept {
 void BTAdapter::mgmtEvNewIdentityResolvingKeyMgmt(const MgmtEvent& e) noexcept {
     const MgmtEvtNewIdentityResolvingKey& event = *static_cast<const MgmtEvtNewIdentityResolvingKey *>(&e);
     const EUI48& randomAddress = event.getRandomAddress();
-    const MgmtIdentityResolvingKeyInfo& irk = event.getIdentityResolvingKey();
+    const MgmtIdentityResolvingKey& irk = event.getIdentityResolvingKey();
     if( adapterInfo.addressAndType.address == irk.address && adapterInfo.addressAndType.type == irk.address_type ) {
         // setPrivacy ...
         visibleAddressAndType.address = randomAddress;
@@ -2397,9 +2453,8 @@ void BTAdapter::mgmtEvNewIdentityResolvingKeyMgmt(const MgmtEvent& e) noexcept {
     } else {
         BTDeviceRef device = findConnectedDevice(randomAddress, BDAddressType::BDADDR_UNDEFINED);
         if( nullptr != device ) {
-            // TODO: Notify our remove BDDevice instance about the resolved address!
-            // TODO: Support Random Address resolution!
-            WORDY_PRINT("BTAdapter::mgmt:NewIdentityResolvingKey(dev_id %d): Device found (Resolvable not yet supported): %s, %s",
+            // Handled via SMP
+            WORDY_PRINT("BTAdapter::mgmt:NewIdentityResolvingKey(dev_id %d): Device found (Resolvable): %s, %s",
                 dev_id, event.toString().c_str(), device->toString().c_str());
         } else {
             WORDY_PRINT("BTAdapter::mgmt:NewIdentityResolvingKey(dev_id %d): Device not tracked: %s",
@@ -2682,6 +2737,8 @@ void BTAdapter::sendDevicePairingState(const BTDeviceRef& device, const SMPPairi
                 SMPKeyBin key = SMPKeyBin::create(*device);
                 if( key.isValid() ) {
                     addSMPKeyBin( std::make_shared<SMPKeyBin>(key), true /* write_file */ );
+                } else {
+                    WARN_PRINT("(dev_id %d): created SMPKeyBin invalid: %s", dev_id, key.toString().c_str());
                 }
             } else {
                 // pre-paired, refresh PairingData of BTDevice (perhaps a new instance)
@@ -2689,7 +2746,7 @@ void BTAdapter::sendDevicePairingState(const BTDeviceRef& device, const SMPPairi
                 if( nullptr != key ) {
                     bool res = device->setSMPKeyBin(*key);
                     if( !res ) {
-                        WARN_PRINT("(dev_id %d): device::setSMPKeyBin() failed %d, %s", res, key->toString().c_str());
+                        WARN_PRINT("(dev_id %d): device::setSMPKeyBin() failed %d, %s", dev_id, res, key->toString().c_str());
                     }
                 }
             }

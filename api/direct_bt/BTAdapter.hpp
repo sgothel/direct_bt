@@ -349,7 +349,7 @@ namespace direct_bt {
              */
             BDAddressAndType visibleAddressAndType;
             HCILEOwnAddressType visibleMACType;
-            MgmtIdentityResolvingKeyInfo privacyIRK;
+            MgmtIdentityResolvingKey privacyIRK;
 
         public:
             typedef jau::nsize_t size_type;
@@ -434,7 +434,7 @@ namespace direct_bt {
             bool initialSetup() noexcept;
             bool enableListening(const bool enable) noexcept;
 
-            static BTDeviceRef findDevice(device_list_t & devices, const EUI48 & address, const BDAddressType addressType) noexcept;
+            static BTDeviceRef findDevice(HCIHandler& hci, device_list_t & devices, const EUI48 & address, const BDAddressType addressType) noexcept;
             static BTDeviceRef findDevice(device_list_t & devices, BTDevice const & device) noexcept;
             static BTDeviceRef findWeakDevice(weak_device_list_t & devices, const EUI48 & address, const BDAddressType addressType) noexcept;
             static BTDeviceRef findWeakDevice(weak_device_list_t & devices, BTDevice const & device) noexcept;
@@ -474,6 +474,7 @@ namespace direct_bt {
                                                       uint16_t latency, uint16_t supervision_timeout) noexcept;
             friend HCIStatusCode BTDevice::connectBREDR(const uint16_t pkt_type, const uint16_t clock_offset, const uint8_t role_switch) noexcept;
             friend void BTDevice::processL2CAPSetup(BTDeviceRef sthis);
+            friend bool BTDevice::updateIdentityAddress(BDAddressAndType const & identityAddress, bool sendEvent) noexcept;
             friend bool BTDevice::updatePairingState(const BTDeviceRef& sthis, const MgmtEvent& evt, const HCIStatusCode evtStatus, SMPPairingState claimed_state) noexcept;
             friend void BTDevice::hciSMPMsgCallback(const BTDeviceRef& sthis, const SMPPDUMsg& msg, const HCIACLData::l2cap_frame& source) noexcept;
             friend void BTDevice::processDeviceReady(BTDeviceRef sthis, const uint64_t timestamp);
@@ -525,14 +526,17 @@ namespace direct_bt {
             void mgmtEvDeviceDiscoveringMgmt(const MgmtEvent& e) noexcept;
             void mgmtEvLocalNameChangedMgmt(const MgmtEvent& e) noexcept;
             void mgmtEvDeviceFoundHCI(const MgmtEvent& e) noexcept;
+
             void mgmtEvPairDeviceCompleteMgmt(const MgmtEvent& e) noexcept;
             void mgmtEvNewLongTermKeyMgmt(const MgmtEvent& e) noexcept;
             void mgmtEvNewLinkKeyMgmt(const MgmtEvent& e) noexcept;
             void mgmtEvNewIdentityResolvingKeyMgmt(const MgmtEvent& e) noexcept;
 
             void mgmtEvHCIAnyHCI(const MgmtEvent& e) noexcept;
+            void mgmtEvMgmtAnyMgmt(const MgmtEvent& e) noexcept;
             void mgmtEvDeviceDiscoveringHCI(const MgmtEvent& e) noexcept;
             void mgmtEvDeviceConnectedHCI(const MgmtEvent& e) noexcept;
+            void mgmtEvDeviceConnectedMgmt(const MgmtEvent& e) noexcept;
 
             void mgmtEvConnectFailedHCI(const MgmtEvent& e) noexcept;
             void mgmtEvHCILERemoteUserFeaturesHCI(const MgmtEvent& e) noexcept;
@@ -677,7 +681,7 @@ namespace direct_bt {
             BTMode getBTMode() const noexcept { return adapterInfo.getCurrentBTMode(); }
 
             /**
-             * Returns the adapter's public BDAddressAndType.
+             * Returns the adapter's public BDAddressAndType, i.e. BDAddressType::BDADDR_LE_PUBLIC.
              * <p>
              * The adapter's address as initially reported by the system is always its public address, i.e. BDAddressType::BDADDR_LE_PUBLIC.
              * </p>
@@ -687,15 +691,16 @@ namespace direct_bt {
             BDAddressAndType const & getAddressAndType() const noexcept { return adapterInfo.addressAndType; }
 
             /**
-             * Returns the adapter's currently visible BDAddressAndType.
+             * Returns the adapter's currently visible BDAddressAndType, i.e. BDAddressType::BDADDR_LE_RANDOM or BDAddressType::BDADDR_LE_PUBLIC.
              * <p>
              * The adapter's address as initially reported by the system is always its public address, i.e. BDAddressType::BDADDR_LE_PUBLIC.
              * </p>
              * <p>
-             * The adapter's visible BDAddressAndType might be set to BDAddressType::BDADDR_LE_RANDOM before scanning / discovery mode (TODO).
+             * The adapter's visible BDAddressAndType might be set to BDAddressType::BDADDR_LE_RANDOM before scanning / discovery mode via setPrivacy().
              * </p>
-             * @since 2.2.8
+             * @since 3.2.8
              * @see #getAddressAndType()
+             * @see #setPrivacy()
              */
             BDAddressAndType const & getVisibleAddressAndType() const noexcept { return visibleAddressAndType; }
 
@@ -753,6 +758,7 @@ namespace direct_bt {
              * @param enable toggle to enable or disable (default)
              * @return HCIStatusCode::SUCCESS or an error state on failure
              * @since 3.2.0
+             * @see #getVisibleAddressAndType()
              */
             HCIStatusCode setPrivacy(const bool enable) noexcept;
 

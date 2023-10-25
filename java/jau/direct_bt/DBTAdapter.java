@@ -99,7 +99,7 @@ public class DBTAdapter extends DBTObject implements BTAdapter
     {
         super(nativeInstance, compHash(java.util.Arrays.hashCode(byteAddress), 31+byteAddressType));
         this.dev_id = dev_id;
-        this.addressAndType = new BDAddressAndType(new EUI48(byteAddress, ByteOrder.nativeOrder()), BDAddressType.get(byteAddressType));
+        this.addressAndType = new BDAddressAndType(byteAddress, 0, byteAddressType);
         this.name_cached = name;
         this.visibleAddressAndType = addressAndType;
         addStatusListener(this.statusListener);
@@ -607,6 +607,9 @@ public class DBTAdapter extends DBTObject implements BTAdapter
 
         @Override
         public void deviceUpdated(final BTDevice device, final EIRDataTypeSet updateMask, final long timestamp) {
+            if( updateMask.isSet( EIRDataTypeSet.DataType.BDADDR ) ) {
+                ((DBTDevice)device).updateAddress();
+            }
             final boolean rssiUpdated = updateMask.isSet( EIRDataTypeSet.DataType.RSSI );
             final boolean mdUpdated = updateMask.isSet( EIRDataTypeSet.DataType.MANUF_DATA );
             if( DEBUG && !rssiUpdated && !mdUpdated) {

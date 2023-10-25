@@ -189,31 +189,35 @@ namespace direct_bt {
         private:
             class HCIConnection {
                 private:
-                    BDAddressAndType addressAndType; // immutable
+                    BDAddressAndType visibleAddressAndType; // immutable
+                    BDAddressAndType addressAndType; // mutable
                     uint16_t handle; // mutable
 
                 public:
-                    HCIConnection(BDAddressAndType addressAndType_, const uint16_t handle_)
-                    : addressAndType(std::move(addressAndType_)), handle(handle_) {}
+                    HCIConnection(const BDAddressAndType& addressAndType_, const uint16_t handle_)
+                    : visibleAddressAndType(addressAndType_), addressAndType(addressAndType_), handle(handle_) {}
 
                     HCIConnection(const HCIConnection &o) = default;
                     HCIConnection(HCIConnection &&o) = default;
                     HCIConnection& operator=(const HCIConnection &o) = default;
                     HCIConnection& operator=(HCIConnection &&o) = default;
 
+                    const BDAddressAndType & getVisibleAddressAndType() const { return visibleAddressAndType; }
                     const BDAddressAndType & getAddressAndType() const { return addressAndType; }
+                    void setResolvAddrAndType(const BDAddressAndType& val) { addressAndType = val; }
+
                     uint16_t getHandle() const { return handle; }
 
                     void setHandle(uint16_t newHandle) { handle = newHandle; }
 
                     bool equals(const BDAddressAndType & other) const
-                    { return addressAndType == other; }
+                    { return addressAndType == other || visibleAddressAndType == other; }
 
                     bool operator==(const HCIConnection& rhs) const {
                         if( this == &rhs ) {
                             return true;
                         }
-                        return addressAndType == rhs.addressAndType;
+                        return addressAndType == rhs.addressAndType || visibleAddressAndType == rhs.visibleAddressAndType;
                     }
 
                     bool operator!=(const HCIConnection& rhs) const
@@ -224,8 +228,9 @@ namespace direct_bt {
                     }
 
                     std::string toString() const {
+                        std::string resaddr_s = visibleAddressAndType != addressAndType ? ", visible "+visibleAddressAndType.toString() : "";
                         return "HCIConnection[handle "+jau::to_hexstring(handle)+
-                               ", address "+addressAndType.toString()+"]";
+                               ", address "+addressAndType.toString()+resaddr_s+"]";
                     }
             };
         public:
@@ -286,6 +291,16 @@ namespace direct_bt {
             /** Exclusive [le] connection command (status + pending completed) one at a time */
             std::mutex mtx_connect_cmd;
 
+            HCIConnectionRef setResolvHCIConnectionAddr(jau::darray<HCIConnectionRef> &list,
+                                                        const BDAddressAndType& visibleAddressAndType, const BDAddressAndType& addressAndType) noexcept;
+
+        public:
+            void setResolvHCIConnectionAddr(const BDAddressAndType& visibleAddressAndType, const BDAddressAndType& addressAndType) noexcept {
+                setResolvHCIConnectionAddr(connectionList, visibleAddressAndType, addressAndType);
+                setResolvHCIConnectionAddr(disconnectCmdList, visibleAddressAndType, addressAndType);
+            }
+
+        private:
             /**
              * Returns a newly added HCIConnectionRef tracker connection with given parameters, if not existing yet.
              * <p>

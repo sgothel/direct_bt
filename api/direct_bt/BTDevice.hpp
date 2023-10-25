@@ -168,6 +168,8 @@ namespace direct_bt {
 
             void clearData() noexcept;
 
+            bool updateIdentityAddress(BDAddressAndType const & identityAddress, bool sendEvent) noexcept;
+            bool updateVisibleAddress(BDAddressAndType const & randomPrivateAddress) noexcept;
             EIRDataType update(EInfoReport const & data) noexcept;
             EIRDataType update(GattGenericAccessSvc const &data, const uint64_t timestamp) noexcept;
 
@@ -255,8 +257,10 @@ namespace direct_bt {
             typedef jau::snsize_t ssize_type;
 
             const uint64_t ts_creation;
-            /** Device's unique mac address and type tuple. */
-            const BDAddressAndType addressAndType; // FIXME: Mutable for resolvable -> identity during pairing?
+            /** Either the remote devices' initially reported (resolvable) random address or its (static) public identity address. */
+            BDAddressAndType visibleAddressAndType;
+            /** Device's unique mac address and type tuple, might be its initially reported (resolvable) random address until pairing.  */
+            BDAddressAndType addressAndType;
 
             /** Private ctor for private BTDevice::make_shared() intended for friends. */
             BTDevice(const BTDevice::ctor_cookie& cc, BTAdapter & adapter, EInfoReport const & r);
@@ -325,10 +329,26 @@ namespace direct_bt {
             uint64_t getLastUpdateAge(const uint64_t ts_now) const noexcept { return ts_now - ts_last_update; }
 
             /**
-             * Returns the unique device EUI48 address and BDAddressType type.
-             * @since 2.2.0
+             * Returns the devices' unique EUI48 address and type tuple, might be its initially reported (resolvable) random address until pairing,
+             * i.e. BDAddressType::BDADDR_LE_RANDOM instead of BDAddressType::BDADDR_LE_PUBLIC.
+             * <p>
+             * After pairing or if the remote device uses a (static) public address,
+             * it is considered unique and BDAddressType::BDADDR_LE_PUBLIC.
+             * </p>
+             * @since 3.2.0
              */
             constexpr BDAddressAndType const & getAddressAndType() const noexcept { return addressAndType; }
+
+            /**
+             * Returns the devices' visible BDAddressAndType, i.e. BDAddressType::BDADDR_LE_RANDOM or BDAddressType::BDADDR_LE_PUBLIC
+             * <p>
+             * The devices' address as initially reported by the system might be a (resolvable) random address,
+             * i.e. BDAddressType::BDADDR_LE_RANDOM instead of BDAddressType::BDADDR_LE_PUBLIC.
+             * </p>
+             * @since 3.2.8
+             * @see #getAddressAndType()
+             */
+            BDAddressAndType const & getVisibleAddressAndType() const noexcept { return visibleAddressAndType; }
 
             /** Return RSSI of device as recognized at discovery and connect. */
             int8_t getRSSI() const noexcept { return rssi; }
@@ -1241,8 +1261,11 @@ namespace direct_bt {
             size_type removeAllCharListener() noexcept;
     };
 
-    inline bool operator==(const BTDevice& lhs, const BTDevice& rhs) noexcept
-    { return lhs.getAddressAndType() == rhs.getAddressAndType(); }
+    inline bool operator==(const BTDevice& lhs, const BTDevice& rhs) noexcept {
+        return lhs.getAddressAndType() == rhs.getAddressAndType() ||
+               lhs.getVisibleAddressAndType() == rhs.getVisibleAddressAndType() // FIXME: Evaluate if OK w/o collisions
+               ;
+    }
 
     inline bool operator!=(const BTDevice& lhs, const BTDevice& rhs) noexcept
     { return !(lhs == rhs); }

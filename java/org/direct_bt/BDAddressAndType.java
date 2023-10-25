@@ -25,6 +25,8 @@
 
 package org.direct_bt;
 
+import java.nio.ByteOrder;
+
 import org.jau.net.EUI48;
 
 /**
@@ -50,6 +52,11 @@ public class BDAddressAndType {
 
     private volatile int hash; // default 0, cache
 
+    public BDAddressAndType(final byte[/*6*/] stream, final int pos, final byte byteAddressType) {
+        this.address = new EUI48(stream, pos, ByteOrder.nativeOrder());
+        this.type = BDAddressType.get(byteAddressType);
+    }
+
     public BDAddressAndType(final EUI48 address, final BDAddressType type) {
         this.address = address;
         this.type = type;
@@ -70,6 +77,38 @@ public class BDAddressAndType {
      */
     public boolean isLEAddress() {
         return BDAddressType.BDADDR_LE_PUBLIC == type || BDAddressType.BDADDR_LE_RANDOM == type;
+    }
+
+    /**
+     * Returns true if this address and type refers to a static public LE identity address,
+     * which does not require address resolution via an Identity Resolving Key (IRK).<br>
+     * Either {@link BDAddressType#BDADDR_LE_PUBLIC} or {@link BDAddressType#BDADDR_LE_RANDOM} of sub-type {@link BLERandomAddressType#STATIC_PUBLIC}.
+     */
+    public boolean isIdentityLEAddress() {
+        if( BDAddressType.BDADDR_LE_RANDOM == type ) {
+            return BLERandomAddressType.STATIC_PUBLIC == getBLERandomAddressType();
+        } else {
+            return BDAddressType.BDADDR_LE_PUBLIC == type;
+        }
+    }
+
+    /**
+     * Returns true if this address and type refers to a static public identity address,
+     * which does not require address resolution via an Identity Resolving Key (IRK).<br>
+     * This includes {@link BDAddressType#BDADDR_LE_RANDOM} of sub-type {@link BLERandomAddressType#STATIC_PUBLIC}.
+     * <p>
+     * Returns false if this address is of type {@link BDAddressType#BDADDR_LE_RANDOM},
+     * excluding sub-type {@link BLERandomAddressType#STATIC_PUBLIC}
+     * and not of type {@link BDAddressType#BDADDR_LE_PUBLIC} or {@link BDAddressType#BDADDR_BREDR}.
+     * </p>
+     */
+    public boolean isIdentityAddress() {
+        if( BDAddressType.BDADDR_LE_RANDOM == type ) {
+            return BLERandomAddressType.STATIC_PUBLIC == getBLERandomAddressType();
+        } else {
+            return BDAddressType.BDADDR_LE_PUBLIC == type ||
+                   BDAddressType.BDADDR_BREDR == type;
+        }
     }
 
     /**

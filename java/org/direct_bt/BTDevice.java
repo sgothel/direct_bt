@@ -794,10 +794,26 @@ public interface BTDevice extends BTObject
     boolean equals(final Object obj);
 
     /**
-     * Returns the unique device {@link EUI48} address and {@link BDAddressType} type.
-     * @since 2.2.0
+     * Returns the devices' unique {@link EUI48} address and {@link BDAddressType} type tuple, might be its initially reported (resolvable) random address until pairing,
+     * i.e. {@link BDAddressType#BDADDR_LE_RANDOM} instead of {@link BDAddressType#BDADDR_LE_PUBLIC}.
+     * <p>
+     * After pairing or if the remote device uses a (static) public address,
+     * it is considered unique and {@link BDAddressType#BDADDR_LE_PUBLIC}.
+     * </p>
+     * @since 3.2.0
      */
     BDAddressAndType getAddressAndType();
+
+    /**
+     * Returns the devices' visible BDAddressAndType, i.e. {@link BDAddressType#BDADDR_LE_RANDOM} or {@link BDAddressType#BDADDR_LE_PUBLIC}.
+     * <p>
+     * The devices' address as initially reported by the system might be a (resolvable) random address,
+     * i.e. {@link BDAddressType#BDADDR_LE_RANDOM} instead of {@link BDAddressType#BDADDR_LE_PUBLIC}.
+     * </p>
+     * @since 3.2.8
+     * @see #getAddressAndType()
+     */
+    BDAddressAndType getVisibleAddressAndType();
 
     /**
      * Returns the remote device name.

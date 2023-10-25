@@ -290,10 +290,10 @@ class SMPKeyBin {
         constexpr BTSecurityLevel getSecLevel() const noexcept { return sec_level; }
         constexpr SMPIOCapability getIOCap() const noexcept { return io_cap; }
 
-        constexpr bool hasLTKInit() const noexcept { return ( SMPKeyType::ENC_KEY & keys_init ) != SMPKeyType::NONE; }
-        constexpr bool hasIRKInit() const noexcept { return ( SMPKeyType::ID_KEY & keys_init ) != SMPKeyType::NONE; }
-        constexpr bool hasCSRKInit() const noexcept { return ( SMPKeyType::SIGN_KEY & keys_init ) != SMPKeyType::NONE; }
-        constexpr bool hasLKInit() const noexcept { return ( SMPKeyType::LINK_KEY & keys_init ) != SMPKeyType::NONE; }
+        constexpr bool hasLTKInit() const noexcept { return is_set(keys_init, SMPKeyType::ENC_KEY); }
+        constexpr bool hasIRKInit() const noexcept { return is_set(keys_init, SMPKeyType::ID_KEY); }
+        constexpr bool hasCSRKInit() const noexcept { return is_set(keys_init, SMPKeyType::SIGN_KEY); }
+        constexpr bool hasLKInit() const noexcept { return is_set(keys_init, SMPKeyType::LINK_KEY); }
         constexpr const SMPLongTermKey& getLTKInit() const noexcept { return ltk_init; }
         constexpr const SMPIdentityResolvingKey& getIRKInit() const noexcept { return irk_init; }
         constexpr const SMPSignatureResolvingKey& getCSRKInit() const noexcept { return csrk_init; }
@@ -319,10 +319,10 @@ class SMPKeyBin {
             size = calcSize();
         }
 
-        constexpr bool hasLTKResp() const noexcept { return ( SMPKeyType::ENC_KEY & keys_resp ) != SMPKeyType::NONE; }
-        constexpr bool hasIRKResp() const noexcept { return ( SMPKeyType::ID_KEY & keys_resp ) != SMPKeyType::NONE; }
-        constexpr bool hasCSRKResp() const noexcept { return ( SMPKeyType::SIGN_KEY & keys_resp ) != SMPKeyType::NONE; }
-        constexpr bool hasLKResp() const noexcept { return ( SMPKeyType::LINK_KEY & keys_resp ) != SMPKeyType::NONE; }
+        constexpr bool hasLTKResp() const noexcept { return is_set(keys_resp, SMPKeyType::ENC_KEY); }
+        constexpr bool hasIRKResp() const noexcept { return is_set(keys_resp, SMPKeyType::ID_KEY); }
+        constexpr bool hasCSRKResp() const noexcept { return is_set(keys_resp, SMPKeyType::SIGN_KEY); }
+        constexpr bool hasLKResp() const noexcept { return is_set(keys_resp, SMPKeyType::LINK_KEY); }
         constexpr const SMPLongTermKey& getLTKResp() const noexcept { return ltk_resp; }
         constexpr const SMPIdentityResolvingKey& getIRKResp() const noexcept { return irk_resp; }
         constexpr const SMPSignatureResolvingKey& getCSRKResp() const noexcept { return csrk_resp; }

@@ -215,6 +215,33 @@ jstring Java_jau_direct_1bt_DBTDevice_toStringImpl(JNIEnv *env, jobject obj) {
     return nullptr;
 }
 
+jbyteArray Java_jau_direct_1bt_DBTDevice_getAddressImpl(JNIEnv *env, jobject obj) {
+    try {
+        shared_ptr_ref<BTDevice> device(env, obj); // hold until done
+        JavaAnonRef device_java = device->getJavaObject(); // hold until done!
+        JavaGlobalObj::check(device_java, E_FILE_LINE);
+        const EUI48 & addr = device->getAddressAndType().address;
+        jbyteArray jaddr = env->NewByteArray(sizeof(addr));
+        env->SetByteArrayRegion(jaddr, 0, sizeof(addr), (const jbyte*)(addr.b));
+        return jaddr;
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return nullptr;
+}
+
+jbyte Java_jau_direct_1bt_DBTDevice_getAddressTypeImpl(JNIEnv *env, jobject obj) {
+    try {
+        shared_ptr_ref<BTDevice> device(env, obj); // hold until done
+        JavaAnonRef device_java = device->getJavaObject(); // hold until done!
+        JavaGlobalObj::check(device_java, E_FILE_LINE);
+        return static_cast<jbyte>( number( device->getAddressAndType().type ) );
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return 0;
+}
+
 /*
  * Class:     jau_direct_bt_DBTDevice
  * Method:    addCharListenerImpl
