@@ -439,15 +439,6 @@ static void processReadyDevice(const BTDeviceRef& device) {
             fprintf_td(stderr, "****** Processing Ready Device: getServices() failed %s\n", device->toString().c_str());
             goto exit;
         }
-        {
-            const BTSecurityRegistry::Entry* sec = BTSecurityRegistry::getStartOf(device->getAddressAndType().address, device->getName());
-            if( nullptr != sec && sec->getPairingPasskey() != BTSecurityRegistry::Entry::NO_PASSKEY ) {
-                char pin[6+1];
-                snprintf(pin, sizeof(pin), "%06u", static_cast<uint32_t>( sec->getPairingPasskey() )%1000000_u32 );
-                // device->setPairingPasskey( static_cast<uint32_t>( sec->getPairingPasskey() ) );
-                device->setPairingPINCode( pin );
-            }
-        }
 
         const uint64_t t5 = jau::getCurrentMilliseconds();
         {
