@@ -836,6 +836,9 @@ bool BTDevice::updatePairingState(const std::shared_ptr<BTDevice>& sthis, const 
     // No encryption key will be overwritten by this update method, only initial setting allowed.
     // SMP encryption information always overrules.
 
+    if( SMPPairingState::FAILED == pairing_data.state ) { // no recovery from FAILED via SMP
+        claimed_state = SMPPairingState::FAILED;
+    }
     if( pairing_data.state != claimed_state ) {
         // Potentially force update PairingMode by forced state change, assuming being the initiator.
         switch( claimed_state ) {
@@ -1131,6 +1134,24 @@ bool BTDevice::updatePairingState(const std::shared_ptr<BTDevice>& sthis, const 
 
     // 5
     if( pairing_data.state != claimed_state ) {
+        if( is_device_ready && BTRole::Master == btRole &&
+            pairing_data.sec_level_user >= BTSecurityLevel::ENC_ONLY ) {
+            // Validate encryption and authentication requirements in server mode!
+            if( ( pairing_data.sec_level_user == BTSecurityLevel::ENC_ONLY &&
+                  pairing_data.sec_level_conn < BTSecurityLevel::ENC_ONLY ) ||
+
+                ( pairing_data.sec_level_user >= BTSecurityLevel::ENC_AUTH &&
+                  pairing_data.sec_level_conn < BTSecurityLevel::ENC_AUTH )
+              )
+            {
+                claimed_state = SMPPairingState::FAILED;
+                is_device_ready = false;
+                DBG_PRINT("BTDevice:updatePairingState:Sec-Failure: Requested Sec-Level %s > Actual %s",
+                        to_string(pairing_data.sec_level_user).c_str(),
+                        to_string(pairing_data.sec_level_conn).c_str());
+            }
+        }
+
         // 5b
         if( jau::environment::get().debug ) {
             jau::PLAIN_PRINT(false, "[%s] BTDevice::updatePairingState.5b: state %s -> %s, mode %s -> %s, ready %d, checkedPState %d",
@@ -1437,6 +1458,11 @@ void BTDevice::hciSMPMsgCallback(const std::shared_ptr<BTDevice>& sthis, const S
             break;
     }
 
+    if( SMPPairingState::FAILED == old_pstate ) { // no recovery from FAILED via SMP
+        pstate = SMPPairingState::FAILED;
+        check_pairing_complete = false;
+    }
+
     // 4
     if( check_pairing_complete && checkPairingKeyDistributionComplete() ) {
         pstate = SMPPairingState::COMPLETED;
@@ -1472,6 +1498,24 @@ void BTDevice::hciSMPMsgCallback(const std::shared_ptr<BTDevice>& sthis, const S
             jau::PLAIN_PRINT(false, "[%s] ", timestamp.c_str());
         }
         return;
+    }
+
+    if( is_device_ready && BTRole::Master == btRole &&
+        pairing_data.sec_level_user >= BTSecurityLevel::ENC_ONLY ) {
+        // Validate encryption and authentication requirements in server mode!
+        if( ( pairing_data.sec_level_user == BTSecurityLevel::ENC_ONLY &&
+              pairing_data.sec_level_conn < BTSecurityLevel::ENC_ONLY ) ||
+
+            ( pairing_data.sec_level_user >= BTSecurityLevel::ENC_AUTH &&
+              pairing_data.sec_level_conn < BTSecurityLevel::ENC_AUTH )
+          )
+        {
+            pstate = SMPPairingState::FAILED;
+            is_device_ready = false;
+            DBG_PRINT("BTDevice:hci:SMP:Sec-Failure: Requested Sec-Level %s > Actual %s",
+                    to_string(pairing_data.sec_level_user).c_str(),
+                    to_string(pairing_data.sec_level_conn).c_str());
+        }
     }
 
     // 5b
