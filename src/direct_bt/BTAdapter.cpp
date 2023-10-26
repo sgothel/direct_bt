@@ -1966,9 +1966,14 @@ jau::fraction_i64 BTAdapter::smp_timeoutfunc(jau::simple_timer& timer) {
     }
     device_list_t failed_devices;
     {
+        const bool useServerAuth = BTRole::Slave == getRole() &&
+                                   BTSecurityLevel::ENC_AUTH <= sec_level_server &&
+                                   hasSMPIOCapabilityAnyIO(io_cap_server);
+
         const std::lock_guard<std::mutex> lock(mtx_connectedDevices); // RAII-style acquire and relinquish via destructor
         jau::for_each_fidelity(connectedDevices, [&](BTDeviceRef& device) {
             if( device->isValidInstance() && device->getConnected() &&
+                !useServerAuth &&
                 BTSecurityLevel::NONE < device->getConnSecurityLevel() &&
                 SMPPairingState::KEY_DISTRIBUTION == device->pairing_data.state )
                 // isSMPPairingActive( device->pairing_data.state ) &&
