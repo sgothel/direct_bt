@@ -733,8 +733,7 @@ HCIStatusCode BTAdapter::setDefaultConnParam(const uint16_t conn_interval_min, c
 }
 
 void BTAdapter::setServerConnSecurity(const BTSecurityLevel sec_level, const SMPIOCapability io_cap) noexcept {
-    sec_level_server = sec_level;
-    io_cap_server = io_cap;
+    BTDevice::validateSecParam(sec_level, io_cap, sec_level_server, io_cap_server);
 }
 
 void BTAdapter::setSMPKeyPath(std::string path) noexcept {
@@ -1471,7 +1470,10 @@ void BTAdapter::removeDevice(BTDevice & device) noexcept {
     removeConnectedDevice(device); // usually done in BTAdapter::mgmtEvDeviceDisconnectedHCI
     removeDiscoveredDevice(device.addressAndType); // usually done in BTAdapter::mgmtEvDeviceDisconnectedHCI
     removeDevicePausingDiscovery(device);
-    removeSharedDevice(device);
+    if( device.getAvailableSMPKeys(false /* responder */) == SMPKeyType::NONE ) {
+        // Only remove from shared device list if not an initiator (LL master) having paired keys!
+        removeSharedDevice(device);
+    }
 
     if( _print_device_lists || jau::environment::get().verbose ) {
         jau::PLAIN_PRINT(true, "BTAdapter::removeDevice: End %s, %s", device.getAddressAndType().toString().c_str(), toString().c_str());
@@ -1563,13 +1565,20 @@ HCIStatusCode BTAdapter::startAdvertising(const DBGattServerRef& gattServerData_
     }
     if constexpr ( USE_LINUX_BT_SECURITY ) {
         SMPIOCapability pre_io_cap { SMPIOCapability::UNSET };
-        // SMPIOCapability new_io_cap { SMPIOCapability::DISPLAY_ONLY };
-        SMPIOCapability new_io_cap { SMPIOCapability::NO_INPUT_NO_OUTPUT };
+        SMPIOCapability new_io_cap = SMPIOCapability::UNSET != io_cap_server ? io_cap_server : SMPIOCapability::NO_INPUT_NO_OUTPUT;
         const bool res_iocap = mgmt->setIOCapability(dev_id, new_io_cap, pre_io_cap);
         DBG_PRINT("BTAdapter::startAdvertising: dev_id %u, setIOCapability[%s -> %s]: result %d",
             dev_id, to_string(pre_io_cap).c_str(), to_string(new_io_cap).c_str(), res_iocap);
     }
+    DBG_PRINT("BTAdapter::startAdvertising.1: dev_id %u, %s", dev_id, toString().c_str());
+    l2cap_service.stop();
     l2cap_service.start();
+
+    if( !l2cap_att_srv.is_open() ) {
+        ERR_PRINT("l2cap_service failed: %s", toString(true).c_str());
+        l2cap_service.stop();
+        return HCIStatusCode::INTERNAL_FAILURE;
+    }
 
     // set minimum ...
     eir.addFlags(GAPFlags::LE_Gen_Disc);
@@ -1600,6 +1609,7 @@ HCIStatusCode BTAdapter::startAdvertising(const DBGattServerRef& gattServerData_
     } else {
         gattServerData = gattServerData_;
         btRole = BTRole::Slave;
+        DBG_PRINT("BTAdapter::startAdvertising.OK: dev_id %u, %s", dev_id, toString().c_str());
     }
     return status;
 }
@@ -1905,7 +1915,7 @@ void BTAdapter::l2capServerEnd(jau::service_runner& sr) noexcept {
 void BTAdapter::l2capServerWork(jau::service_runner& sr) noexcept {
     (void)sr;
     std::unique_ptr<L2CAPClient> l2cap_att_ = l2cap_att_srv.accept();
-    if( BTRole::Slave == getRole() && nullptr != l2cap_att_ && l2cap_att_->getRemoteAddressAndType().isIdentityLEAddress() ) {
+    if( BTRole::Slave == getRole() && nullptr != l2cap_att_ && l2cap_att_->getRemoteAddressAndType().isLEAddress() ) {
         DBG_PRINT("L2CAP-ACCEPT: BTAdapter::l2capServer connected.1: (public) %s", l2cap_att_->toString().c_str());
 
         std::unique_lock<std::mutex> lock(mtx_l2cap_att); // RAII-style acquire and relinquish via destructor
@@ -1921,29 +1931,31 @@ void BTAdapter::l2capServerWork(jau::service_runner& sr) noexcept {
 }
 
 std::unique_ptr<L2CAPClient> BTAdapter::get_l2cap_connection(const std::shared_ptr<BTDevice>& device) {
-    if( BTRole::Slave == getRole() ) {
-        const BDAddressAndType& clientAddrAndType = device->getAddressAndType();
-        const jau::fraction_i64 timeout = L2CAP_CLIENT_CONNECT_TIMEOUT_MS;
+    if( BTRole::Slave != getRole() ) {
+        DBG_PRINT("L2CAP-ACCEPT: BTAdapter:get_l2cap_connection(dev_id %d): Not in server mode", dev_id);
+        return nullptr;
+    }
+    const jau::fraction_i64 timeout = L2CAP_CLIENT_CONNECT_TIMEOUT_MS;
 
-        std::unique_lock<std::mutex> lock(mtx_l2cap_att); // RAII-style acquire and relinquish via destructor
-        const jau::fraction_timespec timeout_time = jau::getMonotonicTime() + jau::fraction_timespec(timeout);
-        while( device->getConnected() && ( nullptr == l2cap_att || l2cap_att->getRemoteAddressAndType() != clientAddrAndType ) ) {
-            std::cv_status s = wait_until(cv_l2cap_att, lock, timeout_time);
-            if( std::cv_status::timeout == s && ( nullptr == l2cap_att || l2cap_att->getRemoteAddressAndType() != clientAddrAndType ) ) {
-                DBG_PRINT("L2CAP-ACCEPT: BTAdapter:get_l2cap_connection(dev_id %d): l2cap_att TIMEOUT", dev_id);
-                return nullptr;
-            }
-        }
-        if( nullptr != l2cap_att ) {
-            std::unique_ptr<L2CAPClient> l2cap_att_ = std::move( l2cap_att );
-            DBG_PRINT("L2CAP-ACCEPT: BTAdapter:get_l2cap_connection(dev_id %d): l2cap_att %s", dev_id, l2cap_att_->toString().c_str());
-            return l2cap_att_; // copy elision
-        } else {
-            DBG_PRINT("L2CAP-ACCEPT: BTAdapter:get_l2cap_connection(dev_id %d): Might got disconnected", dev_id);
+    std::unique_lock<std::mutex> lock(mtx_l2cap_att); // RAII-style acquire and relinquish via destructor
+    const jau::fraction_timespec timeout_time = jau::getMonotonicTime() + jau::fraction_timespec(timeout);
+    while( device->getConnected() && ( nullptr == l2cap_att || l2cap_att->getRemoteAddressAndType() != device->getAddressAndType() ) ) {
+        std::cv_status s = wait_until(cv_l2cap_att, lock, timeout_time);
+        if( std::cv_status::timeout == s && ( nullptr == l2cap_att || l2cap_att->getRemoteAddressAndType() != device->getAddressAndType() ) ) {
+            DBG_PRINT("L2CAP-ACCEPT: BTAdapter:get_l2cap_connection(dev_id %d): l2cap_att TIMEOUT", dev_id);
             return nullptr;
         }
+    }
+    if( nullptr != l2cap_att && l2cap_att->getRemoteAddressAndType() == device->getAddressAndType() ) {
+        std::unique_ptr<L2CAPClient> l2cap_att_ = std::move( l2cap_att );
+        DBG_PRINT("L2CAP-ACCEPT: BTAdapter:get_l2cap_connection(dev_id %d): Accept: l2cap_att %s", dev_id, l2cap_att_->toString().c_str());
+        return l2cap_att_; // copy elision
+    } else if( nullptr != l2cap_att ) {
+        std::unique_ptr<L2CAPClient> l2cap_att_ = std::move( l2cap_att );
+        DBG_PRINT("L2CAP-ACCEPT: BTAdapter:get_l2cap_connection(dev_id %d): Ignore: l2cap_att %s", dev_id, l2cap_att_->toString().c_str());
+        return nullptr;
     } else {
-        DBG_PRINT("L2CAP-ACCEPT: BTAdapter:get_l2cap_connection(dev_id %d): Not in server mode", dev_id);
+        DBG_PRINT("L2CAP-ACCEPT: BTAdapter:get_l2cap_connection(dev_id %d): Null: Might got disconnected", dev_id);
         return nullptr;
     }
 }
@@ -2064,7 +2076,7 @@ void BTAdapter::mgmtEvDeviceConnectedHCI(const MgmtEvent& e) noexcept {
         }
     }
 
-    const SMPIOCapability io_cap_conn = mgmt->getIOCapability(dev_id);
+    const SMPIOCapability io_cap_has = mgmt->getIOCapability(dev_id);
 
     EIRDataType updateMask = device->update(ad_report);
     if( 0 == new_connect ) {
@@ -2082,12 +2094,11 @@ void BTAdapter::mgmtEvDeviceConnectedHCI(const MgmtEvent& e) noexcept {
             device->toString().c_str());
     }
 
-    if( BTRole::Slave == getRole() && !has_smp_keys ) {
-        // Skipped if has_smp_key,
-        // where BTDevice::uploadKeys() -> BTDevice::setSMPKeyBin() was performed at disconnected tuning the security setup.
+    if( BTRole::Slave == getRole() ) {
+        // filters and sets device->pairing_data.{sec_level_user, ioCap_user}
         device->setConnSecurity(sec_level_server, io_cap_server);
     }
-    device->notifyConnected(device, event.getHCIHandle(), io_cap_conn);
+    device->notifyConnected(device, event.getHCIHandle(), io_cap_has);
 
     if( device->isConnSecurityAutoEnabled() ) {
         new_connect = 0; // disable deviceConnected() events for BTRole::Master for SMP-Auto
@@ -2739,6 +2750,7 @@ void BTAdapter::sendDevicePairingState(const BTDeviceRef& device, const SMPPairi
                 // newly paired -> store keys
                 SMPKeyBin key = SMPKeyBin::create(*device);
                 if( key.isValid() ) {
+                    DBG_PRINT("sendDevicePairingState (dev_id %d): created SMPKeyBin: %s", dev_id, key.toString().c_str());
                     addSMPKeyBin( std::make_shared<SMPKeyBin>(key), true /* write_file */ );
                 } else {
                     WARN_PRINT("(dev_id %d): created SMPKeyBin invalid: %s", dev_id, key.toString().c_str());

@@ -142,8 +142,8 @@ std::string BTDevice::toString(bool includeDiscoveredServices) const noexcept {
             "'], age[total "+std::to_string(t0-ts_creation)+", ldisc "+std::to_string(t0-ts_last_discovery)+", lup "+std::to_string(t0-ts_last_update)+
             "]ms, connected["+std::to_string(allowDisconnect)+"/"+std::to_string(isConnected)+", handle "+jau::to_hexstring(hciConnHandle)+
             ", phy[Tx "+direct_bt::to_string(le_phy_tx)+", Rx "+direct_bt::to_string(le_phy_rx)+
-            "], sec[enc "+std::to_string(pairing_data.encryption_enabled)+", lvl "+to_string(pairing_data.sec_level_conn)+", io "+to_string(pairing_data.ioCap_conn)+
-            ", auto "+to_string(pairing_data.ioCap_auto)+", pairing "+to_string(pairing_data.mode)+", state "+to_string(pairing_data.state)+
+            "], sec[enc "+std::to_string(pairing_data.encryption_enabled)+", lvl "+to_string(pairing_data.sec_level_conn)+", io "+to_string(pairing_data.io_cap_conn)+
+            ", auto "+to_string(pairing_data.io_cap_auto)+", pairing "+to_string(pairing_data.mode)+", state "+to_string(pairing_data.state)+
             ", sc "+std::to_string(pairing_data.use_sc)+"]], rssi "+std::to_string(getRSSI())+
             ", tx-power "+std::to_string(tx_power)+eir_s+
             ", "+javaObjectToString()+"]");
@@ -377,12 +377,12 @@ HCIStatusCode BTDevice::connectLE(const uint16_t le_scan_interval, const uint16_
     }
 
     HCIStatusCode statusConnect; // HCI le_create_conn result
-    const SMPIOCapability smp_auto_io_cap = pairing_data.ioCap_auto; // cache against clearSMPState
+    const SMPIOCapability smp_auto_io_cap = pairing_data.io_cap_auto; // cache against clearSMPState
     const bool smp_auto = SMPIOCapability::UNSET != smp_auto_io_cap; // logical cached state
     bool smp_auto_done = !smp_auto;
     int smp_auto_count = 0;
     BTSecurityLevel sec_level = pairing_data.sec_level_user; // iterate down
-    SMPIOCapability io_cap = pairing_data.ioCap_user; // iterate down
+    SMPIOCapability io_cap = pairing_data.io_cap_user; // iterate down
     SMPPairingState pstate = SMPPairingState::NONE;
 
     do {
@@ -411,9 +411,9 @@ HCIStatusCode BTDevice::connectLE(const uint16_t le_scan_interval, const uint16_
                 io_cap    = SMPIOCapability::NO_INPUT_NO_OUTPUT;
                 smp_auto_done = true;
             }
-            pairing_data.ioCap_auto = smp_auto_io_cap; // reload against clearSMPState
+            pairing_data.io_cap_auto = smp_auto_io_cap; // reload against clearSMPState
             pairing_data.sec_level_user = sec_level;
-            pairing_data.ioCap_user = io_cap;
+            pairing_data.io_cap_user = io_cap;
             DBG_PRINT("BTDevice::connectLE: SEC AUTO.%d.1: lvl %s -> %s, io %s -> %s, %s", smp_auto_count,
                 to_string(sec_level_pre).c_str(), to_string(sec_level).c_str(),
                 to_string(io_cap_pre).c_str(), to_string(io_cap).c_str(),
@@ -422,7 +422,7 @@ HCIStatusCode BTDevice::connectLE(const uint16_t le_scan_interval, const uint16_
 
         {
             jau::sc_atomic_critical sync(sync_data);
-            if( !adapter.lockConnect(*this, true /* wait */, pairing_data.ioCap_user) ) {
+            if( !adapter.lockConnect(*this, true /* wait */, pairing_data.io_cap_user) ) {
                 ERR_PRINT("adapter::lockConnect() failed: %s", toString().c_str());
                 return HCIStatusCode::INTERNAL_FAILURE;
             }
@@ -463,7 +463,7 @@ HCIStatusCode BTDevice::connectLE(const uint16_t le_scan_interval, const uint16_
                         // timeout
                         ERR_PRINT("SEC AUTO.%d.X Timeout SMPPairing: Disconnecting %s", smp_auto_count, toString().c_str());
                         smp_auto_done = true;
-                        pairing_data.ioCap_auto = SMPIOCapability::UNSET;
+                        pairing_data.io_cap_auto = SMPIOCapability::UNSET;
                         pairing_timeout = true;
                         break;
                     }
@@ -473,7 +473,7 @@ HCIStatusCode BTDevice::connectLE(const uint16_t le_scan_interval, const uint16_
                         smp_auto_count, to_string(pstate).c_str(), toString().c_str());
             }
             if( pairing_timeout ) {
-                pairing_data.ioCap_auto = SMPIOCapability::UNSET;
+                pairing_data.io_cap_auto = SMPIOCapability::UNSET;
                 disconnect(HCIStatusCode::AUTHENTICATION_FAILURE);
                 statusConnect = HCIStatusCode::INTERNAL_TIMEOUT;
                 adapter.unlockConnect(*this);
@@ -500,7 +500,7 @@ HCIStatusCode BTDevice::connectLE(const uint16_t le_scan_interval, const uint16_
                         // timeout
                         ERR_PRINT("SEC AUTO.%d.4 Timeout Disconnect td_pairing %" PRIi64 " ms: %s",
                                 smp_auto_count, td_disconnect.to_ms(), toString().c_str());
-                        pairing_data.ioCap_auto = SMPIOCapability::UNSET;
+                        pairing_data.io_cap_auto = SMPIOCapability::UNSET;
                         statusConnect = HCIStatusCode::INTERNAL_TIMEOUT;
                         adapter.unlockConnect(*this);
                         smp_auto_done = true;
@@ -513,11 +513,11 @@ HCIStatusCode BTDevice::connectLE(const uint16_t le_scan_interval, const uint16_
         jau::sc_atomic_critical sync(sync_data);
         if( HCIStatusCode::SUCCESS == statusConnect && SMPPairingState::FAILED == pstate ) {
             ERR_PRINT("SEC AUTO.%d.X Failed SMPPairing -> Disconnect: %s", smp_auto_count, toString().c_str());
-            pairing_data.ioCap_auto = SMPIOCapability::UNSET;
+            pairing_data.io_cap_auto = SMPIOCapability::UNSET;
             disconnect(HCIStatusCode::AUTHENTICATION_FAILURE);
             statusConnect = HCIStatusCode::AUTH_FAILED;
         }
-        pairing_data.ioCap_auto = SMPIOCapability::UNSET; // always clear post-auto-action: Allow normal notification.
+        pairing_data.io_cap_auto = SMPIOCapability::UNSET; // always clear post-auto-action: Allow normal notification.
     }
     return statusConnect;
 }
@@ -547,7 +547,7 @@ HCIStatusCode BTDevice::connectBREDR(const uint16_t pkt_type, const uint16_t clo
 
     {
         jau::sc_atomic_critical sync(sync_data);
-        if( !adapter.lockConnect(*this, true /* wait */, pairing_data.ioCap_user) ) {
+        if( !adapter.lockConnect(*this, true /* wait */, pairing_data.io_cap_user) ) {
             ERR_PRINT("adapter::lockConnect() failed: %s", toString().c_str());
             return HCIStatusCode::INTERNAL_FAILURE;
         }
@@ -577,35 +577,41 @@ HCIStatusCode BTDevice::connectDefault() noexcept
     }
 }
 
-void BTDevice::notifyConnected(const std::shared_ptr<BTDevice>& sthis, const uint16_t handle, const SMPIOCapability io_cap) noexcept {
-    // coming from connected callback, update state and spawn-off connectGATT in background if appropriate (LE)
+void BTDevice::notifyConnected(const std::shared_ptr<BTDevice>& sthis, const uint16_t handle, const SMPIOCapability io_cap_has) noexcept {
+    // coming from connected callback, update states including pairing_data.ioCap_conn
     jau::sc_atomic_critical sync(sync_data);
-    DBG_PRINT("BTDevice::notifyConnected: Start: handle %s -> %s, io %s -> %s, %s",
+    DBG_PRINT("BTDevice::notifyConnected: Start: handle %s -> %s, io %s / %s -> %s, %s",
               jau::to_hexstring(hciConnHandle).c_str(), jau::to_hexstring(handle).c_str(),
-              to_string(pairing_data.ioCap_conn).c_str(), to_string(io_cap).c_str(),
+              to_string(pairing_data.io_cap_conn).c_str(), to_string(io_cap_has).c_str(), to_string(pairing_data.io_cap_user).c_str(),
               toString().c_str());
     allowDisconnect = true;
     isConnected = true;
     hciConnHandle = handle;
-    SMPIOCapability io_cap_pre = pairing_data.ioCap_conn;
-    if( SMPIOCapability::UNSET == pairing_data.ioCap_conn ) {
-        pairing_data.ioCap_conn = io_cap;
+    SMPIOCapability io_cap_pre = pairing_data.io_cap_conn;
+    if( SMPIOCapability::UNSET == pairing_data.io_cap_conn ) { // Exclusion for smp-auto mode
+        pairing_data.io_cap_conn = io_cap_has;
     }
-    DBG_PRINT("BTDevice::notifyConnected: End: io_cap %s: %s -> %s, %s",
-            to_string(io_cap).c_str(),
+    DBG_PRINT("BTDevice::notifyConnected: End: io_cap %s: %s / %s -> %s, %s",
+            to_string(pairing_data.io_cap_user).c_str(),
             to_string(io_cap_pre).c_str(),
-            to_string(pairing_data.ioCap_conn).c_str(),
+            to_string(io_cap_has).c_str(),
+            to_string(pairing_data.io_cap_conn).c_str(),
             toString().c_str());
     (void)sthis; // not used yet
 }
 
 void BTDevice::notifyLEFeatures(const std::shared_ptr<BTDevice>& sthis, const LE_Features features) noexcept {
-    DBG_PRINT("BTDevice::notifyLEFeatures: %s -> %s, %s",
+    const bool is_local_server = BTRole::Master == btRole; // -> local GattRole::Server
+    bool enc_done, using_auth, is_pre_paired;
+    getSMPEncStatus(enc_done, using_auth, is_pre_paired);
+
+    DBG_PRINT("BTDevice::notifyLEFeatures: start[local_server %d, enc_done %d, auth %d, pre_paired %d]: %s -> %s, %s",
+            is_local_server, enc_done, using_auth, is_pre_paired,
             direct_bt::to_string(le_features).c_str(),
             direct_bt::to_string(features).c_str(),
             toString().c_str());
+
     le_features = features;
-    const bool is_local_server = BTRole::Master == btRole; // -> local GattRole::Server
     if( addressAndType.isLEAddress() && ( !l2cap_att->is_open() || is_local_server ) ) {
         std::thread bg(&BTDevice::processL2CAPSetup, this, sthis); // @suppress("Invalid arguments")
         bg.detach();
@@ -633,29 +639,12 @@ void BTDevice::processL2CAPSetup(std::shared_ptr<BTDevice> sthis) { // NOLINT(pe
 
         DBG_PRINT("BTDevice::processL2CAPSetup: Start dev_id %u, %s", adapter.dev_id, toString().c_str());
 
-        const BTSecurityLevel sec_level_user = pairing_data.sec_level_user;
-        const SMPIOCapability io_cap_conn = pairing_data.ioCap_conn;
-        BTSecurityLevel sec_level { BTSecurityLevel::UNSET };
+        BTSecurityLevel sec_level;
+        SMPIOCapability io_cap;
+        validateConnectedSecParam(sec_level, io_cap);
 
-        const bool responderLikesEncryption = pairing_data.res_requested_sec || is_set(le_features, LE_Features::LE_Encryption);
-        if( BTSecurityLevel::UNSET != sec_level_user ) {
-            sec_level = sec_level_user;
-        } else if( responderLikesEncryption && SMPIOCapability::UNSET != io_cap_conn ) {
-            if( SMPIOCapability::NO_INPUT_NO_OUTPUT == io_cap_conn ) {
-                sec_level = BTSecurityLevel::ENC_ONLY; // no auth w/o I/O
-            } else if( adapter.hasSecureConnections() ) {
-                sec_level = BTSecurityLevel::ENC_AUTH_FIPS;
-            } else {
-                sec_level = BTSecurityLevel::ENC_AUTH;
-            }
-        } else {
-            sec_level = BTSecurityLevel::NONE;
-        }
         pairing_data.sec_level_conn = sec_level;
-        DBG_PRINT("BTDevice::processL2CAPSetup: dev_id %u, sec_level_user %s, io_cap_conn %s -> sec_level %s",
-                adapter.dev_id, to_string(sec_level_user).c_str(),
-                to_string(io_cap_conn).c_str(),
-                to_string(sec_level).c_str());
+        // pairing_data.io_cap_conn = io_cap; // unchanged
 
         bool l2cap_open;
         if( is_local_server ) {
@@ -679,16 +668,16 @@ void BTDevice::processL2CAPSetup(std::shared_ptr<BTDevice> sthis) { // NOLINT(pe
         }
         const bool l2cap_enc = l2cap_open && BTSecurityLevel::NONE < sec_level;
 
-        const bool smp_enc = SMP_SUPPORTED_BY_OS ? connectSMP(sthis, sec_level) && BTSecurityLevel::NONE < sec_level : false;
+        const bool own_smp = SMP_SUPPORTED_BY_OS ? connectSMP(sthis, sec_level) && BTSecurityLevel::NONE < sec_level : false;
 
-        DBG_PRINT("BTDevice::processL2CAPSetup: dev_id %u, lvl %s, connect[smp_enc %d, l2cap[open %d, enc %d]]",
-                adapter.dev_id, to_string(sec_level).c_str(), smp_enc, l2cap_open, l2cap_enc);
+        DBG_PRINT("BTDevice::processL2CAPSetup: dev_id %u, lvl %s, connect[own_smp %d, l2cap[open %d, enc %d]]",
+                adapter.dev_id, to_string(sec_level).c_str(), own_smp, l2cap_open, l2cap_enc);
 
         adapter.unlockConnect(*this);
 
         if( !l2cap_open ) {
             pairing_data.sec_level_conn = BTSecurityLevel::NONE;
-            const SMPIOCapability smp_auto_io_cap = pairing_data.ioCap_auto; // cache against clearSMPState
+            const SMPIOCapability smp_auto_io_cap = pairing_data.io_cap_auto; // cache against clearSMPState
             smp_auto = SMPIOCapability::UNSET != smp_auto_io_cap; // logical cached state
             if( smp_auto ) {
                 pairing_data.mode = PairingMode::NONE;
@@ -713,18 +702,29 @@ void BTDevice::processL2CAPSetup(std::shared_ptr<BTDevice> sthis) { // NOLINT(pe
             adapter.dev_id, callDisconnect, callProcessDeviceReady, smp_auto, toString().c_str());
 }
 
-void BTDevice::processDeviceReady(std::shared_ptr<BTDevice> sthis, const uint64_t timestamp) { // NOLINT(performance-unnecessary-value-param): Pass-by-value out-of-thread
-    DBG_PRINT("BTDevice::processDeviceReady: %s", toString().c_str());
+void BTDevice::getSMPEncStatus(bool& enc_done, bool& using_auth, bool& is_pre_paired) {
+    BTSecurityLevel sec_level;
     PairingMode pmode;
     SMPPairingState pstate;
     {
         jau::sc_atomic_critical sync(sync_data);
+        sec_level = pairing_data.sec_level_conn;
         pmode = pairing_data.mode;
         pstate = pairing_data.state;
     }
-    HCIStatusCode unpair_res = HCIStatusCode::UNKNOWN;
+    is_pre_paired = PairingMode::PRE_PAIRED == pmode;
+    enc_done = is_pre_paired || SMPPairingState::COMPLETED == pstate;
+    using_auth = BTSecurityLevel::ENC_AUTH <= sec_level;
+}
 
-    const bool using_enc = PairingMode::PRE_PAIRED == pmode || SMPPairingState::COMPLETED == pstate;
+void BTDevice::processDeviceReady(std::shared_ptr<BTDevice> sthis, const uint64_t timestamp) { // NOLINT(performance-unnecessary-value-param): Pass-by-value out-of-thread
+    const bool is_local_server = BTRole::Master == btRole; // -> local GattRole::Server
+    bool enc_done, using_auth, is_pre_paired;
+    getSMPEncStatus(enc_done, using_auth, is_pre_paired);
+
+    DBG_PRINT("BTDevice::processDeviceReady: start[local_server %d, enc_done %d, auth %d, pre_paired %d], %s",
+            is_local_server, enc_done, using_auth, is_pre_paired, toString().c_str());
+
     if( BTRole::Slave == btRole ) { // -> local GattRole::Client
         /**
          * Give remote slave (peripheral, Gatt-Server) 'some time'
@@ -733,7 +733,7 @@ void BTDevice::processDeviceReady(std::shared_ptr<BTDevice> sthis, const uint64_
          * We give the Gatt-Server a slightly longer period
          * after newly paired encryption keys.
          */
-        if( using_enc && PairingMode::PRE_PAIRED != pmode ) {
+        if( enc_done && !is_pre_paired ) {
             // newly paired keys
             std::this_thread::sleep_for(std::chrono::milliseconds(150));
         } else {
@@ -741,14 +741,16 @@ void BTDevice::processDeviceReady(std::shared_ptr<BTDevice> sthis, const uint64_
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
     }
+
+    HCIStatusCode unpair_res = HCIStatusCode::UNKNOWN;
     const bool gatt_res = connectGATT(sthis);
 
-    if( !gatt_res && using_enc ) {
+    if( !gatt_res && enc_done ) {
         // Need to repair as GATT communication failed
         unpair_res = unpair();
     }
-    DBG_PRINT("BTDevice::processDeviceReady: ready[GATT %d, using_enc %d, unpair %s], %s",
-            gatt_res, using_enc, to_string(unpair_res).c_str(), toString().c_str());
+    DBG_PRINT("BTDevice::processDeviceReady: done[GATT %d, unpair %s], %s",
+            gatt_res, to_string(unpair_res).c_str(), toString().c_str());
 
     if( gatt_res ) {
         adapter.sendDeviceReady(sthis, timestamp);
@@ -783,7 +785,8 @@ std::string BTDevice::PairingData::toString(const uint16_t dev_id, const BDAddre
                   ", Responder-Req "+std::to_string(res_requested_sec)+"\n");
     res.append("  Setup:\n");
     res.append("  - SC "+std::to_string(use_sc)+"\n");
-    res.append("  - IOCap conn "+to_string(ioCap_conn)+", user "+to_string(ioCap_user)+", auto "+to_string(ioCap_auto)+"\n");
+    res.append("  - Pre-Paired "+std::to_string(is_pre_paired)+"\n");
+    res.append("  - IOCap conn "+to_string(io_cap_conn)+", user "+to_string(io_cap_user)+", auto "+to_string(io_cap_auto)+"\n");
     res.append("  - Level conn "+to_string(sec_level_conn)+", user "+to_string(sec_level_user)+"\n");
     res.append("  Initiator (master) Set:\n");
     res.append("  - OOB   "+to_string(oobFlag_init)+"\n");
@@ -822,7 +825,7 @@ bool BTDevice::updatePairingState(const std::shared_ptr<BTDevice>& sthis, const 
         jau::PLAIN_PRINT(false, "[%s] %s", timestamp.c_str(), evt.toString().c_str());
     }
 
-    const SMPIOCapability iocap = pairing_data.ioCap_conn;
+    const SMPIOCapability iocap = pairing_data.io_cap_conn;
     const MgmtEvent::Opcode mgmtEvtOpcode = evt.getOpcode();
     PairingMode mode = pairing_data.mode;
     bool check_pairing_complete = false;
@@ -1116,7 +1119,9 @@ bool BTDevice::updatePairingState(const std::shared_ptr<BTDevice>& sthis, const 
 
         if( !is_device_ready && check_pairing_complete ) {
             is_device_ready = checkPairingKeyDistributionComplete();
-            if( !is_device_ready ) {
+            if( is_device_ready ) {
+                pairing_data.is_pre_paired = true;
+            } else {
                 claimed_state = pairing_data.state; // not yet
             }
         }
@@ -1434,6 +1439,7 @@ void BTDevice::hciSMPMsgCallback(const std::shared_ptr<BTDevice>& sthis, const S
     if( check_pairing_complete && checkPairingKeyDistributionComplete() ) {
         pstate = SMPPairingState::COMPLETED;
         is_device_ready = true;
+        pairing_data.is_pre_paired = true;
     }
 
     if( jau::environment::get().debug ) {
@@ -1540,7 +1546,7 @@ bool BTDevice::setSMPKeyBin(const SMPKeyBin& bin) noexcept {
     }
 
     {
-        if( SMPIOCapability::UNSET != pairing_data.ioCap_auto ||
+        if( SMPIOCapability::UNSET != pairing_data.io_cap_auto ||
             ( SMPPairingState::COMPLETED != pairing_data.state &&
               SMPPairingState::NONE != pairing_data.state ) )
         {
@@ -1550,9 +1556,10 @@ bool BTDevice::setSMPKeyBin(const SMPKeyBin& bin) noexcept {
 
         const BTSecurityLevel applySecLevel = BTSecurityLevel::NONE == bin.getSecLevel() ?
                                               BTSecurityLevel::NONE : BTSecurityLevel::ENC_ONLY;
-        pairing_data.ioCap_user = SMPIOCapability::NO_INPUT_NO_OUTPUT;
+        pairing_data.is_pre_paired = true;
+        pairing_data.io_cap_user = SMPIOCapability::NO_INPUT_NO_OUTPUT;
         pairing_data.sec_level_user = applySecLevel;
-        pairing_data.ioCap_auto = SMPIOCapability::UNSET; // disable auto
+        pairing_data.io_cap_auto = SMPIOCapability::UNSET; // disable auto
     }
     pairing_data.use_sc = bin.uses_SC();
 
@@ -1752,7 +1759,82 @@ BTSecurityLevel BTDevice::getConnSecurityLevel() const noexcept {
 
 SMPIOCapability BTDevice::getConnIOCapability() const noexcept {
     jau::sc_atomic_critical sync(sync_data);
-    return pairing_data.ioCap_conn;
+    return pairing_data.io_cap_conn;
+}
+
+void BTDevice::validateConnectedSecParam(BTSecurityLevel& res_sec_level, SMPIOCapability& res_io_cap) const noexcept {
+    const BTSecurityLevel sec_level_conn = pairing_data.sec_level_conn;
+    const SMPIOCapability io_cap_conn = pairing_data.io_cap_conn;
+
+    // Connection is already established, hence io_cap immutable
+    res_io_cap = io_cap_conn;
+
+    if( sec_level_conn != BTSecurityLevel::UNSET ) {
+        DBG_PRINT("BTDevice::validateConnectedSecParam: dev_id %u, sec_lvl %s, io_cap %s (preset)", adapter.dev_id,
+                to_string(sec_level_conn).c_str(),
+                to_string(io_cap_conn).c_str());
+        res_sec_level = sec_level_conn;
+        return;
+    }
+    const BTSecurityLevel sec_level_user = pairing_data.sec_level_user;
+    const SMPIOCapability io_cap_user = pairing_data.io_cap_user;
+
+    const bool responderLikesEncryption = pairing_data.res_requested_sec || is_set(le_features, LE_Features::LE_Encryption);
+    if( BTSecurityLevel::UNSET != sec_level_user ) {
+        // Prio set and validated user values even over remote device caps
+        res_sec_level = sec_level_user;
+    } else if( responderLikesEncryption ) {
+        // No preset, but remote likes encryption
+        if( hasSMPIOCapabilityAnyIO( io_cap_conn ) ) {
+            if( adapter.hasSecureConnections() ) {
+                res_sec_level = BTSecurityLevel::ENC_AUTH_FIPS;
+            } else {
+                res_sec_level = BTSecurityLevel::ENC_AUTH;
+            }
+        } else {
+            res_sec_level = BTSecurityLevel::ENC_ONLY;
+        }
+    } else {
+        res_sec_level = BTSecurityLevel::NONE;
+    }
+
+    DBG_PRINT("BTDevice::validateConnectedSecParam: dev_id %u, user[sec_lvl %s, io_cap %s], conn[sec_lvl %s, io_cap %s] -> sec_lvl %s, io_cap %s",
+            adapter.dev_id,
+            to_string(sec_level_user).c_str(), to_string(io_cap_user).c_str(),
+            to_string(sec_level_conn).c_str(), to_string(io_cap_conn).c_str(),
+            to_string(res_sec_level).c_str(), to_string(res_io_cap).c_str());
+}
+
+void BTDevice::validateSecParam(const BTSecurityLevel sec_level, const SMPIOCapability io_cap,
+                                BTSecurityLevel& res_sec_level, SMPIOCapability& res_io_cap) noexcept
+{
+    if( BTSecurityLevel::UNSET < sec_level ) {
+        if( BTSecurityLevel::NONE == sec_level ||
+            BTSecurityLevel::ENC_ONLY == sec_level )
+        {
+            // No authentication, maybe encryption
+            res_sec_level = sec_level;
+            res_io_cap = SMPIOCapability::NO_INPUT_NO_OUTPUT;
+        } else if( hasSMPIOCapabilityAnyIO( io_cap ) ) {
+            // Authentication w/ IO
+            res_sec_level = sec_level;
+            res_io_cap = io_cap;
+        } else if( SMPIOCapability::NO_INPUT_NO_OUTPUT == io_cap ) {
+            // Fall back: auto -> encryption only
+            res_sec_level = BTSecurityLevel::ENC_ONLY;
+            res_io_cap = SMPIOCapability::NO_INPUT_NO_OUTPUT;
+        } else {
+            // Use auth w/ SMPIOCapability::UNSET
+            res_sec_level = sec_level;
+            res_io_cap = io_cap;
+        }
+    } else {
+        res_sec_level = BTSecurityLevel::UNSET;
+        res_io_cap = io_cap;
+    }
+    DBG_PRINT("BTDevice::validateSecurityParams: lvl %s -> %s, io %s -> %s",
+        to_string(sec_level).c_str(), to_string(res_sec_level).c_str(),
+        to_string(io_cap).c_str(), to_string(res_io_cap).c_str());
 }
 
 bool BTDevice::setConnSecurity(const BTSecurityLevel sec_level, const SMPIOCapability io_cap) noexcept {
@@ -1767,34 +1849,19 @@ bool BTDevice::setConnSecurity(const BTSecurityLevel sec_level, const SMPIOCapab
         return false;
     }
     jau::sc_atomic_critical sync(sync_data);
-    const bool res = true;
 
-    if( BTSecurityLevel::UNSET < sec_level && SMPIOCapability::UNSET != io_cap ) {
-        pairing_data.sec_level_user = sec_level;
-        pairing_data.ioCap_user = io_cap;
-    } else if( BTSecurityLevel::UNSET < sec_level ) {
-        if( BTSecurityLevel::ENC_ONLY >= sec_level ) {
-            pairing_data.sec_level_user = sec_level;
-            pairing_data.ioCap_user = SMPIOCapability::NO_INPUT_NO_OUTPUT;
-        } else {
-            pairing_data.sec_level_user = sec_level;
-            pairing_data.ioCap_user = SMPIOCapability::UNSET;
-        }
-    } else if( SMPIOCapability::UNSET != io_cap ) {
-        pairing_data.sec_level_user = BTSecurityLevel::UNSET;
-        pairing_data.ioCap_user = io_cap;
-    } else {
-        pairing_data.sec_level_user = BTSecurityLevel::UNSET;
-        pairing_data.ioCap_user = SMPIOCapability::UNSET;
+    if( !pairing_data.is_pre_paired ) {
+        validateSecParam(sec_level, io_cap, pairing_data.sec_level_user, pairing_data.io_cap_user);
     }
-    pairing_data.ioCap_auto = SMPIOCapability::UNSET; // disable auto
+    pairing_data.io_cap_auto = SMPIOCapability::UNSET; // disable auto
 
-    DBG_PRINT("BTDevice::setConnSecurity: dev_id %u, result %d: lvl %s -> %s, io %s -> %s, %s", res,
-        adapter.dev_id, to_string(sec_level).c_str(), to_string(pairing_data.sec_level_user).c_str(),
-        to_string(io_cap).c_str(), to_string(pairing_data.ioCap_user).c_str(),
+    DBG_PRINT("BTDevice::setConnSecurity: dev_id %u, pre-paired %d: lvl %s -> %s, io %s -> %s, %s",
+        adapter.dev_id, pairing_data.is_pre_paired,
+        to_string(sec_level).c_str(), to_string(pairing_data.sec_level_user).c_str(),
+        to_string(io_cap).c_str(), to_string(pairing_data.io_cap_user).c_str(),
         toString().c_str());
 
-    return res;
+    return true;
 }
 
 bool BTDevice::setConnSecurityAuto(const SMPIOCapability iocap_auto) noexcept {
@@ -1807,13 +1874,19 @@ bool BTDevice::setConnSecurityAuto(const SMPIOCapability iocap_auto) noexcept {
                 adapter.dev_id, to_string(iocap_auto).c_str(), toString().c_str());
         return false;
     }
+    if( pairing_data.is_pre_paired ) {
+        DBG_PRINT("BTDevice::setConnSecurityAuto: io %s failed, is pre-paired: %s",
+                to_string(iocap_auto).c_str(),
+                toString().c_str());
+        return false;
+    }
     if( BTSecurityLevel::UNSET != pairing_data.sec_level_user ||
-        SMPIOCapability::UNSET != pairing_data.ioCap_user )
+        SMPIOCapability::UNSET != pairing_data.io_cap_user )
     {
         DBG_PRINT("BTDevice::setConnSecurityAuto: io %s failed, user connection sec_level %s or io %s set %s",
                 to_string(iocap_auto).c_str(),
                 to_string(pairing_data.sec_level_user).c_str(),
-                to_string(pairing_data.ioCap_user).c_str(),
+                to_string(pairing_data.io_cap_user).c_str(),
                 toString().c_str());
         return false;
     }
@@ -1825,7 +1898,7 @@ bool BTDevice::setConnSecurityAuto(const SMPIOCapability iocap_auto) noexcept {
 
     jau::sc_atomic_critical sync(sync_data);
     const bool res = true;
-    pairing_data.ioCap_auto = iocap_auto;
+    pairing_data.io_cap_auto = iocap_auto;
     DBG_PRINT("BTDevice::setConnSecurityAuto: result %d: io %s, %s", res,
             to_string(iocap_auto).c_str(), toString().c_str());
     return res;
@@ -1833,7 +1906,7 @@ bool BTDevice::setConnSecurityAuto(const SMPIOCapability iocap_auto) noexcept {
 
 bool BTDevice::isConnSecurityAutoEnabled() const noexcept {
     jau::sc_atomic_critical sync(sync_data);
-    return SMPIOCapability::UNSET != pairing_data.ioCap_auto;
+    return SMPIOCapability::UNSET != pairing_data.io_cap_auto;
 }
 
 HCIStatusCode BTDevice::setPairingPINCode(const std::string& pinCode) noexcept {
@@ -1961,13 +2034,14 @@ void BTDevice::clearSMPStates(const bool connected) noexcept {
 
     if( !connected ) {
         // needs to survive connected, or will be set right @ connected
-        pairing_data.ioCap_user = SMPIOCapability::UNSET;
-        pairing_data.ioCap_conn = SMPIOCapability::UNSET;
+        pairing_data.io_cap_user = SMPIOCapability::UNSET;
+        pairing_data.io_cap_conn = SMPIOCapability::UNSET;
         pairing_data.sec_level_user = BTSecurityLevel::UNSET;
         // Keep alive: pairing_data.ioCap_auto = SMPIOCapability::UNSET;
     }
     pairing_data.sec_level_conn = BTSecurityLevel::UNSET;
 
+    pairing_data.is_pre_paired = false;
     pairing_data.state = SMPPairingState::NONE;
     pairing_data.mode = PairingMode::NONE;
     pairing_data.res_requested_sec = false;

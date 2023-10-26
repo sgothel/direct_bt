@@ -110,11 +110,12 @@ namespace direct_bt {
             jau::relaxed_atomic_uint32 smp_events; // registering smp events until next BTAdapter::smp_watchdog periodic timeout check
 
             struct PairingData {
-                SMPIOCapability ioCap_conn     = SMPIOCapability::UNSET;
-                SMPIOCapability ioCap_user     = SMPIOCapability::UNSET;
+                bool is_pre_paired = false;
+                SMPIOCapability io_cap_conn    = SMPIOCapability::UNSET;
+                SMPIOCapability io_cap_user    = SMPIOCapability::UNSET;
                 BTSecurityLevel sec_level_conn = BTSecurityLevel::UNSET;
                 BTSecurityLevel sec_level_user = BTSecurityLevel::UNSET;
-                SMPIOCapability ioCap_auto     = SMPIOCapability::UNSET; // not cleared by clearSMPStates()
+                SMPIOCapability io_cap_auto    = SMPIOCapability::UNSET; // not cleared by clearSMPStates()
 
                 SMPPairingState state;
                 PairingMode mode;
@@ -174,7 +175,7 @@ namespace direct_bt {
             EIRDataType update(GattGenericAccessSvc const &data, const uint64_t timestamp) noexcept;
 
             void notifyDisconnected() noexcept;
-            void notifyConnected(const std::shared_ptr<BTDevice>& sthis, const uint16_t handle, const SMPIOCapability io_cap) noexcept;
+            void notifyConnected(const std::shared_ptr<BTDevice>& sthis, const uint16_t handle, const SMPIOCapability io_cap_has) noexcept;
             void notifyLEFeatures(const std::shared_ptr<BTDevice>& sthis, const LE_Features features) noexcept;
             void notifyLEPhyUpdateComplete(const HCIStatusCode status, const LE_PHYs Tx, const LE_PHYs Rx) noexcept;
 
@@ -186,6 +187,51 @@ namespace direct_bt {
              * </p>
              */
             void processL2CAPSetup(std::shared_ptr<BTDevice> sthis);
+
+            void validateConnectedSecParam(BTSecurityLevel& res_sec_level, SMPIOCapability& res_io_cap) const noexcept;
+
+        public:
+            /**
+             * Returns the validated security parameter BTSecurityLevel and SMPIOCapability
+             * in the designated references.
+             * <p>
+             * Validation is performed as follows:
+             * <pre>
+             *  if( BTSecurityLevel::UNSET < sec_level ) {
+             *      if( BTSecurityLevel::NONE == sec_level ||
+             *          BTSecurityLevel::ENC_ONLY == sec_level )
+             *      {
+             *          // No authentication, maybe encryption
+             *          res_sec_level = sec_level;
+             *          res_io_cap = SMPIOCapability::NO_INPUT_NO_OUTPUT;
+             *      } else if( hasSMPIOCapabilityAnyIO( io_cap ) ) {
+             *          // Authentication w/ IO
+             *          res_sec_level = sec_level;
+             *          res_io_cap = io_cap;
+             *      } else if( SMPIOCapability::NO_INPUT_NO_OUTPUT == io_cap ) {
+             *          // Fall back: auto -> encryption only
+             *          res_sec_level = BTSecurityLevel::ENC_ONLY;
+             *          res_io_cap = SMPIOCapability::NO_INPUT_NO_OUTPUT;
+             *      } else {
+             *          // Use auth w/ SMPIOCapability::UNSET
+             *          res_sec_level = sec_level;
+             *          res_io_cap = io_cap;
+             *      }
+             *  } else {
+             *      res_sec_level = BTSecurityLevel::UNSET;
+             *      res_io_cap = io_cap;
+             *  }
+             * </pre>
+             * </p>
+             * @param sec_level user value
+             * @param io_cap user value
+             * @param res_sec_level validated return value
+             * @param res_io_cap validated return value
+             */
+            static void validateSecParam(const BTSecurityLevel sec_level, const SMPIOCapability io_cap,
+                                               BTSecurityLevel& res_sec_level, SMPIOCapability& res_io_cap) noexcept;
+
+        private:
 
             /**
              * Established SMP host connection and security for L2CAP connection if sec_level > BTSecurityLevel::NONE.
@@ -216,6 +262,8 @@ namespace direct_bt {
              * </p>
              */
             void hciSMPMsgCallback(const std::shared_ptr<BTDevice>& sthis, const SMPPDUMsg& msg, const HCIACLData::l2cap_frame& source) noexcept;
+
+            void getSMPEncStatus(bool& enc_done, bool& using_auth, bool& is_pre_paired);
 
             /**
              * Setup GATT via connectGATT() off-thread.
@@ -869,24 +917,8 @@ namespace direct_bt {
             SMPIOCapability getConnIOCapability() const noexcept;
 
             /**
-             * Sets the given ::BTSecurityLevel and ::SMPIOCapability used to connect to this device on the upcoming connection.
-             *
-             * Implementation using following pseudo-code, validating the user settings:
-             * <pre>
-             *   if( BTSecurityLevel::UNSET < sec_level && SMPIOCapability::UNSET != io_cap ) {
-             *      USING: sec_level, io_cap
-             *   } else if( BTSecurityLevel::UNSET < sec_level ) {
-             *       if( BTSecurityLevel::ENC_ONLY >= sec_level ) {
-             *           USING: sec_level, SMPIOCapability::NO_INPUT_NO_OUTPUT
-             *       } else {
-             *           USING: sec_level, SMPIOCapability::UNSET
-             *       }
-             *   } else if( SMPIOCapability::UNSET != io_cap ) {
-             *       USING BTSecurityLevel::UNSET, io_cap
-             *   } else {
-             *       USING BTSecurityLevel::UNSET, SMPIOCapability::UNSET
-             *   }
-             * </pre>
+             * Sets the given ::BTSecurityLevel and ::SMPIOCapability used to connect to this device on the upcoming connection.<br>
+             * Parameter are validated using validateSecParam().
              * <p>
              * Method returns false if this device has already being connected,
              * or BTDevice::connectLE() or BTDevice::connectBREDR() has been issued already.
