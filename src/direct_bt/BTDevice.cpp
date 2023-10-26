@@ -657,7 +657,7 @@ void BTDevice::processL2CAPSetup(std::shared_ptr<BTDevice> sthis) { // NOLINT(pe
             } else {
                 l2cap_att = std::move(l2cap_att_new);
                 DBG_PRINT("L2CAP-ACCEPT: BTDevice::processL2CAPSetup: dev_id %d, td %" PRIu64 "ms, l2cap_att %s", adapter.dev_id, td, l2cap_att->toString().c_str());
-                if( BTSecurityLevel::UNSET < sec_level ) {
+                if( BTSecurityLevel::UNSET < sec_level && sec_level < BTSecurityLevel::ENC_AUTH ) { // authentication must be left alone in server mode
                     l2cap_open = l2cap_att->setBTSecurityLevel(sec_level);
                 } else {
                     l2cap_open = true;
@@ -1119,11 +1119,13 @@ bool BTDevice::updatePairingState(const std::shared_ptr<BTDevice>& sthis, const 
 
         if( !is_device_ready && check_pairing_complete ) {
             is_device_ready = checkPairingKeyDistributionComplete();
-            if( is_device_ready ) {
-                pairing_data.is_pre_paired = true;
-            } else {
+            if( !is_device_ready ) {
                 claimed_state = pairing_data.state; // not yet
             }
+        }
+        if( is_device_ready ) {
+            pairing_data.is_pre_paired = true;
+            pairing_data.sec_level_conn = l2cap_att->getBTSecurityLevel();
         }
     } // if( pairing_data.state != claimed_state )
 
@@ -1440,6 +1442,7 @@ void BTDevice::hciSMPMsgCallback(const std::shared_ptr<BTDevice>& sthis, const S
         pstate = SMPPairingState::COMPLETED;
         is_device_ready = true;
         pairing_data.is_pre_paired = true;
+        pairing_data.sec_level_conn = l2cap_att->getBTSecurityLevel();
     }
 
     if( jau::environment::get().debug ) {
