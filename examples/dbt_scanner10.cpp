@@ -134,8 +134,8 @@ static bool GATT_PING_ENABLED = false;
 static bool REMOVE_DEVICE = true;
 
 // Default from dbt_peripheral00.cpp or DBTPeripheral00.java
-static std::unique_ptr<uuid_t> cmd_uuid = nullptr; // jau::uuid_t::create(std::string("d0ca6bf3-3d52-4760-98e5-fc5883e93712"));
-static std::unique_ptr<uuid_t> cmd_rsp_uuid = nullptr; // jau::uuid_t::create(std::string("d0ca6bf3-3d53-4760-98e5-fc5883e93712"));
+static std::unique_ptr<uuid_t> cmd_uuid = jau::uuid_t::create(std::string("d0ca6bf3-3d52-4760-98e5-fc5883e93712"));
+static std::unique_ptr<uuid_t> cmd_rsp_uuid = jau::uuid_t::create(std::string("d0ca6bf3-3d53-4760-98e5-fc5883e93712"));
 static uint8_t cmd_arg = 0x44;
 
 static bool SHOW_UPDATE_EVENTS = false;
