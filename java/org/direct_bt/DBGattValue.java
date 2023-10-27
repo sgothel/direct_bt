@@ -25,6 +25,9 @@
 
 package org.direct_bt;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+
 import org.jau.util.BasicTypes;
 
 /**
@@ -43,6 +46,30 @@ public class DBGattValue
     private final int capacity_;
 
     private boolean variable_length_;
+
+    /** Convenience {@link DBGattValue} ctor function. */
+    public static DBGattValue make(final String name) {
+        final byte[] p = name.getBytes(StandardCharsets.UTF_8);
+        return new DBGattValue(p, p.length);
+    }
+    /** Convenience {@link DBGattValue} ctor function. */
+    public static DBGattValue make(final String name, final int capacity) {
+        final byte[] p = name.getBytes(StandardCharsets.UTF_8);
+        return new DBGattValue(p, Math.max(capacity, p.length), capacity > p.length/* variable_length */);
+    }
+    /** Convenience {@link DBGattValue} ctor function. */
+    public static DBGattValue make(final short v) {
+        final byte[] p = { (byte)0, (byte)0 };
+        p[0] = (byte)(v);
+        p[1] = (byte)(v >> 8);
+        return new DBGattValue(p, p.length);
+    }
+    /** Convenience {@link DBGattValue} ctor function. */
+    public static DBGattValue make(final int capacity, final int size) {
+        final byte[] p = new byte[size];
+        Arrays.fill(p, (byte)0);
+        return new DBGattValue(p, capacity, true /* variable_length */);
+    }
 
     /**
      * Constructor
