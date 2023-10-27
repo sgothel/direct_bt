@@ -1147,7 +1147,8 @@ void BTAdapter::checkDiscoveryState() noexcept {
     }
 }
 
-HCIStatusCode BTAdapter::startDiscovery(const DiscoveryPolicy policy, const bool le_scan_active,
+HCIStatusCode BTAdapter::startDiscovery(const DBGattServerRef& gattServerData_,
+                                        const DiscoveryPolicy policy, const bool le_scan_active,
                                         const uint16_t le_scan_interval, const uint16_t le_scan_window,
                                         const uint8_t filter_policy,
                                         const bool filter_dup) noexcept
@@ -1202,9 +1203,19 @@ HCIStatusCode BTAdapter::startDiscovery(const DiscoveryPolicy policy, const bool
 
     discovery_policy = policy;
 
+    if( nullptr != gattServerData_ ) {
+        gattServerData_->setServicesHandles();
+    }
+
     // if le_enable_scan(..) is successful, it will issue 'mgmtEvDeviceDiscoveringHCI(..)' immediately, which updates currentMetaScanType.
     const HCIStatusCode status = hci.le_start_scan(filter_dup, le_scan_active, visibleMACType,
                                                    le_scan_interval, le_scan_window, filter_policy);
+
+    if( HCIStatusCode::SUCCESS != status ) {
+        gattServerData = nullptr;
+    } else {
+        gattServerData = gattServerData_;
+    }
 
     if( _print_device_lists || jau::environment::get().verbose ) {
         jau::PLAIN_PRINT(true, "BTAdapter::startDiscovery: End: Result %s, policy %s -> %s, currentScanType[native %s, meta %s] ...\n- %s",
@@ -1605,6 +1616,7 @@ HCIStatusCode BTAdapter::startAdvertising(const DBGattServerRef& gattServerData_
                                             adv_interval_min, adv_interval_max, adv_type, adv_chan_map, filter_policy);
     if( HCIStatusCode::SUCCESS != status ) {
         ERR_PRINT("le_start_adv failed: %s - %s", to_string(status).c_str(), toString(true).c_str());
+        gattServerData = nullptr;
         l2cap_service.stop();
     } else {
         gattServerData = gattServerData_;
@@ -2264,7 +2276,10 @@ void BTAdapter::mgmtEvDeviceDisconnectedHCI(const MgmtEvent& e) noexcept {
         unlockConnect(*device);
         device->notifyDisconnected(); // -> unpair()
         removeConnectedDevice(*device);
-        gattServerData = nullptr;
+        if( BTRole::Slave == btRole ) {
+            // Keep valid in LL master discovery mode (client).
+            gattServerData = nullptr;
+        }
 
         if( !device->isConnSecurityAutoEnabled() ) {
             int i=0;

@@ -24,6 +24,9 @@
  */
 
 import java.lang.reflect.InvocationTargetException;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -46,6 +49,11 @@ import org.direct_bt.BTGattService;
 import org.direct_bt.BTManager;
 import org.direct_bt.BTSecurityRegistry;
 import org.direct_bt.BTUtils;
+import org.direct_bt.DBGattChar;
+import org.direct_bt.DBGattDesc;
+import org.direct_bt.DBGattServer;
+import org.direct_bt.DBGattService;
+import org.direct_bt.DBGattValue;
 import org.direct_bt.DiscoveryPolicy;
 import org.direct_bt.EIRDataTypeSet;
 import org.direct_bt.EInfoReport;
@@ -66,16 +74,21 @@ import org.jau.util.BasicTypes;
 import jau.direct_bt.DBTManager;
 
 /**
- * This Java scanner {@link BTRole::Master} GATT client example uses an event driven workflow
- * and multithreading, i.e. one thread processes each found device when notified.
- * <p>
- * This example represents the recommended utilization of Direct-BT.
- * </p>
- * <p>
- * See `dbt_scanner10.cpp` for invocation examples, since both apps are fully compatible.
- * </p>
+ * This Java example demonstrates a client connecting to `Avalun's LabPad device`.
+ *
+ * It differs from _dbt_scanner10_ as follows:
+ *
+ * * Employs a minimal GattServer supplying `Generic Access` service
+ *
+ * * Performing one simple Gatt write and indication listener test
+ *
+ * * Uses pre-set `-dev LabPad` device name and SMPIOCapability::KEYBOARD_ONLY + BTSecurityLevel::ENC_AUTH
+ *
+ * * Commandline `-passkey <int>` uses `LabPad` implicitly, i.e. user only needs to pass the integer w/o device name.
+ *
+ * Other than that, please refer to _dbt_scanner10_ as a general example.
  */
-public class DBTScanner10 {
+public class DBTLabPadClient01 {
     long timestamp_t0;
 
     EUI48 useAdapter = EUI48.ALL_DEVICE;
@@ -92,8 +105,8 @@ public class DBTScanner10 {
     boolean REMOVE_DEVICE = true;
 
     // Default from dbt_peripheral00.cpp or DBTPeripheral00.java
-    String cmd_uuid = "d0ca6bf3-3d52-4760-98e5-fc5883e93712";
-    String cmd_rsp_uuid = "d0ca6bf3-3d53-4760-98e5-fc5883e93712";
+    String cmd_uuid = null; // "d0ca6bf3-3d52-4760-98e5-fc5883e93712";
+    String cmd_rsp_uuid = null; // "d0ca6bf3-3d53-4760-98e5-fc5883e93712";
     byte cmd_arg = (byte)0x44;
 
     boolean SHOW_UPDATE_EVENTS = false;
@@ -117,6 +130,51 @@ public class DBTScanner10 {
             task.run();
         }
     }
+
+    private final DBGattServer dbGattServer = new DBGattServer(
+            /* services: */
+            Arrays.asList( // DBGattService
+              new DBGattService ( true /* primary */,
+                  DBGattService.UUID16.GENERIC_ACCESS /* type_ */,
+                  Arrays.asList( // DBGattChar
+                      new DBGattChar( DBGattChar.UUID16.DEVICE_NAME /* value_type_ */,
+                                  new GattCharPropertySet(GattCharPropertySet.Type.Read),
+                                  new ArrayList<DBGattDesc>(/* intentionally w/o Desc */ ),
+                                  DBGattValue.make("Jausoft_Dev", 128) /* value */ ),
+                      new DBGattChar( DBGattChar.UUID16.APPEARANCE /* value_type_ */,
+                                  new GattCharPropertySet(GattCharPropertySet.Type.Read),
+                                  new ArrayList<DBGattDesc>(/* intentionally w/o Desc */ ),
+                                  DBGattValue.make((short)0) /* value */ )
+                  ) ),
+              new DBGattService ( true /* primary */,
+                  DBGattService.UUID16.DEVICE_INFORMATION /* type_ */,
+                  Arrays.asList( // DBGattChar
+                      new DBGattChar( DBGattChar.UUID16.MANUFACTURER_NAME_STRING /* value_type_ */,
+                                  new GattCharPropertySet(GattCharPropertySet.Type.Read),
+                                  new ArrayList<DBGattDesc>(/* intentionally w/o Desc */ ),
+                                  DBGattValue.make("Gothel Software") /* value */ ),
+                      new DBGattChar( DBGattChar.UUID16.MODEL_NUMBER_STRING /* value_type_ */,
+                                  new GattCharPropertySet(GattCharPropertySet.Type.Read),
+                                  new ArrayList<DBGattDesc>(/* intentionally w/o Desc */ ),
+                                  DBGattValue.make("2.4.0-pre") /* value */ ),
+                      new DBGattChar( DBGattChar.UUID16.SERIAL_NUMBER_STRING /* value_type_ */,
+                                  new GattCharPropertySet(GattCharPropertySet.Type.Read),
+                                  new ArrayList<DBGattDesc>(/* intentionally w/o Desc */ ),
+                                  DBGattValue.make("sn:0123456789") /* value */ ),
+                      new DBGattChar( DBGattChar.UUID16.HARDWARE_REVISION_STRING /* value_type_ */,
+                                  new GattCharPropertySet(GattCharPropertySet.Type.Read),
+                                  new ArrayList<DBGattDesc>(/* intentionally w/o Desc */ ),
+                                  DBGattValue.make("hw:0123456789") /* value */ ),
+                      new DBGattChar( DBGattChar.UUID16.FIRMWARE_REVISION_STRING /* value_type_ */,
+                                  new GattCharPropertySet(GattCharPropertySet.Type.Read),
+                                  new ArrayList<DBGattDesc>(/* intentionally w/o Desc */ ),
+                                  DBGattValue.make("fw:0123456789") /* value */ ),
+                      new DBGattChar( DBGattChar.UUID16.SOFTWARE_REVISION_STRING /* value_type_ */,
+                                  new GattCharPropertySet(GattCharPropertySet.Type.Read),
+                                  new ArrayList<DBGattDesc>(/* intentionally w/o Desc */ ),
+                                  DBGattValue.make("sw:0123456789") /* value */ )
+                  ) )
+            ) );
 
     class MyAdapterStatusListener extends AdapterStatusListener {
         @Override
@@ -591,13 +649,24 @@ public class DBTScanner10 {
     static final byte filter_policy = (byte)0; // default value
     static final boolean filter_dup = true; // default value
 
+    @SuppressWarnings("unused")
     private boolean startDiscovery(final BTAdapter adapter, final String msg) {
         if( !useAdapter.equals(EUI48.ALL_DEVICE) && !useAdapter.equals(adapter.getAddressAndType().address) ) {
             PrintUtil.fprintf_td(System.err, "****** Start discovery (%s): Adapter not selected: %s\n", msg, adapter.toString());
             return false;
         }
-        final HCIStatusCode status = adapter.startDiscovery(null, discoveryPolicy, le_scan_active, le_scan_interval, le_scan_window, filter_policy, filter_dup );
+
+        if( false ) {
+            final DBGattChar gattDevNameChar = dbGattServer.findGattChar(DBGattService.UUID16.GENERIC_ACCESS, DBGattChar.UUID16.DEVICE_NAME);
+            if( null != gattDevNameChar ) {
+                final byte[] aname_bytes = adapter.getName().getBytes(StandardCharsets.UTF_8);
+                gattDevNameChar.setValue(aname_bytes, 0, aname_bytes.length, 0);
+            }
+        }
+
+        final HCIStatusCode status = adapter.startDiscovery(dbGattServer, discoveryPolicy, le_scan_active, le_scan_interval, le_scan_window, filter_policy, filter_dup );
         PrintUtil.println(System.err, "****** Start discovery ("+msg+") result: "+status);
+        PrintUtil.println(System.err, dbGattServer.toFullString());
         return HCIStatusCode.SUCCESS == status;
     }
 
@@ -758,7 +827,16 @@ public class DBTScanner10 {
         PrintUtil.println(System.err, "Direct-BT Native Version "+BTFactory.getNativeVersion()+" (API "+BTFactory.getNativeAPIVersion()+")");
         PrintUtil.println(System.err, "Direct-BT Java Version "+BTFactory.getImplVersion()+" (API "+BTFactory.getAPIVersion()+")");
 
-        final DBTScanner10 test = new DBTScanner10();
+        final DBTLabPadClient01 test = new DBTLabPadClient01();
+
+        // Add defaults for Avalun's LabPad device, announcing its device name as 'LabPad[0-9]+'
+        final String dev_name_prefix = "LabPad";
+        {
+            BTDeviceRegistry.addToWaitForDevices( dev_name_prefix );
+            final BTSecurityRegistry.Entry sec = BTSecurityRegistry.getOrCreate(dev_name_prefix);
+            sec.io_cap = SMPIOCapability.KEYBOARD_ONLY;
+            sec.sec_level = BTSecurityLevel.ENC_AUTH;
+        }
 
         boolean waitForEnter=false;
         {
@@ -781,71 +859,25 @@ public class DBTScanner10 {
                     test.btMode = BTMode.get(args[++i]);
                 } else if( arg.equals("-adapter") && args.length > (i+1) ) {
                     test.useAdapter = new EUI48( args[++i] );
-                } else if( arg.equals("-dev") && args.length > (i+1) ) {
-                    BTDeviceRegistry.addToWaitForDevices( args[++i] );
-                } else if( arg.equals("-passkey") && args.length > (i+2) ) {
-                    final String addrOrNameSub = args[++i];
-                    final BTSecurityRegistry.Entry sec = BTSecurityRegistry.getOrCreate(addrOrNameSub);
+                } else if( arg.equals("-passkey") && args.length > (i+1) ) {
+                    final BTSecurityRegistry.Entry sec = BTSecurityRegistry.getOrCreate(dev_name_prefix);
                     sec.passkey = Integer.valueOf(args[++i]).intValue();
                     System.err.println("Set passkey in "+sec);
-                } else if( arg.equals("-seclevel") && args.length > (i+2) ) {
-                    final String addrOrNameSub = args[++i];
-                    final BTSecurityRegistry.Entry sec = BTSecurityRegistry.getOrCreate(addrOrNameSub);
-                    final int sec_level_i = Integer.valueOf(args[++i]).intValue();
-                    sec.sec_level = BTSecurityLevel.get( (byte)( sec_level_i & 0xff ) );
-                    System.err.println("Set sec_level "+sec_level_i+" in "+sec);
-                } else if( arg.equals("-iocap") && args.length > (i+2) ) {
-                    final String addrOrNameSub = args[++i];
-                    final BTSecurityRegistry.Entry sec = BTSecurityRegistry.getOrCreate(addrOrNameSub);
-                    final int io_cap_i = Integer.valueOf(args[++i]).intValue();
-                    sec.io_cap = SMPIOCapability.get( (byte)( io_cap_i & 0xff ) );
-                    System.err.println("Set io_cap "+io_cap_i+" in "+sec);
-                } else if( arg.equals("-secauto") && args.length > (i+2) ) {
-                    final String addrOrNameSub = args[++i];
-                    final BTSecurityRegistry.Entry sec = BTSecurityRegistry.getOrCreate(addrOrNameSub);
-                    final int io_cap_i = Integer.valueOf(args[++i]).intValue();
-                    sec.io_cap_auto = SMPIOCapability.get( (byte)( io_cap_i & 0xff ) );
-                    System.err.println("Set SEC AUTO security io_cap "+io_cap_i+" in "+sec);
-                } else if( arg.equals("-cmd") && args.length > (i+1) ) {
-                    test.cmd_uuid = args[++i];
-                } else if( arg.equals("-cmdrsp") && args.length > (i+1) ) {
-                    test.cmd_rsp_uuid = args[++i];
-                } else if( arg.equals("-cmdarg") && args.length > (i+1) ) {
-                    test.cmd_arg = (byte)Integer.valueOf(args[++i]).intValue();
-                } else if( arg.equals("-disconnect") ) {
-                    test.KEEP_CONNECTED = false;
-                } else if( arg.equals("-enableGATTPing") ) {
-                    test.GATT_PING_ENABLED = true;
-                } else if( arg.equals("-keepDevice") ) {
-                    test.REMOVE_DEVICE = false;
-                } else if( arg.equals("-count")  && args.length > (i+1) ) {
-                    test.MULTI_MEASUREMENTS.set(Integer.valueOf(args[++i]).intValue());
-                } else if( arg.equals("-single") ) {
-                    test.MULTI_MEASUREMENTS.set(-1);
-                } else if( arg.equals("-resetEachCon")  && args.length > (i+1) ) {
-                    test.RESET_ADAPTER_EACH_CONN = Integer.valueOf(args[++i]).intValue();
                 }
             }
             PrintUtil.println(System.err, "Run with '[-btmode LE|BREDR|DUAL] "+
-                    "[-disconnect] [-enableGATTPing] [-count <number>] [-single] [-show_update_events] [-quiet] "+
+                    "[-disconnect] [-show_update_events] [-quiet] "+
                     "[-discoveryPolicy <0-4>] "+
                     "[-scanPassive] "+
-                    "[-resetEachCon connectionCount] "+
                     "[-adapter <adapter_address>] "+
-                    "(-dev <device_[address|name]_sub>)* "+
-                    "(-seclevel <device_[address|name]_sub> <int_sec_level>)* "+
-                    "(-iocap <device_[address|name]_sub> <int_iocap>)* "+
-                    "(-secauto <device_[address|name]_sub> <int_iocap>)* "+
-                    "(-passkey <device_[address|name]_sub> <digits>)* "+
-                    "[-cmd <uuid>] [-cmdrsp <uuid>] [-cmdarg <byte-val>] "+
+                    "(-passkey <digits>)* "+
                     "[-verbose] [-debug] "+
                     "[-dbt_verbose true|false] "+
                     "[-dbt_debug true|false|adapter.event,gatt.data,hci.event,hci.scan_ad_eir,mgmt.event] "+
                     "[-dbt_mgmt cmd.timeout=3000,ringsize=64,...] "+
                     "[-dbt_hci cmd.complete.timeout=10000,cmd.status.timeout=3000,ringsize=64,...] "+
                     "[-dbt_gatt cmd.read.timeout=500,cmd.write.timeout=500,cmd.init.timeout=2500,ringsize=128,...] "+
-                    "[-dbt_l2cap reader.timeout=10000,restart.count=0,...] "+
-                    "[-shutdown <int>]'");
+                    "[-dbt_l2cap reader.timeout=10000,restart.count=0,...] ");
         }
 
         PrintUtil.println(System.err, "MULTI_MEASUREMENTS "+test.MULTI_MEASUREMENTS.get());
@@ -859,8 +891,6 @@ public class DBTScanner10 {
         PrintUtil.println(System.err, "btmode "+test.btMode.toString());
         PrintUtil.println(System.err, "discoveryPolicy "+test.discoveryPolicy.toString());
         PrintUtil.println(System.err, "le_scan_active "+test.le_scan_active);
-        PrintUtil.println(System.err, "Command: cmd "+test.cmd_uuid+", arg 0x"+Integer.toHexString(test.cmd_arg));
-        PrintUtil.println(System.err, "         rsp "+test.cmd_rsp_uuid);
         PrintUtil.println(System.err, "security-details: "+BTSecurityRegistry.allToString() );
         PrintUtil.println(System.err, "waitForDevices: "+BTDeviceRegistry.getWaitForDevicesString());
 

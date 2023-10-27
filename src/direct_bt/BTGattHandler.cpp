@@ -608,7 +608,7 @@ BTGattHandler::BTGattHandler(const BTDeviceRef &device, L2CAPClient& l2cap_att, 
                        jau::bind_member(this, &BTGattHandler::l2capReaderEndLocked)),
   attPDURing(env.ATTPDU_RING_CAPACITY),
   serverMTU(number(Defaults::MIN_ATT_MTU)), usedMTU(number(Defaults::MIN_ATT_MTU)), clientMTUExchanged(false),
-  gattServerData( GATTRole::Server == role ? device->getAdapter().getGATTServerData() : nullptr ),
+  gattServerData( device->getAdapter().getGATTServerData() ),
   gattServerHandler( selectGattServerHandler(*this, gattServerData) )
 {
     if( !validateConnected() ) {

@@ -6,6 +6,7 @@ include(UseJava)
 set( SOURCES_IDIOMATIC_EXAMPLES
     DBTScanner10.java
     DBTPeripheral00.java
+    DBTLabPadClient01.java
 )
 
 string( REPLACE ".java" "" BASENAMES_IDIOMATIC_EXAMPLES "${SOURCES_IDIOMATIC_EXAMPLES}" )

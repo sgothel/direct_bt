@@ -748,7 +748,8 @@ jlong Java_jau_direct_1bt_DBTAdapter_getLEFeaturesImpl(JNIEnv *env, jobject obj)
     return JNI_FALSE;
 }
 
-jbyte Java_jau_direct_1bt_DBTAdapter_startDiscoveryImpl(JNIEnv *env, jobject obj, jbyte policy, jboolean le_scan_active,
+jbyte Java_jau_direct_1bt_DBTAdapter_startDiscoveryImpl(JNIEnv *env, jobject obj, jobject jgattServerData,
+                                                        jbyte policy, jboolean le_scan_active,
                                                         jshort le_scan_interval, jshort le_scan_window,
                                                         jbyte filter_policy,
                                                         jboolean filter_dup)
@@ -758,7 +759,12 @@ jbyte Java_jau_direct_1bt_DBTAdapter_startDiscoveryImpl(JNIEnv *env, jobject obj
         JavaAnonRef adapter_java = adapter->getJavaObject(); // hold until done!
         JavaGlobalObj::check(adapter_java, E_FILE_LINE);
 
-        return (jbyte) number( adapter->startDiscovery(static_cast<DiscoveryPolicy>(policy), le_scan_active, le_scan_interval, le_scan_window, filter_policy, filter_dup==JNI_TRUE) );
+        shared_ptr_ref<DBGattServer> gatt_server_ref(env, jgattServerData, false /** throw_on_null */); // hold until done
+        gatt_server_ref.null_check1();
+
+        return (jbyte) number( adapter->startDiscovery(gatt_server_ref.shared_ptr(),
+                                    static_cast<DiscoveryPolicy>(policy), le_scan_active,
+                                    le_scan_interval, le_scan_window, filter_policy, filter_dup==JNI_TRUE) );
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }

@@ -650,7 +650,7 @@ public class DBTClient01 implements DBTClientTest {
     public HCIStatusCode startDiscovery(final String msg) {
         resetLastProcessingStats();
 
-        final HCIStatusCode status = clientAdapter.startDiscovery( discoveryPolicy, le_scan_active, le_scan_interval, le_scan_window, filter_policy, filter_dup );
+        final HCIStatusCode status = clientAdapter.startDiscovery(null, discoveryPolicy, le_scan_active, le_scan_interval, le_scan_window, filter_policy, filter_dup );
         PrintUtil.println(System.err, "****** Client Start discovery ("+msg+") result: "+status);
         return status;
     }

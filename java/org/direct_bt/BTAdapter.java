@@ -212,6 +212,9 @@ public interface BTAdapter extends BTObject
      *
      * If successful, method also changes [this adapter's role](@ref BTAdapterRoles) to {@link BTRole#Master}.
      *
+     * @param gattServerData_ the {@link DBGattServer} data to be offered via GattHandler as ::GATTRole::Client.
+     *        Its handles will be setup via DBGattServer::setServicesHandles().
+     *        Reference is held until next startDiscovery.
      * @param policy defaults to {@link DiscoveryPolicy#PAUSE_CONNECTED_UNTIL_READY}, see {@link DiscoveryPolicy}
      * @param le_scan_active true enables delivery of active scanning PDUs like EIR w/ device name (default), otherwise no scanning PDUs shall be sent
      * @param le_scan_interval in units of 0.625ms, default value 24 for 15ms; Value range [4 .. 0x4000] for [2.5ms .. 10.24s]
@@ -220,15 +223,15 @@ public interface BTAdapter extends BTObject
      * @param filter_dup true to filter out duplicate AD PDUs (default), otherwise all will be reported.
      * @return {@link HCIStatusCode#SUCCESS} if successful, otherwise the {@link HCIStatusCode} error state
      * @throws BTException
-     * @since 2.2.8
+     * @since 3.2.0
      * @see #startDiscovery(DiscoveryPolicy, boolean)
      * @see #isDiscovering()
      * @see isAdvertising()
      * @see DiscoveryPolicy
      * @see @ref BTAdapterRoles
-     * @since 2.5.0
      */
-    HCIStatusCode startDiscovery(final DiscoveryPolicy policy, final boolean le_scan_active,
+    HCIStatusCode startDiscovery(final DBGattServer gattServerData,
+                                 final DiscoveryPolicy policy, final boolean le_scan_active,
                                  final short le_scan_interval, final short le_scan_window,
                                  final byte filter_policy,
                                  final boolean filter_dup) throws BTException;

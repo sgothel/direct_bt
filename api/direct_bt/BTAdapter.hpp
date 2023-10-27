@@ -1082,8 +1082,67 @@ namespace direct_bt {
                                          const bool le_scan_active=true,
                                          const uint16_t le_scan_interval=24, const uint16_t le_scan_window=24,
                                          const uint8_t filter_policy=0x00,
-                                         const bool filter_dup=true) noexcept;
+                                         const bool filter_dup=true) noexcept {
+                return startDiscovery(nullptr, policy, le_scan_active, le_scan_interval, le_scan_window, filter_policy, filter_dup);
+            }
 
+            /**
+             * Starts discovery.
+             *
+             * Returns HCIStatusCode::SUCCESS if successful, otherwise the HCIStatusCode error state;
+             *
+             * Depending on given DiscoveryPolicy `policy`, the discovery mode may be turned-off,
+             * paused until a certain readiness stage has been reached or preserved at all times.
+             * Default is DiscoveryPolicy::PAUSE_CONNECTED_UNTIL_READY.
+             *
+             * <pre>
+             * + --+-------+--------+-----------+----------------------------------------------------+
+             * | # | meta  | native | keepAlive | Note
+             * +---+-------+--------+-----------+----------------------------------------------------+
+             * | 1 | true  | true   | false     | -
+             * | 2 | false | false  | false     | -
+             * +---+-------+--------+-----------+----------------------------------------------------+
+             * | 3 | true  | true   | true      | -
+             * | 4 | true  | false  | true      | temporarily disabled -> startDiscoveryBackground()
+             * | 5 | false | false  | true      | [4] -> [5] requires manual DISCOVERING event
+             * +---+-------+--------+-----------+----------------------------------------------------+
+             * </pre>
+             *
+             * Default parameter values are chosen for using public address resolution
+             * and usual discovery intervals etc.
+             *
+             * Method will always clear previous discovered devices via removeDiscoveredDevices().
+             *
+             * Method fails if isAdvertising().
+             *
+             * If successful, method also changes [this adapter's role](@ref BTAdapterRoles) to ::BTRole::Master.
+             *
+             * This adapter's HCIHandler instance is used to initiate scanning,
+             * see HCIHandler::le_start_scan().
+             *
+             * @param gattServerData_ the DBGattServer data to be offered via GattHandler as ::GATTRole::Client.
+             *        Its handles will be setup via DBGattServer::setServicesHandles().
+             *        Reference is held until next startDiscovery.
+             * @param policy defaults to DiscoveryPolicy::PAUSE_CONNECTED_UNTIL_READY, see DiscoveryPolicy
+             * @param le_scan_active true enables delivery of active scanning PDUs like EIR w/ device name (default), otherwise no scanning PDUs shall be sent.
+             * @param le_scan_interval in units of 0.625ms, default value 24 for 15ms; Value range [4 .. 0x4000] for [2.5ms .. 10.24s]
+             * @param le_scan_window in units of 0.625ms, default value 24 for 15ms; Value range [4 .. 0x4000] for [2.5ms .. 10.24s]. Shall be <= le_scan_interval
+             * @param filter_policy 0x00 accepts all PDUs (default), 0x01 only of whitelisted, ...
+             * @param filter_dup true to filter out duplicate AD PDUs (default), otherwise all will be reported.
+             * @return HCIStatusCode::SUCCESS if successful, otherwise the HCIStatusCode error state
+             * @see stopDiscovery()
+             * @see isDiscovering()
+             * @see isAdvertising()
+             * @see DiscoveryPolicy
+             * @see @ref BTAdapterRoles
+             * @since 3.2.0
+             */
+            HCIStatusCode startDiscovery(const DBGattServerRef& gattServerData_,
+                                         const DiscoveryPolicy policy=DiscoveryPolicy::PAUSE_CONNECTED_UNTIL_READY,
+                                         const bool le_scan_active=true,
+                                         const uint16_t le_scan_interval=24, const uint16_t le_scan_window=24,
+                                         const uint8_t filter_policy=0x00,
+                                         const bool filter_dup=true) noexcept;
         private:
             HCIStatusCode stopDiscoveryImpl(const bool forceDiscoveringEvent, const bool temporary) noexcept;
 
