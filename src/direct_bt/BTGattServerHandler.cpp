@@ -776,7 +776,6 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
         bool replyReadByTypeReq(const AttReadByNTypeReq * pdu) noexcept override {
             // BT Core Spec v5.2: Vol 3, Part F ATT: 3.4.4.1 ATT_READ_BY_TYPE_REQ
             // BT Core Spec v5.2: Vol 3, Part F ATT: 3.4.4.2 ATT_READ_BY_TYPE_RSP
-            // BT Core Spec v5.2: Vol 3, Part G GATT: 4.6.1 Discover All Characteristics of a Service
             if( 0 == pdu->getStartHandle() ) {
                 AttErrorRsp err(AttErrorRsp::ErrorCode::INVALID_HANDLE, pdu->getOpcode(), 0);
                 COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: TYPE.0: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), gh.toString().c_str());
@@ -789,20 +788,26 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
             }
             const jau::uuid16_t uuid_characteristic = jau::uuid16_t(GattAttributeType::CHARACTERISTIC);
             const jau::uuid16_t uuid_incl_service = jau::uuid16_t(GattAttributeType::INCLUDE_DECLARATION);
+            std::unique_ptr<const jau::uuid_t> req_attribute = pdu->getNType();
             uint16_t req_type;
-            if( pdu->getNType()->equivalent( uuid_characteristic ) ) {
+            if( req_attribute->equivalent( uuid_characteristic ) ) {
+                // BT Core Spec v5.2: Vol 3, Part G GATT: 4.6.1 Discover All Characteristics of a Service
                 req_type = GattAttributeType::CHARACTERISTIC;
-            } else if( pdu->getNType()->equivalent( uuid_incl_service ) ) {
+            } else if( req_attribute->equivalent( uuid_incl_service ) ) {
                 req_type = GattAttributeType::INCLUDE_DECLARATION;
             } else {
-                // not handled
+                // BT Core Spec v5.2: Vol 3, Part G GATT: 4.8.2 Read Using Characteristic UUID
                 req_type = 0;
             }
             if( GattAttributeType::CHARACTERISTIC == req_type ) {
+                // BT Core Spec v5.2: Vol 3, Part G GATT: 4.6.1 Discover All Characteristics of a Service
                 const uint16_t end_handle = pdu->getEndHandle();
                 const uint16_t start_handle = pdu->getStartHandle();
 
                 const jau::nsize_t rspMaxSize = std::min<jau::nsize_t>(255, gh.getUsedMTU()-2);
+                // Attribute Handle and Attribute Value pairs corresponding to the Characteristic
+                // - Attribute Handle is the handle for the Characteristic
+                // - Attribute Value contains Properties, Value-Handle and UUID of the Characteristic
                 AttReadByTypeRsp rsp(gh.getUsedMTU()); // maximum size
                 jau::nsize_t rspElemSize = 0;
                 jau::nsize_t rspSize = 0;
@@ -851,10 +856,39 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
                 AttErrorRsp err(AttErrorRsp::ErrorCode::ATTRIBUTE_NOT_FOUND, pdu->getOpcode(), pdu->getStartHandle());
                 COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: TYPE.5: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), gh.toString().c_str());
                 return gh.send(err);
-            } else {
-                // TODO: Add other group types ???
-                AttErrorRsp err(AttErrorRsp::ErrorCode::UNSUPPORTED_GROUP_TYPE, pdu->getOpcode(), pdu->getStartHandle());
-                COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: TYPE.6: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), gh.toString().c_str());
+            } else { // TODO: Add other group types ???
+                // BT Core Spec v5.2: Vol 3, Part G GATT: 4.8.2 Read Using Characteristic UUID
+                const uint16_t end_handle = pdu->getEndHandle();
+                const uint16_t start_handle = pdu->getStartHandle();
+
+                const jau::nsize_t rspMaxSize = std::min<jau::nsize_t>(255, gh.getUsedMTU()-2);
+                // Attribute Handle and Attribute Value pairs corresponding to the Characteristic
+                // - Attribute Handle is the handle for the Characteristic
+                // - Attribute Value contains the value of the Characteristic
+                AttReadByTypeRsp rsp(gh.getUsedMTU()); // maximum size
+
+                COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: TYPE.6: Searching for %s, req %s from %s",
+                        req_attribute->toString().c_str(), pdu->toString().c_str(), gh.toString().c_str());
+                for(DBGattServiceRef& s : gattServerData->getServices()) {
+                    for(DBGattCharRef& c : s->getCharacteristics()) {
+                        if( start_handle <= c->getHandle() && c->getHandle() <= end_handle && c->getValueType()->equivalent(*req_attribute) ) {
+                            jau::POctets& value = c->getValue();
+                            const jau::nsize_t value_size_max = std::min(value.size(), rspMaxSize-2);
+                            const jau::nsize_t size = 2 + value_size_max;
+                            rsp.setElementSize(size);
+                            jau::nsize_t ePDUOffset = rsp.getElementPDUOffset(0);
+                            rsp.setElementHandle(0, c->getHandle()); // Characteristic Handle
+                            ePDUOffset += 2;
+                            rsp.pdu.put_bytes(ePDUOffset, value.get_ptr(), value_size_max);
+                            (void)ePDUOffset;
+                            rsp.setElementCount(1);
+                            COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: TYPE.6: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), gh.toString().c_str());
+                            return gh.send(rsp);
+                        }
+                    }
+                }
+                AttErrorRsp err(AttErrorRsp::ErrorCode::ATTRIBUTE_NOT_FOUND, pdu->getOpcode(), pdu->getStartHandle());
+                COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: TYPE.7: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), gh.toString().c_str());
                 return gh.send(err);
             }
         }
@@ -875,10 +909,11 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
             }
             const jau::uuid16_t uuid_prim_service = jau::uuid16_t(GattAttributeType::PRIMARY_SERVICE);
             const jau::uuid16_t uuid_secd_service = jau::uuid16_t(GattAttributeType::SECONDARY_SERVICE);
+            std::unique_ptr<const jau::uuid_t> req_attribute_group = pdu->getNType();
             uint16_t req_group_type;
-            if( pdu->getNType()->equivalent( uuid_prim_service ) ) {
+            if( req_attribute_group->equivalent( uuid_prim_service ) ) {
                 req_group_type = GattAttributeType::PRIMARY_SERVICE;
-            } else if( pdu->getNType()->equivalent( uuid_secd_service ) ) {
+            } else if( req_attribute_group->equivalent( uuid_secd_service ) ) {
                 req_group_type = GattAttributeType::SECONDARY_SERVICE;
             } else {
                 // not handled
