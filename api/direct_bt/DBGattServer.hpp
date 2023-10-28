@@ -535,6 +535,17 @@ namespace direct_bt {
         return jau::POctets(sourcelist, jau::endian::little);
     }
 
+    /** Convenience jau::POctets ctor function to create DBGattChar or DBGattDesc values. */
+    inline jau::POctets make_gvalue(const jau::nsize_t capacity, const jau::nsize_t size, std::initializer_list<uint8_t> sourcelist) {
+        jau::POctets p(capacity, size, jau::endian::little);
+        p.bzero();
+        const jau::nsize_t max_size = std::min(size, sourcelist.size());
+        if( 0 < max_size ) {
+            std::memcpy(p.get_wptr(), sourcelist.begin(), max_size);
+        }
+        return p;
+    }
+
     /**
      * Representing a Gatt Service object from the ::GATTRole::Server perspective.
      *
