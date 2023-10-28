@@ -4,6 +4,15 @@
 
 ## Changes
 
+**3.2.0**
+* Support attaching a GATT Server with listener in LE master mode
+  - Allowing to run as GATT client plus providing GATT server functionality
+* Support Resolvable Private Address (RPA) for remote LE master/GATT clients
+* Support SMP authentication running as a GATT server (LE slave)
+* Including [TinyCrypt](https://jausoft.com/cgit/tinycrypt.git/about/)
+  as a git submodule, supporting `AES128` for IRK w/ LE Resolvable Private Address (RPA) matching.
+* jaulib v1.1.2
+
 **3.1.2**
 * jaulib v1.1.1
 

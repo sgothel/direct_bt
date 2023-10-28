@@ -58,16 +58,18 @@ Some elaboration on the implementation details
 
 ### Implementation Status
 > LE master/client mode is fully supported to work with LE BT devices.
+>   - In both roles, a GATT Server with listener can be attached
 >
 > LE slave/server mode (*peripheral*) is fully supported with LE BT devices:
 >   - BTRole separation (master/slave)
 >   - Advertising
 >   - GATT Server with user code interaction via listener
 >   - Slave / Server SMP Security, reusing persisting *SMPKeyBin* files.
+>   - Resolvable Private Address (RPA) for remote LE master/GATT clients
 > 
 > *SMP LE Secure Connections* and *LE legacy pairing* is fully supported,
 > exposing BTSecurityLevel and SMPIOCapability setup per connection
-> and providing *automatic security mode negotiation*.
+> and providing *automatic security mode negotiation* including authentication.
 >
 > Provoding *dbt_repeater00*, a *BT repeater* forwading between *GATT-Server* and *-Client*, 
 > allowing protocol analysis between an external client and server.
@@ -233,6 +235,9 @@ are availble, demonstrates the event driven and multithreading workflow:
 ## Building Direct-BT
 This project also uses the [Jau C++ and Java Support Library](https://jausoft.com/cgit/jaulib.git/about/)
 as a git submodule, which has been extracted from this project to encapsulate its generic use-cases.
+
+This project also uses the [TinyCrypt](https://jausoft.com/cgit/tinycrypt.git/about/)
+as a git submodule, supporting `AES128` for IRK w/ LE Resolvable Private Address (RPA) matching.
 
 *Direct-BT* does not require GLib/GIO 
 nor shall the *BlueZ* userspace service *bluetoothd* be active for best experience.

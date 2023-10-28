@@ -32,6 +32,8 @@ The MIT License (MIT) (see above)
 Copyright © 2020 Gothel Software e.K.
 Copyright © 2020 ZAFENA AB
 
+BSD License covering TinyCrypt (see below)
+
 Direct-BT imports certain information from Linux Kernel's BlueZ protocol stack,
 originating from Qualcomm's sources under MIT license.
 This information enables the use of certain kernel services via system calls.
@@ -63,6 +65,19 @@ we assume the following SPDX-License-Identifier should be declared:
 This documentation of our usage is certainly better than GOOG's approach: 
 <https://android.googlesource.com/platform/system/bluetooth/+/eclair-release/bluez-clean-headers/bluetooth?autodive=0/>,
 which removes all authorship and origin.
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+This project also uses the TinyCrypt <https://jausoft.com/cgit/tinycrypt.git/tree/LICENSE>
+covered by either the 2-clause or 3-clause BSD license.
+
+    Copyright (c) 2017, Intel Corporation. All rights reserved.
+
+TinyCrypt is included as a git submodule to supporting `AES128` for IRK w/ LE Resolvable Private Address (RPA) matching.
+Besides the `AES128` non other cryptographic instruments are currently used nor 
+included in the compilation and binary.
 
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
