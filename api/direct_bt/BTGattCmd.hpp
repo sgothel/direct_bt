@@ -29,6 +29,7 @@
 #include <jau/uuid.hpp>
 #include <jau/octets.hpp>
 #include <jau/fraction_type.hpp>
+#include <jau/functional.hpp>
 
 #include "BTGattDesc.hpp"
 #include "BTGattChar.hpp"
@@ -64,6 +65,9 @@ namespace direct_bt {
      */
     class BTGattCmd
     {
+        public:
+            typedef jau::function<void(BTGattCharRef charDecl, const jau::TROOctets& char_value, const uint64_t timestamp)> DataCallback;
+
         private:
             /** Name, representing the command */
             std::string name;
@@ -81,12 +85,15 @@ namespace direct_bt {
             jau::POctets rsp_data;
             BTGattCharRef cmdCharRef;
             BTGattCharRef rspCharRef;
+            jau::nsize_t rspMinSize;
+            DataCallback dataCallback;
             bool setup_done;
 
             class ResponseCharListener : public BTGattCharListener {
                 private:
                     BTGattCmd& source;
                     jau::POctets& rsp_data;
+                    void store(const jau::TROOctets& char_value);
 
                 public:
                     ResponseCharListener(BTGattCmd& source_, jau::POctets& rsp_data_)
@@ -120,7 +127,10 @@ namespace direct_bt {
 
             HCIStatusCode setup() noexcept;
 
+            HCIStatusCode sendImpl(const bool prefNoAck, const jau::TROOctets& cmd_data, const jau::fraction_i64& timeout, bool allowResponse) noexcept;
+
         public:
+
             /**
              * Constructor for commands with notification or indication response.
              *
@@ -144,6 +154,8 @@ namespace direct_bt {
               rsp_data(rsp_capacity, 0 /* size */, jau::endian::little),
               cmdCharRef(nullptr),
               rspCharRef(nullptr),
+              rspMinSize(0),
+              dataCallback(nullptr),
               setup_done(false),
               rspCharListener( std::make_shared<ResponseCharListener>( *this, rsp_data) ),
               verbose(jau::environment::get().debug)
@@ -172,6 +184,8 @@ namespace direct_bt {
               rsp_data(rsp_capacity, 0 /* size */, jau::endian::little),
               cmdCharRef(nullptr),
               rspCharRef(nullptr),
+              rspMinSize(0),
+              dataCallback(nullptr),
               setup_done(false),
               rspCharListener( std::make_shared<ResponseCharListener>( *this, rsp_data ) ),
               verbose(jau::environment::get().debug)
@@ -196,6 +210,8 @@ namespace direct_bt {
               rsp_data(jau::endian::little),
               cmdCharRef(nullptr),
               rspCharRef(nullptr),
+              rspMinSize(0),
+              dataCallback(nullptr),
               setup_done(false),
               rspCharListener( nullptr ),
               verbose(jau::environment::get().debug)
@@ -220,6 +236,8 @@ namespace direct_bt {
               rsp_data(jau::endian::little),
               cmdCharRef(nullptr),
               rspCharRef(nullptr),
+              rspMinSize(0),
+              dataCallback(nullptr),
               setup_done(false),
               rspCharListener( nullptr ),
               verbose(jau::environment::get().debug)
@@ -233,6 +251,9 @@ namespace direct_bt {
             HCIStatusCode close() noexcept;
 
             ~BTGattCmd() noexcept { close(); }
+
+            void setResponseMinSize(jau::nsize_t v) noexcept { rspMinSize = v; }
+            void setDataCallback(const DataCallback& dcb) noexcept { dataCallback = dcb; }
 
             /** Return name, representing the command */
             const std::string& getName() const noexcept { return name; }
@@ -284,6 +305,19 @@ namespace direct_bt {
              * @see getResponse()
              */
             HCIStatusCode send(const bool prefNoAck, const jau::TROOctets& cmd_data, const jau::fraction_i64& timeout) noexcept;
+
+            /**
+             * Send the command to the remote BTDevice, only.
+             *
+             * Regardless whether a notification or indication result jau::uuid_t has been set via constructor,
+             * this command will not wait for the response.
+             *
+             * @param prefNoAck pass true to prefer command write without acknowledge, otherwise use with-ack if available
+             * @param cmd_data raw command octets
+             * @return
+             * @see getResponse()
+             */
+            HCIStatusCode sendOnly(const bool prefNoAck, const jau::TROOctets& cmd_data) noexcept;
 
             std::string toString() const noexcept;
     };

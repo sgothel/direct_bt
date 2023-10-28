@@ -47,6 +47,10 @@ import org.jau.util.BasicTypes;
  */
 public class BTGattCmd implements AutoCloseable
 {
+    public static interface DataCallback {
+        public void run(final BTGattChar charDecl, byte[] char_value, long timestampMS);
+    }
+
     private static final boolean DEBUG = BTFactory.DEBUG;
 
     /** Name, representing the command */
@@ -63,6 +67,8 @@ public class BTGattCmd implements AutoCloseable
     private volatile byte[] rsp_data;
     private BTGattChar cmdCharRef;
     private BTGattChar rspCharRef;
+    private int rspMinSize;
+    private DataCallback dataCallback;
     private boolean setup_done;
 
     private static class ResponseCharListener extends BTGattCharListener {
@@ -73,6 +79,18 @@ public class BTGattCmd implements AutoCloseable
             source = source_;
         }
 
+        private void store(final byte[] value) {
+            if( null == source.rsp_data ) {
+                source.rsp_data = value;
+            } else {
+                final int new_size = source.rsp_data.length + value.length;
+                final byte[] new_buf = new byte[new_size];
+                System.arraycopy(source.rsp_data, 0, new_buf, 0,                      source.rsp_data.length);
+                System.arraycopy(value,           0, new_buf, source.rsp_data.length, value.length);
+                source.rsp_data = new_buf;
+            }
+        }
+
         @Override
         public void notificationReceived(final BTGattChar charDecl,
                                          final byte[] value, final long timestamp) {
@@ -81,7 +99,10 @@ public class BTGattCmd implements AutoCloseable
                     PrintUtil.fprintf_td(System.err, "BTGattCmd.notificationReceived: Resp %s, value[%s]\n",
                             charDecl.toString(), BasicTypes.bytesHexString(value, 0, value.length, true /* lsbFirst */));
                 }
-                source.rsp_data = value;
+                store(value);
+                if( null != source.dataCallback ) {
+                    source.dataCallback.run(charDecl, value, timestamp);
+                }
                 source.mtxRspReceived.notifyAll();
             }
         }
@@ -95,7 +116,10 @@ public class BTGattCmd implements AutoCloseable
                     PrintUtil.fprintf_td(System.err, "BTGattCmd.indicationReceived: Resp %s, value[%s]\n",
                             charDecl.toString(), BasicTypes.bytesHexString(value, 0, value.length, true /* lsbFirst */));
                 }
-                source.rsp_data = value;
+                store(value);
+                if( null != source.dataCallback ) {
+                    source.dataCallback.run(charDecl, value, timestamp);
+                }
                 source.mtxRspReceived.notifyAll();
             }
         }
@@ -237,6 +261,8 @@ public class BTGattCmd implements AutoCloseable
         rsp_data = null;
         cmdCharRef = null;
         rspCharRef = null;
+        rspMinSize = 0;
+        dataCallback = null;
         setup_done = false;
         rspCharListener = new ResponseCharListener(this);
         verbose = DEBUG;
@@ -260,6 +286,8 @@ public class BTGattCmd implements AutoCloseable
         rsp_data = null;
         cmdCharRef = null;
         rspCharRef = null;
+        rspMinSize = 0;
+        dataCallback = null;
         setup_done = false;
         rspCharListener = null;
         verbose = DEBUG;
@@ -267,6 +295,9 @@ public class BTGattCmd implements AutoCloseable
 
     @Override
     public void finalize() { close(); }
+
+    public void setResponseMinSize(final int v) { rspMinSize = v; }
+    public void setDataCallback(final DataCallback dcb) { dataCallback = dcb; }
 
     /** Return name, representing the command */
     public String getName() { return name; }
@@ -328,6 +359,25 @@ public class BTGattCmd implements AutoCloseable
      * @see #getResponse()
      */
     public synchronized HCIStatusCode send(final boolean prefNoAck, final byte[] cmd_data, final int timeoutMS) {
+        return sendImpl(prefNoAck, cmd_data, timeoutMS, true);
+    }
+
+    /**
+     * Send the command to the remote BTDevice, only.
+     *
+     * Regardless whether a notification or indication result jau::uuid_t has been set via constructor,
+     * this command will not wait for the response.
+     *
+     * @param prefNoAck pass true to prefer command write without acknowledge, otherwise use with-ack if available
+     * @param cmd_data raw command octets
+     * @return
+     * @see #getResponse()
+     */
+    public synchronized HCIStatusCode sendOnly(final boolean prefNoAck, final byte[] cmd_data) {
+        return sendImpl(prefNoAck, cmd_data, 0, false);
+    }
+
+    private synchronized HCIStatusCode sendImpl(final boolean prefNoAck, final byte[] cmd_data, final int timeoutMS, final boolean allowResponse) {
         HCIStatusCode res = HCIStatusCode.SUCCESS;
 
         if( !isConnected() ) {
@@ -380,8 +430,11 @@ public class BTGattCmd implements AutoCloseable
                 res = HCIStatusCode.FAILED;
             }
 
-            if( null != rspCharRef ) {
-                while( HCIStatusCode.SUCCESS == res && null == rsp_data ) {
+            if( null != rspCharRef && allowResponse ) {
+                while( HCIStatusCode.SUCCESS == res &&
+                       ( null == rsp_data || rspMinSize > rsp_data.length || ( 0 == rspMinSize && 0 == rsp_data.length ) )
+                     )
+                {
                     if( 0 == timeoutMS ) {
                         try {
                             mtxRspReceived.wait();
@@ -405,22 +458,6 @@ public class BTGattCmd implements AutoCloseable
                     rspCharStr(), rspDataToString());
         }
         return res;
-    }
-
-    /**
-     * Send the command to the remote BTDevice.
-     *
-     * If a notification or indication result jau.uuid_t has been set via constructor,
-     * it will be awaited and can be retrieved via getResponse() after command returns.
-     *
-     * If using a response, this variant uses a 10 second default timeout to limit blocking until the response becomes available.
-     *
-     * @param prefNoAck pass true to prefer command write without acknowledge, otherwise use default preferrence
-     * @param cmd_data raw command octets
-     * @return
-     */
-    public HCIStatusCode send(final boolean prefNoAck, final byte[] cmd_data) {
-        return send(prefNoAck, cmd_data, 10000 /* timeoutMS */);
     }
 
     @Override

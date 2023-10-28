@@ -29,16 +29,24 @@
 
 using namespace direct_bt;
 
+void BTGattCmd::ResponseCharListener::store(const jau::TROOctets& char_value) {
+    const jau::nsize_t rsp_pos = rsp_data.size();
+    if( rsp_data.remaining() < char_value.size() ) {
+        rsp_data.recapacity( rsp_pos + char_value.size() );
+    }
+    rsp_data.put_bytes_nc(rsp_pos, char_value.get_ptr(), char_value.size());
+    rsp_data.resize(rsp_pos + char_value.size());
+}
+
 void BTGattCmd::ResponseCharListener::notificationReceived(BTGattCharRef charDecl,
                           const jau::TROOctets& char_value, const uint64_t timestamp) {
     std::unique_lock<std::mutex> lock(source.mtxRspReceived); // RAII-style acquire and relinquish via destructor
     DBG_PRINT("BTGattCmd::notificationReceived: Resp %s, value[%s]",
             charDecl->toString().c_str(), char_value.toString().c_str());
-    if( rsp_data.capacity() < char_value.size() ) {
-        rsp_data.recapacity( char_value.size() );
+    store(char_value);
+    if( nullptr != source.dataCallback ) {
+        source.dataCallback(charDecl, char_value, timestamp);
     }
-    rsp_data.put_bytes_nc(0, char_value.get_ptr(), char_value.size());
-    rsp_data.resize(char_value.size());
     lock.unlock(); // unlock mutex before notify_all to avoid pessimistic re-block of notified wait() thread.
     source.cvRspReceived.notify_all(); // notify waiting thread
     (void)timestamp;
@@ -51,11 +59,10 @@ void BTGattCmd::ResponseCharListener::indicationReceived(BTGattCharRef charDecl,
     std::unique_lock<std::mutex> lock(source.mtxRspReceived); // RAII-style acquire and relinquish via destructor
     DBG_PRINT("BTGattCmd::indicationReceived: Resp %s, value[%s]",
             charDecl->toString().c_str(), char_value.toString().c_str());
-    if( rsp_data.capacity() < char_value.size() ) {
-        rsp_data.recapacity( char_value.size() );
+    store(char_value);
+    if( nullptr != source.dataCallback ) {
+        source.dataCallback(charDecl, char_value, timestamp);
     }
-    rsp_data.put_bytes_nc(0, char_value.get_ptr(), char_value.size());
-    rsp_data.resize(char_value.size());
     lock.unlock(); // unlock mutex before notify_all to avoid pessimistic re-block of notified wait() thread.
     source.cvRspReceived.notify_all(); // notify waiting thread
     (void)charDecl;
@@ -167,6 +174,12 @@ bool BTGattCmd::isResolved() noexcept {
 }
 
 HCIStatusCode BTGattCmd::send(const bool prefNoAck, const jau::TROOctets& cmd_data, const jau::fraction_i64& timeout) noexcept {
+    return sendImpl(prefNoAck, cmd_data, timeout, true);
+}
+HCIStatusCode BTGattCmd::sendOnly(const bool prefNoAck, const jau::TROOctets& cmd_data) noexcept {
+    return sendImpl(prefNoAck, cmd_data, 0_s, false);
+}
+HCIStatusCode BTGattCmd::sendImpl(const bool prefNoAck, const jau::TROOctets& cmd_data, const jau::fraction_i64& timeout, bool allowResponse) noexcept {
     std::unique_lock<std::mutex> lockCmd(mtxCommand); // RAII-style acquire and relinquish via destructor
     HCIStatusCode res = HCIStatusCode::SUCCESS;
 
@@ -219,9 +232,12 @@ HCIStatusCode BTGattCmd::send(const bool prefNoAck, const jau::TROOctets& cmd_da
             res = HCIStatusCode::FAILED;
         }
 
-        if( nullptr != rspCharRef ) {
+        if( nullptr != rspCharRef && allowResponse ) {
             const jau::fraction_timespec timeout_time = jau::getMonotonicTime() + jau::fraction_timespec(timeout);
-            while( HCIStatusCode::SUCCESS == res && 0 == rsp_data.size() ) {
+            while( HCIStatusCode::SUCCESS == res &&
+                   ( rspMinSize > rsp_data.size() || ( 0 == rspMinSize && 0 == rsp_data.size() ) )
+                 )
+            {
                 if( jau::fractions_i64::zero == timeout ) {
                     cvRspReceived.wait(lockRsp);
                 } else {
