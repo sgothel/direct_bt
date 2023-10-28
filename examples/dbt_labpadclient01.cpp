@@ -92,10 +92,23 @@ static bool KEEP_CONNECTED = true;
 static bool GATT_PING_ENABLED = false;
 static bool REMOVE_DEVICE = true;
 
-// Default from dbt_peripheral00.cpp or DBTPeripheral00.java
-static std::unique_ptr<uuid_t> cmd_uuid = nullptr; // jau::uuid_t::create(std::string("d0ca6bf3-3d52-4760-98e5-fc5883e93712"));
-static std::unique_ptr<uuid_t> cmd_rsp_uuid = nullptr; // jau::uuid_t::create(std::string("d0ca6bf3-3d53-4760-98e5-fc5883e93712"));
-static uint8_t cmd_arg = 0x44;
+// Avalun's LabPad Comman + Event UUID
+static std::unique_ptr<uuid_t> cmd_req_uuid = jau::uuid_t::create(std::string("2c1b2472-4a5f-11e5-9595-0002a5d5c51b"));
+static std::unique_ptr<uuid_t> cmd_rsp_uuid = jau::uuid_t::create(std::string("2c1b2473-4a5f-11e5-9595-0002a5d5c51b"));
+
+static const POctets cmd_data1( { 0x00 /* cmd-idx-0 */,
+                                  0x14, 0x00, 0x00, 0x00, 0x22, 0x00, 0x00, 0x00,
+                                  0x01, 0x5E, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00,
+                                  0x9B, 0x23, 0x84 }, endian::little);
+
+static const POctets cmd_data2( { 0x01 /* cmd-idx-1 */,
+                                  0xB8 }, endian::little);
+
+static const POctets resp_exp(  { 0x00 /* rsp-idx-0 */,
+                                  0x14, 0x00, 0x00, 0x00, 0x01, 0x10, 0x00, 0x00,
+                                  0x01, 0x89, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                                  0xf6, 0x64, 0x17,
+                                  0x01 /* rsp-idx-1 */, 0xed }, endian::little );
 
 static bool SHOW_UPDATE_EVENTS = false;
 static bool QUIET = false;
@@ -470,28 +483,49 @@ static void processReadyDevice(const BTDeviceRef& device) {
                                td13, td12, td23, td35);
         }
 
-        if( nullptr != cmd_uuid ) {
-            BTGattCmd cmd = nullptr != cmd_rsp_uuid ? BTGattCmd(*device, "TestCmd", *cmd_uuid, *cmd_rsp_uuid, 256)
-                                                    : BTGattCmd(*device, "TestCmd", *cmd_uuid);
+        {
+            const jau::nsize_t response_size = resp_exp.size();
+            int fail_point = 0;
+            BTGattCmd cmd = BTGattCmd(*device, "TestCmd", *cmd_req_uuid, *cmd_rsp_uuid, 256);
             cmd.setVerbose(true);
-            const bool cmd_resolved = cmd.isResolved();
-            fprintf_td(stderr, "Command test: %s, resolved %d\n", cmd.toString().c_str(), cmd_resolved);
-            POctets cmd_data(1, endian::little);
-            cmd_data.put_uint8_nc(0, cmd_arg);
-            const HCIStatusCode cmd_res = cmd.send(true /* prefNoAck */, cmd_data, 3_s);
-            if( HCIStatusCode::SUCCESS == cmd_res ) {
-                if( cmd.hasResponseSet() ) {
-                    const jau::TROOctets& resp = cmd.getResponse();
-                    if( 1 == resp.size() && resp.get_uint8_nc(0) == cmd_arg ) {
-                        fprintf_td(stderr, "Success: %s -> %s (echo response)\n", cmd.toString().c_str(), resp.toString().c_str());
-                    } else {
-                        fprintf_td(stderr, "Success: %s -> %s (different response)\n", cmd.toString().c_str(), resp.toString().c_str());
-                    }
-                } else {
-                    fprintf_td(stderr, "Success: %s -> no response\n", cmd.toString().c_str());
-                }
+            HCIStatusCode cmd_res = cmd.isResolved() ? HCIStatusCode::SUCCESS : HCIStatusCode::INTERNAL_FAILURE;
+            if( HCIStatusCode::SUCCESS != cmd_res ) {
+                fail_point = 1;
             } else {
-                fprintf_td(stderr, "Failure: %s -> %s\n", cmd.toString().c_str(), to_string(cmd_res).c_str());
+                cmd.setResponseMinSize(response_size);
+                cmd.setDataCallback( [](BTGattCharRef, const jau::TROOctets& char_value, const uint64_t) {
+                    fprintf_td(stderr, "Received: %s\n", char_value.toString().c_str());
+                });
+                fprintf_td(stderr, "Command test: %s\n", cmd.toString().c_str());
+                cmd_res = cmd.sendOnly(true, cmd_data1);
+            }
+            if( HCIStatusCode::SUCCESS != cmd_res ) {
+                fail_point = 2;
+            } else {
+                cmd_res = cmd.send(true, cmd_data2, 3_s);
+            }
+            if( HCIStatusCode::SUCCESS != cmd_res ) {
+                fail_point = 3;
+            } else {
+                if( !cmd.hasResponseSet() ) {
+                    fail_point = 4;
+                } else {
+                    const jau::TROOctets& resp = cmd.getResponse();
+                    if( response_size != resp.size() ) {
+                        fail_point = 5;
+                        fprintf_td(stderr, "Failure: %s -> %s (response size)\n", cmd.toString().c_str(), resp.toString().c_str());
+                    } else if( resp_exp != resp ) {
+                        fail_point = 6;
+                        fprintf_td(stderr, "Failure: %s (response content)\n", cmd.toString().c_str());
+                        fprintf_td(stderr, "- exp %s\n", resp_exp.toString().c_str());
+                        fprintf_td(stderr, "- has %s\n", resp.toString().c_str());
+                    } else {
+                        fprintf_td(stderr, "Success: %s -> %s\n", cmd.toString().c_str(), resp.toString().c_str());
+                    }
+                }
+            }
+            if( 0 != fail_point ) {
+                fprintf_td(stderr, "Failure: point %u: %s -> %s\n", fail_point, cmd.toString().c_str(), to_string(cmd_res).c_str());
             }
         }
 

@@ -104,10 +104,23 @@ public class DBTLabPadClient01 {
     boolean GATT_PING_ENABLED = false;
     boolean REMOVE_DEVICE = true;
 
-    // Default from dbt_peripheral00.cpp or DBTPeripheral00.java
-    String cmd_uuid = null; // "d0ca6bf3-3d52-4760-98e5-fc5883e93712";
-    String cmd_rsp_uuid = null; // "d0ca6bf3-3d53-4760-98e5-fc5883e93712";
-    byte cmd_arg = (byte)0x44;
+    // Avalun's LabPad Comman + Event UUID
+    static String cmd_req_uuid = "2c1b2472-4a5f-11e5-9595-0002a5d5c51b";
+    static String cmd_rsp_uuid = "2c1b2473-4a5f-11e5-9595-0002a5d5c51b";
+
+    static final byte[] cmd_data1 = { 0x00 /* cmd-idx-0 */,
+                                      0x14, 0x00, 0x00, 0x00, 0x22, 0x00, 0x00, 0x00,
+                                      0x01, 0x5E, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00,
+                                      (byte)0x9B, (byte)0x23, (byte)0x84 };
+
+    static final byte[] cmd_data2 = { 0x01 /* cmd-idx-1 */,
+                                      (byte)0xB8 };
+
+    static final byte[] resp_exp  = { 0x00 /* rsp-idx-0 */,
+                                      0x14, 0x00, 0x00, 0x00, 0x01, 0x10, 0x00, 0x00,
+                                      0x01, (byte)0x89, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                                      (byte)0xf6, 0x64, 0x17,
+                                      0x01 /* rsp-idx-1 */, (byte)0xed };
 
     boolean SHOW_UPDATE_EVENTS = false;
     boolean QUIET = false;
@@ -503,27 +516,49 @@ public class DBTLabPadClient01 {
                         "PERF:  get-gatt-services " + td35 + " ms,"+System.lineSeparator());
             }
 
-            if( null != cmd_uuid ) {
-                final BTGattCmd cmd = null != cmd_rsp_uuid ? new BTGattCmd(device, "TestCmd", null /* service_uuid */, cmd_uuid, cmd_rsp_uuid)
-                                                           : new BTGattCmd(device, "TestCmd", null /* service_uuid */, cmd_uuid);
+            {
+                final int response_size = resp_exp.length;
+                int fail_point = 0;
+                final BTGattCmd cmd = new BTGattCmd(device, "TestCmd", null /* service_uuid */, cmd_req_uuid, cmd_rsp_uuid);
                 cmd.setVerbose(true);
-                final boolean cmd_resolved = cmd.isResolved();
-                PrintUtil.println(System.err, "Command test: "+cmd.toString()+", resolved "+cmd_resolved);
-                final byte[] cmd_data = { cmd_arg };
-                final HCIStatusCode cmd_res = cmd.send(true /* prefNoAck */, cmd_data, 3000 /* timeoutMS */);
-                if( HCIStatusCode.SUCCESS == cmd_res ) {
-                    if( cmd.hasResponseSet() ) {
-                        final byte[] resp = cmd.getResponse();
-                        if( 1 == resp.length && resp[0] == cmd_arg ) {
-                            PrintUtil.fprintf_td(System.err, "Success: %s -> %s (echo response)\n", cmd.toString(), BasicTypes.bytesHexString(resp, 0, resp.length, true /* lsb */));
-                        } else {
-                            PrintUtil.fprintf_td(System.err, "Success: %s -> %s (different response)\n", cmd.toString(), BasicTypes.bytesHexString(resp, 0, resp.length, true /* lsb */));
-                        }
-                    } else {
-                        PrintUtil.fprintf_td(System.err, "Success: %s -> no response\n", cmd.toString());
-                    }
+                HCIStatusCode cmd_res = cmd.isResolved() ? HCIStatusCode.SUCCESS : HCIStatusCode.INTERNAL_FAILURE;
+                if( HCIStatusCode.SUCCESS != cmd_res ) {
+                    fail_point = 1;
                 } else {
-                    PrintUtil.fprintf_td(System.err, "Failure: %s -> %s\n", cmd.toString(), cmd_res.toString());
+                    cmd.setResponseMinSize(response_size);
+                    cmd.setDataCallback( (final BTGattChar charDecl, final byte[] value, final long timestampMS) -> {
+                        PrintUtil.fprintf_td(System.err, "Received: size %d, %s\n", value.length, BasicTypes.bytesHexString(value, 0, -1, true));
+                    });
+                    PrintUtil.println(System.err, "Command test: "+cmd.toString());
+                    cmd_res = cmd.sendOnly(true /* prefNoAck */, cmd_data1);
+                }
+                if( HCIStatusCode.SUCCESS != cmd_res ) {
+                    fail_point = 2;
+                } else {
+                    cmd_res = cmd.send(true /* prefNoAck */, cmd_data2, 3000 /* timeoutMS */);
+                }
+                if( HCIStatusCode.SUCCESS != cmd_res ) {
+                    fail_point = 3;
+                } else {
+                    if( !cmd.hasResponseSet() ) {
+                        fail_point = 4;
+                    } else {
+                        final byte[] resp = cmd.getResponse();
+                        if( response_size != resp.length ) {
+                            fail_point = 5;
+                            PrintUtil.fprintf_td(System.err, "Success: %s -> %s (response size)\n", cmd.toString(), BasicTypes.bytesHexString(resp, 0, resp.length, true /* lsb */));
+                        } else if( !Arrays.equals(resp_exp, resp) ) {
+                            fail_point = 6;
+                            PrintUtil.fprintf_td(System.err, "Failure: %s (response content)\n", cmd.toString());
+                            PrintUtil.fprintf_td(System.err, "- exp %s\n", BasicTypes.bytesHexString(resp_exp, 0, resp_exp.length, true /* lsb */));
+                            PrintUtil.fprintf_td(System.err, "- has %s\n", BasicTypes.bytesHexString(resp, 0, resp.length, true /* lsb */));
+                        } else {
+                            PrintUtil.fprintf_td(System.err, "Success: %s -> %s\n", cmd.toString(), BasicTypes.bytesHexString(resp, 0, resp.length, true /* lsb */));
+                        }
+                    }
+                }
+                if( 0 != fail_point ) {
+                    PrintUtil.fprintf_td(System.err, "Failure: point %d: %s -> %s\n", fail_point, cmd.toString(), cmd_res.toString());
                 }
                 cmd.close();
             }
