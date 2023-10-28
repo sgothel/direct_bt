@@ -32,6 +32,7 @@
 #include <cstdint>
 #include <mutex>
 #include <atomic>
+#include <initializer_list>
 
 #include <jau/java_uplink.hpp>
 #include <jau/octets.hpp>
@@ -527,6 +528,11 @@ namespace direct_bt {
         jau::POctets p(capacity, size, jau::endian::little);
         p.bzero();
         return p;
+    }
+
+    /** Convenience jau::POctets ctor function to create DBGattChar or DBGattDesc values. */
+    inline jau::POctets make_gvalue(std::initializer_list<uint8_t> sourcelist) {
+        return jau::POctets(sourcelist, jau::endian::little);
     }
 
     /**

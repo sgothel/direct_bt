@@ -71,6 +71,11 @@ public class DBGattValue
         return new DBGattValue(p, capacity, true /* variable_length */);
     }
 
+    /** Convenience {@link DBGattValue} ctor function. */
+    public static DBGattValue make(final byte[] p) {
+        return new DBGattValue(p, p.length);
+    }
+
     /**
      * Constructor
      * @param value the data, which length defines the maximum writable fixed length if variable length is false.
