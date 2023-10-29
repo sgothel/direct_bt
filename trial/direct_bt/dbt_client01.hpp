@@ -645,7 +645,7 @@ class DBTClient01 : public DBTClientTest {
     public:
 
         HCIStatusCode startDiscovery(const std::string& msg) override {
-            HCIStatusCode status = clientAdapter->startDiscovery( discoveryPolicy, le_scan_active, le_scan_interval, le_scan_window, filter_policy, filter_dup );
+            HCIStatusCode status = clientAdapter->startDiscovery( nullptr, discoveryPolicy, le_scan_active, le_scan_interval, le_scan_window, filter_policy, filter_dup );
             fprintf_td(stderr, "****** Client Start discovery (%s) result: %s: %s\n", msg.c_str(), to_string(status).c_str(), clientAdapter->toString().c_str());
             return status;
         }

@@ -524,7 +524,7 @@ static bool startDiscoveryToServer(BTAdapter *a, std::string msg) { // NOLINT(pe
         fprintf_td(stderr, "****** To Server: Start discovery (%s): Adapter not selected: %s\n", msg.c_str(), a->toString().c_str());
         return false;
     }
-    HCIStatusCode status = a->startDiscovery( discoveryPolicy, le_scan_active, le_scan_interval, le_scan_window, filter_policy );
+    HCIStatusCode status = a->startDiscovery( nullptr, discoveryPolicy, le_scan_active, le_scan_interval, le_scan_window, filter_policy );
     fprintf_td(stderr, "****** To Server: Start discovery (%s) result: %s: %s\n", msg.c_str(), to_string(status).c_str(), a->toString().c_str());
     return HCIStatusCode::SUCCESS == status;
 }
