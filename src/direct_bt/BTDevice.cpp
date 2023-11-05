@@ -1371,7 +1371,7 @@ void BTDevice::hciSMPMsgCallback(const std::shared_ptr<BTDevice>& sthis, const S
             if( !msg_from_initiator ) {
                 // from responder (LL slave)
                 pairing_data.keys_resp_has |= SMPKeyType::ID_KEY;
-                pairing_data.csrk_resp.properties |= SMPSignatureResolvingKey::Property::RESPONDER;
+                pairing_data.irk_resp.properties |= SMPIdentityResolvingKey::Property::RESPONDER;
                 pairing_data.irk_resp.irk = msg1.getIRK();
                 if( BDAddressType::BDADDR_UNDEFINED != pairing_data.id_address_resp.type ) {
                     pairing_data.irk_resp.id_address = pairing_data.id_address_resp.address;
