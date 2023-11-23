@@ -1191,6 +1191,13 @@ HCIStatusCode BTAdapter::startDiscovery(const DBGattServerRef& gattServerData_,
                     to_string(currentNativeScanType).c_str(), to_string(currentMetaScanType).c_str(), toString(true).c_str());
             discovery_policy = policy;
         }
+        if( _print_device_lists || jau::environment::get().verbose ) {
+            jau::PLAIN_PRINT(true, "BTAdapter::startDiscovery: End.0: Result %s, policy %s -> %s, currentScanType[native %s, meta %s] ...\n- %s",
+                    to_string(HCIStatusCode::SUCCESS).c_str(),
+                    to_string(discovery_policy).c_str(), to_string(policy).c_str(),
+                    to_string(hci.getCurrentScanType()).c_str(), to_string(currentMetaScanType).c_str(), toString().c_str());
+            printDeviceLists();
+        }
         checkDiscoveryState();
         return HCIStatusCode::SUCCESS;
     }
@@ -1218,7 +1225,7 @@ HCIStatusCode BTAdapter::startDiscovery(const DBGattServerRef& gattServerData_,
     }
 
     if( _print_device_lists || jau::environment::get().verbose ) {
-        jau::PLAIN_PRINT(true, "BTAdapter::startDiscovery: End: Result %s, policy %s -> %s, currentScanType[native %s, meta %s] ...\n- %s",
+        jau::PLAIN_PRINT(true, "BTAdapter::startDiscovery: End.1: Result %s, policy %s -> %s, currentScanType[native %s, meta %s] ...\n- %s",
                 to_string(status).c_str(),
                 to_string(discovery_policy).c_str(), to_string(policy).c_str(),
                 to_string(hci.getCurrentScanType()).c_str(), to_string(currentMetaScanType).c_str(), toString().c_str());
@@ -2529,6 +2536,9 @@ void BTAdapter::mgmtEvDeviceFoundHCI(const MgmtEvent& e) noexcept {
         DBG_PRINT("BTAdapter:hci:DeviceFound(1.0, dev_id %d): Discovered but already connected %s [discovered %d, shared %d] -> Drop(1) %s",
                   dev_id, dev_connected->getAddressAndType().toString().c_str(),
                   nullptr != dev_discovered, nullptr != dev_shared, eir->toString().c_str());
+        if( _print_device_lists || jau::environment::get().verbose ) {
+            printDeviceLists();
+        }
     } else if( nullptr == dev_discovered ) { // nullptr == dev_connected && nullptr == dev_discovered
         if( nullptr == dev_shared ) {
             //
@@ -2539,6 +2549,9 @@ void BTAdapter::mgmtEvDeviceFoundHCI(const MgmtEvent& e) noexcept {
             addSharedDevice(dev_shared);
             DBG_PRINT("BTAdapter:hci:DeviceFound(1.1, dev_id %d): New undiscovered/unshared %s -> deviceFound(..) %s",
                     dev_id, dev_shared->getAddressAndType().toString().c_str(), eir->toString().c_str());
+            if( _print_device_lists || jau::environment::get().verbose ) {
+                printDeviceLists();
+            }
 
             {
                 const HCIStatusCode res = mgmt->unpairDevice(dev_id, dev_shared->getAddressAndType(), false /* disconnect */);
@@ -2579,6 +2592,9 @@ void BTAdapter::mgmtEvDeviceFoundHCI(const MgmtEvent& e) noexcept {
             dev_shared->ts_last_discovery = eir->getTimestamp();
             DBG_PRINT("BTAdapter:hci:DeviceFound(1.2, dev_id %d): Undiscovered but shared %s -> deviceFound(..) [deviceUpdated(..)] %s",
                     dev_id, dev_shared->getAddressAndType().toString().c_str(), eir->toString().c_str());
+            if( _print_device_lists || jau::environment::get().verbose ) {
+                printDeviceLists();
+            }
 
             {
                 HCIStatusCode res = dev_shared->unpair();
@@ -2626,6 +2642,9 @@ void BTAdapter::mgmtEvDeviceFoundHCI(const MgmtEvent& e) noexcept {
                         dev_id, dev_discovered->getAddressAndType().toString().c_str(),
                         direct_bt::to_string(updateMask).c_str(), eir->toString().c_str());
                 addSharedDevice(dev_discovered); // re-add to shared devices!
+                if( _print_device_lists || jau::environment::get().verbose ) {
+                    printDeviceLists();
+                }
                 int i=0;
                 bool device_used = false;
                 jau::for_each_fidelity(statusListenerList, [&](StatusListenerPair &p) {
@@ -2656,14 +2675,24 @@ void BTAdapter::mgmtEvDeviceFoundHCI(const MgmtEvent& e) noexcept {
             // i.e. at least one deviceFound(..) returned true - interest/picked.
             //
             if( EIRDataType::NONE != updateMask ) {
-                COND_PRINT(debug_event, "BTAdapter:hci:DeviceFound(2.2.1, dev_id %d): Discovered and shared %s, updated %s -> deviceUpdated(..) %s",
-                        dev_id, dev_shared->getAddressAndType().toString().c_str(),
-                        direct_bt::to_string(updateMask).c_str(), eir->toString().c_str());
+                if( debug_event ) {
+                    jau::PLAIN_PRINT(true, "BTAdapter:hci:DeviceFound(2.2.1, dev_id %d): Discovered and shared %s, updated %s -> deviceUpdated(..) %s",
+                            dev_id, dev_shared->getAddressAndType().toString().c_str(),
+                            direct_bt::to_string(updateMask).c_str(), eir->toString().c_str());
+                    if( _print_device_lists || jau::environment::get().verbose ) {
+                        printDeviceLists();
+                    }
+                }
                 sendDeviceUpdated("DiscoveredDeviceFound", dev_shared, eir->getTimestamp(), updateMask);
             } else {
                 // Drop: No update
-                COND_PRINT(debug_event, "BTAdapter:hci:DeviceFound(2.2.2, dev_id %d): Discovered and shared %s, not-updated -> Drop(3) %s",
-                        dev_id, dev_shared->getAddressAndType().toString().c_str(), eir->toString().c_str());
+                if( debug_event ) {
+                    jau::PLAIN_PRINT(true, "BTAdapter:hci:DeviceFound(2.2.2, dev_id %d): Discovered and shared %s, not-updated -> Drop(3) %s",
+                            dev_id, dev_shared->getAddressAndType().toString().c_str(), eir->toString().c_str());
+                    if( _print_device_lists || jau::environment::get().verbose ) {
+                        printDeviceLists();
+                    }
+                }
             }
         }
     }
