@@ -1191,6 +1191,7 @@ HCIStatusCode BTAdapter::startDiscovery(const DBGattServerRef& gattServerData_,
                     to_string(currentNativeScanType).c_str(), to_string(currentMetaScanType).c_str(), toString(true).c_str());
             discovery_policy = policy;
         }
+        gattServerData = gattServerData_;
         if( _print_device_lists || jau::environment::get().verbose ) {
             jau::PLAIN_PRINT(true, "BTAdapter::startDiscovery: End.0: Result %s, policy %s -> %s, currentScanType[native %s, meta %s] ...\n- %s",
                     to_string(HCIStatusCode::SUCCESS).c_str(),
