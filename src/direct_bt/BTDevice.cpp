@@ -1603,10 +1603,10 @@ bool BTDevice::setSMPKeyBin(const SMPKeyBin& bin) noexcept {
 
         const BTSecurityLevel applySecLevel = BTSecurityLevel::NONE == bin.getSecLevel() ?
                                               BTSecurityLevel::NONE : BTSecurityLevel::ENC_ONLY;
-        pairing_data.is_pre_paired = true;
-        pairing_data.io_cap_user = SMPIOCapability::NO_INPUT_NO_OUTPUT;
-        pairing_data.sec_level_user = applySecLevel;
-        pairing_data.io_cap_auto = SMPIOCapability::UNSET; // disable auto
+        if( !setConnSecurity(applySecLevel, SMPIOCapability::NO_INPUT_NO_OUTPUT) ) {
+            DBG_PRINT("BTDevice::setSMPKeyBin: Setting security failed: Device Connected/ing: %s, %s", bin.toString().c_str(), toString().c_str());
+            return false;
+        }
     }
     pairing_data.use_sc = bin.uses_SC();
 
@@ -1690,6 +1690,7 @@ HCIStatusCode BTDevice::uploadKeys() noexcept {
         if( BDAddressType::BDADDR_BREDR != addressAndType.type ) {
             // Not supported
             DBG_PRINT("BTDevice::uploadKeys: Upload LK for LE address not supported -> ignored: %s", toString().c_str());
+            pairing_data.is_pre_paired = true;
             return HCIStatusCode::SUCCESS;
         }
 
@@ -1705,6 +1706,9 @@ HCIStatusCode BTDevice::uploadKeys() noexcept {
                 res = mngr->uploadLinkKey(adapter.dev_id, addressAndType, pairing_data.lk_resp);
                 DBG_PRINT("BTDevice::uploadKeys.LK[adapter slave]: %s", to_string(res).c_str());
             }
+        }
+        if( HCIStatusCode::SUCCESS == res ) {
+            pairing_data.is_pre_paired = true;
         }
         return res;
     } else if constexpr ( SMP_SUPPORTED_BY_OS ) {

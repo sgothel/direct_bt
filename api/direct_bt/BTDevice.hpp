@@ -679,6 +679,9 @@ namespace direct_bt {
              */
             HCIStatusCode disconnect(const HCIStatusCode reason=HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION ) noexcept;
 
+            /** Returns true if this device has completed SMP pairing or keys are set via uploadKeys() */
+            bool isPrePaired() const noexcept { return pairing_data.is_pre_paired; }
+
             /**
              * Returns the responder SMP passkey, ranging from [0..999999].
              * <p>
@@ -737,6 +740,7 @@ namespace direct_bt {
              * Must be called before connecting to this device, otherwise HCIStatusCode::CONNECTION_ALREADY_EXISTS will be returned.
              *
              * @return ::HCIStatusCode::SUCCESS if successful, otherwise the appropriate error code.
+             * @see isPrePaired()
              * @see setLongTermKey()
              * @see setIdentityResolvingKey()
              * @see setSignatureResolvingKey()
@@ -927,7 +931,7 @@ namespace direct_bt {
              * Method either changes both parameter for the upcoming connection or none at all.
              * </p>
              * @param[in] sec_level ::BTSecurityLevel to be applied.
-             * @param[in] io_cap ::SMPIOCapability to be applied.
+             * @param[in] io_cap ::SMPIOCapability to be applied, defaults to ::SMPIOCapability::UNSET
              * @see ::BTSecurityLevel
              * @see ::SMPIOCapability
              * @see getConnSecurityLevel()
