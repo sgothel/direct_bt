@@ -710,7 +710,11 @@ namespace direct_bt {
              */
             HCIStatusCode disconnect(const HCIStatusCode reason=HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION ) noexcept;
 
-            /** Returns true if this device has completed SMP pairing or keys are set via uploadKeys() */
+            /**
+             * Returns true if this device has completed SMP pairing or keys are set via uploadKeys()
+             * @see uploadKeys()
+             * @since 3.2.3
+             */
             bool isPrePaired() const noexcept { return pairing_data.is_pre_paired; }
 
             /**
@@ -756,6 +760,7 @@ namespace direct_bt {
              *
              * @param bin
              * @return true if successful, false if pairing is currently in progress
+             * @see isPrePaired()
              * @see setLongTermKey()
              * @see setIdentityResolvingKey()
              * @see setSignatureResolvingKey()
@@ -787,6 +792,7 @@ namespace direct_bt {
              * @param bin the SMPKeyBin file
              * @param req_min_level SMPKeyBin::getSecLevel() shall be greater or equal to this required minimum
              * @return ::HCIStatusCode::SUCCESS if successful, otherwise the appropriate error code.
+             * @see isPrePaired()
              * @see setSMPKeyBin()
              * @see uploadKeys()
              * @since 2.4.0
@@ -805,6 +811,7 @@ namespace direct_bt {
              * @param smp_key_bin_path director for the SMPKeyBin file, derived by this BTDevice
              * @param req_min_level SMPKeyBin::getSecLevel() shall be greater or equal to this required minimum
              * @return ::HCIStatusCode::SUCCESS if successful, otherwise the appropriate error code.
+             * @see isPrePaired()
              * @see SMPKeyBin::read()
              * @see setSMPKeyBin()
              * @see uploadKeys()

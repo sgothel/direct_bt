@@ -292,6 +292,9 @@ public class DBTDevice extends DBTObject implements BTDevice
     private native byte disconnectImpl();
 
     @Override
+    public native boolean isPrePaired();
+
+    @Override
     public native int getResponderSMPPassKey();
 
     @Override

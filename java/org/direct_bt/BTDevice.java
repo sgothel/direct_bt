@@ -105,6 +105,13 @@ public interface BTDevice extends BTObject
     HCIStatusCode disconnect() throws BTException;
 
     /**
+     * Returns true if this device has completed SMP pairing or keys are set via uploadKeys()
+     * @see #uploadKeys()
+     * @since 3.2.3
+     */
+    boolean isPrePaired();
+
+    /**
      * Returns the responder SMP passkey, ranging from [0..999999].
      * <p>
      * Authentication (MITM) PASSKEY (produced by this responder adapter, acting as peripheral GATT server) and shall be displayed for the initiating remote device, see {@link PairingMode#PASSKEY_ENTRY_ini}
@@ -235,6 +242,7 @@ public interface BTDevice extends BTObject
      * Must be called before connecting to this device, otherwise {@link HCIStatusCode#CONNECTION_ALREADY_EXISTS} will be returned.
      *
      * @return {@link HCIStatusCode#SUCCESS} if successful, otherwise the appropriate error code.
+     * @see #isPrePaired()
      * @see #setLongTermKey(SMPLongTermKey)
      * @see #setIdentityResolvingKey(SMPIdentityResolvingKey)
      * @see #setSignatureResolvingKey(SMPSignatureResolvingKey)
@@ -250,6 +258,7 @@ public interface BTDevice extends BTObject
      * @param bin the SMPKeyBin file
      * @param req_min_level SMPKeyBin::getSecLevel() shall be greater or equal to this required minimum
      * @return ::HCIStatusCode::SUCCESS if successful, otherwise the appropriate error code.
+     * @see #isPrePaired()
      * @see #setSMPKeyBin(SMPKeyBin)
      * @see #uploadKeys()
      * @since 2.4.0
@@ -262,6 +271,7 @@ public interface BTDevice extends BTObject
      * @param smp_key_bin_path director for the SMPKeyBin file, derived by this BTDevice
      * @param req_min_level SMPKeyBin::getSecLevel() shall be greater or equal to this required minimum
      * @return ::HCIStatusCode::SUCCESS if successful, otherwise the appropriate error code.
+     * @see #isPrePaired()
      * @see SMPKeyBin#read(String, BTDevice, boolean)
      * @see #setSMPKeyBin(SMPKeyBin)
      * @see #uploadKeys(SMPKeyBin, BTSecurityLevel)

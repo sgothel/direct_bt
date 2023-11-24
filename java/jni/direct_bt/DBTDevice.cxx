@@ -480,6 +480,19 @@ jbyte Java_jau_direct_1bt_DBTDevice_disconnectImpl(JNIEnv *env, jobject obj)
     return (jbyte) number(HCIStatusCode::INTERNAL_FAILURE);
 }
 
+jboolean Java_jau_direct_1bt_DBTDevice_isPrePaired(JNIEnv *env, jobject obj) {
+    try {
+        shared_ptr_ref<BTDevice> device(env, obj); // hold until done
+        JavaAnonRef device_java = device->getJavaObject(); // hold until done!
+        JavaGlobalObj::check(device_java, E_FILE_LINE);
+
+        return device->isPrePaired() ? JNI_TRUE : JNI_FALSE;
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return JNI_FALSE;
+}
+
 jint Java_jau_direct_1bt_DBTDevice_getResponderSMPPassKey(JNIEnv *env, jobject obj) {
     try {
         shared_ptr_ref<BTDevice> device(env, obj); // hold until done
