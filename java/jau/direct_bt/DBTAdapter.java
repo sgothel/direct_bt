@@ -612,9 +612,10 @@ public class DBTAdapter extends DBTObject implements BTAdapter
             if( updateMask.isSet( EIRDataTypeSet.DataType.BDADDR ) ) {
                 ((DBTDevice)device).updateAddress();
             }
+
             final boolean rssiUpdated = updateMask.isSet( EIRDataTypeSet.DataType.RSSI );
             final boolean mdUpdated = updateMask.isSet( EIRDataTypeSet.DataType.MANUF_DATA );
-            if( DEBUG && !rssiUpdated && !mdUpdated) {
+            if( DEBUG && !rssiUpdated && !mdUpdated && 0 != updateMask.get(EIRDataTypeSet.EIR_DATA_TYPE_MASK) ) {
                 PrintUtil.println(System.err, "Adapter.UPDATED: "+updateMask+" of "+device+" on "+device.getAdapter());
             }
             // nop on discoveredDevices
