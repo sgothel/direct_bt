@@ -362,10 +362,20 @@ public class DBTDevice extends DBTObject implements BTDevice
         }
 
         // Must be a valid SMPKeyBin instance and at least one LTK key if using encryption.
+        // Also validates IRKs' id_address, if contained
         if( !bin.isValid() || ( BTSecurityLevel.NONE != bin.getSecLevel() && !bin.hasLTKInit() && !bin.hasLTKResp() ) ) {
             if( DEBUG ) {
                 PrintUtil.fprintf_td(System.err, "BTDevice::setSMPKeyBin(): Apply SMPKeyBin failed, all invalid or sec level w/o LTK: %s, %s",
                         bin.toString(), toString());
+            }
+            return false;
+        }
+
+        final BTRole btRoleAdapter = getRole().reverse();
+        if( btRoleAdapter != bin.getLocalRole() ) {
+            if( DEBUG ) {
+                PrintUtil.fprintf_td(System.err, "BTDevice::setSMPKeyBin(): Apply SMPKeyBin failed, local adapter role %s mismatch: %s, %s",
+                        btRoleAdapter.toString(), bin.toString(), toString());
             }
             return false;
         }
@@ -394,7 +404,7 @@ public class DBTDevice extends DBTObject implements BTDevice
 
             if( !setConnSecurity(applySecLevel, SMPIOCapability.NO_INPUT_NO_OUTPUT) ) {
                 if( DEBUG ) {
-                    PrintUtil.println(System.err, "BTDevice::setSMPKeyBin: Apply SMPKeyBin failed: Device Connected/ing: "+bin.toString()+", "+toString());
+                    PrintUtil.println(System.err, "BTDevice::setSMPKeyBin: Setting security failed: Device Connected/ing: "+bin.toString()+", "+toString());
                 }
                 return false;
             }

@@ -74,4 +74,14 @@ public enum BTRole {
     BTRole(final byte v) {
         value = v;
     }
+
+    /** Returns reversed roled */
+    public final BTRole reverse() {
+        switch(value) {
+            case 0x01: return BTRole.Slave;
+            case 0x02: return BTRole.Master;
+            default: return BTRole.None;
+        }
+    }
+
 }

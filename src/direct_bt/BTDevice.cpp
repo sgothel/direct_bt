@@ -1586,9 +1586,10 @@ bool BTDevice::setSMPKeyBin(const SMPKeyBin& bin) noexcept {
         return false;
     }
 
-    if( (!btRole) != bin.getLocalRole() ) {
+    const BTRole btRoleAdapter = !btRole;
+    if( btRoleAdapter != bin.getLocalRole() ) {
         DBG_PRINT("BTDevice::setSMPKeyBin(): Apply SMPKeyBin failed, local adapter role %s mismatch: %s, %s",
-                to_string(!btRole).c_str(), bin.toString().c_str(), toString().c_str());
+                to_string(btRoleAdapter).c_str(), bin.toString().c_str(), toString().c_str());
        return false;
     }
 
@@ -1597,7 +1598,13 @@ bool BTDevice::setSMPKeyBin(const SMPKeyBin& bin) noexcept {
             ( SMPPairingState::COMPLETED != pairing_data.state &&
               SMPPairingState::NONE != pairing_data.state ) )
         {
-            DBG_PRINT("BTDevice::setSMPKeyBin: Failure, pairing in progress: %s", pairing_data.toString(adapter.dev_id, addressAndType, btRole).c_str());
+            DBG_PRINT("BTDevice::setSMPKeyBin: Failure, pairing in progress: %s, %s",
+                    pairing_data.toString(adapter.dev_id, addressAndType, btRole).c_str(), toString().c_str());
+            return false;
+        }
+
+        if( getConnected() ) {
+            DBG_PRINT("BTDevice::setSMPKeyBin: Failure, device connected: %s", toString().c_str());
             return false;
         }
 
