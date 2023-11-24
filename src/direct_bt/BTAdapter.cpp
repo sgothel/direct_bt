@@ -2597,7 +2597,7 @@ void BTAdapter::mgmtEvDeviceFoundHCI(const MgmtEvent& e) noexcept {
                 printDeviceLists();
             }
 
-            {
+            if( !dev_shared->isPrePaired() ) {
                 HCIStatusCode res = dev_shared->unpair();
                 if( HCIStatusCode::SUCCESS != res && HCIStatusCode::NOT_PAIRED != res ) {
                     WARN_PRINT("(dev_id %d): Unpair device failed: %s, %s",
