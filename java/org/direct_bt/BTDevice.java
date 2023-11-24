@@ -825,9 +825,26 @@ public interface BTDevice extends BTObject
      */
     String getName();
 
-    /** Returns the Received Signal Strength Indicator of the device.
-      * @return The Received Signal Strength Indicator of the device.
-      */
+    /**
+     * Returns Received Signal Strength Indicator (RSSI)
+     * in dBm with ±6 dB accuracy of device as recognized at discovery and connect.
+     * <p>
+     * BT Core Spec v5.2: Vol 4, Part E HCI: 7.5.4 Read RSSI command
+     * </p>
+     * <p>
+     * Any positive RSSI value indicates how many dB the RSSI is above the upper limit,
+     * any negative value indicates how many dB the RSSI is below the lower limit.
+     * The value zero indicates that the RSSI is inside the Golden Receive Power Range.
+     * </p>
+     * <p>
+     * LE range [-127..20] with 0 inside the Golden Receive Power Range
+     * and 127 as "not available" value (core spec).
+     * </p>
+     * <pre>
+     * pathloss = Tx Power Level – RSSI
+     * </pre>
+     * @see #getTxPower()
+     */
     short getRSSI();
 
     /**
@@ -936,9 +953,19 @@ public interface BTDevice extends BTObject
      */
     BTRole getRole();
 
-    /** Returns the transmission power level (0 means unknown).
-      * @return the transmission power level (0 means unknown).
-      */
+    /**
+     * Return Tx Power Level in dBm with ±6 dB accuracy of device as recognized at discovery and connect.
+     * <p>
+     * Core Specification Supplement, Part A, Section 1.5.
+     * </p>
+     * <p>
+     * Range [-127..20] with 127 as "not available" value (core spec).
+     * </p>
+     * <pre>
+     * pathloss = Tx Power Level – RSSI
+     * </pre>
+     * @see #getRSSI()
+     */
     short getTxPower();
 
     /**
