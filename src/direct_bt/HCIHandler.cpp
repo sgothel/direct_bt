@@ -1508,7 +1508,7 @@ HCIStatusCode HCIHandler::disconnect(const uint16_t conn_handle, const BDAddress
 }
 
 HCIStatusCode HCIHandler::le_add_to_resolv_list(const BDAddressAndType& peerIdentityAddressAndType,
-                                    jau::uint128_t& peer_irk, jau::uint128_t& local_irk) noexcept {
+                                    jau::uint128dp_t& peer_irk, jau::uint128dp_t& local_irk) noexcept {
     if( !use_resolv_add() ) { return HCIStatusCode::UNKNOWN_COMMAND; }
     HCIStatusCode status;
     HCIStructCommand<hci_cp_le_add_to_resolv_list> req0(HCIOpcode::LE_ADD_TO_RESOLV_LIST);

@@ -264,7 +264,7 @@ HCIStatusCode BTManager::initializeAdapter(AdapterInfo& adapterInfo, const uint1
 
     setMode(dev_id, MgmtCommand::Opcode::SET_POWERED, 0, current_settings);
     {
-        jau::uint128_t zero_privacy_irk;
+        jau::uint128dp_t zero_privacy_irk;
         zero_privacy_irk.clear();
         setPrivacy(dev_id, 0x00, zero_privacy_irk, current_settings);
     }
@@ -730,7 +730,7 @@ std::vector<MgmtDefaultParam> BTManager::readDefaultSysParam(const uint16_t dev_
     return std::vector<MgmtDefaultParam>();
 }
 
-HCIStatusCode BTManager::setPrivacy(const uint16_t dev_id, const uint8_t privacy, const jau::uint128_t& irk, AdapterSetting& current_settings) noexcept {
+HCIStatusCode BTManager::setPrivacy(const uint16_t dev_id, const uint8_t privacy, const jau::uint128dp_t& irk, AdapterSetting& current_settings) noexcept {
     MgmtSetPrivacyCmd req(dev_id, privacy, irk);
     MgmtStatus res = handleCurrentSettingsReply(sendWithReply(req), current_settings);
     DBG_PRINT("BTManager::setPrivacy[%d]: %s, result %s %s", dev_id,

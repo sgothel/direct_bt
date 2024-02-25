@@ -733,7 +733,7 @@ namespace direct_bt {
              * BT Core Spec v5.2: Vol 4, Part E HCI: 7.8.38 LE Add Device To Resolving List command
              */
             HCIStatusCode le_add_to_resolv_list(const BDAddressAndType& peerIdentityAddressAndType,
-                                                jau::uint128_t& peer_irk, jau::uint128_t& local_irk) noexcept;
+                                                jau::uint128dp_t& peer_irk, jau::uint128dp_t& local_irk) noexcept;
             /**
              * BT Core Spec v5.2: Vol 4, Part E HCI: 7.8.39 LE Remove Device From Resolving List command
              */

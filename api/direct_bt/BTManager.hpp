@@ -421,7 +421,7 @@ namespace direct_bt {
             HCIStatusCode initializeAdapter(AdapterInfo& adapterInfo, const uint16_t dev_id,
                                             const BTMode btMode, const bool powerOn) noexcept;
 
-            HCIStatusCode setPrivacy(const uint16_t dev_id, const uint8_t privacy, const jau::uint128_t& irk, AdapterSetting& current_settings) noexcept;
+            HCIStatusCode setPrivacy(const uint16_t dev_id, const uint8_t privacy, const jau::uint128dp_t& irk, AdapterSetting& current_settings) noexcept;
 
             /**
              * Read default connection parameter for given adapter to the kernel.

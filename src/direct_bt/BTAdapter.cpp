@@ -672,7 +672,7 @@ bool BTAdapter::setPowered(const bool power_on) noexcept {
 }
 
 HCIStatusCode BTAdapter::setPrivacy(const bool enable) noexcept {
-    jau::uint128_t irk;
+    jau::uint128dp_t irk;
     if( enable ) {
         std::unique_ptr<std::random_device> rng_hw = std::make_unique<std::random_device>();
         for(int i=0; i<4; ++i) {

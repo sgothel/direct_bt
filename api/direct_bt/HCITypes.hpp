@@ -791,7 +791,7 @@ namespace direct_bt {
                 checkOpcode(getOpcode(), HCIOpcode::LE_ENABLE_ENC);
             }
 
-            HCILEEnableEncryptionCmd(const uint16_t handle, const uint64_t rand, const uint16_t ediv, const jau::uint128_t ltk)
+            HCILEEnableEncryptionCmd(const uint16_t handle, const uint64_t rand, const uint16_t ediv, const jau::uint128dp_t ltk)
             : HCICommand(HCIOpcode::LE_ENABLE_ENC, 28)
             {
                 pdu.put_uint16_nc(number(HCIConstSizeT::COMMAND_HDR_SIZE),handle);
@@ -825,7 +825,7 @@ namespace direct_bt {
              * see Vol 3, Part H, 2.4.2.3 SM - LE legacy pairing - generation of LTK, EDIV and Rand.
              * </p>
              */
-            constexpr jau::uint128_t getLTK() const noexcept { return pdu.get_uint128_nc(number(HCIConstSizeT::COMMAND_HDR_SIZE)+2+8+2); }
+            constexpr jau::uint128dp_t getLTK() const noexcept { return pdu.get_uint128_nc(number(HCIConstSizeT::COMMAND_HDR_SIZE)+2+8+2); }
     };
 
     /**
@@ -863,7 +863,7 @@ namespace direct_bt {
                 checkOpcode(getOpcode(), HCIOpcode::LE_LTK_REPLY_ACK);
             }
 
-            HCILELTKReplyAckCmd(const uint16_t handle, const jau::uint128_t ltk)
+            HCILELTKReplyAckCmd(const uint16_t handle, const jau::uint128dp_t ltk)
             : HCICommand(HCIOpcode::LE_LTK_REPLY_ACK, 18)
             {
                 pdu.put_uint16_nc(number(HCIConstSizeT::COMMAND_HDR_SIZE),handle);
@@ -879,7 +879,7 @@ namespace direct_bt {
              * see Vol 3, Part H, 2.4.2.3 SM - LE legacy pairing - generation of LTK, EDIV and Rand.
              * </p>
              */
-            constexpr jau::uint128_t getLTK() const noexcept { return pdu.get_uint128_nc(number(HCIConstSizeT::COMMAND_HDR_SIZE)+2); }
+            constexpr jau::uint128dp_t getLTK() const noexcept { return pdu.get_uint128_nc(number(HCIConstSizeT::COMMAND_HDR_SIZE)+2); }
     };
 
     /**

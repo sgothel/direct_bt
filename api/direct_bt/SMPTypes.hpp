@@ -529,7 +529,7 @@ namespace direct_bt {
         /** Random Number */
         uint64_t rand;
         /** Long Term Key (LTK) */
-        jau::uint128_t ltk;
+        jau::uint128dp_t ltk;
 
         // 28 bytes
 
@@ -612,7 +612,7 @@ namespace direct_bt {
         /** SMPIdentityResolvingKey::Property bit mask. */
         Property properties;
         /** Identity Resolving Key (IRK) */
-        jau::uint128_t irk;
+        jau::uint128dp_t irk;
         /** Identity Address for the IRK */
         EUI48 id_address;
 
@@ -622,7 +622,7 @@ namespace direct_bt {
         bool matches(const EUI48& rpa) noexcept;
 
         /** Returns true if the given IRK matches the given random private address (RPA). This static variant is a helper for the Java binding, use matches(). */
-        static bool matches(const jau::uint128_t& irk, const EUI48& rpa) noexcept;
+        static bool matches(const jau::uint128dp_t& irk, const EUI48& rpa) noexcept;
 
         void clear() noexcept {
             bzero(reinterpret_cast<void *>(this), sizeof(SMPIdentityResolvingKey));
@@ -696,7 +696,7 @@ namespace direct_bt {
         /** SMPSignatureResolvingKey::Property bit mask. */
         Property properties;
         /** Connection Signature Resolving Key (CSRK) */
-        jau::uint128_t csrk;
+        jau::uint128dp_t csrk;
 
         bool isResponder() const noexcept;
 
@@ -783,7 +783,7 @@ namespace direct_bt {
 
         bool responder;
         KeyType type;
-        jau::uint128_t key;
+        jau::uint128dp_t key;
         uint8_t pin_length;
 
         constexpr bool isValid() const noexcept { return KeyType::NONE != type; }
@@ -1253,7 +1253,7 @@ namespace direct_bt {
                 checkOpcode(Opcode::PAIRING_CONFIRM);
             }
 
-            SMPPairConfirmMsg(const jau::uint128_t & confirm_value)
+            SMPPairConfirmMsg(const jau::uint128dp_t & confirm_value)
             : SMPEncKeyByteStream(Opcode::PAIRING_CONFIRM, 1+16)
             {
                 jau::put_uint128(pdu.get_wptr(), 1, confirm_value);
@@ -1277,7 +1277,7 @@ namespace direct_bt {
              * See Vol 3, Part H, 2.3.5.6 SM - Pairing algo - LE Secure Connections pairing phase 2.
              * </p>
              */
-            constexpr jau::uint128_t getConfirmValue() const noexcept { return jau::get_uint128(pdu.get_ptr(), 1); }
+            constexpr jau::uint128dp_t getConfirmValue() const noexcept { return jau::get_uint128(pdu.get_ptr(), 1); }
 
             std::string getName() const noexcept override {
                 return "SMPPairConfirm";
@@ -1350,7 +1350,7 @@ namespace direct_bt {
                 checkOpcode(Opcode::PAIRING_RANDOM);
             }
 
-            SMPPairRandMsg(const jau::uint128_t & random_value)
+            SMPPairRandMsg(const jau::uint128dp_t & random_value)
             : SMPEncKeyByteStream(Opcode::PAIRING_RANDOM, 1+16)
             {
                 jau::put_uint128(pdu.get_wptr(), 1, random_value);
@@ -1373,7 +1373,7 @@ namespace direct_bt {
              * the initiating device sends Na and the responding device sends Nb.
              * </p>
              */
-            constexpr jau::uint128_t getRand() const noexcept { return jau::get_uint128(pdu.get_ptr(), 1); }
+            constexpr jau::uint128dp_t getRand() const noexcept { return jau::get_uint128(pdu.get_ptr(), 1); }
 
             std::string getName() const noexcept override {
                 return "SMPPairRand";
@@ -1490,7 +1490,7 @@ namespace direct_bt {
                 checkOpcode(Opcode::PAIRING_PUBLIC_KEY);
             }
 
-            SMPPairPubKeyMsg(const jau::uint256_t & pub_key_x, const jau::uint256_t & pub_key_y)
+            SMPPairPubKeyMsg(const jau::uint256dp_t & pub_key_x, const jau::uint256dp_t & pub_key_y)
             : SMPEncKeyByteStream(Opcode::PAIRING_PUBLIC_KEY, 1+32+32)
             {
                 jau::put_uint256(pdu.get_wptr(), 1,    pub_key_x);
@@ -1505,12 +1505,12 @@ namespace direct_bt {
             /**
              * Returns the 256-bit Public Key X value (32 octets)
              */
-            constexpr jau::uint256_t getPubKeyX() const noexcept { return jau::get_uint256(pdu.get_ptr(), 1); }
+            constexpr jau::uint256dp_t getPubKeyX() const noexcept { return jau::get_uint256(pdu.get_ptr(), 1); }
 
             /**
              * Returns the 256-bit Public Key Y value (32 octets)
              */
-            constexpr jau::uint256_t getPubKeyY() const noexcept { return jau::get_uint256(pdu.get_ptr(), 1+32); }
+            constexpr jau::uint256dp_t getPubKeyY() const noexcept { return jau::get_uint256(pdu.get_ptr(), 1+32); }
 
             std::string getName() const noexcept override {
                 return "SMPPairPubKey";
@@ -1556,7 +1556,7 @@ namespace direct_bt {
                 checkOpcode(Opcode::PAIRING_DHKEY_CHECK);
             }
 
-            SMPPairDHKeyCheckMsg(const jau::uint128_t & dhkey_check_values)
+            SMPPairDHKeyCheckMsg(const jau::uint128dp_t & dhkey_check_values)
             : SMPEncKeyByteStream(Opcode::PAIRING_DHKEY_CHECK, 1+16)
             {
                 jau::put_uint128(pdu.get_wptr(), 1, dhkey_check_values);
@@ -1570,7 +1570,7 @@ namespace direct_bt {
             /**
              * Returns the 128-bit DHKey Check value (16 octets)
              */
-            constexpr jau::uint128_t getDHKeyCheck() const noexcept { return jau::get_uint128(pdu.get_ptr(), 1); }
+            constexpr jau::uint128dp_t getDHKeyCheck() const noexcept { return jau::get_uint128(pdu.get_ptr(), 1); }
 
             std::string getName() const noexcept override {
                 return "SMPPairDHKeyCheck";
@@ -1685,7 +1685,7 @@ namespace direct_bt {
                 checkOpcode(Opcode::ENCRYPTION_INFORMATION);
             }
 
-            SMPEncInfoMsg(const jau::uint128_t & long_term_key)
+            SMPEncInfoMsg(const jau::uint128dp_t & long_term_key)
             : SMPEncKeyByteStream(Opcode::ENCRYPTION_INFORMATION, 1+16)
             {
                 jau::put_uint128(pdu.get_wptr(), 1, long_term_key);
@@ -1703,7 +1703,7 @@ namespace direct_bt {
              * see Vol 3, Part H, 2.4.2.3 SM - LE legacy pairing - generation of LTK, EDIV and Rand.
              * </p>
              */
-            constexpr jau::uint128_t getLTK() const noexcept { return jau::get_uint128(pdu.get_ptr(), 1); }
+            constexpr jau::uint128dp_t getLTK() const noexcept { return jau::get_uint128(pdu.get_ptr(), 1); }
 
             std::string getName() const noexcept override {
                 return "SMPEncInfo";
@@ -1836,7 +1836,7 @@ namespace direct_bt {
                 checkOpcode(Opcode::IDENTITY_INFORMATION);
             }
 
-            SMPIdentInfoMsg(const jau::uint128_t & identity_resolving_key)
+            SMPIdentInfoMsg(const jau::uint128dp_t & identity_resolving_key)
             : SMPEncKeyByteStream(Opcode::IDENTITY_INFORMATION, 1+16)
             {
                 jau::put_uint128(pdu.get_wptr(), 1, identity_resolving_key);
@@ -1854,7 +1854,7 @@ namespace direct_bt {
              * see Vol 3, Part H, 2.4.2.1 SM - Definition of keys and values - Generation of IRK.
              * </p>
              */
-            constexpr jau::uint128_t getIRK() const noexcept { return jau::get_uint128(pdu.get_ptr(), 1); }
+            constexpr jau::uint128dp_t getIRK() const noexcept { return jau::get_uint128(pdu.get_ptr(), 1); }
 
             std::string getName() const noexcept override {
                 return "SMPIdentInfo";
@@ -1976,7 +1976,7 @@ namespace direct_bt {
                 checkOpcode(Opcode::SIGNING_INFORMATION);
             }
 
-            SMPSignInfoMsg(const jau::uint128_t & signature_key)
+            SMPSignInfoMsg(const jau::uint128dp_t & signature_key)
             : SMPEncKeyByteStream(Opcode::SIGNING_INFORMATION, 1+16)
             {
                 jau::put_uint128(pdu.get_wptr(), 1, signature_key);
@@ -1994,7 +1994,7 @@ namespace direct_bt {
              * see Vol 3, Part H, 2.4.2.2 SM - Definition of keys and values - Generation of CSRK.
              * </p>
              */
-            constexpr jau::uint128_t getCSRK() const noexcept { return jau::get_uint128(pdu.get_ptr(), 1); }
+            constexpr jau::uint128dp_t getCSRK() const noexcept { return jau::get_uint128(pdu.get_ptr(), 1); }
 
             std::string getName() const noexcept override {
                 return "SMPSignInfo";

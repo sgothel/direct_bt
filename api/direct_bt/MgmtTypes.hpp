@@ -204,7 +204,7 @@ namespace direct_bt {
         /** Random Number */
         uint64_t rand;
         /** Long Term Key (LTK) */
-        jau::uint128_t ltk;
+        jau::uint128dp_t ltk;
 
         std::string toString() const noexcept { // hex-fmt aligned with btmon
             return "LTK[address["+address.toString()+", "+to_string(address_type)+BDAddressAndType::getBLERandomAddressTypeString(address, address_type, ", ")+
@@ -269,7 +269,7 @@ namespace direct_bt {
     __pack( struct MgmtIdentityResolvingKey {
         EUI48 address;
         BDAddressType address_type;
-        jau::uint128_t irk;
+        jau::uint128dp_t irk;
 
         std::string toString() const noexcept {
             return "IRK[address["+address.toString()+", "+to_string(address_type)+BDAddressAndType::getBLERandomAddressTypeString(address, address_type, ", ")+
@@ -298,7 +298,7 @@ namespace direct_bt {
         EUI48 address;
         BDAddressType address_type;
         MgmtCSRKType key_type;
-        jau::uint128_t csrk;
+        jau::uint128dp_t csrk;
 
         std::string toString() const noexcept {
             return "CSRK[address["+address.toString()+", "+to_string(address_type)+BDAddressAndType::getBLERandomAddressTypeString(address, address_type, ", ")+
@@ -319,7 +319,7 @@ namespace direct_bt {
         EUI48 address;
         BDAddressType address_type;
         MgmtLinkKeyType key_type;
-        jau::uint128_t key;
+        jau::uint128dp_t key;
         uint8_t pin_length;
 
         std::string toString() const noexcept {
@@ -897,13 +897,13 @@ namespace direct_bt {
     {
         protected:
             std::string valueString() const noexcept override {
-                const jau::uint128_t& irk = getIdentityResolvingKey();
+                const jau::uint128dp_t& irk = getIdentityResolvingKey();
                 return "param[size "+std::to_string(getParamSize())+", data[privacy "+std::to_string(getPrivacy())+
                         ", irk "+jau::bytesHexString(irk.data, 0, sizeof(irk), true /* lsbFirst */)+"]]";
             }
 
         public:
-            MgmtSetPrivacyCmd(const uint16_t dev_id, const uint8_t privacy, const jau::uint128_t& irk)
+            MgmtSetPrivacyCmd(const uint16_t dev_id, const uint8_t privacy, const jau::uint128dp_t& irk)
             : MgmtCommand(Opcode::SET_PRIVACY, dev_id, 1 + sizeof(irk))
             {
                 pdu.put_uint8_nc(MGMT_HEADER_SIZE, privacy);
@@ -912,8 +912,8 @@ namespace direct_bt {
 
             uint8_t getPrivacy() const noexcept { return pdu.get_uint8_nc(MGMT_HEADER_SIZE); }
 
-            const jau::uint128_t& getIdentityResolvingKey() const {
-                return *reinterpret_cast<const jau::uint128_t *>( pdu.get_ptr_nc(MGMT_HEADER_SIZE + 1) );
+            const jau::uint128dp_t& getIdentityResolvingKey() const {
+                return *reinterpret_cast<const jau::uint128dp_t *>( pdu.get_ptr_nc(MGMT_HEADER_SIZE + 1) );
             }
     };
 
@@ -2638,7 +2638,7 @@ namespace direct_bt {
                        ", ltk "+jau::bytesHexString(pdu.get_ptr_nc(MGMT_HEADER_SIZE), 6+1, 16, true /* lsbFirst */);
             }
         public:
-            MgmtEvtHCILELTKReplyAckCmd(const uint16_t dev_id, const BDAddressAndType& addressAndType, const jau::uint128_t ltk)
+            MgmtEvtHCILELTKReplyAckCmd(const uint16_t dev_id, const BDAddressAndType& addressAndType, const jau::uint128dp_t ltk)
             : MgmtEvent(Opcode::HCI_LE_LTK_REPLY_ACK, dev_id, 6+1+16)
             {
                 pdu.put_eui48_nc(MGMT_HEADER_SIZE, addressAndType.address);
@@ -2656,7 +2656,7 @@ namespace direct_bt {
              * see Vol 3, Part H, 2.4.2.3 SM - LE legacy pairing - generation of LTK, EDIV and Rand.
              * </p>
              */
-            constexpr jau::uint128_t getLTK() const noexcept { return pdu.get_uint128_nc(MGMT_HEADER_SIZE+6+1); }
+            constexpr jau::uint128dp_t getLTK() const noexcept { return pdu.get_uint128_nc(MGMT_HEADER_SIZE+6+1); }
 
             jau::nsize_t getDataOffset() const noexcept override { return MGMT_HEADER_SIZE+6+1+16; }
             jau::nsize_t getDataSize() const noexcept override { return 0; }
@@ -2730,7 +2730,7 @@ namespace direct_bt {
 
         public:
             MgmtEvtHCILEEnableEncryptionCmd(const uint16_t dev_id, const BDAddressAndType& addressAndType,
-                                            const uint64_t rand, const uint16_t ediv, const jau::uint128_t ltk)
+                                            const uint64_t rand, const uint16_t ediv, const jau::uint128dp_t ltk)
             : MgmtEvent(Opcode::HCI_LE_ENABLE_ENC, dev_id, 6+1+8+2+16)
             {
                 pdu.put_eui48_nc(MGMT_HEADER_SIZE, addressAndType.address);
@@ -2766,7 +2766,7 @@ namespace direct_bt {
              * see Vol 3, Part H, 2.4.2.3 SM - LE legacy pairing - generation of LTK, EDIV and Rand.
              * </p>
              */
-            constexpr jau::uint128_t getLTK() const noexcept { return pdu.get_uint128_nc(MGMT_HEADER_SIZE+6+1+8+2); }
+            constexpr jau::uint128dp_t getLTK() const noexcept { return pdu.get_uint128_nc(MGMT_HEADER_SIZE+6+1+8+2); }
 
             jau::nsize_t getDataOffset() const noexcept override { return MGMT_HEADER_SIZE+6+1+8+2+16; }
             jau::nsize_t getDataSize() const noexcept override { return 0; }

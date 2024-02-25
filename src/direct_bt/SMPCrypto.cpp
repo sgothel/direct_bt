@@ -164,7 +164,7 @@ static int smp_crypto_ah(const uint8_t irk[16], const uint8_t r[3], uint8_t out[
     return 0;
 }
 
-bool smp_crypto_rpa_irk_matches(const jau::uint128_t irk, const EUI48& rpa) noexcept {
+bool smp_crypto_rpa_irk_matches(const jau::uint128dp_t irk, const EUI48& rpa) noexcept {
     if constexpr ( !USE_SMP_CRYPTO_IRK ) {
         return false;
     }
@@ -187,7 +187,7 @@ bool smp_crypto_rpa_irk_matches(const jau::uint128_t irk, const EUI48& rpa) noex
  * @param out 128-bit message authentication code
  * @return
  */
-static bool bt_smp_aes_cmac(const jau::uint128_t& key, const uint8_t *in, size_t len, jau::uint128_t& out)
+static bool bt_smp_aes_cmac(const jau::uint128dp_t& key, const uint8_t *in, size_t len, jau::uint128dp_t& out)
 {
 #if defined(USE_SMP_CRYPTO_CMAC_) && defined(USE_SMP_CRYPTO_AES128_)
     struct tc_aes_key_sched_struct sched;
@@ -223,16 +223,16 @@ static bool bt_smp_aes_cmac(const jau::uint128_t& key, const uint8_t *in, size_t
  * @param ltk result in littleEndian
  * @return
  */
-bool smp_crypto_f5(const jau::uint256_t w, const jau::uint128_t n1, const jau::uint128_t n2,
+bool smp_crypto_f5(const jau::uint256_t w, const jau::uint128dp_t n1, const jau::uint128dp_t n2,
                    const BDAddressAndType& a1, const BDAddressAndType& a2,
-                   jau::uint128_t& mackey, jau::uint128_t& ltk) noexcept
+                   jau::uint128dp_t& mackey, jau::uint128dp_t& ltk) noexcept
 {
     if constexpr ( !USE_SMP_CRYPTO_F5 ) {
         return false;
     }
 
     /** Salt random number in MSB, see BT Core Spec */
-    static const jau::uint128_t salt( { 0x6c, 0x88, 0x83, 0x91, 0xaa, 0xf5,
+    static const jau::uint128dp_t salt( { 0x6c, 0x88, 0x83, 0x91, 0xaa, 0xf5,
                                         0xa5, 0x38, 0x60, 0x37, 0x0b, 0xdb,
                                         0x5a, 0x60, 0x83, 0xbe } );
 
@@ -247,7 +247,7 @@ bool smp_crypto_f5(const jau::uint256_t w, const jau::uint128_t n1, const jau::u
               0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, /* a2 */
               0x01, 0x00 /* length 256 in MSB */ };
     uint8_t ws[32];
-    jau::uint128_t t, temp_;
+    jau::uint128dp_t t, temp_;
 
     DBG_PRINT("w %s", jau::bytesHexString(w.data, 0, 32, true /* lsbFirst */).c_str());
     DBG_PRINT("n1 %s", jau::bytesHexString(n1.data, 0, 16, true /* lsbFirst */).c_str());

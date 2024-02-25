@@ -34,11 +34,11 @@
 
 namespace direct_bt {
     /** Returns true if the given IRK matches the given random private address (RPA). */
-    bool smp_crypto_rpa_irk_matches(const jau::uint128_t irk, const EUI48& rpa) noexcept;
+    bool smp_crypto_rpa_irk_matches(const jau::uint128dp_t irk, const EUI48& rpa) noexcept;
 
-    bool smp_crypto_f5(const jau::uint256_t w, const jau::uint128_t n1, const jau::uint128_t n2,
+    bool smp_crypto_f5(const jau::uint256dp_t w, const jau::uint128dp_t n1, const jau::uint128dp_t n2,
                        const BDAddressAndType& a1, const BDAddressAndType& a2,
-                       jau::uint128_t& mackey, jau::uint128_t& ltk) noexcept;
+                       jau::uint128dp_t& mackey, jau::uint128dp_t& ltk) noexcept;
 
 } // namespace direct_bt
 

@@ -315,7 +315,7 @@ bool SMPIdentityResolvingKey::matches(const EUI48& rpa) noexcept {
     return smp_crypto_rpa_irk_matches(irk, rpa); // irk.id_address == this->addressAndType
 }
 
-bool SMPIdentityResolvingKey::matches(const jau::uint128_t& irk, const EUI48& rpa) noexcept {
+bool SMPIdentityResolvingKey::matches(const jau::uint128dp_t& irk, const EUI48& rpa) noexcept {
     return smp_crypto_rpa_irk_matches(irk, rpa);
 }
 
