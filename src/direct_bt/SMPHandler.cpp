@@ -169,7 +169,7 @@ void SMPHandler::smpReaderEndLocked(jau::service_runner& sr) noexcept {
 SMPHandler::SMPHandler(const std::shared_ptr<BTDevice> &device) noexcept
 : env(SMPEnv::get()),
   wbr_device(device), deviceString(device->getAddressAndType().toString()),
-  rbuffer(number(Defaults::SMP_MTU_BUFFER_SZ), jau::endian::little),
+  rbuffer(number(Defaults::SMP_MTU_BUFFER_SZ), jau::lb_endian::little),
   l2cap(device->getAdapter().dev_id, device->getAdapter().getAddressAndType(), L2CAP_PSM::UNDEFINED, L2CAP_CID::SMP),
   is_connected(l2cap.open(*device)), has_ioerror(false),
   smp_reader_service("SMPHandler::reader", THREAD_SHUTDOWN_TIMEOUT_MS,

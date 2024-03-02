@@ -558,7 +558,7 @@ namespace direct_bt {
 
         public:
             HCIPacket(const HCIPacketType type, const jau::nsize_t total_packet_size)
-            : pdu(total_packet_size, jau::endian::little)
+            : pdu(total_packet_size, jau::lb_endian::little)
             {
                 if( 0 == total_packet_size ) {
                     throw jau::IndexOutOfBoundsException(1, total_packet_size, E_FILE_LINE);
@@ -568,7 +568,7 @@ namespace direct_bt {
 
             /** Persistent memory, w/ ownership ..*/
             HCIPacket(const uint8_t *packet_data, const jau::nsize_t total_packet_size)
-            : pdu(packet_data, total_packet_size, jau::endian::little)
+            : pdu(packet_data, total_packet_size, jau::lb_endian::little)
             {
                 if( 0 == total_packet_size ) {
                     throw jau::IndexOutOfBoundsException(1, total_packet_size, E_FILE_LINE);

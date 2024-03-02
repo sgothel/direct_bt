@@ -319,20 +319,20 @@ std::string to_string(const HCIMetaEventType op) noexcept {
 }
 
 std::unique_ptr<HCICommand> HCICommand::getSpecialized(const uint8_t * buffer, jau::nsize_t const buffer_size) noexcept {
-    const HCIPacketType pc = static_cast<HCIPacketType>( jau::get_uint8(buffer, 0) );
+    const HCIPacketType pc = static_cast<HCIPacketType>( jau::get_uint8(buffer + 0) );
 
     if( HCIPacketType::COMMAND != pc ) {
         return nullptr;
     }
 
-    const jau::nsize_t paramSize = buffer_size >= number(HCIConstSizeT::COMMAND_HDR_SIZE) ? jau::get_uint8(buffer, 3) : 0;
+    const jau::nsize_t paramSize = buffer_size >= number(HCIConstSizeT::COMMAND_HDR_SIZE) ? jau::get_uint8(buffer + 3) : 0;
     if( buffer_size < number(HCIConstSizeT::COMMAND_HDR_SIZE) + paramSize ) {
         WARN_PRINT("HCIEvent::getSpecialized: length mismatch %u < COMMAND_HDR_SIZE(%u) + %u",
                 buffer_size, number(HCIConstSizeT::COMMAND_HDR_SIZE), paramSize);
         return nullptr;
     }
 
-    const HCIOpcode oc = static_cast<HCIOpcode>( jau::get_uint16(buffer, 1, true /* littleEndian */) );
+    const HCIOpcode oc = static_cast<HCIOpcode>( jau::get_uint16(buffer + 1, jau::lb_endian::little) );
     switch( oc ) {
         case HCIOpcode::DISCONNECT:
             return std::make_unique<HCIDisconnectCmd>(buffer, buffer_size);
@@ -349,20 +349,20 @@ std::unique_ptr<HCICommand> HCICommand::getSpecialized(const uint8_t * buffer, j
 }
 
 std::unique_ptr<HCIEvent> HCIEvent::getSpecialized(const uint8_t * buffer, jau::nsize_t const buffer_size) noexcept {
-    const HCIPacketType pc = static_cast<HCIPacketType>( jau::get_uint8(buffer, 0) );
+    const HCIPacketType pc = static_cast<HCIPacketType>( jau::get_uint8(buffer + 0) );
 
     if( HCIPacketType::EVENT != pc ) {
         return nullptr;
     }
 
-    const jau::nsize_t paramSize = buffer_size >= number(HCIConstSizeT::EVENT_HDR_SIZE) ? jau::get_uint8(buffer, 2) : 0;
+    const jau::nsize_t paramSize = buffer_size >= number(HCIConstSizeT::EVENT_HDR_SIZE) ? jau::get_uint8(buffer + 2) : 0;
     if( buffer_size < number(HCIConstSizeT::EVENT_HDR_SIZE) + paramSize ) {
         WARN_PRINT("HCIEvent::getSpecialized: length mismatch %u < EVENT_HDR_SIZE(%u) + %u",
                 buffer_size, number(HCIConstSizeT::EVENT_HDR_SIZE), paramSize);
         return nullptr;
     }
 
-    const HCIEventType ec = static_cast<HCIEventType>( jau::get_uint8(buffer, 1) );
+    const HCIEventType ec = static_cast<HCIEventType>( jau::get_uint8(buffer + 1) );
     switch( ec ) {
         case HCIEventType::DISCONN_COMPLETE:
             return std::make_unique<HCIDisconnectionCompleteEvent>(buffer, buffer_size);
@@ -371,7 +371,7 @@ std::unique_ptr<HCIEvent> HCIEvent::getSpecialized(const uint8_t * buffer, jau::
         case HCIEventType::CMD_STATUS:
             return std::make_unique<HCICommandStatusEvent>(buffer, buffer_size);
         case HCIEventType::LE_META: {
-            const HCIMetaEventType mec = static_cast<HCIMetaEventType>( jau::get_uint8(buffer, number(HCIConstSizeT::EVENT_HDR_SIZE)) );
+            const HCIMetaEventType mec = static_cast<HCIMetaEventType>( jau::get_uint8(buffer + number(HCIConstSizeT::EVENT_HDR_SIZE)) );
             switch( mec ) {
                 case HCIMetaEventType::LE_LTK_REQUEST:
                     return std::make_unique<HCILELTKReqEvent>(buffer, buffer_size);
@@ -402,11 +402,11 @@ std::string HCIACLData::l2cap_frame::toString(const PBFlag v) noexcept {
 }
 
 std::unique_ptr<HCIACLData> HCIACLData::getSpecialized(const uint8_t * buffer, jau::nsize_t const buffer_size) noexcept {
-    const HCIPacketType pc = static_cast<HCIPacketType>( jau::get_uint8(buffer, 0) );
+    const HCIPacketType pc = static_cast<HCIPacketType>( jau::get_uint8(buffer + 0) );
     if( HCIPacketType::ACLDATA != pc ) {
         return nullptr;
     }
-    const jau::nsize_t paramSize = buffer_size >= number(HCIConstSizeT::ACL_HDR_SIZE) ? jau::get_uint16(buffer, 3) : 0;
+    const jau::nsize_t paramSize = buffer_size >= number(HCIConstSizeT::ACL_HDR_SIZE) ? jau::get_uint16(buffer + 3) : 0;
     if( buffer_size < number(HCIConstSizeT::ACL_HDR_SIZE) + paramSize ) {
         if( jau::environment::get().verbose ) {
             WARN_PRINT("HCIACLData::getSpecialized: length mismatch %u < ACL_HDR_SIZE(%u) + %u",

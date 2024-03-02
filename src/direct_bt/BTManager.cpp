@@ -92,7 +92,7 @@ void BTManager::mgmtReaderWork(jau::service_runner& sr) noexcept {
         const jau::nsize_t len2 = static_cast<jau::nsize_t>(len);
         const jau::nsize_t paramSize = len2 >= MGMT_HEADER_SIZE ? rbuffer.get_uint16_nc(4) : 0;
         if( len2 < MGMT_HEADER_SIZE + paramSize ) {
-            WARN_PRINT("BTManager::reader: length mismatch %zu < MGMT_HEADER_SIZE(%u) + %u", len2, MGMT_HEADER_SIZE, paramSize);
+            WARN_PRINT("BTManager::reader: length mismatch %zu < MGMT_HEADER_SIZE(%u) + %u, %s", len2, MGMT_HEADER_SIZE, paramSize, rbuffer.toString().c_str());
             return; // discard data
         }
         std::unique_ptr<MgmtEvent> event = MgmtEvent::getSpecialized(rbuffer.get_ptr(), len2);
@@ -378,7 +378,7 @@ fail:
 
 BTManager::BTManager() noexcept
 : env(MgmtEnv::get()),
-  rbuffer(ClientMaxMTU, jau::endian::little), comm(HCI_DEV_NONE, HCI_CHANNEL_CONTROL),
+  rbuffer(ClientMaxMTU, jau::lb_endian::little), comm(HCI_DEV_NONE, HCI_CHANNEL_CONTROL),
   mgmt_reader_service("HCIHandler::reader", THREAD_SHUTDOWN_TIMEOUT_MS,
                       jau::bind_member(this, &BTManager::mgmtReaderWork),
                       jau::service_runner::Callback() /* init */,
@@ -415,7 +415,7 @@ bool BTManager::initialize(const std::shared_ptr<BTManager>& self) noexcept {
         }
         const uint8_t *data = res->getData();
         const uint8_t version = data[0];
-        const uint16_t revision = jau::get_uint16(data, 1, true /* littleEndian */);
+        const uint16_t revision = jau::get_uint16(data + 1, jau::lb_endian::little);
         WORDY_PRINT("Bluetooth version %d.%d", version, revision);
         if( version < 1 ) {
             ERR_PRINT("Bluetooth version >= 1.0 required");
@@ -431,14 +431,14 @@ bool BTManager::initialize(const std::shared_ptr<BTManager>& self) noexcept {
         }
         if( MgmtEvent::Opcode::CMD_COMPLETE == res->getOpcode() && res->getDataSize() >= 4) {
             const uint8_t *data = res->getData();
-            const uint16_t num_commands = jau::get_uint16(data, 0, true /* littleEndian */);
-            const uint16_t num_events = jau::get_uint16(data, 2, true /* littleEndian */);
+            const uint16_t num_commands = jau::get_uint16(data + 0, jau::lb_endian::little);
+            const uint16_t num_events = jau::get_uint16(data + 2, jau::lb_endian::little);
             WORDY_PRINT("Bluetooth %d commands, %d events", num_commands, num_events);
 #ifdef VERBOSE_ON
             const int expDataSize = 4 + num_commands * 2 + num_events * 2;
             if( res->getDataSize() >= expDataSize ) {
                 for(int i=0; i< num_commands; i++) {
-                    const MgmtCommand::Opcode op = static_cast<MgmtCommand::Opcode>( get_uint16(data, 4+i*2, true /* littleEndian */) );
+                    const MgmtCommand::Opcode op = static_cast<MgmtCommand::Opcode>( get_uint16(data, 4+i*2, jau::lb_endian::little) );
                     DBG_PRINT("kernel op %d: %s", i, toString(op).c_str());
                 }
             }
@@ -459,7 +459,7 @@ next1:
             goto fail;
         }
         const uint8_t *data = res->getData();
-        const uint16_t num_adapter = jau::get_uint16(data, 0, true /* littleEndian */);
+        const uint16_t num_adapter = jau::get_uint16(data + 0, jau::lb_endian::little);
         WORDY_PRINT("Bluetooth %d adapter", num_adapter);
 
         const jau::nsize_t expDataSize = 2 + num_adapter * 2;
@@ -468,7 +468,7 @@ next1:
             goto fail;
         }
         for(int i=0; i < num_adapter; i++) {
-            const uint16_t dev_id = jau::get_uint16(data, 2+i*2, true /* littleEndian */);
+            const uint16_t dev_id = jau::get_uint16(data + 2+i*2, jau::lb_endian::little);
             std::unique_ptr<AdapterInfo> adapterInfo = readAdapterInfo(dev_id);
             if( nullptr != adapterInfo ) {
                 std::shared_ptr<BTAdapter> adapter = BTAdapter::make_shared(self, *adapterInfo);

@@ -918,13 +918,13 @@ namespace direct_bt {
 
             /** Persistent memory, w/ ownership ..*/
             SMPPDUMsg(const uint8_t* source, const jau::nsize_t size)
-                : pdu(source, std::max<jau::nsize_t>(1, size), jau::endian::little),
+                : pdu(source, std::max<jau::nsize_t>(1, size), jau::lb_endian::little),
                   ts_creation(jau::getCurrentMilliseconds())
             { }
 
             /** Persistent memory, w/ ownership ..*/
             SMPPDUMsg(const uint8_t* source, const jau::nsize_t size, const jau::nsize_t min_size)
-                : pdu(source, std::max<jau::nsize_t>(1, size), jau::endian::little),
+                : pdu(source, std::max<jau::nsize_t>(1, size), jau::lb_endian::little),
                   ts_creation(jau::getCurrentMilliseconds())
             { 
                 pdu.check_range(0, std::max<jau::nsize_t>(1, min_size), E_FILE_LINE);
@@ -932,7 +932,7 @@ namespace direct_bt {
 
             /** Persistent memory, w/ ownership ..*/
             SMPPDUMsg(const Opcode opc, const jau::nsize_t size)
-                : pdu(std::max<jau::nsize_t>(1, size), jau::endian::little),
+                : pdu(std::max<jau::nsize_t>(1, size), jau::lb_endian::little),
                   ts_creation(jau::getCurrentMilliseconds())
             {
                 pdu.put_uint8_nc(0, number(opc));
@@ -1256,7 +1256,7 @@ namespace direct_bt {
             SMPPairConfirmMsg(const jau::uint128dp_t & confirm_value)
             : SMPEncKeyByteStream(Opcode::PAIRING_CONFIRM, 1+16)
             {
-                jau::put_uint128(pdu.get_wptr(), 1, confirm_value);
+                jau::put_uint128(pdu.get_wptr() + 1, confirm_value);
                 check_range();
             }
 
@@ -1277,7 +1277,7 @@ namespace direct_bt {
              * See Vol 3, Part H, 2.3.5.6 SM - Pairing algo - LE Secure Connections pairing phase 2.
              * </p>
              */
-            constexpr jau::uint128dp_t getConfirmValue() const noexcept { return jau::get_uint128(pdu.get_ptr(), 1); }
+            constexpr jau::uint128dp_t getConfirmValue() const noexcept { return jau::get_uint128(pdu.get_ptr() + 1); }
 
             std::string getName() const noexcept override {
                 return "SMPPairConfirm";
@@ -1353,7 +1353,7 @@ namespace direct_bt {
             SMPPairRandMsg(const jau::uint128dp_t & random_value)
             : SMPEncKeyByteStream(Opcode::PAIRING_RANDOM, 1+16)
             {
-                jau::put_uint128(pdu.get_wptr(), 1, random_value);
+                jau::put_uint128(pdu.get_wptr() + 1, random_value);
                 check_range();
             }
 
@@ -1373,7 +1373,7 @@ namespace direct_bt {
              * the initiating device sends Na and the responding device sends Nb.
              * </p>
              */
-            constexpr jau::uint128dp_t getRand() const noexcept { return jau::get_uint128(pdu.get_ptr(), 1); }
+            constexpr jau::uint128dp_t getRand() const noexcept { return jau::get_uint128(pdu.get_ptr() + 1); }
 
             std::string getName() const noexcept override {
                 return "SMPPairRand";
@@ -1493,8 +1493,8 @@ namespace direct_bt {
             SMPPairPubKeyMsg(const jau::uint256dp_t & pub_key_x, const jau::uint256dp_t & pub_key_y)
             : SMPEncKeyByteStream(Opcode::PAIRING_PUBLIC_KEY, 1+32+32)
             {
-                jau::put_uint256(pdu.get_wptr(), 1,    pub_key_x);
-                jau::put_uint256(pdu.get_wptr(), 1+32, pub_key_y);
+                jau::put_uint256(pdu.get_wptr() + 1,    pub_key_x);
+                jau::put_uint256(pdu.get_wptr() + 1+32, pub_key_y);
                 check_range();
             }
 
@@ -1505,12 +1505,12 @@ namespace direct_bt {
             /**
              * Returns the 256-bit Public Key X value (32 octets)
              */
-            constexpr jau::uint256dp_t getPubKeyX() const noexcept { return jau::get_uint256(pdu.get_ptr(), 1); }
+            constexpr jau::uint256dp_t getPubKeyX() const noexcept { return jau::get_uint256(pdu.get_ptr() + 1); }
 
             /**
              * Returns the 256-bit Public Key Y value (32 octets)
              */
-            constexpr jau::uint256dp_t getPubKeyY() const noexcept { return jau::get_uint256(pdu.get_ptr(), 1+32); }
+            constexpr jau::uint256dp_t getPubKeyY() const noexcept { return jau::get_uint256(pdu.get_ptr() + 1+32); }
 
             std::string getName() const noexcept override {
                 return "SMPPairPubKey";
@@ -1559,7 +1559,7 @@ namespace direct_bt {
             SMPPairDHKeyCheckMsg(const jau::uint128dp_t & dhkey_check_values)
             : SMPEncKeyByteStream(Opcode::PAIRING_DHKEY_CHECK, 1+16)
             {
-                jau::put_uint128(pdu.get_wptr(), 1, dhkey_check_values);
+                jau::put_uint128(pdu.get_wptr() + 1, dhkey_check_values);
                 check_range();
             }
 
@@ -1570,7 +1570,7 @@ namespace direct_bt {
             /**
              * Returns the 128-bit DHKey Check value (16 octets)
              */
-            constexpr jau::uint128dp_t getDHKeyCheck() const noexcept { return jau::get_uint128(pdu.get_ptr(), 1); }
+            constexpr jau::uint128dp_t getDHKeyCheck() const noexcept { return jau::get_uint128(pdu.get_ptr() + 1); }
 
             std::string getName() const noexcept override {
                 return "SMPPairDHKeyCheck";
@@ -1688,7 +1688,7 @@ namespace direct_bt {
             SMPEncInfoMsg(const jau::uint128dp_t & long_term_key)
             : SMPEncKeyByteStream(Opcode::ENCRYPTION_INFORMATION, 1+16)
             {
-                jau::put_uint128(pdu.get_wptr(), 1, long_term_key);
+                jau::put_uint128(pdu.get_wptr() + 1, long_term_key);
                 check_range();
             }
 
@@ -1703,7 +1703,7 @@ namespace direct_bt {
              * see Vol 3, Part H, 2.4.2.3 SM - LE legacy pairing - generation of LTK, EDIV and Rand.
              * </p>
              */
-            constexpr jau::uint128dp_t getLTK() const noexcept { return jau::get_uint128(pdu.get_ptr(), 1); }
+            constexpr jau::uint128dp_t getLTK() const noexcept { return jau::get_uint128(pdu.get_ptr() + 1); }
 
             std::string getName() const noexcept override {
                 return "SMPEncInfo";
@@ -1759,8 +1759,8 @@ namespace direct_bt {
             SMPMasterIdentMsg(const uint16_t ediv, const uint64_t & rand)
             : SMPEncKeyByteStream(Opcode::MASTER_IDENTIFICATION, 1+2+8)
             {
-                jau::put_uint16(pdu.get_wptr(), 1, ediv);
-                jau::put_uint64(pdu.get_wptr(), 1+2, rand);
+                jau::put_uint16(pdu.get_wptr() + 1, ediv);
+                jau::put_uint64(pdu.get_wptr() + 1+2, rand);
                 check_range();
             }
 
@@ -1774,7 +1774,7 @@ namespace direct_bt {
              * See Vol 3, Part H, 2.4.2.3 SM - Generation of CSRK - LE legacy pairing - generation of LTK, EDIV and Rand.
              * </p>
              */
-            constexpr uint16_t getEDIV() const noexcept { return jau::get_uint16(pdu.get_ptr(), 1); }
+            constexpr uint16_t getEDIV() const noexcept { return jau::get_uint16(pdu.get_ptr() + 1); }
 
             /**
              * Returns the 64-bit Rand value (8 octets) being distributed
@@ -1782,7 +1782,7 @@ namespace direct_bt {
              * See Vol 3, Part H, 2.4.2.3 SM - Generation of CSRK - LE legacy pairing - generation of LTK, EDIV and Rand.
              * </p>
              */
-            constexpr uint64_t getRand() const noexcept { return jau::get_uint64(pdu.get_ptr(), 1+2); }
+            constexpr uint64_t getRand() const noexcept { return jau::get_uint64(pdu.get_ptr() + 1+2); }
 
             std::string getName() const noexcept override {
                 return "SMPMasterIdent";
@@ -1839,7 +1839,7 @@ namespace direct_bt {
             SMPIdentInfoMsg(const jau::uint128dp_t & identity_resolving_key)
             : SMPEncKeyByteStream(Opcode::IDENTITY_INFORMATION, 1+16)
             {
-                jau::put_uint128(pdu.get_wptr(), 1, identity_resolving_key);
+                jau::put_uint128(pdu.get_wptr() + 1, identity_resolving_key);
                 check_range();
             }
 
@@ -1854,7 +1854,7 @@ namespace direct_bt {
              * see Vol 3, Part H, 2.4.2.1 SM - Definition of keys and values - Generation of IRK.
              * </p>
              */
-            constexpr jau::uint128dp_t getIRK() const noexcept { return jau::get_uint128(pdu.get_ptr(), 1); }
+            constexpr jau::uint128dp_t getIRK() const noexcept { return jau::get_uint128(pdu.get_ptr() + 1); }
 
             std::string getName() const noexcept override {
                 return "SMPIdentInfo";
@@ -1979,7 +1979,7 @@ namespace direct_bt {
             SMPSignInfoMsg(const jau::uint128dp_t & signature_key)
             : SMPEncKeyByteStream(Opcode::SIGNING_INFORMATION, 1+16)
             {
-                jau::put_uint128(pdu.get_wptr(), 1, signature_key);
+                jau::put_uint128(pdu.get_wptr() + 1, signature_key);
                 check_range();
             }
 
@@ -1994,7 +1994,7 @@ namespace direct_bt {
              * see Vol 3, Part H, 2.4.2.2 SM - Definition of keys and values - Generation of CSRK.
              * </p>
              */
-            constexpr jau::uint128dp_t getCSRK() const noexcept { return jau::get_uint128(pdu.get_ptr(), 1); }
+            constexpr jau::uint128dp_t getCSRK() const noexcept { return jau::get_uint128(pdu.get_ptr() + 1); }
 
             std::string getName() const noexcept override {
                 return "SMPSignInfo";

@@ -305,11 +305,11 @@ MgmtDefaultParam MgmtDefaultParam::read(const uint8_t* data, const jau::nsize_t 
     if( length < 2U ) {
         return MgmtDefaultParam();
     }
-    const Type type = static_cast<Type>( jau::get_uint16(data, 0, true /* little_endian */) );
+    const Type type = static_cast<Type>( jau::get_uint16(data + 0, jau::lb_endian::little) );
     if( length < 2U + 1U ) {
         return MgmtDefaultParam(type);
     }
-    const uint8_t value_length = jau::get_uint8(data, 2);
+    const uint8_t value_length = jau::get_uint8(data + 2);
     if( value_length != to_size(type) ) {
         return MgmtDefaultParam(type);
     }
@@ -318,7 +318,7 @@ MgmtDefaultParam MgmtDefaultParam::read(const uint8_t* data, const jau::nsize_t 
     }
     switch( value_length ) {
         case 2:
-            return MgmtDefaultParam(type, jau::get_uint16(data, 2+1, true /* little */));
+            return MgmtDefaultParam(type, jau::get_uint16(data + 2+1, jau::lb_endian::little));
         default:
             return MgmtDefaultParam(type);
     }
@@ -542,11 +542,11 @@ std::shared_ptr<ConnectionInfo> MgmtEvtCmdComplete::toConnectionInfo() const noe
         ERR_PRINT("Data nullptr: %s", toString().c_str());
         return nullptr;
     }
-    EUI48 address = EUI48( data, jau::endian::native );
-    BDAddressType addressType = static_cast<BDAddressType>( jau::get_uint8(data, 6) );
-    int8_t rssi = jau::get_int8(data, 7);
-    int8_t tx_power = jau::get_int8(data, 8);
-    int8_t max_tx_power = jau::get_int8(data, 9);
+    EUI48 address = EUI48( data, jau::lb_endian::native );
+    BDAddressType addressType = static_cast<BDAddressType>( jau::get_uint8(data + 6) );
+    int8_t rssi = jau::get_int8(data + 7);
+    int8_t tx_power = jau::get_int8(data + 8);
+    int8_t max_tx_power = jau::get_int8(data + 9);
     return std::make_shared<ConnectionInfo>(address, addressType, rssi, tx_power, max_tx_power);
 }
 

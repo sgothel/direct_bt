@@ -103,7 +103,7 @@ jboolean Java_jau_direct_1bt_DBTGattDesc_writeValueImpl(JNIEnv *env, jobject obj
         if( nullptr == value_ptr ) {
             throw jau::InternalError("GetPrimitiveArrayCritical(byte array) is null", E_FILE_LINE);
         }
-        jau::TROOctets value(value_ptr, value_size, jau::endian::little);
+        jau::TROOctets value(value_ptr, value_size, jau::lb_endian::little);
         descriptor->value = value; // copy data
 
         if( !descriptor->writeValue() ) {

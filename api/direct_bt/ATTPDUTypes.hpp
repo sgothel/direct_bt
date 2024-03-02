@@ -542,13 +542,13 @@ namespace direct_bt {
 
             /** Persistent memory, w/ ownership ..*/
             AttPDUMsg(const uint8_t* source, const jau::nsize_t size)
-                : pdu(source, std::max<jau::nsize_t>(1, size), jau::endian::little),
+                : pdu(source, std::max<jau::nsize_t>(1, size), jau::lb_endian::little),
                   ts_creation(jau::getCurrentMilliseconds())
             { }
 
             /** Persistent memory, w/ ownership ..*/
             AttPDUMsg(const Opcode opc, const jau::nsize_t size)
-                : pdu(std::max<jau::nsize_t>(1, size), jau::endian::little),
+                : pdu(std::max<jau::nsize_t>(1, size), jau::lb_endian::little),
                   ts_creation(jau::getCurrentMilliseconds())
             {
                 pdu.put_uint8_nc(0, number(opc));
@@ -1730,7 +1730,7 @@ namespace direct_bt {
             }
             void setElementValueUUID(const jau::nsize_t elementIdx, const jau::uuid_t& v) {
                 uint8_t * b = getElementValuePtr(elementIdx);
-                v.put(b, 0, true /* littleEndian */);
+                v.put(b + 0, jau::lb_endian::little);
             }
 
             std::string getName() const noexcept override {
@@ -1924,7 +1924,7 @@ namespace direct_bt {
             }
             void setElementValueUUID(const jau::nsize_t elementIdx, const jau::uuid_t& v) {
                 uint8_t * b = pdu.get_wptr() + getElementPDUOffset(elementIdx) + 2 /* handle size */;
-                v.put(b, 0, true /* littleEndian */);
+                v.put(b + 0, jau::lb_endian::little);
             }
 
             std::string getName() const noexcept override {

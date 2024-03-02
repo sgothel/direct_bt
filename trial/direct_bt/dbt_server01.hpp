@@ -318,7 +318,7 @@ class DBTServer01 : public DBTServerTest {
                     if( nullptr != connectedDevice_ && connectedDevice_->getConnected() ) {
                         if( 0 != handlePulseDataNotify || 0 != handlePulseDataIndicate ) {
                             std::string data( "Dynamic Data Example. Elapsed Milliseconds: "+jau::to_decstring(environment::getElapsedMillisecond(), ',', 9) );
-                            jau::POctets v(data.size()+1, jau::endian::little);
+                            jau::POctets v(data.size()+1, jau::lb_endian::little);
                             v.put_string_nc(0, data, v.size(), true /* includeEOS */);
                             if( 0 != handlePulseDataNotify ) {
                                 if( GATT_VERBOSE ) {

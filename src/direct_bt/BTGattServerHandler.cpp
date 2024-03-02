@@ -835,7 +835,7 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
                             ePDUOffset += 1;
                             rsp.pdu.put_uint16_nc(ePDUOffset, c->getValueHandle()); // Characteristics Value Handle
                             ePDUOffset += 2;
-                            c->getValueType()->put(rsp.pdu.get_wptr_nc(ePDUOffset), 0, true /* littleEndian */); // Characteristics Value Type UUID
+                            c->getValueType()->put(rsp.pdu.get_wptr_nc(ePDUOffset) + 0, jau::lb_endian::little); // Characteristics Value Type UUID
                             ePDUOffset += c->getValueType()->getTypeSizeInt();
                             rspSize += size;
                             ++rspCount;
@@ -1070,7 +1070,7 @@ class FwdGattServerHandler : public BTGattHandler::GattServerHandler {
                     const AttExeWriteReq * req = static_cast<const AttExeWriteReq*>(pdu);
                     if( 0x01 == req->getFlags() ) { // immediately write all pending prepared values
                         for( auto iter_handle = writeDataQueueHandles.cbegin(); iter_handle < writeDataQueueHandles.cend(); ++iter_handle ) {
-                            const jau::endian byte_order = writeDataQueue.size() > 0 ? writeDataQueue[0].getValue().byte_order() : jau::endian::little;
+                            const jau::lb_endian byte_order = writeDataQueue.size() > 0 ? writeDataQueue[0].getValue().byte_order() : jau::lb_endian::little;
                             jau::POctets data(256, 0, byte_order); // same byte order across all requests
                             BTGattHandler::NativeGattCharSections_t sections;
                             for( auto iter_prep_write = writeDataQueue.cbegin(); iter_prep_write < writeDataQueue.cend(); ++iter_prep_write ) {

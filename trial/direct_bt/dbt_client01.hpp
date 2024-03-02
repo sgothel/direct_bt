@@ -456,7 +456,7 @@ class DBTClient01 : public DBTClientTest {
                     cmd.setVerbose(true);
                     const bool cmd_resolved = cmd.isResolved();
                     fprintf_td(stderr, "Command test: %s, resolved %d\n", cmd.toString().c_str(), cmd_resolved);
-                    POctets cmd_data(1, endian::little);
+                    POctets cmd_data(1, lb_endian::little);
                     cmd_data.put_uint8_nc(0, cmd_arg);
                     const HCIStatusCode cmd_res = cmd.send(true /* prefNoAck */, cmd_data, 3_s);
                     if( HCIStatusCode::SUCCESS == cmd_res ) {
@@ -495,7 +495,7 @@ class DBTClient01 : public DBTClientTest {
                                 fprintf_td(stderr, "  [%2.2d.%2.2d]     %s\n", i, j, serviceChar->toString().c_str());
                             }
                             if( serviceChar->hasProperties(BTGattChar::PropertyBitVal::Read) ) {
-                                POctets value(BTGattHandler::number(BTGattHandler::Defaults::MAX_ATT_MTU), 0, jau::endian::little);
+                                POctets value(BTGattHandler::number(BTGattHandler::Defaults::MAX_ATT_MTU), 0, jau::lb_endian::little);
                                 if( serviceChar->readValue(value) ) {
                                     std::string sval = dfa_utf8_decode(value.get_ptr(), value.size());
                                     if( GATT_VERBOSE ) {
@@ -566,7 +566,7 @@ class DBTClient01 : public DBTClientTest {
                     const bool cmd_resolved = cmd.isResolved();
                     fprintf_td(stderr, "FinalCommand test: %s, resolved %d\n", cmd.toString().c_str(), cmd_resolved);
                     const size_t data_sz = DBTConstants::FailHandshakeCommandData.size();
-                    POctets cmd_data(data_sz, endian::little);
+                    POctets cmd_data(data_sz, lb_endian::little);
                     if( success ) {
                         cmd_data.put_bytes_nc(0, DBTConstants::SuccessHandshakeCommandData.data(), data_sz);
                     } else {

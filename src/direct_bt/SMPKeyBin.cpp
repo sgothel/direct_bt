@@ -274,23 +274,23 @@ bool SMPKeyBin::write(const std::string& path, const bool overwrite) const noexc
     }
     uint8_t buffer[8];
 
-    jau::put_uint16(buffer, 0, version, true /* littleEndian */);
+    jau::put_uint16(buffer, version, jau::lb_endian::little);
     file.write((char*)buffer, sizeof(version));
 
-    jau::put_uint16(buffer, 0, size, true /* littleEndian */);
+    jau::put_uint16(buffer, size, jau::lb_endian::little);
     file.write((char*)buffer, sizeof(size));
 
-    jau::put_uint64(buffer, 0, ts_creation_sec, true /* littleEndian */);
+    jau::put_uint64(buffer, ts_creation_sec, jau::lb_endian::little);
     file.write((char*)buffer, sizeof(ts_creation_sec));
 
     file.write((char*)&localRole, sizeof(localRole));
     {
-        localAddress.address.put(buffer, 0, jau::endian::little);
+        localAddress.address.put(buffer, jau::lb_endian::little);
         file.write((char*)buffer, sizeof(localAddress.address.b));
     }
     file.write((char*)&localAddress.type, sizeof(localAddress.type));
     {
-        remoteAddress.address.put(buffer, 0, jau::endian::little);
+        remoteAddress.address.put(buffer, jau::lb_endian::little);
         file.write((char*)buffer, sizeof(remoteAddress.address.b));
     }
     file.write((char*)&remoteAddress.type, sizeof(remoteAddress.type));
@@ -351,19 +351,19 @@ bool SMPKeyBin::read(const std::string& fname) {
     uint8_t buffer[8];
 
     file.read((char*)buffer, sizeof(version));
-    version = jau::get_uint16(buffer, 0, true /* littleEndian */);
+    version = jau::get_uint16(buffer, jau::lb_endian::little);
     err = file.fail();
 
     if( !err ) {
         file.read((char*)buffer, sizeof(size));
-        size = jau::get_uint16(buffer, 0, true /* littleEndian */);
+        size = jau::get_uint16(buffer, jau::lb_endian::little);
         err = file.fail();
     }
     uint16_t remaining = size - sizeof(version) - sizeof(size);
 
     if( !err && 8 <= remaining ) {
         file.read((char*)buffer, sizeof(ts_creation_sec));
-        ts_creation_sec = jau::get_uint64(buffer, 0, true /* littleEndian */);
+        ts_creation_sec = jau::get_uint64(buffer, jau::lb_endian::little);
         remaining -= 8;
         err = file.fail();
     } else {
@@ -373,12 +373,12 @@ bool SMPKeyBin::read(const std::string& fname) {
         file.read((char*)&localRole, sizeof(localRole));
         {
             file.read((char*)buffer, sizeof(localAddress.address.b));
-            localAddress.address = jau::EUI48(buffer, jau::endian::little);
+            localAddress.address = jau::EUI48(buffer, jau::lb_endian::little);
         }
         file.read((char*)&localAddress.type, sizeof(localAddress.type));
         {
             file.read((char*)buffer, sizeof(remoteAddress.address.b));
-            remoteAddress.address = jau::EUI48(buffer, jau::endian::little);
+            remoteAddress.address = jau::EUI48(buffer, jau::lb_endian::little);
         }
         file.read((char*)&remoteAddress.type, sizeof(remoteAddress.type));
         file.read((char*)&sec_level, sizeof(sec_level));
