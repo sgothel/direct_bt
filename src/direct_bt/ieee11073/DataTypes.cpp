@@ -66,7 +66,7 @@ std::string AbsoluteTime::toString() const {
     }
     std::string res(cbuf);
     if( 0 != second_fractions ) {
-        res += "."+std::to_string(second_fractions);
+        res.append(".").append(std::to_string(second_fractions));
     }
     return res;
 }

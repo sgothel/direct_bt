@@ -1022,7 +1022,7 @@ int EInfoReport::read_data(uint8_t const * data, uint8_t const data_length) noex
                 [[fallthrough]];
             case GAP_T::UUID16_COMPLETE:
                 setServicesComplete( GAP_T::UUID32_COMPLETE == static_cast<GAP_T>(elem_type) );
-                for(int j=0; j<elem_len/2; j++) {
+                for(jau::nsize_t j=0; j<elem_len/2; j++) {
                     const std::shared_ptr<const jau::uuid_t> uuid( std::make_shared<const jau::uuid16_t>(elem_data + j*2, jau::lb_endian::little) );
                     addService( uuid );
                 }
@@ -1032,7 +1032,7 @@ int EInfoReport::read_data(uint8_t const * data, uint8_t const data_length) noex
                 [[fallthrough]];
             case GAP_T::UUID32_COMPLETE:
                 setServicesComplete( GAP_T::UUID32_COMPLETE == static_cast<GAP_T>(elem_type) );
-                for(int j=0; j<elem_len/4; j++) {
+                for(jau::nsize_t j=0; j<elem_len/4; j++) {
                     const std::shared_ptr<const jau::uuid_t> uuid( std::make_shared<const jau::uuid32_t>(elem_data + j*4, jau::lb_endian::little) );
                     addService( uuid );
                 }
@@ -1042,7 +1042,7 @@ int EInfoReport::read_data(uint8_t const * data, uint8_t const data_length) noex
                 [[fallthrough]];
             case GAP_T::UUID128_COMPLETE:
                 setServicesComplete( GAP_T::UUID32_COMPLETE == static_cast<GAP_T>(elem_type) );
-                for(int j=0; j<elem_len/16; j++) {
+                for(jau::nsize_t j=0; j<elem_len/16; j++) {
                     const std::shared_ptr<const jau::uuid_t> uuid( std::make_shared<const jau::uuid128_t>(elem_data + j*16, jau::lb_endian::little) );
                     addService( uuid );
                 }

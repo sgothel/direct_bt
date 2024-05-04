@@ -493,7 +493,7 @@ static void processReadyDevice(const BTDeviceRef& device) {
                 fail_point = 1;
             } else {
                 cmd.setResponseMinSize(response_size);
-                cmd.setDataCallback( [](BTGattCharRef, const jau::TROOctets& char_value, const uint64_t) {
+                cmd.setDataCallback( [](BTGattCharRef, const jau::TROOctets& char_value, const uint64_t) { // NOLINT(performance-unnecessary-value-param)
                     fprintf_td(stderr, "Received: %s\n", char_value.toString().c_str());
                 });
                 fprintf_td(stderr, "Command test: %s\n", cmd.toString().c_str());

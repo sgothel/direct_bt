@@ -467,7 +467,7 @@ next1:
             ERR_PRINT("Insufficient data for %d adapter indices: res %s", num_adapter, res->toString().c_str());
             goto fail;
         }
-        for(int i=0; i < num_adapter; i++) {
+        for(jau::nsize_t i=0; i < num_adapter; i++) {
             const uint16_t dev_id = jau::get_uint16(data + 2+i*2, jau::lb_endian::little);
             std::unique_ptr<AdapterInfo> adapterInfo = readAdapterInfo(dev_id);
             if( nullptr != adapterInfo ) {

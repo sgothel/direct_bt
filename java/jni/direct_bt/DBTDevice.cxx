@@ -499,7 +499,7 @@ jint Java_jau_direct_1bt_DBTDevice_getResponderSMPPassKey(JNIEnv *env, jobject o
         JavaAnonRef device_java = device->getJavaObject(); // hold until done!
         JavaGlobalObj::check(device_java, E_FILE_LINE);
 
-        return device->getResponderSMPPassKey();
+        return static_cast<jint>( device->getResponderSMPPassKey() );
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }

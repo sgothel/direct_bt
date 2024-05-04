@@ -968,7 +968,7 @@ namespace direct_bt {
             const EUI48& getAddress() const noexcept { return *reinterpret_cast<const EUI48 *>( pdu.get_ptr_nc(MGMT_HEADER_SIZE + 0) ); } // mgmt_addr_info
             BDAddressType getAddressType() const noexcept { return static_cast<BDAddressType>(pdu.get_uint8_nc(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
             uint8_t getPinLength() const noexcept { return pdu.get_uint8_nc(MGMT_HEADER_SIZE+6+1); }
-            jau::TROOctets getPinCode() const noexcept { return jau::POctets(pdu.get_ptr_nc(MGMT_HEADER_SIZE+6+1+1), getPinLength(), jau::lb_endian::little); }
+            jau::TROOctets getPinCode() const noexcept { return jau::TROOctets(pdu.get_ptr_nc(MGMT_HEADER_SIZE+6+1+1), getPinLength(), jau::lb_endian::little); }
     };
 
     /**

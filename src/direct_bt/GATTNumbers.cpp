@@ -368,7 +368,7 @@ std::string GattServiceCharacteristic::toString() const noexcept {
         if(0<i) {
             res += ", ";
         }
-        res += "["+characteristics.at(i).toString()+"]";
+        res.append("[").append(characteristics.at(i).toString()).append("]");
     }
     res += "]";
     return res;

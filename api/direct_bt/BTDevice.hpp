@@ -870,7 +870,7 @@ namespace direct_bt {
              * @param rpa random private address
              * @see getIdentityResolvingKey()
              */
-            bool matches_irk(BDAddressAndType rpa) noexcept;
+            bool matches_irk(const BDAddressAndType& rpa) noexcept;
 
             /**
              * Returns a copy of the Signature Resolving Key (CSRK), valid after connection and SMP pairing has been completed.

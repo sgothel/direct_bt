@@ -35,8 +35,6 @@
 #include <jau/environment.hpp>
 #include <jau/debug.hpp>
 
-#include "HCIComm.hpp"
-
 #include "BTAdapter.hpp"
 #include "BTDevice.hpp"
 #include "BTManager.hpp"
@@ -778,8 +776,8 @@ bool BTDevice::checkPairingKeyDistributionComplete() const noexcept {
     return res;
 }
 
-std::string BTDevice::PairingData::toString(const uint16_t dev_id, const BDAddressAndType& addressAndType, const BTRole& role) const {
-    std::string res = "PairingData[dev_id "+std::to_string(dev_id)+", Remote ["+addressAndType.toString()+", role "+to_string(role)+"], \n";
+std::string BTDevice::PairingData::toString(const uint16_t dev_id, const BDAddressAndType& addrAndType, const BTRole& role) const {
+    std::string res = "PairingData[dev_id "+std::to_string(dev_id)+", Remote ["+addrAndType.toString()+", role "+to_string(role)+"], \n";
     res.append("  Status: Encrypted "+std::to_string(encryption_enabled)+
                   ", State "+to_string(state)+", Mode "+to_string(mode)+
                   ", Responder-Req "+std::to_string(res_requested_sec)+"\n");
@@ -1763,7 +1761,7 @@ void BTDevice::setIdentityResolvingKey(const SMPIdentityResolvingKey& irk) noexc
     }
 }
 
-bool BTDevice::matches_irk(BDAddressAndType rpa) noexcept {
+bool BTDevice::matches_irk(const BDAddressAndType& rpa) noexcept {
     // self_is_responder == true: responder's IRK info (LL slave), else the initiator's (LL master)
     const bool self_is_responder = BTRole::Slave == btRole;
     if( is_set(self_is_responder ? pairing_data.keys_resp_has : pairing_data.keys_init_has, SMPKeyType::ID_KEY) ) {

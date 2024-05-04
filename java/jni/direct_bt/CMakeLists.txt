@@ -6,7 +6,6 @@ if (JNI_FOUND)
 endif (JNI_FOUND)
 
 set (direct_bt_LIB_INCLUDE_DIRS
-    ${PROJECT_SOURCE_DIR}/jaulib/include
     ${PROJECT_SOURCE_DIR}/api
     ${PROJECT_SOURCE_DIR}/api/direct_bt
     ${PROJECT_SOURCE_DIR}/include
@@ -16,6 +15,9 @@ set (direct_bt_LIB_INCLUDE_DIRS
 include_directories(
     ${JNI_INCLUDE_DIRS}
     ${direct_bt_LIB_INCLUDE_DIRS}
+    ${PROJECT_SOURCE_DIR}/jaulib/include
+    ${CMAKE_BINARY_DIR}/java/${CMAKE_FILES_DIRECTORY}/direct_bt_jar.dir/jni
+    ${CMAKE_BINARY_DIR}/jaulib/java_jni/${CMAKE_FILES_DIRECTORY}/jaulib_jni_jar.dir/jni
     ${JNI_HEADER_PATH}
 )
 

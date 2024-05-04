@@ -1,5 +1,6 @@
 Checks:  'clang-diagnostic-*, clang-analyzer-*, 
           modernize-*, bugprone-*, performance-*,
+          misc-include-cleaner,
           -clang-diagnostic-unknown-warning-option,
           -clang-analyzer-security.insecureAPI.bzero,
           -modernize-use-auto, -modernize-use-nodiscard, -modernize-use-using, -modernize-use-trailing-return-type, 

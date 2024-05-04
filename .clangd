@@ -12,10 +12,20 @@
 #    CheckOptions:
 #        modernize-use-default-member-init.UseAssignment: true
 
+# Tell clangd to use the compile_commands.json file in the build/default folder
+CompileFlags:
+  CompilationDatabase: Debug
+
+Diagnostics:
+  UnusedIncludes: Strict
+
 InlayHints:
-  Enabled: Yes
+  Enabled: No
+  BlockEnd: Yes
+  Designators: No
   ParameterNames: Yes
   DeducedTypes: Yes
+  TypeNameLimit: 24
 
 Hover:
   ShowAKA: Yes

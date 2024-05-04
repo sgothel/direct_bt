@@ -6,7 +6,7 @@ bname=`basename $0 .sh`
 
 . $rootdir/jaulib/scripts/setup-machine-arch.sh
 
-tripleid="$os_name-$archabi-gcc"
+tripleid="$os_name-$archabi-clang"
 
 logfile=$rootdir/$bname-$tripleid.log
 rm -f $logfile

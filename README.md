@@ -255,13 +255,13 @@ systemctl mask bluetooth
 - C++ compiler
   - gcc >= 8.3.0 (C++17)
   - gcc >= 10.2.1 (C++17 and C++20)
-  - clang >= 15 (C++17 and C++20)
+  - clang >= 16 (C++17 and C++20)
 - Optional for `lint` validation
-  - clang-tidy >= 15
-- Optional for `vscodium` integration
-  - clangd >= 15
-  - clang-tools >= 15
-  - clang-format >= 15
+  - clang-tidy >= 16
+- Optional for `eclipse` and `vscodium` integration
+  - clangd >= 16
+  - clang-tools >= 16
+  - clang-format >= 16
 - Optional
   - libunwind8 >= 1.2.1
   - libcurl4 >= 7.74 (tested, lower may work)
@@ -275,7 +275,7 @@ Installing build dependencies for Debian >= 11 and Ubuntu >= 20.04:
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~{.sh}
 apt install git
 apt install build-essential g++ gcc libc-dev libpthread-stubs0-dev 
-apt install clang-15 clang-tidy-15 clangd-15 clang-tools-15 clang-format-15
+apt install clang-16 clang-tidy-16 clangd-16 clang-tools-16 clang-format-16
 apt install libunwind8 libunwind-dev
 apt install openjdk-17-jdk openjdk-17-jre junit4
 apt install cmake cmake-extras extra-cmake-modules pkg-config
@@ -445,7 +445,12 @@ a Raspi-arm64, Raspi-armhf or PC-amd64 target image.
 IDE integration configuration files are provided for 
 - [Eclipse](https://download.eclipse.org/eclipse/downloads/) with extensions
   - [CDT](https://github.com/eclipse-cdt/) or [CDT @ eclipse.org](https://projects.eclipse.org/projects/tools.cdt)
-  - Not used due to lack of subproject include file and symbol resolution:
+  - [CDT-LSP](https://github.com/eclipse-cdt/cdt-lsp) *recommended*
+    - Should work with clang toolchain >= 16
+    - Utilizes clangd, clang-tidy and clang-format to support C++20 and above
+    - Add to available software site: `https://download.eclipse.org/tools/cdt/releases/cdt-lsp-latest`
+    - Install `C/C++ LSP Support` in the `Eclipse CDT LSP Category`
+  - Not used due to lack of passing properties to `cmake` as well as subproject include file and symbol resolution:
     - `CMake Support`, install `C/C++ CMake Build Support` with ID `org.eclipse.cdt.cmake.feature.group`
 
 From the project root directory, prepare the `Debug` folder using `cmake`

@@ -23,8 +23,8 @@ rm -rf $debug_build_dir
 mkdir -p $debug_build_dir
 cd $debug_build_dir
 # CLANG_ARGS="-DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_CXX_COMPILER=/usr/bin/clang++"
-# CLANG_ARGS="-DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -DCMAKE_CXX_CLANG_TIDY=/usr/bin/clang-tidy;-p;$rootdir/$debug_build_dir"
-# CXX_ARGS="-DCMAKE_CXX_STANDARD=20"
+CLANG_ARGS="-DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -DCMAKE_CXX_CLANG_TIDY=/usr/bin/clang-tidy;-p;$rootdir/$debug_build_dir"
+CXX_ARGS="-DCMAKE_CXX_STANDARD=20"
 
 cmake $CLANG_ARGS $CXX_ARGS -DCMAKE_INSTALL_PREFIX=$rootdir/$debug_dist_dir -DBUILDJAVA=ON -DBUILDEXAMPLES=ON -DBUILD_TRIAL=ON -DDEBUG=ON ..
 
@@ -35,8 +35,8 @@ rm -rf $release_build_dir
 mkdir -p $release_build_dir
 cd $release_build_dir
 # CLANG_ARGS="-DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_CXX_COMPILER=/usr/bin/clang++"
-# CLANG_ARGS="-DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -DCMAKE_CXX_CLANG_TIDY=/usr/bin/clang-tidy;-p;$rootdir/$release_build_dir"
-# CXX_ARGS="-DCMAKE_CXX_STANDARD=20"
+CLANG_ARGS="-DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -DCMAKE_CXX_CLANG_TIDY=/usr/bin/clang-tidy;-p;$rootdir/$release_build_dir"
+CXX_ARGS="-DCMAKE_CXX_STANDARD=20"
 
 cmake $CLANG_ARGS $CXX_ARGS -DCMAKE_INSTALL_PREFIX=$rootdir/$release_dist_dir -DBUILDJAVA=ON -DBUILDEXAMPLES=ON -DBUILD_TRIAL=ON ..
 

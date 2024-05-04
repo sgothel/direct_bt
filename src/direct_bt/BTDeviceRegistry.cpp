@@ -90,10 +90,13 @@ namespace direct_bt::BTDeviceRegistry {
         const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessed); // RAII-style acquire and relinquish via destructor
         std::string res;
         jau::for_each(devicesProcessed.cbegin(), devicesProcessed.cend(), [&res](const DeviceID &id) {
+            PRAGMA_DISABLE_WARNING_PUSH
+            PRAGMA_DISABLE_WARNING_RESTRICT   
             if( res.length() > 0 ) {
-                res.append( ", " );
+                res.append( ", " ); // bogus gcc 12.2 'may overlap'
             }
             res.append( id.toString() );
+            PRAGMA_DISABLE_WARNING_POP
         });
         return res;
     }

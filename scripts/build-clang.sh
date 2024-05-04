@@ -6,7 +6,7 @@ bname=`basename $0 .sh`
 
 . $rootdir/jaulib/scripts/setup-machine-arch.sh
 
-tripleid="$os_name-$archabi-gcc"
+tripleid="$os_name-$archabi-clang"
 
 logfile=$rootdir/$bname-$tripleid.log
 rm -f $logfile
@@ -49,7 +49,7 @@ buildit() {
     mkdir -p $build_dir
     cd $build_dir
     # CLANG_ARGS="-DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_CXX_COMPILER=/usr/bin/clang++"
-    # CLANG_ARGS="-DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -DCMAKE_CXX_CLANG_TIDY=/usr/bin/clang-tidy;-p;$rootdir/$build_dir"
+    CLANG_ARGS="-DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -DCMAKE_CXX_CLANG_TIDY=/usr/bin/clang-tidy;-p;$rootdir/$build_dir"
     CXX_ARGS="-DCMAKE_CXX_STANDARD=20"
 
     cmake $CLANG_ARGS $CXX_ARGS -DCMAKE_INSTALL_PREFIX=$rootdir/$dist_dir -DBUILDJAVA=ON -DBUILDEXAMPLES=ON -DBUILD_TRIAL=ON ..
