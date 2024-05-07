@@ -298,8 +298,8 @@ For Debian you can use this [clang alternatives setup script](https://jausoft.co
 #### Build preparations
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~{.sh}
-git clone https://jausoft.com/cgit/jaulib.git
-cd jaulib
+git clone --recurse-submodules git://jausoft.com/srv/scm/direct_bt.git
+cd direct_bt
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 <a name="cmake_presets_optional"></a>
