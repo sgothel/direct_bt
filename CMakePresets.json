@@ -1,0 +1,144 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 21,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "debug",
+      "displayName": "Debug (cc, C++20, java)",
+      "binaryDir": "${sourceDir}/build/preset-debug",
+      "cacheVariables": {
+        "CMAKE_CXX_STANDARD": "20",
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_INSTALL_PREFIX": "dist/preset-debug",
+        "JAU_CMAKE_FIX_INSTALL_PREFIX": "ON",
+        "TRY_JAVA": "ON",
+        "USE_LIBCURL": "OFF",
+        "USE_LIBUNWIND": "OFF",
+        "BUILD_TESTING": "ON",
+        "BUILD_TRIAL": "ON",
+        "TEST_WITH_SUDO": "OFF"
+      }
+    },
+    {
+      "name": "debug-clang",
+      "inherits": "debug",
+      "displayName": "Debug (clang, clang-tidy, C++20, java)",
+      "binaryDir": "${sourceDir}/build/preset-debug-clang",
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "clang",
+        "CMAKE_CXX_COMPILER": "clang++",
+        "CMAKE_CXX_CLANG_TIDY": "clang-tidy;-p;${sourceDir}/build/preset-debug-clang"
+      }
+    },
+    {
+      "name": "debug-gcc",
+      "inherits": "debug",
+      "displayName": "Debug (gcc, C++20, java)",
+      "binaryDir": "${sourceDir}/build/preset-debug-gcc",
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "gcc",
+        "CMAKE_CXX_COMPILER": "g++"
+      }
+    },
+    {
+      "name": "release",
+      "inherits": "debug",
+      "displayName": "Release (cc, C++20, java)",
+      "binaryDir": "${sourceDir}/build/preset-release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_INSTALL_PREFIX": "dist/preset-release",
+        "JAU_CMAKE_FIX_INSTALL_PREFIX": "ON"
+      }
+    },
+    {
+      "name": "release-clang",
+      "inherits": "release",
+      "displayName": "Release (clang, clang-tidy, C++20, java)",
+      "binaryDir": "${sourceDir}/build/preset-release-clang",
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "clang",
+        "CMAKE_CXX_COMPILER": "clang++",
+        "CMAKE_CXX_CLANG_TIDY": "clang-tidy;-p;${sourceDir}/build/preset-release-clang"
+      }
+    },
+    {
+      "name": "release-gcc",
+      "inherits": "release",
+      "displayName": "Release (gcc, C++20, java)",
+      "binaryDir": "${sourceDir}/build/preset-release-gcc",
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "gcc",
+        "CMAKE_CXX_COMPILER": "g++"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "debug",
+      "configurePreset": "debug"
+    },
+    {
+      "name": "debug-gcc",
+      "configurePreset": "debug-gcc"
+    },
+    {
+      "name": "debug-clang",
+      "configurePreset": "debug-clang"
+    },
+    {
+      "name": "release",
+      "configurePreset": "release"
+    },
+    {
+      "name": "release-gcc",
+      "configurePreset": "release-gcc"
+    },
+    {
+      "name": "release-clang",
+      "configurePreset": "release-clang"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "debug",
+      "configurePreset": "debug",
+      "output": {"outputOnFailure": true},
+      "execution": {"noTestsAction": "error", "stopOnFailure": true}
+    },
+    {
+      "name": "debug-gcc",
+      "configurePreset": "debug-gcc",
+      "output": {"outputOnFailure": true},
+      "execution": {"noTestsAction": "error", "stopOnFailure": true}
+    },
+    {
+      "name": "debug-clang",
+      "configurePreset": "debug-clang",
+      "output": {"outputOnFailure": true},
+      "execution": {"noTestsAction": "error", "stopOnFailure": true}
+    },
+    {
+      "name": "release",
+      "configurePreset": "release",
+      "output": {"outputOnFailure": true},
+      "execution": {"noTestsAction": "error", "stopOnFailure": true}
+    },
+    {
+      "name": "release-gcc",
+      "configurePreset": "release-gcc",
+      "output": {"outputOnFailure": true},
+      "execution": {"noTestsAction": "error", "stopOnFailure": true}
+    },
+    {
+      "name": "release-clang",
+      "configurePreset": "release-clang",
+      "output": {"outputOnFailure": true},
+      "execution": {"noTestsAction": "error", "stopOnFailure": true}
+    }
+  ]
+}

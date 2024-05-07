@@ -1,11 +1,10 @@
-cmake_minimum_required (VERSION 3.13.0 FATAL_ERROR)
-project (direct_bt LANGUAGES C CXX)
+cmake_minimum_required (VERSION 3.21.0 FATAL_ERROR)
+set(USE_LIBCURL OFF CACHE BOOL "" FORCE)
+set(USE_LIBUNWIND OFF CACHE BOOL "" FORCE)
+include(jaulib/JaulibSetup.cmake)
+JaulibPreset()
 
-if(${CMAKE_VERSION} VERSION_LESS "3.18.0")
-    message(STATUS "CMake ${CMAKE_VERSION}, please consider to switch to CMake 3.18.0 or later")
-else()
-    message(STATUS "CMake ${CMAKE_VERSION} >= 3.18.0, good.")
-endif()
+project (direct_bt LANGUAGES C CXX)
 
 set (THREADS_PREFER_PTHREAD_FLAG ON)
 find_package (Threads REQUIRED)
@@ -23,7 +22,6 @@ else()
     message(STATUS "${PROJECT_NAME} DONT_USE_RTTI ${DONT_USE_RTTI} (user)")
 endif()
 
-include(jaulib/JaulibSetup.cmake)
 JaulibSetup()
 
 # this is the library version, derived from git tag and revision

@@ -4,6 +4,21 @@
 
 ## Changes
 
+**3.2.4**
+* Last version conforming to C++17
+
+**3.2.3**
+* SMP key fixes
+* Misc pre-paired / pairing fixes
+* `LE Resolvable Address` and IRK fixes
+* Cleanup startDiscovery overloads
+
+**3.2.2**
+* Add convenience `make[_gatt]()`
+
+**3.2.1**
+* Updated documentation / README
+
 **3.2.0**
 * Support attaching a GATT Server with listener in LE master mode
   - Allowing to run as GATT client plus providing GATT server functionality

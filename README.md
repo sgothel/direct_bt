@@ -46,7 +46,7 @@ to GATT indications and notifications.
 - *libdirect_bt.so* for the core C++ implementation.
 - *libjavadirect_bt.so* for the Java binding.
 
-*Direct-BT* is C++17 and C++20 conform.
+*Direct-BT* is C++20 conform.
 
 Some elaboration on the implementation details
 > The host-side of HCI, L2CAP etc is usually implemented within the OS, e.g. *Linux/BlueZ* Kernel.
@@ -89,7 +89,7 @@ Please check the [Connection Paramter](doc/Connection_Parameter.md) for details.
 
 ## Supported Platforms
 Minimum language requirements
-- C++17
+- C++20 or better, see [jaulib C++ Minimum Requirements](https://jausoft.com/projects/jaulib/README.md#cpp_min_req).
 - Standard C Libraries
   - [FreeBSD libc](https://www.freebsd.org/)
   - [GNU glibc](https://www.gnu.org/software/libc/)
@@ -97,6 +97,12 @@ Minimum language requirements
 - Java 11 (optional)
 
 See [supported platforms](PLATFORMS.md) for details.
+
+### C++ Minimum Requirements
+C++20 is the minimum requirement for releases > 3.2.4,
+see [jaulib C++ Minimum Requirements](https://jausoft.com/projects/jaulib/README.md#cpp_min_req).
+
+Release 3.2.4 is the last version conforming to C++17, see [Changes](CHANGES.md).
 
 ## Tested Bluetooth Adapter
 
@@ -251,11 +257,10 @@ systemctl mask bluetooth
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ### Build Dependencies
-- CMake 3.13+ but >= 3.18 is recommended
+- CMake >= 3.21 (2021-07-14)
 - C++ compiler
-  - gcc >= 8.3.0 (C++17)
-  - gcc >= 10.2.1 (C++17 and C++20)
-  - clang >= 16 (C++17 and C++20)
+  - gcc >= 11 (C++20), recommended >= 12
+  - clang >= 13 (C++20), recommended >= 16
 - Optional for `lint` validation
   - clang-tidy >= 16
 - Optional for `eclipse` and `vscodium` integration
@@ -271,7 +276,7 @@ systemctl mask bluetooth
 
 #### Install on Debian or Ubuntu
 
-Installing build dependencies for Debian >= 11 and Ubuntu >= 20.04:
+Installing build dependencies for Debian >= 12 and Ubuntu >= 22:
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~{.sh}
 apt install git
 apt install build-essential g++ gcc libc-dev libpthread-stubs0-dev 
@@ -289,106 +294,85 @@ After complete clang installation, you might want to setup the latest version as
 For Debian you can use this [clang alternatives setup script](https://jausoft.com/cgit/jaulib.git/tree/scripts/setup_clang_alternatives.sh).
 
 ### Build Procedure
-The following is covered with [a convenient build script](https://jausoft.com/cgit/direct_bt.git/tree/scripts/build.sh).
 
-For a generic build use:
+#### Build preparations
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~{.sh}
-CPU_COUNT=`getconf _NPROCESSORS_ONLN`
-git clone --recurse-submodules git://jausoft.com/srv/scm/direct_bt.git
-cd direct_bt
-mkdir build
-cd build
-cmake -DBUILDJAVA=ON -DBUILDEXAMPLES=ON -DBUILD_TESTING=ON ..
-make -j $CPU_COUNT install test doc
+git clone https://jausoft.com/cgit/jaulib.git
+cd jaulib
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+<a name="cmake_presets_optional"></a>
+
+#### CMake Build via Presets
+Analog to [jaulib CMake build presets](https://jausoft.com/projects/jaulib/README.md#cmake_presets_optional) ...
+
+Following debug presets are defined in `CMakePresets.json`
+- `debug`
+  - default generator
+  - default compiler
+  - C++20
+  - debug enabled
+  - java (if available)
+  - no: libcurl, libunwind
+  - testing on
+  - testing with full bluetooth trial on
+- `debug-gcc`
+  - inherits from `debug`
+  - compiler: `gcc`
+  - disabled `clang-tidy`
+- `debug-clang`
+  - inherits from `debug`
+  - compiler: `clang`
+  - enabled `clang-tidy`
+- `release`
+  - inherits from `debug`
+  - debug disabled
+  - testing with sudo on
+- `release-gcc`
+  - compiler: `gcc`
+  - disabled `clang-tidy`
+- `release-clang`
+  - compiler: `clang`
+  - enabled `clang-tidy`
+
+Kick-off the workflow by e.g. using preset `release-gcc` to configure, build, test, install and building documentation.
+You may skip `install` and `doc` by dropping it from `--target`.
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~{.sh}
+cmake --preset release-gcc
+cmake --build --preset release-gcc --parallel
+cmake --build --preset release-gcc --target test install doc
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+<a name="cmake_presets_hardcoded"></a>
+
+#### CMake Build via Hardcoded Presets
+Analog to [jaulib CMake hardcoded presets](https://jausoft.com/projects/jaulib/README.md#cmake_presets_hardcoded) ...
+
+Besides above `CMakePresets.json` presets, 
+`JaulibSetup.cmake` contains hardcoded presets for *undefined variables* if
+- `CMAKE_INSTALL_PREFIX` and `CMAKE_CXX_CLANG_TIDY` cmake variables are unset, or 
+- `JAU_CMAKE_ENFORCE_PRESETS` cmake- or environment-variable is set to `TRUE` or `ON`
+
+The hardcoded presets resemble `debug-clang` [presets](README.md#cmake_presets_optional).
+
+Kick-off the workflow to configure, build, test, install and building documentation.
+You may skip `install` and `doc` by dropping it from `--target`.
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~{.sh}
+rm -rf build/default
+cmake -B build/default
+cmake --build build/default --parallel
+cmake --build build/default --target test install doc
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The install target of the last command will create the include/ and lib/ directories with a copy of
-the headers and library objects respectively in your build location. Note that
-doing an out-of-source build may cause issues when rebuilding later on.
+the headers and library objects respectively in your dist location.
 
+#### CMake Variables
 Our cmake configure has a number of options, *cmake-gui* or *ccmake* can show
 you all the options. The interesting ones are detailed below:
 
-Changing install path from /usr/local to /usr
-~~~~~~~~~~~~~
--DCMAKE_INSTALL_PREFIX=/usr
-~~~~~~~~~~~~~
-
-Building debug build:
-~~~~~~~~~~~~~
--DDEBUG=ON
-~~~~~~~~~~~~~
-
-Building with enabled *testing*, i.e. offline testing without any potential interaction as user:
-~~~~~~~~~~~~~
--DBUILD_TESTING=ON
-~~~~~~~~~~~~~
-
-Building with enabled *trial* and *testing* , i.e. live testing with 2 Bluetooth adapter and potential sudo interaction:
-~~~~~~~~~~~~~
--DBUILD_TRIAL=ON
-~~~~~~~~~~~~~
-
-Using clang instead of gcc:
-~~~~~~~~~~~~~
--DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_CXX_COMPILER=/usr/bin/clang++
-~~~~~~~~~~~~~
-
-Building with clang and clang-tidy `lint` validation
-~~~~~~~~~~~~~
--DCMAKE_C_COMPILER=/usr/bin/clang 
--DCMAKE_CXX_COMPILER=/usr/bin/clang++ 
--DCMAKE_CXX_CLANG_TIDY=/usr/bin/clang-tidy;-p;$rootdir/$build_dir
-~~~~~~~~~~~~~
-
-Disable stripping native lib even in non debug build:
-~~~~~~~~~~~~~
--DUSE_STRIP=OFF
-~~~~~~~~~~~~~
-
-Enable using `libunwind` (default: disabled)
-~~~~~~~~~~~~~
--DUSE_LIBUNWIND=ON
-~~~~~~~~~~~~~
-
-Enable using `C++ Runtime Type Information` (*RTTI*) (default: disabled for *Direct-BT*)
-~~~~~~~~~~~~~
--DDONT_USE_RTTI=OFF
-~~~~~~~~~~~~~
-
-Override default javac debug arguments `source,lines`:
-~~~~~~~~~~~~~
--DJAVAC_DEBUG_ARGS="source,lines,vars"
-
--DJAVAC_DEBUG_ARGS="none"
-~~~~~~~~~~~~~
-
-Building debug and instrumentation (sanitizer) build:
-~~~~~~~~~~~~~
--DDEBUG=ON -DINSTRUMENTATION=ON
-~~~~~~~~~~~~~
-
-Cross-compiling on a different system:
-~~~~~~~~~~~~~
--DCMAKE_CXX_FLAGS:STRING=-m32 -march=i586
--DCMAKE_C_FLAGS:STRING=-m32 -march=i586
-~~~~~~~~~~~~~
-
-To build Java bindings:
-~~~~~~~~~~~~~
--DBUILDJAVA=ON
-~~~~~~~~~~~~~
-
-To build examples:
-~~~~~~~~~~~~~
--DBUILDEXAMPLES=ON
-~~~~~~~~~~~~~
-
-To build documentation run: 
-~~~~~~~~~~~~~
-make doc
-~~~~~~~~~~~~~
+See [jaulib CMake variables](https://jausoft.com/projects/jaulib/README.md#cmake_variables) for details.
 
 ### Unit Testing
 
@@ -442,6 +426,8 @@ a Raspi-arm64, Raspi-armhf or PC-amd64 target image.
 ## IDE Integration
 
 ### Eclipse 
+Tested Eclipse 2024-03 (4.31).
+
 IDE integration configuration files are provided for 
 - [Eclipse](https://download.eclipse.org/eclipse/downloads/) with extensions
   - [CDT](https://github.com/eclipse-cdt/) or [CDT @ eclipse.org](https://projects.eclipse.org/projects/tools.cdt)
@@ -450,20 +436,24 @@ IDE integration configuration files are provided for
     - Utilizes clangd, clang-tidy and clang-format to support C++20 and above
     - Add to available software site: `https://download.eclipse.org/tools/cdt/releases/cdt-lsp-latest`
     - Install `C/C++ LSP Support` in the `Eclipse CDT LSP Category`
-  - Not used due to lack of passing properties to `cmake` as well as subproject include file and symbol resolution:
-    - `CMake Support`, install `C/C++ CMake Build Support` with ID `org.eclipse.cdt.cmake.feature.group`
+  - `CMake Support`, install `C/C++ CMake Build Support` with ID `org.eclipse.cdt.cmake.feature.group`
+    - Usable via via [Hardcoded CMake Presets](README.md#cmake_presets_hardcoded) with `debug-clang`
 
-From the project root directory, prepare the `Debug` folder using `cmake`
-~~~~~~~~~~~~~
-./scripts/eclipse-cmake-prepare.sh
-~~~~~~~~~~~~~
+The [Hardcoded CMake Presets](README.md#cmake_presets_hardcoded) will 
+use `build/default` as the default build folder with debug enabled.
 
-The existing project setup is just using `external build` via `make`.
+Make sure to set the environment variable `CMAKE_BUILD_PARALLEL_LEVEL`
+to a suitable high number, best to your CPU core count.
+This will enable parallel build with the IDE.
 
 You can import the project to your workspace via `File . Import...` and `Existing Projects into Workspace` menu item.
 
 For Eclipse one might need to adjust some setting in the `.project` and `.cproject` (CDT) 
 via Eclipse settings UI, but it should just work out of the box.
+
+Otherwise recreate the Eclipse project by 
+- delete `.project` and `.cproject` 
+- `File . New . C/C++ Project` and `Empty or Existing CMake Project` while using this project folder.
 
 ### VSCodium or VS Code
 

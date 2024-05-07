@@ -4,7 +4,7 @@
 
 ## Supported Platforms
 Minimum language requirements
-- C++17
+- C++20 or better, see [jaulib C++ Minimum Requirements](https://jausoft.com/projects/jaulib/README.md#cpp_min_req).
 - Standard C Libraries
   - [FreeBSD libc](https://www.freebsd.org/)
   - [GNU glibc](https://www.gnu.org/software/libc/)
@@ -43,6 +43,7 @@ The following **platforms** are tested and hence supported
   - amd64 (validated, Generic)
 
 **Debian 11 Bullseye (GNU/Linux)**
+- *deprecated*
 - linux 5.10
 - glibc 2.31
 - compiler
@@ -78,6 +79,7 @@ The following **platforms** are tested and hence supported
   - amd64 (validated, Generic)
 
 **Ubuntu 20.04 (GNU/Linux)**
+- *deprecated*
 - linux 5.4
 - glibc 2.31
 - compiler
