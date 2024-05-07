@@ -89,7 +89,7 @@ Please check the [Connection Paramter](doc/Connection_Parameter.md) for details.
 
 ## Supported Platforms
 Minimum language requirements
-- C++20 or better, see [jaulib C++ Minimum Requirements](https://jausoft.com/projects/jaulib/README.md#cpp_min_req).
+- C++20 or better, see [jaulib C++ Minimum Requirements](https://jausoft.com/cgit/jaulib.git/about/README.md#cpp_min_req).
 - Standard C Libraries
   - [FreeBSD libc](https://www.freebsd.org/)
   - [GNU glibc](https://www.gnu.org/software/libc/)
@@ -100,7 +100,7 @@ See [supported platforms](PLATFORMS.md) for details.
 
 ### C++ Minimum Requirements
 C++20 is the minimum requirement for releases > 3.2.4,
-see [jaulib C++ Minimum Requirements](https://jausoft.com/projects/jaulib/README.md#cpp_min_req).
+see [jaulib C++ Minimum Requirements](https://jausoft.com/cgit/jaulib.git/about/README.md#cpp_min_req).
 
 Release 3.2.4 is the last version conforming to C++17, see [Changes](CHANGES.md).
 
@@ -305,7 +305,7 @@ cd jaulib
 <a name="cmake_presets_optional"></a>
 
 #### CMake Build via Presets
-Analog to [jaulib CMake build presets](https://jausoft.com/projects/jaulib/README.md#cmake_presets_optional) ...
+Analog to [jaulib CMake build presets](https://jausoft.com/cgit/jaulib.git/about/README.md#cmake_presets_optional) ...
 
 Following debug presets are defined in `CMakePresets.json`
 - `debug`
@@ -347,7 +347,7 @@ cmake --build --preset release-gcc --target test install doc
 <a name="cmake_presets_hardcoded"></a>
 
 #### CMake Build via Hardcoded Presets
-Analog to [jaulib CMake hardcoded presets](https://jausoft.com/projects/jaulib/README.md#cmake_presets_hardcoded) ...
+Analog to [jaulib CMake hardcoded presets](https://jausoft.com/cgit/jaulib.git/about/README.md#cmake_presets_hardcoded) ...
 
 Besides above `CMakePresets.json` presets, 
 `JaulibSetup.cmake` contains hardcoded presets for *undefined variables* if
@@ -372,7 +372,7 @@ the headers and library objects respectively in your dist location.
 Our cmake configure has a number of options, *cmake-gui* or *ccmake* can show
 you all the options. The interesting ones are detailed below:
 
-See [jaulib CMake variables](https://jausoft.com/projects/jaulib/README.md#cmake_variables) for details.
+See [jaulib CMake variables](https://jausoft.com/cgit/jaulib.git/about/README.md#cmake_variables) for details.
 
 ### Unit Testing
 
