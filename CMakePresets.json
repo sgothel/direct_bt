@@ -17,7 +17,7 @@
         "JAU_CMAKE_FIX_INSTALL_PREFIX": "ON",
         "TRY_JAVA": "ON",
         "USE_LIBCURL": "OFF",
-        "USE_LIBUNWIND": "OFF",
+        "USE_LIBUNWIND": "ON",
         "BUILD_TESTING": "ON",
         "BUILD_TRIAL": "ON",
         "TEST_WITH_SUDO": "OFF"
@@ -52,7 +52,8 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
         "CMAKE_INSTALL_PREFIX": "dist/preset-release",
-        "JAU_CMAKE_FIX_INSTALL_PREFIX": "ON"
+        "JAU_CMAKE_FIX_INSTALL_PREFIX": "ON",
+        "USE_LIBUNWIND": "OFF"
       }
     },
     {

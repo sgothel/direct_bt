@@ -193,6 +193,8 @@ The *capsh* method (default), *setcap* and *root* method is being utilized in
 - [scripts/run-dbt_scanner10.sh](https://jausoft.com/cgit/direct_bt.git/tree/scripts/run-native-example.sh)
 - [scripts/run-java-scanner10.sh](https://jausoft.com/cgit/direct_bt.git/tree/scripts/run-java-example.sh)
 
+(*FIXME: scripts needs to be overhauled to reflect new CMake build/dist folder*)
+
 See *Examples* below ...
 
 
@@ -237,6 +239,7 @@ are availble, demonstrates the event driven and multithreading workflow:
 - [DBTScanner10.java](https://jausoft.com/projects/direct_bt/build/documentation/java/html/DBTScanner10_8java-example.html), matching *dbt_scanner10.cpp*.
 - [DBTPeripheral00.java](https://jausoft.com/projects/direct_bt/build/documentation/java/html/DBTPeripheral00_8java-example.html), matching *dbt_peripheral00.cpp*.
 
+(*FIXME: scripts needs to be overhauled to reflect new CMake build/dist folder*)
 
 ## Building Direct-BT
 This project also uses the [Jau C++ and Java Support Library](https://jausoft.com/cgit/jaulib.git/about/)
@@ -314,9 +317,11 @@ Following debug presets are defined in `CMakePresets.json`
   - C++20
   - debug enabled
   - java (if available)
-  - no: libcurl, libunwind
+  - libunwind enabled
+  - no: libcurl
   - testing on
-  - testing with full bluetooth trial on
+  - testing with 2 bluetooth trial on
+  - testing with sudo off
 - `debug-gcc`
   - inherits from `debug`
   - compiler: `gcc`
@@ -328,13 +333,16 @@ Following debug presets are defined in `CMakePresets.json`
 - `release`
   - inherits from `debug`
   - debug disabled
-  - testing with sudo on
+  - libunwind disabled
 - `release-gcc`
   - compiler: `gcc`
   - disabled `clang-tidy`
 - `release-clang`
   - compiler: `clang`
   - enabled `clang-tidy`
+
+All presets enable [full unit testing](README.md#unit_testing) including actual Bluetooth trials,
+i.e. require two adapter to pass.
 
 Kick-off the workflow by e.g. using preset `release-gcc` to configure, build, test, install and building documentation.
 You may skip `install` and `doc` by dropping it from `--target`.
@@ -374,6 +382,8 @@ you all the options. The interesting ones are detailed below:
 
 See [jaulib CMake variables](https://jausoft.com/cgit/jaulib.git/about/README.md#cmake_variables) for details.
 
+<a name="unit_testing"></a>
+
 ### Unit Testing
 
 Building with enabled *testing*, i.e. offline testing without any potential interaction as user
@@ -381,6 +391,8 @@ is provided via the *cmake* build argument `-DBUILD_TESTING=ON`, see above.
 
 Building with enabled *trial* and *testing* , i.e. live testing with 2 Bluetooth adapter
 is provided via the *cmake* build argument `-DBUILD_TRIAL=ON`, see above.
+
+Both is enabled with above CMake [presets](README.md#cmake_presets_optional).
 
 The *trial* tests utilize one or more actual Bluetooth adapter,
 hence using the *capsh* launch for the required permissions as described above.

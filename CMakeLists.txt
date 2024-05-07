@@ -1,6 +1,5 @@
 cmake_minimum_required (VERSION 3.21.0 FATAL_ERROR)
 set(USE_LIBCURL OFF CACHE BOOL "" FORCE)
-set(USE_LIBUNWIND OFF CACHE BOOL "" FORCE)
 include(jaulib/JaulibSetup.cmake)
 JaulibPreset()
 
