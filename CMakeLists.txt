@@ -3,6 +3,10 @@ set(USE_LIBCURL OFF CACHE BOOL "" FORCE)
 include(jaulib/JaulibSetup.cmake)
 JaulibPreset()
 
+if(JAU_CMAKE_HARD_PRESETS)
+    set(BUILD_TRIAL ON CACHE STRING "" FORCE)
+endif()
+
 project (direct_bt LANGUAGES C CXX)
 
 set (THREADS_PREFER_PTHREAD_FLAG ON)
