@@ -26,7 +26,7 @@ buildit() {
 
     cd $rootdir/$build_dir
     rm -rf documentation
-    cmake --build . --target doc_jau --parallel
+    cmake --build . --target doc --parallel
     if [ $? -eq 0 ] ; then
         echo "REBUILD SUCCESS $bname"
         rm -f $rootdir/documentation.tar.xz
