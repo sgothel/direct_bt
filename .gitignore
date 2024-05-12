@@ -22,6 +22,7 @@ issues/
 *~
 *.log
 doc/log/*
+.clangd
 
 # Eclipse files
 #.cproject

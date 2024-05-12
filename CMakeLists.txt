@@ -23,6 +23,14 @@ endif()
 
 JaulibSetup()
 
+if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/.clangd)
+# Fixup clangd w/ absolute path
+set (direct_bt_clangd_source_args "-isystem, ${CMAKE_CURRENT_SOURCE_DIR}/jaulib/include, -isystem, ${CMAKE_CURRENT_SOURCE_DIR}/jaulib/src, -isystem, ${CMAKE_CURRENT_SOURCE_DIR}/jaulib/java_jni/jni, -isystem, ${CMAKE_CURRENT_SOURCE_DIR}/jaulib/java_jni/jni/jau, -isystem, ${CMAKE_CURRENT_SOURCE_DIR}/jaulib/test")
+set (direct_bt_clangd_source_args "${direct_bt_clangd_source_args} -isystem, ${CMAKE_CURRENT_SOURCE_DIR}/api/include, -isystem, ${CMAKE_CURRENT_SOURCE_DIR}/src/direct_bt, -isystem, ${CMAKE_CURRENT_SOURCE_DIR}/src/direct_bt/ieee11073, -isystem, ${CMAKE_CURRENT_SOURCE_DIR}/java/jni, -isystem, ${CMAKE_CURRENT_SOURCE_DIR}/java/jni/direct_bt, -isystem, ${CMAKE_CURRENT_SOURCE_DIR}/test/direct_bt, -isystem, ${CMAKE_CURRENT_SOURCE_DIR}/test/ieee11073, -isystem, ${CMAKE_CURRENT_SOURCE_DIR}/trial/direct_bt")
+configure_file (${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/clangd.in
+                ${CMAKE_CURRENT_SOURCE_DIR}/.clangd)
+endif()
+
 # this is the library version, derived from git tag and revision
 set (direct_bt_VERSION_MAJOR      ${VERSION_MAJOR})
 set (direct_bt_VERSION_MINOR      ${VERSION_MINOR})
