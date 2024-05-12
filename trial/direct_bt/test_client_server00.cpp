@@ -33,6 +33,8 @@
 
 #include "dbt_server01.hpp"
 
+#include <jau/os/os_support.hpp>
+
 using namespace direct_bt;
 
 // Singleton test framework, alive until test program ends
@@ -48,6 +50,7 @@ TEST_CASE( "BTManager Bringup Trial 00.1", "[trial][BTManager][bringup]" ) {
     base_test_framework.setupTest( 5_s );
 
     jau::fprintf_td(stderr, "Direct-BT Native Version %s (API %s)\n", DIRECT_BT_VERSION, DIRECT_BT_VERSION_API);
+    jau::fprintf_td(stderr, "%s\n", jau::os::get_platform_info().c_str());    
 
     std::shared_ptr<BTManager> manager = BTManager::get();
     jau::darray<BTAdapterRef> adapters = manager->getAdapters();

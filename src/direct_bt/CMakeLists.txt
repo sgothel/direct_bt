@@ -15,16 +15,19 @@ include_directories(
 set (direct_bt_LIB_SRCS
   ${PROJECT_SOURCE_DIR}/tinycrypt/lib/source/aes_encrypt.c
   ${PROJECT_SOURCE_DIR}/tinycrypt/lib/source/utils.c
-  ${PROJECT_SOURCE_DIR}/jaulib/src/dfa_utf8_decode.cpp
-  ${PROJECT_SOURCE_DIR}/jaulib/src/environment.cpp
-  ${PROJECT_SOURCE_DIR}/jaulib/src/debug.cpp
   ${PROJECT_SOURCE_DIR}/jaulib/src/basic_types.cpp
   ${PROJECT_SOURCE_DIR}/jaulib/src/base_codec.cpp
+  ${PROJECT_SOURCE_DIR}/jaulib/src/cpuid.cpp
+  ${PROJECT_SOURCE_DIR}/jaulib/src/debug.cpp
+  ${PROJECT_SOURCE_DIR}/jaulib/src/dfa_utf8_decode.cpp
+  ${PROJECT_SOURCE_DIR}/jaulib/src/environment.cpp
   ${PROJECT_SOURCE_DIR}/jaulib/src/eui48.cpp
   ${PROJECT_SOURCE_DIR}/jaulib/src/file_util.cpp
-  ${PROJECT_SOURCE_DIR}/jaulib/src/uuid.cpp
+  ${PROJECT_SOURCE_DIR}/jaulib/src/os_support.cpp
   ${PROJECT_SOURCE_DIR}/jaulib/src/service_runner.cpp
   ${PROJECT_SOURCE_DIR}/jaulib/src/simple_timer.cpp
+  ${PROJECT_SOURCE_DIR}/jaulib/src/uuid.cpp
+  ${PROJECT_SOURCE_DIR}/jaulib/src/unix/user_info.cpp
   ${PROJECT_SOURCE_DIR}/src/direct_bt/ieee11073/DataTypes.cpp
   ${PROJECT_SOURCE_DIR}/src/direct_bt/ATTPDUTypes.cpp
   ${PROJECT_SOURCE_DIR}/src/direct_bt/BTAdapter.cpp
