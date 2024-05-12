@@ -332,7 +332,7 @@ std::unique_ptr<HCICommand> HCICommand::getSpecialized(const uint8_t * buffer, j
         return nullptr;
     }
 
-    const HCIOpcode oc = static_cast<HCIOpcode>( jau::get_uint16(buffer + 1, jau::lb_endian::little) );
+    const HCIOpcode oc = static_cast<HCIOpcode>( jau::get_uint16(buffer + 1, jau::lb_endian_t::little) );
     switch( oc ) {
         case HCIOpcode::DISCONNECT:
             return std::make_unique<HCIDisconnectCmd>(buffer, buffer_size);

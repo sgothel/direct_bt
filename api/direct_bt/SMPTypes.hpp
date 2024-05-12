@@ -918,13 +918,13 @@ namespace direct_bt {
 
             /** Persistent memory, w/ ownership ..*/
             SMPPDUMsg(const uint8_t* source, const jau::nsize_t size)
-                : pdu(source, std::max<jau::nsize_t>(1, size), jau::lb_endian::little),
+                : pdu(source, std::max<jau::nsize_t>(1, size), jau::lb_endian_t::little),
                   ts_creation(jau::getCurrentMilliseconds())
             { }
 
             /** Persistent memory, w/ ownership ..*/
             SMPPDUMsg(const uint8_t* source, const jau::nsize_t size, const jau::nsize_t min_size)
-                : pdu(source, std::max<jau::nsize_t>(1, size), jau::lb_endian::little),
+                : pdu(source, std::max<jau::nsize_t>(1, size), jau::lb_endian_t::little),
                   ts_creation(jau::getCurrentMilliseconds())
             { 
                 pdu.check_range(0, std::max<jau::nsize_t>(1, min_size), E_FILE_LINE);
@@ -932,7 +932,7 @@ namespace direct_bt {
 
             /** Persistent memory, w/ ownership ..*/
             SMPPDUMsg(const Opcode opc, const jau::nsize_t size)
-                : pdu(std::max<jau::nsize_t>(1, size), jau::lb_endian::little),
+                : pdu(std::max<jau::nsize_t>(1, size), jau::lb_endian_t::little),
                   ts_creation(jau::getCurrentMilliseconds())
             {
                 pdu.put_uint8_nc(0, number(opc));

@@ -383,7 +383,7 @@ std::string direct_bt::GattNameToString(const jau::TROOctets &v) noexcept {
 	if( 0 == str_len ) {
 	    return std::string(); // empty
 	}
-	jau::POctets s(str_len+1, jau::lb_endian::little); // dtor releases chunk
+	jau::POctets s(str_len+1, jau::lb_endian_t::little); // dtor releases chunk
 	{
 	    // Prelim checking to avoid g++ 8.3 showing a warning: pointer overflow between offset 0 and size
         uint8_t const * const v_p = v.get_ptr();

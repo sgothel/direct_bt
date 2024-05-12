@@ -122,7 +122,7 @@ jbyteArray Java_jau_direct_1bt_DBTGattChar_readValueImpl(JNIEnv *env, jobject ob
         JavaAnonRef characteristic_java = characteristic->getJavaObject(); // hold until done!
         JavaGlobalObj::check(characteristic_java, E_FILE_LINE);
 
-        jau::POctets res(BTGattHandler::number(BTGattHandler::Defaults::MAX_ATT_MTU), 0, jau::lb_endian::little);
+        jau::POctets res(BTGattHandler::number(BTGattHandler::Defaults::MAX_ATT_MTU), 0, jau::lb_endian_t::little);
         if( !characteristic->readValue(res) ) {
             ERR_PRINT("Characteristic readValue failed: %s", characteristic->toString().c_str());
             return env->NewByteArray((jsize)0);
@@ -159,7 +159,7 @@ jboolean Java_jau_direct_1bt_DBTGattChar_writeValueImpl(JNIEnv *env, jobject obj
         if( nullptr == value_ptr ) {
             throw jau::InternalError("GetPrimitiveArrayCritical(byte array) is null", E_FILE_LINE);
         }
-        jau::TROOctets value(value_ptr, value_size, jau::lb_endian::little);
+        jau::TROOctets value(value_ptr, value_size, jau::lb_endian_t::little);
         bool res;
         if( withResponse ) {
             res = characteristic->writeValue(value);

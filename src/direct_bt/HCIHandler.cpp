@@ -270,7 +270,7 @@ std::unique_ptr<MgmtEvent> HCIHandler::translate(HCIEvent& ev) noexcept {
                     return nullptr;
                 }
                 const uint16_t handle = jau::le_to_cpu(ev_cc->handle);
-                const LE_Features features = static_cast<LE_Features>(jau::get_uint64(ev_cc->features + 0, jau::lb_endian::little));
+                const LE_Features features = static_cast<LE_Features>(jau::get_uint64(ev_cc->features + 0, jau::lb_endian_t::little));
                 const HCIConnectionRef conn = findTrackerConnection(handle);
                 if( nullptr == conn ) {
                     WARN_PRINT("dev_id %u:: LE_REMOTE_FEAT_COMPLETE: Not tracked conn_handle %s of %s",
@@ -686,7 +686,7 @@ std::unique_ptr<HCIEvent> HCIHandler::getNextCmdCompleteReply(HCICommand &req, H
 HCIHandler::HCIHandler(const uint16_t dev_id_, const BTMode btMode_) noexcept
 : env(HCIEnv::get()),
   dev_id(dev_id_),
-  rbuffer(HCI_MAX_MTU, jau::lb_endian::little),
+  rbuffer(HCI_MAX_MTU, jau::lb_endian_t::little),
   comm(dev_id_, HCI_CHANNEL_RAW),
   hci_reader_service("HCIHandler::reader", THREAD_SHUTDOWN_TIMEOUT_MS,
                      jau::bind_member(this, &HCIHandler::hciReaderWork),
@@ -869,7 +869,7 @@ bool HCIHandler::initSupCommands() noexcept {
             zeroSupCommands();
             return false;
         }
-        le_ll_feats = static_cast<LE_Features>( jau::get_uint64(ev_lf->features + 0, jau::lb_endian::little) );
+        le_ll_feats = static_cast<LE_Features>( jau::get_uint64(ev_lf->features + 0, jau::lb_endian_t::little) );
     }
 
     HCICommand req0(HCIOpcode::READ_LOCAL_COMMANDS, 0);
@@ -1515,8 +1515,8 @@ HCIStatusCode HCIHandler::le_add_to_resolv_list(const BDAddressAndType& peerIden
     hci_cp_le_add_to_resolv_list * cp = req0.getWStruct();
     cp->bdaddr_type = static_cast<uint8_t>(peerIdentityAddressAndType.type);
     cp->bdaddr      = jau::cpu_to_le(peerIdentityAddressAndType.address);
-    jau::put_uint128(cp->peer_irk + 0, peer_irk, jau::lb_endian::little);
-    jau::put_uint128(cp->local_irk + 0, local_irk, jau::lb_endian::little);
+    jau::put_uint128(cp->peer_irk + 0, peer_irk, jau::lb_endian_t::little);
+    jau::put_uint128(cp->local_irk + 0, local_irk, jau::lb_endian_t::little);
     const hci_rp_status * ev_res;
     std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_res, &status, true /* quiet */);
     if( nullptr == ev || nullptr == ev_res || HCIStatusCode::SUCCESS != status ) {
@@ -1798,8 +1798,8 @@ HCIStatusCode HCIHandler::le_set_adv_param(const EUI48 &peer_bdaddr,
         // Actually .. but struct uses uint8_t[3] duh ..
         // cp->min_interval = jau::cpu_to_le(adv_interval_min);
         // cp->max_interval = jau::cpu_to_le(adv_interval_max);
-        jau::put_uint16(cp->min_interval + 0, adv_interval_min, jau::lb_endian::little);
-        jau::put_uint16(cp->max_interval + 0, adv_interval_max, jau::lb_endian::little);
+        jau::put_uint16(cp->min_interval + 0, adv_interval_min, jau::lb_endian_t::little);
+        jau::put_uint16(cp->max_interval + 0, adv_interval_max, jau::lb_endian_t::little);
         cp->channel_map = adv_chan_map;
         cp->own_addr_type = static_cast<uint8_t>(own_mac_type);
         cp->peer_addr_type = static_cast<uint8_t>(peer_mac_type);

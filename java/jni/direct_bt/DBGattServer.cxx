@@ -140,7 +140,7 @@ jlong Java_org_direct_1bt_DBGattDesc_ctorImpl(JNIEnv *env, jobject obj,
         JNIGlobalRef global_obj(obj); // lock instance first (global reference), inserted below
 
         // POctets value
-        jau::POctets value(jcapacity_, env->GetArrayLength(jvalue_), jau::lb_endian::little);
+        jau::POctets value(jcapacity_, env->GetArrayLength(jvalue_), jau::lb_endian_t::little);
         if( 0 < value.size() ) {
             JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
             const uint8_t * value_ptr = criticalArray.get(jvalue_, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
@@ -283,7 +283,7 @@ jlong Java_org_direct_1bt_DBGattChar_ctorImpl(JNIEnv *env, jobject obj,
         JNIGlobalRef global_obj(obj); // lock instance first (global reference), inserted below
 
         // POctets value
-        jau::POctets value(jcapacity_, env->GetArrayLength(jvalue_), jau::lb_endian::little);
+        jau::POctets value(jcapacity_, env->GetArrayLength(jvalue_), jau::lb_endian_t::little);
         if( 0 < value.size() ) {
             JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
             const uint8_t * value_ptr = criticalArray.get(jvalue_, criticalArray.Mode::NO_UPDATE_AND_RELEASE);

@@ -600,7 +600,7 @@ BTGattHandler::BTGattHandler(const BTDeviceRef &device, L2CAPClient& l2cap_att, 
   role(device->getLocalGATTRole()),
   l2cap(l2cap_att),
   deviceString(device->getAddressAndType().address.toString()),
-  rbuffer(number(Defaults::MAX_ATT_MTU), jau::lb_endian::little),
+  rbuffer(number(Defaults::MAX_ATT_MTU), jau::lb_endian_t::little),
   is_connected(l2cap.is_open()), has_ioerror(false),
   l2cap_reader_service("GATTHandler::reader_"+deviceString, THREAD_SHUTDOWN_TIMEOUT_MS,
                        jau::bind_member(this, &BTGattHandler::l2capReaderWork),
@@ -1430,7 +1430,7 @@ static const jau::uuid16_t _PNP_ID(GattCharacteristicType::PNP_ID);
 
 std::shared_ptr<GattGenericAccessSvc> BTGattHandler::getGenericAccess(jau::darray<BTGattCharRef> & genericAccessCharDeclList) noexcept {
     std::shared_ptr<GattGenericAccessSvc> res = nullptr;
-    jau::POctets value(number(Defaults::MAX_ATT_MTU), 0, jau::lb_endian::little);
+    jau::POctets value(number(Defaults::MAX_ATT_MTU), 0, jau::lb_endian_t::little);
     std::string deviceName = "";
     AppearanceCat appearance = AppearanceCat::UNKNOWN;
     std::shared_ptr<GattPeriphalPreferredConnectionParameters> prefConnParam = nullptr;
@@ -1479,7 +1479,7 @@ bool BTGattHandler::ping() noexcept {
 
     for(size_t i=0; readOK && i<services.size(); i++) {
         jau::darray<BTGattCharRef> & genericAccessCharDeclList = services.at(i)->characteristicList;
-        jau::POctets value(32, 0, jau::lb_endian::little);
+        jau::POctets value(32, 0, jau::lb_endian_t::little);
 
         for(size_t j=0; readOK && j<genericAccessCharDeclList.size(); j++) {
             const BTGattChar & charDecl = *genericAccessCharDeclList.at(j);
@@ -1507,16 +1507,16 @@ bool BTGattHandler::ping() noexcept {
 
 std::shared_ptr<GattDeviceInformationSvc> BTGattHandler::getDeviceInformation(jau::darray<BTGattCharRef> & characteristicDeclList) noexcept {
     std::shared_ptr<GattDeviceInformationSvc> res = nullptr;
-    jau::POctets value(number(Defaults::MAX_ATT_MTU), 0, jau::lb_endian::little);
+    jau::POctets value(number(Defaults::MAX_ATT_MTU), 0, jau::lb_endian_t::little);
 
-    jau::POctets systemID(8, 0, jau::lb_endian::little);
+    jau::POctets systemID(8, 0, jau::lb_endian_t::little);
     std::string modelNumber;
     std::string serialNumber;
     std::string firmwareRevision;
     std::string hardwareRevision;
     std::string softwareRevision;
     std::string manufacturer;
-    jau::POctets regulatoryCertDataList(128, 0, jau::lb_endian::little);
+    jau::POctets regulatoryCertDataList(128, 0, jau::lb_endian_t::little);
     std::shared_ptr<GattPnP_ID> pnpID = nullptr;
     bool found = false;
 

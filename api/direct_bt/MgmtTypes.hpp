@@ -358,14 +358,14 @@ namespace direct_bt {
 
         public:
             static uint16_t getIntOpcode(const uint8_t * buffer) {
-                return jau::get_uint16(buffer + 0, jau::lb_endian::little);
+                return jau::get_uint16(buffer + 0, jau::lb_endian_t::little);
             }
             static uint16_t getDevID(const uint8_t *data) {
-                return jau::get_uint16(data + 2, jau::lb_endian::little);
+                return jau::get_uint16(data + 2, jau::lb_endian_t::little);
             }
 
             MgmtMsg(const uint16_t opc, const uint16_t dev_id, const uint16_t param_size)
-            : pdu(MGMT_HEADER_SIZE+param_size, jau::lb_endian::little),
+            : pdu(MGMT_HEADER_SIZE+param_size, jau::lb_endian_t::little),
               ts_creation(jau::getCurrentMilliseconds())
             {
                 pdu.put_uint16_nc(0, opc);
@@ -374,7 +374,7 @@ namespace direct_bt {
             }
 
             MgmtMsg(const uint8_t* buffer, const jau::nsize_t buffer_len)
-            : pdu(buffer, buffer_len, jau::lb_endian::little),
+            : pdu(buffer, buffer_len, jau::lb_endian_t::little),
               ts_creation(jau::getCurrentMilliseconds())
             {}
 
@@ -968,7 +968,7 @@ namespace direct_bt {
             const EUI48& getAddress() const noexcept { return *reinterpret_cast<const EUI48 *>( pdu.get_ptr_nc(MGMT_HEADER_SIZE + 0) ); } // mgmt_addr_info
             BDAddressType getAddressType() const noexcept { return static_cast<BDAddressType>(pdu.get_uint8_nc(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
             uint8_t getPinLength() const noexcept { return pdu.get_uint8_nc(MGMT_HEADER_SIZE+6+1); }
-            jau::TROOctets getPinCode() const noexcept { return jau::TROOctets(pdu.get_ptr_nc(MGMT_HEADER_SIZE+6+1+1), getPinLength(), jau::lb_endian::little); }
+            jau::TROOctets getPinCode() const noexcept { return jau::TROOctets(pdu.get_ptr_nc(MGMT_HEADER_SIZE+6+1+1), getPinLength(), jau::lb_endian_t::little); }
     };
 
     /**
@@ -1286,13 +1286,13 @@ namespace direct_bt {
         static MgmtDefaultParam read(const uint8_t* data, const jau::nsize_t length) noexcept;
 
         MgmtDefaultParam() noexcept
-        : type(Type::NONE), value(0, jau::lb_endian::little) {}
+        : type(Type::NONE), value(0, jau::lb_endian_t::little) {}
 
         MgmtDefaultParam(const Type type_) noexcept
-        : type(type_), value(0, jau::lb_endian::little) {}
+        : type(type_), value(0, jau::lb_endian_t::little) {}
 
         MgmtDefaultParam(const Type type_, const uint16_t value_) noexcept
-        : type(type_), value( to_size(type_) == 2 ? 2 : 0, jau::lb_endian::little) {
+        : type(type_), value( to_size(type_) == 2 ? 2 : 0, jau::lb_endian_t::little) {
             if( 2 == value.size() ) {
                 value.put_uint16_nc(0, value_);
             }
@@ -1489,7 +1489,7 @@ namespace direct_bt {
 
         public:
             static MgmtEvent::Opcode getOpcode(const uint8_t * buffer) {
-                return static_cast<MgmtEvent::Opcode>( jau::get_uint16(buffer + 0, jau::lb_endian::little) );
+                return static_cast<MgmtEvent::Opcode>( jau::get_uint16(buffer + 0, jau::lb_endian_t::little) );
             }
 
             /**
@@ -1590,7 +1590,7 @@ namespace direct_bt {
         public:
 
             static MgmtCommand::Opcode getCmdOpcode(const uint8_t *data) {
-                return static_cast<MgmtCommand::Opcode>( jau::get_uint16(data + MGMT_HEADER_SIZE, jau::lb_endian::little) );
+                return static_cast<MgmtCommand::Opcode>( jau::get_uint16(data + MGMT_HEADER_SIZE, jau::lb_endian_t::little) );
             }
             static MgmtStatus getStatus(const uint8_t *data) {
                 return static_cast<MgmtStatus>( jau::get_uint8(data + MGMT_HEADER_SIZE+2) );

@@ -962,7 +962,7 @@ namespace direct_bt {
                                uint8_t const * data, int offset, int const size) noexcept;
 
         public:
-            EInfoReport() noexcept : hash(16, 0, jau::lb_endian::little), randomizer(16, 0, jau::lb_endian::little) {}
+            EInfoReport() noexcept : hash(16, 0, jau::lb_endian_t::little), randomizer(16, 0, jau::lb_endian_t::little) {}
 
             EInfoReport(const EInfoReport&) = default;
             EInfoReport& operator=(const EInfoReport &o) = default;

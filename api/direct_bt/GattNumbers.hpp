@@ -405,7 +405,7 @@ class GattTemperatureMeasurement {
         static std::shared_ptr<GattTemperatureMeasurement> get(const jau::TROOctets &source) noexcept;
 
         static std::shared_ptr<GattTemperatureMeasurement> get(const jau::TOctetSlice &source) noexcept {
-            const jau::TROOctets o(source.get_ptr(0), source.size(), jau::lb_endian::little);
+            const jau::TROOctets o(source.get_ptr(0), source.size(), jau::lb_endian_t::little);
             return get(o);
         }
 
