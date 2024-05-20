@@ -24,14 +24,10 @@
  */
 
 #include <cstring>
-#include <string>
-#include <memory>
 #include <cstdint>
-#include <vector>
 #include <cstdio>
 
-#include <algorithm>
-#include <type_traits>
+#include <jau/secmem.hpp>
 
 // #define PERF_PRINT_ON 1
 #include <jau/debug.hpp>
@@ -80,7 +76,7 @@ int HCIComm::hci_open_dev(const uint16_t dev_id, const uint16_t channel) noexcep
 	}
 
 	// Bind socket to the HCI device
-	bzero(&addr_holder, sizeof(addr_holder));
+	jau::zero_bytes_sec(&addr_holder, sizeof(addr_holder));
 	ptr_hci_addr->hci_family = AF_BLUETOOTH;
 	ptr_hci_addr->hci_dev = dev_id;
 	ptr_hci_addr->hci_channel = channel;

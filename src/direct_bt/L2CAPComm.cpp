@@ -27,10 +27,9 @@
 #include <string>
 #include <memory>
 #include <cstdint>
-#include <vector>
 #include <cstdio>
 
-#include  <algorithm>
+#include <jau/secmem.hpp>
 
 // #define PERF_PRINT_ON 1
 #include <jau/debug.hpp>
@@ -119,7 +118,7 @@ int L2CAPComm::l2cap_open_dev(const BDAddressAndType & adapterAddressAndType, co
 
     // Bind socket to the L2CAP adapter
     // BT Core Spec v5.2: Vol 3, Part A: L2CAP_CONNECTION_REQ
-    bzero((void *)&a, sizeof(a));
+    jau::zero_bytes_sec((void *)&a, sizeof(a));
     a.l2_family=AF_BLUETOOTH;
     a.l2_psm = jau::cpu_to_le(direct_bt::number(psm));
     a.l2_bdaddr = jau::cpu_to_le(adapterAddressAndType.address);
@@ -169,7 +168,7 @@ bool L2CAPComm::setBTSecurityLevelImpl(const BTSecurityLevel sec_level, const BD
 
         BTSecurityLevel old_sec_level = getBTSecurityLevelImpl(remoteAddressAndType);
         if( old_sec_level != sec_level ) {
-            bzero(&bt_sec, sizeof(bt_sec));
+            jau::zero_bytes_sec(&bt_sec, sizeof(bt_sec));
             bt_sec.level = direct_bt::number(sec_level);
             result = ::setsockopt(socket_, SOL_BLUETOOTH, BT_SECURITY, &bt_sec, sizeof(bt_sec));
             if ( 0 == result ) {
@@ -212,7 +211,7 @@ BTSecurityLevel L2CAPComm::getBTSecurityLevelImpl(const BDAddressAndType& remote
         socklen_t optlen = sizeof(bt_sec);
         int result;
 
-        bzero(&bt_sec, sizeof(bt_sec));
+        jau::zero_bytes_sec(&bt_sec, sizeof(bt_sec));
         result = ::getsockopt(socket_, SOL_BLUETOOTH, BT_SECURITY, &bt_sec, &optlen);
         if ( 0 == result ) {
             if( optlen == sizeof(bt_sec) ) {
@@ -325,7 +324,7 @@ bool L2CAPClient::open(const BTDevice& device, const BTSecurityLevel sec_level) 
     tid_connect = ::pthread_self(); // temporary safe tid to allow interruption
 
     // actual request to connect to remote device
-    bzero((void *)&req, sizeof(req));
+    jau::zero_bytes_sec((void *)&req, sizeof(req));
     req.l2_family = AF_BLUETOOTH;
     req.l2_psm = jau::cpu_to_le(direct_bt::number(psm));
     req.l2_bdaddr = jau::cpu_to_le(remoteAddressAndType.address);
@@ -831,7 +830,7 @@ std::unique_ptr<L2CAPClient> L2CAPServer::accept() noexcept {
 
     while( is_open_ && !interrupted() ) {
         // blocking
-        bzero((void *)&peer, sizeof(peer));
+        jau::zero_bytes_sec((void *)&peer, sizeof(peer));
         socklen_t addrlen = sizeof(peer); // on return it will contain the actual size of the peer address
         int client_socket = ::accept(socket_, (struct sockaddr*)&peer, &addrlen);
 

@@ -29,22 +29,19 @@
 #include <cstdint>
 #include <cstdio>
 
-#include <algorithm>
-
 // #define PERF_PRINT_ON 1
 #include <jau/debug.hpp>
 
 #include <jau/environment.hpp>
 #include <jau/basic_algos.hpp>
 #include <jau/packed_attribute.hpp>
+#include <jau/secmem.hpp>
 
 #include "BTIoctl.hpp"
 
 #include "HCIIoctl.hpp"
 #include "HCIComm.hpp"
 #include "HCIHandler.hpp"
-#include "BTTypes1.hpp"
-#include "SMPHandler.hpp"
 #include "DBTConst.hpp"
 
 extern "C" {
@@ -846,7 +843,7 @@ fail:
 }
 
 void HCIHandler::zeroSupCommands() noexcept {
-    bzero(sup_commands, sizeof(sup_commands));
+    jau::zero_bytes_sec(sup_commands, sizeof(sup_commands));
     sup_commands_set = false;
     le_ll_feats = LE_Features::NONE;
 }
@@ -1126,7 +1123,7 @@ HCIStatusCode HCIHandler::getLocalVersion(HCILocalVersion &version) noexcept {
     if( nullptr == ev || nullptr == ev_lv || HCIStatusCode::SUCCESS != status ) {
         ERR_PRINT("%s: 0x%x (%s) - %s",
                 to_string(req0.getOpcode()).c_str(), number(status), to_string(status).c_str(), toString().c_str());
-        bzero(&version, sizeof(version));
+        jau::zero_bytes_sec(&version, sizeof(version));
     } else {
         version.hci_ver = ev_lv->hci_ver;
         version.hci_rev = jau::le_to_cpu(ev_lv->hci_rev);
