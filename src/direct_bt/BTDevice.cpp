@@ -2287,7 +2287,7 @@ BTDevice::GattServiceList_t BTDevice::getGattServices() noexcept {
     return result; // return the copy, copy elision shall be used
 }
 
-std::shared_ptr<GattGenericAccessSvc> BTDevice::getGattGenericAccess() {
+std::shared_ptr<GattGenericAccessSvc> BTDevice::getGattGenericAccess() noexcept {
     std::shared_ptr<BTGattHandler> gh = getGattHandler();
     if( nullptr == gh ) {
         ERR_PRINT("GATTHandler nullptr");

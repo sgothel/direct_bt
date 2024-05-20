@@ -1192,7 +1192,7 @@ namespace direct_bt {
              * @return
              * @see getGattServices()
              */
-            std::shared_ptr<GattGenericAccessSvc> getGattGenericAccess();
+            std::shared_ptr<GattGenericAccessSvc> getGattGenericAccess() noexcept;
 
             /**
              * Find a BTGattService by its service_uuid.
