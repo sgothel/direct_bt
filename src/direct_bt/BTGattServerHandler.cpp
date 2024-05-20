@@ -757,7 +757,7 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
                     return gh.send(rsp);
                 }
             } catch (const jau::ExceptionBase &e) {
-                ERR_PRINT("invalid att uuid: %s", e.message().c_str());
+                ERR_PRINT("invalid att uuid: %s", e.brief_message().c_str());
             } catch (...) {
                 ERR_PRINT("invalid att uuid: Unknown exception");
             }
@@ -766,7 +766,7 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
                 COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: TYPEVALUE.6: %s -> %s from %s", pdu->toString().c_str(), err.toString().c_str(), gh.toString().c_str());
                 return gh.send(err);
             } catch (const jau::ExceptionBase &e) {
-                ERR_PRINT("invalid att uuid: %s", e.message().c_str());
+                ERR_PRINT("invalid att uuid: %s", e.brief_message().c_str());
             } catch (...) {
                 ERR_PRINT("invalid att uuid: Unknown exception");
             }

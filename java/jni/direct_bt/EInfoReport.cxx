@@ -145,11 +145,11 @@ void Java_org_direct_1bt_EInfoReport_setAddressImpl(JNIEnv *env, jobject obj, jb
         shared_ptr_ref<EInfoReport> ref(env, obj); // hold until done
 
         if( nullptr == jaddress ) {
-            throw jau::IllegalArgumentException("address null", E_FILE_LINE);
+            throw jau::IllegalArgumentError("address null", E_FILE_LINE);
         }
         const size_t address_size = env->GetArrayLength(jaddress);
         if( sizeof(EUI48) > address_size ) {
-            throw jau::IllegalArgumentException("address byte size "+std::to_string(address_size)+" < "+std::to_string(sizeof(EUI48)), E_FILE_LINE);
+            throw jau::IllegalArgumentError("address byte size "+std::to_string(address_size)+" < "+std::to_string(sizeof(EUI48)), E_FILE_LINE);
         }
         JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
         uint8_t * address_ptr = criticalArray.get(jaddress, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
@@ -641,11 +641,11 @@ void Java_org_direct_1bt_EInfoReport_getConnInterval(JNIEnv *env, jobject obj, j
         shared_ptr_ref<EInfoReport> ref(env, obj); // hold until done
 
         if( nullptr == jminmax ) {
-            throw jau::IllegalArgumentException("address null", E_FILE_LINE);
+            throw jau::IllegalArgumentError("address null", E_FILE_LINE);
         }
         const size_t array_size = env->GetArrayLength(jminmax);
         if( 2 > array_size ) {
-            throw jau::IllegalArgumentException("minmax array size "+std::to_string(array_size)+" < 2", E_FILE_LINE);
+            throw jau::IllegalArgumentError("minmax array size "+std::to_string(array_size)+" < 2", E_FILE_LINE);
         }
         JNICriticalArray<uint16_t, jshortArray> criticalArray(env); // RAII - release
         uint16_t * array_ptr = criticalArray.get(jminmax, criticalArray.Mode::UPDATE_AND_RELEASE);

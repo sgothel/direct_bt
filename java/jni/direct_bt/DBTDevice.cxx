@@ -388,19 +388,19 @@ jbyte Java_jau_direct_1bt_DBTDevice_getConnectedLE_1PHYImpl(JNIEnv *env, jobject
         JavaGlobalObj::check(device_java, E_FILE_LINE);
 
         if( nullptr == jresTx ) {
-            throw jau::IllegalArgumentException("resTx byte array null", E_FILE_LINE);
+            throw jau::IllegalArgumentError("resTx byte array null", E_FILE_LINE);
         }
         if( nullptr == jresRx ) {
-            throw jau::IllegalArgumentException("resRx byte array null", E_FILE_LINE);
+            throw jau::IllegalArgumentError("resRx byte array null", E_FILE_LINE);
         }
 
         const size_t resTx_size = env->GetArrayLength(jresTx);
         if( 1 > resTx_size ) {
-            throw jau::IllegalArgumentException("resTx byte array "+std::to_string(resTx_size)+" < 1", E_FILE_LINE);
+            throw jau::IllegalArgumentError("resTx byte array "+std::to_string(resTx_size)+" < 1", E_FILE_LINE);
         }
         const size_t resRx_size = env->GetArrayLength(jresRx);
         if( 1 > resRx_size ) {
-            throw jau::IllegalArgumentException("resRx byte array "+std::to_string(resRx_size)+" < 1", E_FILE_LINE);
+            throw jau::IllegalArgumentError("resRx byte array "+std::to_string(resRx_size)+" < 1", E_FILE_LINE);
         }
 
         JNICriticalArray<uint8_t, jbyteArray> criticalArrayTx(env); // RAII - release
@@ -596,11 +596,11 @@ void Java_jau_direct_1bt_DBTDevice_getLongTermKeyImpl(JNIEnv *env, jobject obj, 
         JavaGlobalObj::check(device_java, E_FILE_LINE);
 
         if( nullptr == jsink ) {
-            throw jau::IllegalArgumentException("byte array null", E_FILE_LINE);
+            throw jau::IllegalArgumentError("byte array null", E_FILE_LINE);
         }
         const size_t sink_size = env->GetArrayLength(jsink);
         if( sizeof(SMPLongTermKey) > sink_size ) {
-            throw jau::IllegalArgumentException("byte array "+std::to_string(sink_size)+" < "+std::to_string(sizeof(SMPLongTermKey)), E_FILE_LINE);
+            throw jau::IllegalArgumentError("byte array "+std::to_string(sink_size)+" < "+std::to_string(sizeof(SMPLongTermKey)), E_FILE_LINE);
         }
         JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
         uint8_t * sink_ptr = criticalArray.get(jsink, criticalArray.Mode::UPDATE_AND_RELEASE);
@@ -621,11 +621,11 @@ void Java_jau_direct_1bt_DBTDevice_setLongTermKeyImpl(JNIEnv *env, jobject obj, 
         JavaGlobalObj::check(device_java, E_FILE_LINE);
 
         if( nullptr == jsource ) {
-            throw jau::IllegalArgumentException("byte array null", E_FILE_LINE);
+            throw jau::IllegalArgumentError("byte array null", E_FILE_LINE);
         }
         const size_t source_size = env->GetArrayLength(jsource);
         if( sizeof(SMPLongTermKey) > source_size ) {
-            throw jau::IllegalArgumentException("byte array "+std::to_string(source_size)+" < "+std::to_string(sizeof(SMPLongTermKey)), E_FILE_LINE);
+            throw jau::IllegalArgumentError("byte array "+std::to_string(source_size)+" < "+std::to_string(sizeof(SMPLongTermKey)), E_FILE_LINE);
         }
         JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
         uint8_t * source_ptr = criticalArray.get(jsource, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
@@ -647,11 +647,11 @@ void Java_jau_direct_1bt_DBTDevice_getIdentityResolvingKeyImpl(JNIEnv *env, jobj
         JavaGlobalObj::check(device_java, E_FILE_LINE);
 
         if( nullptr == jsink ) {
-            throw jau::IllegalArgumentException("byte array null", E_FILE_LINE);
+            throw jau::IllegalArgumentError("byte array null", E_FILE_LINE);
         }
         const size_t sink_size = env->GetArrayLength(jsink);
         if( sizeof(SMPIdentityResolvingKey) > sink_size ) {
-            throw jau::IllegalArgumentException("byte array "+std::to_string(sink_size)+" < "+std::to_string(sizeof(SMPIdentityResolvingKey)), E_FILE_LINE);
+            throw jau::IllegalArgumentError("byte array "+std::to_string(sink_size)+" < "+std::to_string(sizeof(SMPIdentityResolvingKey)), E_FILE_LINE);
         }
         JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
         uint8_t * sink_ptr = criticalArray.get(jsink, criticalArray.Mode::UPDATE_AND_RELEASE);
@@ -672,11 +672,11 @@ void Java_jau_direct_1bt_DBTDevice_setIdentityResolvingKeyImpl(JNIEnv *env, jobj
         JavaGlobalObj::check(device_java, E_FILE_LINE);
 
         if( nullptr == jsource ) {
-            throw jau::IllegalArgumentException("byte array null", E_FILE_LINE);
+            throw jau::IllegalArgumentError("byte array null", E_FILE_LINE);
         }
         const size_t source_size = env->GetArrayLength(jsource);
         if( sizeof(SMPIdentityResolvingKey) > source_size ) {
-            throw jau::IllegalArgumentException("byte array "+std::to_string(source_size)+" < "+std::to_string(sizeof(SMPIdentityResolvingKey)), E_FILE_LINE);
+            throw jau::IllegalArgumentError("byte array "+std::to_string(source_size)+" < "+std::to_string(sizeof(SMPIdentityResolvingKey)), E_FILE_LINE);
         }
         JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
         uint8_t * source_ptr = criticalArray.get(jsource, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
@@ -698,11 +698,11 @@ void Java_jau_direct_1bt_DBTDevice_getSignatureResolvingKeyImpl(JNIEnv *env, job
         JavaGlobalObj::check(device_java, E_FILE_LINE);
 
         if( nullptr == jsink ) {
-            throw jau::IllegalArgumentException("byte array null", E_FILE_LINE);
+            throw jau::IllegalArgumentError("byte array null", E_FILE_LINE);
         }
         const size_t sink_size = env->GetArrayLength(jsink);
         if( sizeof(SMPSignatureResolvingKey) > sink_size ) {
-            throw jau::IllegalArgumentException("byte array "+std::to_string(sink_size)+" < "+std::to_string(sizeof(SMPSignatureResolvingKey)), E_FILE_LINE);
+            throw jau::IllegalArgumentError("byte array "+std::to_string(sink_size)+" < "+std::to_string(sizeof(SMPSignatureResolvingKey)), E_FILE_LINE);
         }
         JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
         uint8_t * sink_ptr = criticalArray.get(jsink, criticalArray.Mode::UPDATE_AND_RELEASE);
@@ -723,11 +723,11 @@ void Java_jau_direct_1bt_DBTDevice_setSignatureResolvingKeyImpl(JNIEnv *env, job
         JavaGlobalObj::check(device_java, E_FILE_LINE);
 
         if( nullptr == jsource ) {
-            throw jau::IllegalArgumentException("byte array null", E_FILE_LINE);
+            throw jau::IllegalArgumentError("byte array null", E_FILE_LINE);
         }
         const size_t source_size = env->GetArrayLength(jsource);
         if( sizeof(SMPSignatureResolvingKey) > source_size ) {
-            throw jau::IllegalArgumentException("byte array "+std::to_string(source_size)+" < "+std::to_string(sizeof(SMPSignatureResolvingKey)), E_FILE_LINE);
+            throw jau::IllegalArgumentError("byte array "+std::to_string(source_size)+" < "+std::to_string(sizeof(SMPSignatureResolvingKey)), E_FILE_LINE);
         }
         JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
         uint8_t * source_ptr = criticalArray.get(jsource, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
@@ -749,11 +749,11 @@ void Java_jau_direct_1bt_DBTDevice_getLinkKeyImpl(JNIEnv *env, jobject obj, jboo
         JavaGlobalObj::check(device_java, E_FILE_LINE);
 
         if( nullptr == jsink ) {
-            throw jau::IllegalArgumentException("byte array null", E_FILE_LINE);
+            throw jau::IllegalArgumentError("byte array null", E_FILE_LINE);
         }
         const size_t sink_size = env->GetArrayLength(jsink);
         if( sizeof(SMPLinkKey) > sink_size ) {
-            throw jau::IllegalArgumentException("byte array "+std::to_string(sink_size)+" < "+std::to_string(sizeof(SMPLinkKey)), E_FILE_LINE);
+            throw jau::IllegalArgumentError("byte array "+std::to_string(sink_size)+" < "+std::to_string(sizeof(SMPLinkKey)), E_FILE_LINE);
         }
         JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
         uint8_t * sink_ptr = criticalArray.get(jsink, criticalArray.Mode::UPDATE_AND_RELEASE);
@@ -774,11 +774,11 @@ void Java_jau_direct_1bt_DBTDevice_setLinkKeyImpl(JNIEnv *env, jobject obj, jbyt
         JavaGlobalObj::check(device_java, E_FILE_LINE);
 
         if( nullptr == jsource ) {
-            throw jau::IllegalArgumentException("byte array null", E_FILE_LINE);
+            throw jau::IllegalArgumentError("byte array null", E_FILE_LINE);
         }
         const size_t source_size = env->GetArrayLength(jsource);
         if( sizeof(SMPLinkKey) > source_size ) {
-            throw jau::IllegalArgumentException("byte array "+std::to_string(source_size)+" < "+std::to_string(sizeof(SMPLinkKey)), E_FILE_LINE);
+            throw jau::IllegalArgumentError("byte array "+std::to_string(source_size)+" < "+std::to_string(sizeof(SMPLinkKey)), E_FILE_LINE);
         }
         JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
         uint8_t * source_ptr = criticalArray.get(jsource, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
@@ -998,7 +998,7 @@ jboolean Java_jau_direct_1bt_DBTDevice_sendNotification(JNIEnv *env, jobject obj
         JavaGlobalObj::check(device_java, E_FILE_LINE);
 
         if( nullptr == jval ) {
-            throw jau::IllegalArgumentException("byte array null", E_FILE_LINE);
+            throw jau::IllegalArgumentError("byte array null", E_FILE_LINE);
         }
         const size_t value_size = env->GetArrayLength(jval);
         if( 0 >= value_size ) {
@@ -1024,7 +1024,7 @@ jboolean Java_jau_direct_1bt_DBTDevice_sendIndication(JNIEnv *env, jobject obj, 
         JavaGlobalObj::check(device_java, E_FILE_LINE);
 
         if( nullptr == jval ) {
-            throw jau::IllegalArgumentException("byte array null", E_FILE_LINE);
+            throw jau::IllegalArgumentError("byte array null", E_FILE_LINE);
         }
         const size_t value_size = env->GetArrayLength(jval);
         if( 0 >= value_size ) {

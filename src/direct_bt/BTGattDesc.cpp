@@ -26,11 +26,7 @@
 #include <cstring>
 #include <string>
 #include <memory>
-#include <cstdint>
-#include <vector>
 #include <cstdio>
-
-#include  <algorithm>
 
 #include <jau/debug.hpp>
 
@@ -47,7 +43,7 @@ const std::shared_ptr<jau::uuid_t> BTGattDesc::TYPE_CCC_DESC( std::make_shared<j
 std::shared_ptr<BTGattChar> BTGattDesc::getGattCharChecked() const {
     std::shared_ptr<BTGattChar> ref = wbr_char.lock();
     if( nullptr == ref ) {
-        throw jau::IllegalStateException("GATTDescriptor's characteristic already destructed: "+toShortString(), E_FILE_LINE);
+        throw jau::IllegalStateError("GATTDescriptor's characteristic already destructed: "+toShortString(), E_FILE_LINE);
     }
     return ref;
 }

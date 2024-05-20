@@ -92,7 +92,7 @@ jboolean Java_jau_direct_1bt_DBTGattDesc_writeValueImpl(JNIEnv *env, jobject obj
         JavaGlobalObj::check(descriptor_java, E_FILE_LINE);
 
         if( nullptr == jval ) {
-            throw jau::IllegalArgumentException("byte array null", E_FILE_LINE);
+            throw jau::IllegalArgumentError("byte array null", E_FILE_LINE);
         }
         const size_t value_size = (size_t)env->GetArrayLength(jval);
         if( 0 == value_size ) {

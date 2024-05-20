@@ -147,7 +147,7 @@ jboolean Java_jau_direct_1bt_DBTGattChar_writeValueImpl(JNIEnv *env, jobject obj
         JavaGlobalObj::check(characteristic_java, E_FILE_LINE);
 
         if( nullptr == jval ) {
-            throw jau::IllegalArgumentException("byte array null", E_FILE_LINE);
+            throw jau::IllegalArgumentError("byte array null", E_FILE_LINE);
         }
         const int value_size = env->GetArrayLength(jval);
         if( 0 == value_size ) {
@@ -188,17 +188,17 @@ jboolean Java_jau_direct_1bt_DBTGattChar_configNotificationIndicationImpl(JNIEnv
                 DBG_PRINT("Characteristic's native instance has been deleted");
                 return false;
             }
-            throw jau::IllegalStateException("Characteristic's native instance deleted", E_FILE_LINE);
+            throw jau::IllegalStateError("Characteristic's native instance deleted", E_FILE_LINE);
         }
         JavaAnonRef characteristic_java = characteristic->getJavaObject(); // hold until done!
         JavaGlobalObj::check(characteristic_java, E_FILE_LINE);
 
         if( nullptr == jEnabledState ) {
-            throw jau::IllegalArgumentException("boolean array null", E_FILE_LINE);
+            throw jau::IllegalArgumentError("boolean array null", E_FILE_LINE);
         }
         const int state_size = env->GetArrayLength(jEnabledState);
         if( 2 > state_size ) {
-            throw jau::IllegalArgumentException("boolean array smaller than 2, length "+std::to_string(state_size), E_FILE_LINE);
+            throw jau::IllegalArgumentError("boolean array smaller than 2, length "+std::to_string(state_size), E_FILE_LINE);
         }
         JNICriticalArray<jboolean, jbooleanArray> criticalArray(env); // RAII - release
         jboolean * state_ptr = criticalArray.get(jEnabledState, criticalArray.Mode::UPDATE_AND_RELEASE);

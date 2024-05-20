@@ -78,7 +78,7 @@ BTGattEnv::BTGattEnv() noexcept
 BTDeviceRef BTGattHandler::getDeviceChecked() const {
     BTDeviceRef ref = wbr_device.lock();
     if( nullptr == ref ) {
-        throw jau::IllegalStateException("GATTHandler's device already destructed: "+toString(), E_FILE_LINE);
+        throw jau::IllegalStateError("GATTHandler's device already destructed: "+toString(), E_FILE_LINE);
     }
     return ref;
 }
@@ -451,7 +451,7 @@ void BTGattHandler::l2capReaderWork(jau::service_runner& sr) noexcept {
                 jau::for_each_fidelity(nativeGattCharListenerList, [&](std::shared_ptr<NativeGattCharListener> &l) {
                     try {
                         l->notificationReceived(device, a_handle, a_data_view, a_timestamp);
-                    } catch (std::exception &e) {
+                    } catch (const std::exception &e) {
                         ERR_PRINT("GATTHandler::notificationReceived-CBs %d/%zd: NativeGattCharListener %s: Caught exception %s",
                                 i+1, nativeGattCharListenerList.size(),
                                 jau::to_hexstring((void*)l.get()).c_str(), e.what());
@@ -467,7 +467,7 @@ void BTGattHandler::l2capReaderWork(jau::service_runner& sr) noexcept {
                         if( p.match(*characteristic) ) {
                             p.listener->notificationReceived(characteristic, a_data_view, a_timestamp);
                         }
-                    } catch (std::exception &e) {
+                    } catch (const std::exception &e) {
                         ERR_PRINT("GATTHandler::notificationReceived-CBs %d/%zd: BTGattCharListener %s: Caught exception %s",
                                 i+1, gattCharListenerList.size(),
                                 jau::to_hexstring((void*)p.listener.get()).c_str(), e.what());
@@ -500,7 +500,7 @@ void BTGattHandler::l2capReaderWork(jau::service_runner& sr) noexcept {
                 jau::for_each_fidelity(nativeGattCharListenerList, [&](std::shared_ptr<NativeGattCharListener> &l) {
                     try {
                         l->indicationReceived(device, a_handle, a_data_view, a_timestamp, cfmSent);
-                    } catch (std::exception &e) {
+                    } catch (const std::exception &e) {
                         ERR_PRINT("GATTHandler::indicationReceived-CBs %d/%zd: NativeGattCharListener %s: Caught exception %s",
                                 i+1, nativeGattCharListenerList.size(),
                                 jau::to_hexstring((void*)l.get()).c_str(), e.what());
@@ -516,7 +516,7 @@ void BTGattHandler::l2capReaderWork(jau::service_runner& sr) noexcept {
                         if( p.match(*characteristic) ) {
                             p.listener->indicationReceived(characteristic, a_data_view, a_timestamp, cfmSent);
                         }
-                    } catch (std::exception &e) {
+                    } catch (const std::exception &e) {
                         ERR_PRINT("GATTHandler::indicationReceived-CBs %d/%zd: BTGattCharListener %s, cfmSent %d: Caught exception %s",
                                 i+1, gattCharListenerList.size(),
                                 jau::to_hexstring((void*)p.listener.get()).c_str(), cfmSent, e.what());

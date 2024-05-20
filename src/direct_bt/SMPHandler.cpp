@@ -73,7 +73,7 @@ bool SMPHandler::IS_SUPPORTED_BY_OS = SMP_SUPPORTED_BY_OS ? true : false;
 std::shared_ptr<BTDevice> SMPHandler::getDeviceChecked() const {
     std::shared_ptr<BTDevice> ref = wbr_device.lock();
     if( nullptr == ref ) {
-        throw jau::IllegalStateException("SMPHandler's device already destructed: "+deviceString, E_FILE_LINE);
+        throw jau::IllegalStateError("SMPHandler's device already destructed: "+deviceString, E_FILE_LINE);
     }
     return ref;
 }
@@ -253,11 +253,11 @@ bool SMPHandler::disconnect(const bool disconnectDevice, const bool ioErrorCause
 
 void SMPHandler::send(const SMPPDUMsg & msg) {
     if( !validateConnected() ) {
-        throw jau::IllegalStateException("SMPHandler::send: Invalid IO State: req "+msg.toString()+" to "+deviceString, E_FILE_LINE);
+        throw jau::IllegalStateError("SMPHandler::send: Invalid IO State: req "+msg.toString()+" to "+deviceString, E_FILE_LINE);
     }
     if( msg.pdu.size() > mtu ) {
-        throw jau::IllegalArgumentException("clientMaxMTU "+std::to_string(msg.pdu.size())+" > usedMTU "+std::to_string(mtu)+
-                                       " to "+deviceString, E_FILE_LINE);
+        throw jau::IllegalStateError("clientMaxMTU "+std::to_string(msg.pdu.size())+" > usedMTU "+std::to_string(mtu)+
+                                     " to "+deviceString, E_FILE_LINE);
     }
 
     // Thread safe l2cap.write(..) operation..

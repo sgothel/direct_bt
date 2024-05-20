@@ -26,7 +26,6 @@
 #ifndef BT_TYPES1_HPP_
 #define BT_TYPES1_HPP_
 
-#include <mutex>
 #include <atomic>
 
 #include <jau/java_uplink.hpp>
@@ -67,7 +66,7 @@ namespace direct_bt {
 
             void checkValidInstance() const override {
                 if( !isValidInstance() ) {
-                    throw jau::IllegalStateException("BTObject::checkValidInstance: Invalid object: "+jau::to_hexstring(this), E_FILE_LINE);
+                    throw jau::IllegalStateError("BTObject::checkValidInstance: Invalid object: "+jau::to_hexstring(this), E_FILE_LINE);
                 }
             }
     };
@@ -236,7 +235,7 @@ namespace direct_bt {
             AdapterInfo& operator=(const AdapterInfo &o) {
                 if( this != &o ) {
                     if( dev_id != o.dev_id || addressAndType != o.addressAndType ) {
-                        throw jau::IllegalArgumentException("Can't assign different device id's or address "+o.toString()+" -> "+toString(), E_FILE_LINE);
+                        throw jau::IllegalArgumentError("Can't assign different device id's or address "+o.toString()+" -> "+toString(), E_FILE_LINE);
                     }
                     supported_setting   = o.supported_setting;
                     current_setting     = o.current_setting.load();

@@ -342,7 +342,7 @@ ScanType direct_bt::to_ScanType(BTMode btMode) {
         case BTMode::LE:
             return ScanType::LE;
         default:
-            throw jau::IllegalArgumentException("Unsupported BTMode "+to_string(btMode), E_FILE_LINE);
+            throw jau::IllegalArgumentError("Unsupported BTMode "+to_string(btMode), E_FILE_LINE);
     }
 }
 

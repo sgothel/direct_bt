@@ -86,7 +86,7 @@ static jau::cow_darray<DBGattServer::ListenerRef>::equal_comparator _listenerRef
 
 bool DBGattServer::addListener(const ListenerRef& l) {
     if( nullptr == l ) {
-        throw jau::IllegalArgumentException("Listener ref is null", E_FILE_LINE);
+        throw jau::IllegalArgumentError("Listener ref is null", E_FILE_LINE);
     }
     return listenerList.push_back_unique(l, _listenerRefEqComparator);
 }

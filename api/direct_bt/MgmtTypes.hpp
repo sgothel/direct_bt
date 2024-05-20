@@ -30,16 +30,12 @@
 #include <string>
 #include <cstdint>
 
-#include <mutex>
-
 #include <jau/functional.hpp>
 #include <jau/cow_darray.hpp>
 #include <jau/octets.hpp>
 #include <jau/packed_attribute.hpp>
 
 #include "BTTypes0.hpp"
-#include "BTIoctl.hpp"
-#include "HCIComm.hpp"
 #include "HCITypes.hpp"
 
 #include "BTTypes1.hpp"
@@ -55,7 +51,7 @@ namespace direct_bt {
 
     class MgmtException : public jau::RuntimeException {
         protected:
-            MgmtException(std::string type, std::string const& m, const char* file, int line) noexcept
+            MgmtException(std::string &&type, std::string const& m, const char* file, int line) noexcept
             : RuntimeException(std::move(type), m, file, line) {}
 
         public:
@@ -642,7 +638,7 @@ namespace direct_bt {
             void checkParamIdx(const jau::nsize_t idx) const {
                 const jau::nsize_t kc = getKeyCount();
                 if( idx >= kc ) {
-                    throw jau::IndexOutOfBoundsException(idx, kc, E_FILE_LINE);
+                    throw jau::IndexOutOfBoundsError(idx, kc, E_FILE_LINE);
                 }
             }
 
@@ -701,7 +697,7 @@ namespace direct_bt {
             void checkParamIdx(const jau::nsize_t idx) const {
                 const jau::nsize_t kc = getKeyCount();
                 if( idx >= kc ) {
-                    throw jau::IndexOutOfBoundsException(idx, kc, E_FILE_LINE);
+                    throw jau::IndexOutOfBoundsError(idx, kc, E_FILE_LINE);
                 }
             }
 
@@ -755,7 +751,7 @@ namespace direct_bt {
             void checkParamIdx(const jau::nsize_t idx) const {
                 const jau::nsize_t kc = getKeyCount();
                 if( idx >= kc ) {
-                    throw jau::IndexOutOfBoundsException(idx, kc, E_FILE_LINE);
+                    throw jau::IndexOutOfBoundsError(idx, kc, E_FILE_LINE);
                 }
             }
 
@@ -845,7 +841,7 @@ namespace direct_bt {
             void checkParamIdx(const jau::nsize_t idx) const {
                 const jau::nsize_t kc = getKeyCount();
                 if( idx >= kc ) {
-                    throw jau::IndexOutOfBoundsException(idx, kc, E_FILE_LINE);
+                    throw jau::IndexOutOfBoundsError(idx, kc, E_FILE_LINE);
                 }
             }
 
@@ -1186,7 +1182,7 @@ namespace direct_bt {
             void checkParamIdx(const jau::nsize_t idx) const {
                 const jau::nsize_t pc = getParamCount();
                 if( idx >= pc ) {
-                    throw jau::IndexOutOfBoundsException(idx, pc, E_FILE_LINE);
+                    throw jau::IndexOutOfBoundsError(idx, pc, E_FILE_LINE);
                 }
             }
 
@@ -1355,7 +1351,7 @@ namespace direct_bt {
         private:
             void checkParamIdx(const jau::nsize_t idx) const {
                 if( idx >= 4 ) {
-                    throw jau::IndexOutOfBoundsException(idx, 4, E_FILE_LINE);
+                    throw jau::IndexOutOfBoundsError(idx, 4, E_FILE_LINE);
                 }
             }
 
@@ -1507,7 +1503,7 @@ namespace direct_bt {
                 const jau::nsize_t paramSize = getParamSize();
                 pdu.check_range(0, MGMT_HEADER_SIZE+paramSize, E_FILE_LINE);
                 if( exp_param_size > paramSize ) {
-                    throw jau::IndexOutOfBoundsException(exp_param_size, paramSize, E_FILE_LINE);
+                    throw jau::IndexOutOfBoundsError(exp_param_size, paramSize, E_FILE_LINE);
                 }
                 checkOpcode(getOpcode(), Opcode::CMD_COMPLETE, Opcode::PHY_CONFIGURATION_CHANGED);
             }

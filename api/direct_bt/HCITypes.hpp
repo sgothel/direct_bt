@@ -31,16 +31,11 @@
 #include <cstdint>
 
 #include <algorithm>
-#include <mutex>
 
 #include <jau/basic_types.hpp>
 #include <jau/octets.hpp>
 
 #include "BTTypes0.hpp"
-#include "BTIoctl.hpp"
-#include "HCIIoctl.hpp"
-
-#include "SMPTypes.hpp"
 
 /**
  * - - - - - - - - - - - - - - -
@@ -561,7 +556,7 @@ namespace direct_bt {
             : pdu(total_packet_size, jau::lb_endian_t::little)
             {
                 if( 0 == total_packet_size ) {
-                    throw jau::IndexOutOfBoundsException(1, total_packet_size, E_FILE_LINE);
+                    throw jau::IndexOutOfBoundsError(1, total_packet_size, E_FILE_LINE);
                 }
                 pdu.put_uint8_nc(0, number(type));
             }
@@ -571,7 +566,7 @@ namespace direct_bt {
             : pdu(packet_data, total_packet_size, jau::lb_endian_t::little)
             {
                 if( 0 == total_packet_size ) {
-                    throw jau::IndexOutOfBoundsException(1, total_packet_size, E_FILE_LINE);
+                    throw jau::IndexOutOfBoundsError(1, total_packet_size, E_FILE_LINE);
                 }
                 checkPacketType(getPacketType());
             }
@@ -659,7 +654,7 @@ namespace direct_bt {
                 const jau::nsize_t paramSize = getParamSize();
                 pdu.check_range(0, number(HCIConstSizeT::COMMAND_HDR_SIZE)+paramSize, E_FILE_LINE);
                 if( exp_param_size > paramSize ) {
-                    throw jau::IndexOutOfBoundsException(exp_param_size, paramSize, E_FILE_LINE);
+                    throw jau::IndexOutOfBoundsError(exp_param_size, paramSize, E_FILE_LINE);
                 }
                 checkOpcode(getOpcode(), HCIOpcode::SPECIAL, HCIOpcode::LE_EXT_CREATE_CONN);
             }
@@ -670,7 +665,7 @@ namespace direct_bt {
             {
                 checkOpcode(opc, HCIOpcode::SPECIAL, HCIOpcode::LE_EXT_CREATE_CONN);
                 if( 255 < param_size ) {
-                    throw jau::IllegalArgumentException("HCICommand param size "+std::to_string(param_size)+" > 255", E_FILE_LINE);
+                    throw jau::IllegalArgumentError("HCICommand param size "+std::to_string(param_size)+" > 255", E_FILE_LINE);
                 }
 
                 pdu.put_uint16_nc(1, static_cast<uint16_t>(opc));
@@ -694,10 +689,10 @@ namespace direct_bt {
 
             void trimParamSize(const jau::nsize_t param_size) {
                 if( 255 < param_size ) {
-                    throw jau::IllegalArgumentException("HCICommand new param size "+std::to_string(param_size)+" > 255", E_FILE_LINE);
+                    throw jau::IllegalArgumentError("HCICommand new param size "+std::to_string(param_size)+" > 255", E_FILE_LINE);
                 }
                 if( getParamSize() < param_size ) {
-                    throw jau::IllegalArgumentException("HCICommand new param size "+std::to_string(param_size)+" > old "+std::to_string(getParamSize()), E_FILE_LINE);
+                    throw jau::IllegalArgumentError("HCICommand new param size "+std::to_string(param_size)+" > old "+std::to_string(getParamSize()), E_FILE_LINE);
                 }
                 const jau::nsize_t new_total_packet_size = number(HCIConstSizeT::COMMAND_HDR_SIZE)+param_size;
                 pdu.resize( new_total_packet_size );
@@ -1136,7 +1131,7 @@ namespace direct_bt {
                 const jau::nsize_t baseParamSize = getBaseParamSize();
                 pdu.check_range(0, number(HCIConstSizeT::EVENT_HDR_SIZE)+baseParamSize, E_FILE_LINE);
                 if( exp_param_size > baseParamSize ) {
-                    throw jau::IndexOutOfBoundsException(exp_param_size, baseParamSize, E_FILE_LINE);
+                    throw jau::IndexOutOfBoundsError(exp_param_size, baseParamSize, E_FILE_LINE);
                 }
                 checkEventType(getEventType(), HCIEventType::INQUIRY_COMPLETE, HCIEventType::AMP_Receiver_Report);
             }

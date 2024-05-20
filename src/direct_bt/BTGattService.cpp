@@ -27,10 +27,7 @@
 #include <string>
 #include <memory>
 #include <cstdint>
-#include <vector>
 #include <cstdio>
-
-#include  <algorithm>
 
 #include <jau/debug.hpp>
 
@@ -46,7 +43,7 @@ using namespace jau;
 BTGattHandlerRef BTGattService::getGattHandlerChecked() const {
     std::shared_ptr<BTGattHandler> ref = wbr_handler.lock();
     if( nullptr == ref ) {
-        throw IllegalStateException("GATTService's GATTHandler already destructed: "+toShortString(), E_FILE_LINE);
+        throw IllegalStateError("GATTService's GATTHandler already destructed: "+toShortString(), E_FILE_LINE);
     }
     return ref;
 }

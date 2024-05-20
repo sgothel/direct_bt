@@ -135,7 +135,7 @@ jlong Java_org_direct_1bt_DBGattDesc_ctorImpl(JNIEnv *env, jobject obj,
                                               jbyteArray jvalue_, jint jcapacity_, jboolean jvariable_length_) {
     try {
         if( nullptr == jvalue_ ) {
-            throw jau::IllegalArgumentException("byte array null", E_FILE_LINE);
+            throw jau::IllegalArgumentError("byte array null", E_FILE_LINE);
         }
         JNIGlobalRef global_obj(obj); // lock instance first (global reference), inserted below
 
@@ -275,10 +275,10 @@ jlong Java_org_direct_1bt_DBGattChar_ctorImpl(JNIEnv *env, jobject obj,
                                               jbyteArray jvalue_, jint jcapacity_, jboolean jvariable_length_) {
     try {
         if( nullptr == jvalue_ ) {
-            throw jau::IllegalArgumentException("byte array null", E_FILE_LINE);
+            throw jau::IllegalArgumentError("byte array null", E_FILE_LINE);
         }
         if( nullptr == jDescriptors ) {
-            throw jau::IllegalArgumentException("descriptor array null", E_FILE_LINE);
+            throw jau::IllegalArgumentError("descriptor array null", E_FILE_LINE);
         }
         JNIGlobalRef global_obj(obj); // lock instance first (global reference), inserted below
 
@@ -417,7 +417,7 @@ jlong Java_org_direct_1bt_DBGattService_ctorImpl(JNIEnv *env, jobject obj,
                                                  jlongArray jCharacteristics) {
     try {
         if( nullptr == jCharacteristics ) {
-            throw jau::IllegalArgumentException("characteristics array null", E_FILE_LINE);
+            throw jau::IllegalArgumentError("characteristics array null", E_FILE_LINE);
         }
         JNIGlobalRef global_obj(obj); // lock instance first (global reference), inserted below
 
@@ -517,7 +517,7 @@ jlong Java_org_direct_1bt_DBGattServer_ctorImpl(JNIEnv *env, jobject obj,
                                                 jlongArray jService) {
     try {
         if( nullptr == jService ) {
-            throw jau::IllegalArgumentException("characteristics array null", E_FILE_LINE);
+            throw jau::IllegalArgumentError("characteristics array null", E_FILE_LINE);
         }
         JNIGlobalRef global_obj(obj); // lock instance first (global reference), inserted below
 

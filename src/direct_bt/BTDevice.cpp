@@ -70,10 +70,10 @@ BTDevice::BTDevice(const ctor_cookie& cc, BTAdapter & a, EInfoReport const & r)
     clearSMPStates(false /* connected */);
 
     if( !r.isSet(EIRDataType::BDADDR) ) {
-        throw jau::IllegalArgumentException("Address not set: "+r.toString(), E_FILE_LINE);
+        throw jau::IllegalArgumentError("Address not set: "+r.toString(), E_FILE_LINE);
     }
     if( !r.isSet(EIRDataType::BDADDR_TYPE) ) {
-        throw jau::IllegalArgumentException("AddressType not set: "+r.toString(), E_FILE_LINE);
+        throw jau::IllegalArgumentError("AddressType not set: "+r.toString(), E_FILE_LINE);
     }
     update(r);
 
@@ -81,12 +81,12 @@ BTDevice::BTDevice(const ctor_cookie& cc, BTAdapter & a, EInfoReport const & r)
     if( BDAddressType::BDADDR_LE_RANDOM == addressAndType.type ) {
         if( BLERandomAddressType::UNDEFINED == leRandomAddressType ) {
             // NOLINTNEXTLINE(clang-analyzer-optin.cplusplus.VirtualCall)
-            throw jau::IllegalArgumentException("BDADDR_LE_RANDOM: Invalid BLERandomAddressType "+to_string(leRandomAddressType)+": "+toString(), E_FILE_LINE);
+            throw jau::IllegalArgumentError("BDADDR_LE_RANDOM: Invalid BLERandomAddressType "+to_string(leRandomAddressType)+": "+toString(), E_FILE_LINE);
         }
     } else {
         if( BLERandomAddressType::UNDEFINED != leRandomAddressType ) {
             // NOLINTNEXTLINE(clang-analyzer-optin.cplusplus.VirtualCall)
-            throw jau::IllegalArgumentException("Not BDADDR_LE_RANDOM: Invalid given native BLERandomAddressType "+to_string(leRandomAddressType)+": "+toString(), E_FILE_LINE);
+            throw jau::IllegalArgumentError("Not BDADDR_LE_RANDOM: Invalid given native BLERandomAddressType "+to_string(leRandomAddressType)+": "+toString(), E_FILE_LINE);
         }
     }
 }
