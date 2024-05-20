@@ -4,6 +4,9 @@
 
 ## Changes
 
+**3.3.0**
+* clang-18 fixes
+
 **3.2.4**
 * Last version conforming to C++17
 
