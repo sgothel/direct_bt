@@ -9,6 +9,7 @@
 // #include <direct_bt/BTAddress.hpp>
 // #include <direct_bt/BTTypes1.hpp>
 #include <direct_bt/ATTPDUTypes.hpp>
+#include "direct_bt/BTTypes0.hpp"
 // #include <direct_bt/GATTHandler.hpp>
 // #include <direct_bt/GATTIoctl.hpp>
 

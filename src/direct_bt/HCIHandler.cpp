@@ -1658,12 +1658,12 @@ HCIStatusCode HCIHandler::le_read_phy(const uint16_t conn_handle, const BDAddres
                        jau::to_hexstring(conn_handle).c_str(), jau::to_hexstring(conn_handle_rcvd).c_str(), toString().c_str());
             return HCIStatusCode::INTERNAL_FAILURE;
         }
-        switch( ev_phy->tx_phys ) {
+        switch( ev_phy->tx_phys ) { // NOLINT(bugprone-switch-missing-default-case): Handled
             case 0x01: resTx = LE_PHYs::LE_1M; break;
             case 0x02: resTx = LE_PHYs::LE_2M; break;
             case 0x03: resTx = LE_PHYs::LE_CODED; break;
         }
-        switch( ev_phy->rx_phys ) {
+        switch( ev_phy->rx_phys ) { // NOLINT(bugprone-switch-missing-default-case): Handled
             case 0x01: resRx = LE_PHYs::LE_1M; break;
             case 0x02: resRx = LE_PHYs::LE_2M; break;
             case 0x03: resRx = LE_PHYs::LE_CODED; break;

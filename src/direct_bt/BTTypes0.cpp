@@ -24,6 +24,7 @@
  */
 
 #include <cstring>
+#include <jau/basic_types.hpp>
 #include <string>
 #include <memory>
 #include <cstdint>
@@ -192,7 +193,7 @@ std::string BDAddressAndType::toString() const noexcept {
 // *************************************************
 
 static inline const int8_t * const_uint8_to_const_int8_ptr(const uint8_t* p) noexcept {
-    return static_cast<const int8_t *>( static_cast<void *>( const_cast<uint8_t*>( p ) ) );
+    return static_cast<const int8_t *>( static_cast<void *>( const_cast<uint8_t*>( p ) ) ); // NOLINT(bugprone-casting-through-void): Alignment OK - same as reinterpret_cast<T*>( p )
 }
 
 std::string direct_bt::to_string(const BTRole v) noexcept {
