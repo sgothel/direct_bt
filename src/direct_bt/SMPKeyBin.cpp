@@ -25,7 +25,6 @@
 #include <cstring>
 #include <limits>
 #include <string>
-#include <memory>
 #include <cstdint>
 #include <cstdio>
 #include <fstream>
@@ -45,7 +44,7 @@ static std::vector<std::string> get_file_list(const std::string& dname) {
     const jau::fs::consume_dir_item cs = jau::bind_capref(&res,
             ( void(*)(std::vector<std::string>*, const jau::fs::dir_item&) ) /* help template type deduction of function-ptr */
                 ( [](std::vector<std::string>* receiver, const jau::fs::dir_item& item) -> void {
-                    if( 0 == item.basename().find("bd_") ) { // prefix checl
+                    if( item.basename().starts_with("bd_") ) { // prefix checl
                         const jau::nsize_t suffix_pos = item.basename().size() - 4;
                         if( suffix_pos == item.basename().find(".key", suffix_pos) ) { // suffix check
                             receiver->push_back( item.path() ); // full path
