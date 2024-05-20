@@ -27,21 +27,14 @@
 #define ATT_PDU_TYPES_HPP_
 
 #include <cstring>
-#include <exception>
+#include <jau/int_types.hpp>
 #include <string>
 #include <memory>
 #include <cstdint>
-#include <vector>
-
-#include <mutex>
-#include <atomic>
 
 #include <jau/basic_types.hpp>
 #include <jau/octets.hpp>
 #include <jau/uuid.hpp>
-
-#include "BTTypes0.hpp"
-
 
 /**
  * - - - - - - - - - - - - - - -
@@ -524,10 +517,10 @@ namespace direct_bt {
                 return "size "+std::to_string(getPDUValueSize())+", data "
                         +jau::bytesHexString(pdu.get_ptr(), getPDUValueOffset(), getPDUValueSize(), true /* lsbFirst */);
             }
-
+            
         public:
             /** actual received PDU */
-            jau::POctets pdu;
+            jau::TOctets& pdu;
 
             /** creation timestamp in milliseconds */
             const uint64_t ts_creation;
@@ -540,27 +533,27 @@ namespace direct_bt {
              */
             static std::unique_ptr<const AttPDUMsg> getSpecialized(const uint8_t * buffer, jau::nsize_t const buffer_size) noexcept;
 
-            /** Persistent memory, w/ ownership ..*/
-            AttPDUMsg(const uint8_t* source, const jau::nsize_t size)
-                : pdu(source, std::max<jau::nsize_t>(1, size), jau::lb_endian_t::little),
-                  ts_creation(jau::getCurrentMilliseconds())
-            { }
-
-            /** Persistent memory, w/ ownership ..*/
-            AttPDUMsg(const Opcode opc, const jau::nsize_t size)
-                : pdu(std::max<jau::nsize_t>(1, size), jau::lb_endian_t::little),
-                  ts_creation(jau::getCurrentMilliseconds())
+            /** Transient memory, ownership belongs to caller object. */
+            AttPDUMsg(jau::TOctets& mem, const uint8_t* source, const jau::nsize_t size)
+            : pdu(mem), ts_creation(jau::getCurrentMilliseconds())
             {
-                pdu.put_uint8_nc(0, number(opc));
+                pdu.put_bytes(0, source, size); // w/ check   
             }
-
-            AttPDUMsg(const AttPDUMsg &o) = default; // POctets copy-ctor may throw
-            AttPDUMsg(AttPDUMsg &&o) noexcept = default;
-            AttPDUMsg& operator=(const AttPDUMsg &o) noexcept = delete; // const ts_creation
-            AttPDUMsg& operator=(AttPDUMsg &&o) noexcept = delete; // const ts_creation
+            
+            /** Transient memory, ownership belongs to caller object. */
+            AttPDUMsg(const Opcode opc, jau::TOctets& mem) noexcept
+            : pdu(mem), ts_creation(jau::getCurrentMilliseconds())
+            {
+                pdu.put_uint8(0, number(opc)); // with check -> abort
+            }
+                        
+            AttPDUMsg(const AttPDUMsg &o) = delete;
+            AttPDUMsg(AttPDUMsg &&o) noexcept = delete;
+            AttPDUMsg& operator=(const AttPDUMsg &o) noexcept = delete;
+            AttPDUMsg& operator=(AttPDUMsg &&o) noexcept = delete;
 
             virtual ~AttPDUMsg() noexcept = default;
-
+            
             /** ATT PDU Format Vol 3, Part F 3.3.1 */
             constexpr Opcode getOpcode() const noexcept { return static_cast<Opcode>(pdu.get_uint8_nc(0)); }
 
@@ -673,18 +666,109 @@ namespace direct_bt {
             }
     };
 
+    template<jau::nsize_t _Size>
+    class AttPDUFixed {
+        protected:
+            constexpr static const jau::nsize_t fixed_size = _Size;        
+            jau::AOctets<fixed_size> spdu;
+
+            AttPDUFixed() noexcept
+            : spdu(jau::lb_endian_t::little) {}
+                        
+            jau::TOctets& octets() noexcept { return spdu; }
+    };
+
+    class AttPDUHeap {
+        protected:
+            jau::POctets spdu;
+
+            AttPDUHeap(const jau::nsize_t size) noexcept
+            : spdu(std::max<jau::nsize_t>(1, size), jau::lb_endian_t::little) {}
+            
+            jau::TOctets& octets() noexcept { return spdu; }
+    };
+    
+
+    template<jau::nsize_t _Size>
+    class AttPDUFixedMsg : protected AttPDUFixed<_Size>, public AttPDUMsg {
+        public:
+            /** Transient memory, ownership belongs to caller object. */
+            AttPDUFixedMsg(const uint8_t* source, const jau::nsize_t size)
+            : AttPDUMsg(AttPDUFixed<_Size>::octets(), source, size)
+            { 
+                AttPDUFixed<_Size>::spdu.resize(size);
+            }
+            
+            /** Transient memory, ownership belongs to caller object. */
+            AttPDUFixedMsg(const Opcode opc) noexcept
+            : AttPDUMsg(opc, AttPDUFixed<_Size>::octets())
+            { }
+            
+            /** Transient memory, ownership belongs to caller object. */
+            AttPDUFixedMsg(const Opcode opc, const jau::nsize_t size) noexcept
+            : AttPDUMsg(opc, AttPDUFixed<_Size>::octets())
+            {
+                AttPDUFixed<_Size>::spdu.resize(size);
+            }
+            
+            AttPDUFixedMsg(const AttPDUFixedMsg &o) = delete;
+            AttPDUFixedMsg(AttPDUFixedMsg &&o) noexcept = delete;
+            AttPDUFixedMsg& operator=(const AttPDUFixedMsg &o) noexcept = delete;
+            AttPDUFixedMsg& operator=(AttPDUFixedMsg &&o) noexcept = delete;            
+            
+            /**
+             * Sets a new size for this instance's pdu.
+             * @param newSize new size, must be <= current pdu capacity()
+             * @throws IllegalArgumentException if newSize > current pdu capacity()
+             */
+            void resize(const jau::nsize_t newSize) {
+                AttPDUFixed<_Size>::spdu.resize(newSize);
+            }
+    };
+
+    class AttPDUHeapMsg : protected AttPDUHeap, public AttPDUMsg {
+        public:
+            /** Transient memory, ownership belongs to caller object. */
+            AttPDUHeapMsg(const uint8_t* source, const jau::nsize_t size)
+            : AttPDUHeap(size), AttPDUMsg(octets(), source, size)
+            { }
+            
+            /** Transient memory, ownership belongs to caller object. */
+            AttPDUHeapMsg(const Opcode opc, const jau::nsize_t size) noexcept
+            : AttPDUHeap(size), AttPDUMsg(opc, octets())
+            { }
+                        
+            AttPDUHeapMsg(const AttPDUHeapMsg &o) = delete;
+            AttPDUHeapMsg(AttPDUHeapMsg &&o) noexcept = delete;
+            AttPDUHeapMsg& operator=(const AttPDUHeapMsg &o) noexcept = delete;
+            AttPDUHeapMsg& operator=(AttPDUHeapMsg &&o) noexcept = delete;            
+            
+            /**
+             * Sets a new size for this instance's pdu.
+             * @param newSize new size, must be <= current pdu capacity()
+             * @throws IllegalArgumentException if newSize > current pdu capacity()
+             */
+            void resize(const jau::nsize_t newSize) {
+                AttPDUHeap::spdu.resize(newSize);
+            }
+        
+    };
+    
     /**
      * Our own pseudo opcode, indicating no ATT PDU message.
      * <p>
      * ATT_PDU_UNDEFINED
      * </p>
      */
-    class AttPDUUndefined final : public AttPDUMsg
+    class AttPDUUndefined final : public AttPDUFixedMsg<1>
     {
         public:
-            AttPDUUndefined(const uint8_t* source, const jau::nsize_t length) : AttPDUMsg(source, length) {
-                check_range();
+            AttPDUUndefined(const uint8_t* source, const jau::nsize_t length) 
+            : AttPDUFixedMsg(Opcode::PDU_UNDEFINED)
+            {
+                pdu.put_bytes(0, source, length); // w/ check   
                 checkOpcode(Opcode::PDU_UNDEFINED);
+                check_range();
             }
 
             constexpr_cxx20 jau::nsize_t getPDUValueOffset() const noexcept override { return 1; }
@@ -699,7 +783,7 @@ namespace direct_bt {
      *
      * Used to send a error reply for any request.
      */
-    class AttErrorRsp final : public AttPDUMsg
+    class AttErrorRsp final : public AttPDUFixedMsg<5>
     {
         public:
             enum class ErrorCode : uint8_t {
@@ -730,18 +814,21 @@ namespace direct_bt {
             }
             static std::string getErrorCodeString(const ErrorCode errorCode) noexcept;
 
-            AttErrorRsp(const uint8_t* source, const jau::nsize_t length) : AttPDUMsg(source, length) {
-                check_range();
+        public:
+            AttErrorRsp(const uint8_t* source, const jau::nsize_t length) 
+            : AttPDUFixedMsg(source, length)
+            {
                 checkOpcode(Opcode::ERROR_RSP);
+                check_range();
             }
 
-            AttErrorRsp(const ErrorCode error_code, const Opcode cause_opc, const uint16_t cause_handle)
-            : AttPDUMsg(Opcode::ERROR_RSP, 1+1+2+1)
+            AttErrorRsp(const ErrorCode error_code, const Opcode cause_opc, const uint16_t cause_handle) noexcept
+            : AttPDUFixedMsg(Opcode::ERROR_RSP)
             {
                 pdu.put_uint8(1, AttPDUMsg::number(cause_opc));
                 pdu.put_uint16(2, cause_handle);
                 pdu.put_uint8(4, number(error_code));
-                check_range();
+                // check_range(); OK
             }
 
             /** opcode + reqOpcodeCause + handleCause + errorCode */
@@ -774,21 +861,21 @@ namespace direct_bt {
      * Used for
      * - BT Core Spec v5.2: Vol 3, Part G GATT: 4.3.1 Exchange MTU (Server configuration)
      */
-    class AttExchangeMTU final : public AttPDUMsg
+    class AttExchangeMTU final : public AttPDUFixedMsg<3>
     {
         public:
             AttExchangeMTU(const uint8_t* source, const jau::nsize_t length)
-            : AttPDUMsg(source, length)
+            : AttPDUFixedMsg(source, length)
             {
-                check_range();
                 checkOpcode(Opcode::EXCHANGE_MTU_RSP, Opcode::EXCHANGE_MTU_REQ);
+                check_range();
             }
 
-            AttExchangeMTU(const ReqRespType type, const uint16_t mtuSize)
-            : AttPDUMsg(is_request(type) ? Opcode::EXCHANGE_MTU_REQ : Opcode::EXCHANGE_MTU_RSP, 1+2)
+            AttExchangeMTU(const ReqRespType type, const uint16_t mtuSize) noexcept
+            : AttPDUFixedMsg(is_request(type) ? Opcode::EXCHANGE_MTU_REQ : Opcode::EXCHANGE_MTU_RSP)
             {
                 pdu.put_uint16(1, mtuSize);
-                check_range();
+                // check_range(); OK
             }
 
             /** opcode + mtu-size */
@@ -813,21 +900,21 @@ namespace direct_bt {
      * - BT Core Spec v5.2: Vol 3, Part G GATT: 4.8.1 Read Characteristic Value
      * - BT Core Spec v5.2: Vol 3, Part G GATT: 4.12.1 Read Characteristic Descriptors
      */
-    class AttReadReq final : public AttPDUMsg
+    class AttReadReq final : public AttPDUFixedMsg<3>
     {
         public:
             AttReadReq(const uint8_t* source, const jau::nsize_t length)
-            : AttPDUMsg(source, length)
+            : AttPDUFixedMsg(source, length)
             {
-                check_range();
                 checkOpcode(Opcode::READ_REQ);
+                check_range();
             }
 
-            AttReadReq(const uint16_t handle)
-            : AttPDUMsg(Opcode::READ_REQ, getPDUValueOffset())
+            AttReadReq(const uint16_t handle) noexcept
+            : AttPDUFixedMsg(Opcode::READ_REQ)
             {
                 pdu.put_uint16(1, handle);
-                check_range();
+                // check_range(); OK
             }
 
             /** opcode + handle */
@@ -852,22 +939,22 @@ namespace direct_bt {
      * - BT Core Spec v5.2: Vol 3, Part G GATT: 4.8.3 Read Long Characteristic Value
      * - For any follow up request, which previous request reply couldn't fit in ATT_MTU
      */
-    class AttReadBlobReq final : public AttPDUMsg
+    class AttReadBlobReq final : public AttPDUFixedMsg<5>
     {
         public:
             AttReadBlobReq(const uint8_t* source, const jau::nsize_t length)
-            : AttPDUMsg(source, length)
+            : AttPDUFixedMsg(source, length)
             {
-                check_range();
                 checkOpcode(Opcode::READ_BLOB_REQ);
+                check_range();
             }
 
-            AttReadBlobReq(const uint16_t handle, const uint16_t value_offset)
-            : AttPDUMsg(Opcode::READ_BLOB_REQ, getPDUValueOffset())
+            AttReadBlobReq(const uint16_t handle, const uint16_t value_offset) noexcept
+            : AttPDUFixedMsg(Opcode::READ_BLOB_REQ)
             {
                 pdu.put_uint16(1, handle);
                 pdu.put_uint16(3, value_offset);
-                check_range();
+                // check_range(); OK
             }
 
             /** opcode + handle + value_offset */
@@ -901,7 +988,7 @@ namespace direct_bt {
      * If expected value size exceeds getValueSize(), continue with ATT_READ_BLOB_REQ (3.4.4.5),
      * see shallReadBlobReq(..)
      */
-    class AttReadNRsp final : public AttPDUMsg
+    class AttReadNRsp final : public AttPDUHeapMsg
     {
         private:
             const jau::TOctetSlice view;
@@ -910,15 +997,15 @@ namespace direct_bt {
 
         public:
             AttReadNRsp(const uint8_t* source, const jau::nsize_t length)
-            : AttPDUMsg(source, length),
+            : AttPDUHeapMsg(source, length),
               view(pdu, getPDUValueOffset(), getPDUValueSize())
             {
-                check_range();
                 checkOpcode(Opcode::READ_RSP, Opcode::READ_BLOB_RSP);
+                check_range();
             }
 
             AttReadNRsp(const bool blobRsp, const jau::TROOctets & value, jau::nsize_t value_offset=0)
-            : AttPDUMsg(blobRsp ? Opcode::READ_BLOB_RSP : Opcode::READ_RSP, getPDUValueOffset()+value.size()-value_offset),
+            : AttPDUHeapMsg(blobRsp ? Opcode::READ_BLOB_RSP : Opcode::READ_RSP, getPDUValueOffset()+value.size()-value_offset),
               view(pdu, getPDUValueOffset(), getPDUValueSize())
             {
                 if( value_offset > value.size() ) { // Blob: value_size == value_offset -> OK, ends communication
@@ -956,7 +1043,7 @@ namespace direct_bt {
      * - BT Core Spec v5.2: Vol 3, Part G GATT: 4.9.3 Write Characteristic Value
      * - BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3.3 Client Characteristic Configuration
      */
-    class AttWriteReq final : public AttPDUMsg
+    class AttWriteReq final : public AttPDUHeapMsg
     {
         private:
             const jau::TOctetSlice view;
@@ -965,15 +1052,15 @@ namespace direct_bt {
 
         public:
             AttWriteReq(const uint8_t* source, const jau::nsize_t length)
-            : AttPDUMsg(source, length),
+            : AttPDUHeapMsg(source, length),
               view(pdu, getPDUValueOffset(), getPDUValueSize())
             {
-                check_range();
                 checkOpcode(Opcode::WRITE_REQ);
+                check_range();
             }
 
             AttWriteReq(const uint16_t handle, const jau::TROOctets & value)
-            : AttPDUMsg(Opcode::WRITE_REQ, getPDUValueOffset()+value.size()),
+            : AttPDUHeapMsg(Opcode::WRITE_REQ, getPDUValueOffset()+value.size()),
               view(pdu, getPDUValueOffset(), getPDUValueSize())
             {
                 pdu.put_uint16(1, handle);
@@ -1006,20 +1093,20 @@ namespace direct_bt {
      * Used for:
      * - BT Core Spec v5.2: Vol 3, Part G GATT: 4.9.3 Write Characteristic Value
      */
-    class AttWriteRsp final : public AttPDUMsg
+    class AttWriteRsp final : public AttPDUFixedMsg<1>
     {
         public:
             AttWriteRsp(const uint8_t* source, const jau::nsize_t length)
-            : AttPDUMsg(source, length) 
+            : AttPDUFixedMsg(source, length) 
             {
-                check_range();
                 checkOpcode(Opcode::WRITE_RSP);
+                check_range();
             }
 
-            AttWriteRsp()
-            : AttPDUMsg(Opcode::WRITE_RSP, 1)
+            AttWriteRsp() noexcept
+            : AttPDUFixedMsg(Opcode::WRITE_RSP)
             { 
-                check_range();
+                // check_range(); OK
             }
 
             /** opcode */
@@ -1039,7 +1126,7 @@ namespace direct_bt {
      * Used for:
      * - BT Core Spec v5.2: Vol 3, Part G GATT: 4.9.1 Write Characteristic Value without Response
      */
-    class AttWriteCmd final : public AttPDUMsg
+    class AttWriteCmd final : public AttPDUHeapMsg
     {
         private:
             const jau::TOctetSlice view;
@@ -1048,15 +1135,15 @@ namespace direct_bt {
 
         public:
             AttWriteCmd(const uint8_t* source, const jau::nsize_t length)
-            : AttPDUMsg(source, length),
+            : AttPDUHeapMsg(source, length),
               view(pdu, getPDUValueOffset(), getPDUValueSize())
             {
-                check_range();
                 checkOpcode(Opcode::WRITE_CMD);
+                check_range();
             }
 
             AttWriteCmd(const uint16_t handle, const jau::TROOctets & value)
-            : AttPDUMsg(Opcode::WRITE_CMD, getPDUValueOffset()+value.size()),
+            : AttPDUHeapMsg(Opcode::WRITE_CMD, getPDUValueOffset()+value.size()),
               view(pdu, getPDUValueOffset(), getPDUValueSize())
             {
                 pdu.put_uint16(1, handle);
@@ -1090,7 +1177,7 @@ namespace direct_bt {
      * Used for:
      * - BT Core Spec v5.2: Vol 3, Part G GATT: 4.9.4 Write Long Characteristic Values
      */
-    class AttPrepWrite final : public AttPDUMsg
+    class AttPrepWrite final : public AttPDUHeapMsg
     {
         private:
             const jau::TOctetSlice view;
@@ -1099,15 +1186,15 @@ namespace direct_bt {
 
         public:
             AttPrepWrite(const uint8_t* source, const jau::nsize_t length)
-            : AttPDUMsg(source, length),
+            : AttPDUHeapMsg(source, length),
               view(pdu, getPDUValueOffset(), getPDUValueSize())
             {
-                check_range();
                 checkOpcode(Opcode::PREPARE_WRITE_REQ, Opcode::PREPARE_WRITE_RSP);
+                check_range();
             }
 
             AttPrepWrite(const bool isReq, const uint16_t handle, const jau::TROOctets & value, const uint16_t value_offset)
-            : AttPDUMsg(isReq ? Opcode::PREPARE_WRITE_REQ : Opcode::PREPARE_WRITE_RSP, getPDUValueOffset()+value.size()),
+            : AttPDUHeapMsg(isReq ? Opcode::PREPARE_WRITE_REQ : Opcode::PREPARE_WRITE_RSP, getPDUValueOffset()+value.size()),
               view(pdu, getPDUValueOffset(), getPDUValueSize())
             {
                 pdu.put_uint16(1, handle);
@@ -1117,7 +1204,7 @@ namespace direct_bt {
             }
 
             AttPrepWrite(const bool isReq, const AttPrepWrite& other)
-            : AttPDUMsg(isReq ? Opcode::PREPARE_WRITE_REQ : Opcode::PREPARE_WRITE_RSP, getPDUValueOffset()+other.getValue().size()),
+            : AttPDUHeapMsg(isReq ? Opcode::PREPARE_WRITE_REQ : Opcode::PREPARE_WRITE_RSP, getPDUValueOffset()+other.getValue().size()),
               view(pdu, getPDUValueOffset(), getPDUValueSize())
             {
                 pdu.put_uint16(1, other.getHandle());
@@ -1127,7 +1214,7 @@ namespace direct_bt {
             }
 
             AttPrepWrite(const AttPrepWrite& other)
-            : AttPDUMsg(other.getOpcode(), getPDUValueOffset()+other.getValue().size()),
+            : AttPDUHeapMsg(other.getOpcode(), getPDUValueOffset()+other.getValue().size()),
               view(pdu, getPDUValueOffset(), getPDUValueSize())
             {
                 pdu.put_uint16(1, other.getHandle());
@@ -1163,21 +1250,21 @@ namespace direct_bt {
      * Used for:
      * - BT Core Spec v5.2: Vol 3, Part G GATT: 4.9.4 Write Long Characteristic Values
      */
-    class AttExeWriteReq final : public AttPDUMsg
+    class AttExeWriteReq final : public AttPDUFixedMsg<2>
     {
         public:
             AttExeWriteReq(const uint8_t* source, const jau::nsize_t length)
-            : AttPDUMsg(source, length) 
+            : AttPDUFixedMsg(source, length) 
             {
-                check_range();
                 checkOpcode(Opcode::EXECUTE_WRITE_REQ);
+                check_range();
             }
 
-            AttExeWriteReq(const uint8_t flags)
-            : AttPDUMsg(Opcode::EXECUTE_WRITE_REQ, 1+1)
+            AttExeWriteReq(const uint8_t flags) noexcept
+            : AttPDUFixedMsg(Opcode::EXECUTE_WRITE_REQ)
             {
                 pdu.put_uint8(1, flags);
-                check_range();
+                // check_range(); OK
             }
 
             /** opcode */
@@ -1196,20 +1283,20 @@ namespace direct_bt {
      * Used for:
      * - BT Core Spec v5.2: Vol 3, Part G GATT: 4.9.4 Write Long Characteristic Values
      */
-    class AttExeWriteRsp final : public AttPDUMsg
+    class AttExeWriteRsp final : public AttPDUFixedMsg<1>
     {
         public:
             AttExeWriteRsp(const uint8_t* source, const jau::nsize_t length)
-            : AttPDUMsg(source, length) 
+            : AttPDUFixedMsg(source, length) 
             {
-                check_range();
                 checkOpcode(Opcode::EXECUTE_WRITE_RSP);
+                check_range();
             }
 
-            AttExeWriteRsp()
-            : AttPDUMsg(Opcode::EXECUTE_WRITE_RSP, 1)
+            AttExeWriteRsp() noexcept
+            : AttPDUFixedMsg(Opcode::EXECUTE_WRITE_RSP)
             { 
-                check_range();
+                // check_range(); OK
             }
 
             /** opcode */
@@ -1236,7 +1323,7 @@ namespace direct_bt {
      * Send by server to notify or indicate an ATT value (at any time).
      * </p>
      */
-    class AttHandleValueRcv final : public AttPDUMsg
+    class AttHandleValueRcv final : public AttPDUHeapMsg
     {
         private:
             const jau::TOctetSlice view;
@@ -1245,15 +1332,15 @@ namespace direct_bt {
 
         public:
             AttHandleValueRcv(const uint8_t* source, const jau::nsize_t length)
-            : AttPDUMsg(source, length),
+            : AttPDUHeapMsg(source, length),
               view(pdu, getPDUValueOffset(), getPDUValueSize())
             {
-                check_range();
                 checkOpcode(Opcode::HANDLE_VALUE_NTF, Opcode::HANDLE_VALUE_IND);
+                check_range();
             }
 
             AttHandleValueRcv(const bool isNotify, const uint16_t handle, const jau::TROOctets & value, const jau::nsize_t mtu)
-            : AttPDUMsg(isNotify ? Opcode::HANDLE_VALUE_NTF : Opcode::HANDLE_VALUE_IND, getPDUValueOffset()+std::min(mtu-pdu_value_offset, value.size())),
+            : AttPDUHeapMsg(isNotify ? Opcode::HANDLE_VALUE_NTF : Opcode::HANDLE_VALUE_IND, getPDUValueOffset()+std::min(mtu-pdu_value_offset, value.size())),
               view(pdu, getPDUValueOffset(), getPDUValueSize())
             {
                 pdu.put_uint16(1, handle);
@@ -1298,20 +1385,20 @@ namespace direct_bt {
      * BT Core Spec v5.2: Vol 3, Part G GATT: 4.11 Characteristic Value Indications
      * </p>
      */
-    class AttHandleValueCfm final : public AttPDUMsg
+    class AttHandleValueCfm final : public AttPDUFixedMsg<1>
     {
         public:
             AttHandleValueCfm(const uint8_t* source, const jau::nsize_t length)
-            : AttPDUMsg(source, length)
+            : AttPDUFixedMsg(source, length)
             {
-                check_range();
                 checkOpcode(Opcode::HANDLE_VALUE_CFM);
+                check_range();
             }
 
-            AttHandleValueCfm()
-            : AttPDUMsg(Opcode::HANDLE_VALUE_CFM, 1)
+            AttHandleValueCfm() noexcept
+            : AttPDUFixedMsg(Opcode::HANDLE_VALUE_CFM)
             { 
-                check_range();
+                // check_range(); OK
             }
 
             /** opcode */
@@ -1330,14 +1417,14 @@ namespace direct_bt {
      * element := { uint16_t startHandle, uint16_t endHandle, uint8_t value[value-size] }
      *
      */
-    class AttElementList : public AttPDUMsg
+    class AttElementList : public AttPDUHeapMsg
     {
         protected:
             AttElementList(const uint8_t* source, const jau::nsize_t length)
-            : AttPDUMsg(source, length) {}
+            : AttPDUHeapMsg(source, length) {}
 
             AttElementList(const Opcode opc, const jau::nsize_t size)
-            : AttPDUMsg(opc, size) {}
+            : AttPDUHeapMsg(opc, size) {}
 
             virtual std::string addValueString() const { return ""; }
             virtual std::string elementString(const jau::nsize_t idx) const { (void)idx; return "not implemented"; }
@@ -1390,11 +1477,11 @@ namespace direct_bt {
                 const jau::nsize_t element_length = getElementSize();
                 const jau::nsize_t new_size = getPDUValueOffset() + element_length * count;
                 if( pdu.size() < new_size ) {
-                    throw jau::IllegalArgumentException(getName()+": "+std::to_string(getPDUValueOffset())+
+                    throw jau::IllegalArgumentError(getName()+": "+std::to_string(getPDUValueOffset())+
                             " + element[len "+std::to_string(element_length)+
                             " * count "+std::to_string(count)+" > pdu "+std::to_string(pdu.size()), E_FILE_LINE);
                 }
-                pdu.resize( new_size );
+                resize( new_size );
                 if( getPDUValueSize() % getElementSize() != 0 ) {
                     throw AttValueException(getName()+": Invalid packet size: pdu-value-size "+std::to_string(getPDUValueSize())+
                             " not multiple of element-size "+std::to_string(getElementSize()), E_FILE_LINE);
@@ -1439,7 +1526,7 @@ namespace direct_bt {
      * BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.1 Characteristic Declaration Attribute Value
      * </p>
      */
-    class AttReadByNTypeReq final : public AttPDUMsg
+    class AttReadByNTypeReq final : public AttPDUFixedMsg<5 + jau::uuid_t::number(jau::uuid_t::TypeSize::UUID128_SZ)>
     {
         private:
             jau::uuid_t::TypeSize getUUIFormat() const {
@@ -1448,17 +1535,17 @@ namespace direct_bt {
 
         public:
             AttReadByNTypeReq(const uint8_t* source, const jau::nsize_t length)
-            : AttPDUMsg(source, length)
+            : AttPDUFixedMsg(source, length)
             {
-                check_range();
                 checkOpcode(Opcode::READ_BY_GROUP_TYPE_REQ, Opcode::READ_BY_TYPE_REQ);
+                check_range();
             }
 
             AttReadByNTypeReq(const bool groupTypeReq, const uint16_t startHandle, const uint16_t endHandle, const jau::uuid_t & uuid)
-            : AttPDUMsg(groupTypeReq ? Opcode::READ_BY_GROUP_TYPE_REQ : Opcode::READ_BY_TYPE_REQ, getPDUValueOffset()+uuid.getTypeSizeInt())
+            : AttPDUFixedMsg(groupTypeReq ? Opcode::READ_BY_GROUP_TYPE_REQ : Opcode::READ_BY_TYPE_REQ, getPDUValueOffset()+uuid.getTypeSizeInt())
             {
                 if( uuid.getTypeSize() != jau::uuid_t::TypeSize::UUID16_SZ && uuid.getTypeSize()!= jau::uuid_t::TypeSize::UUID128_SZ ) {
-                    throw jau::IllegalArgumentException("Only UUID16 and UUID128 allowed: "+uuid.toString(), E_FILE_LINE);
+                    throw jau::IllegalArgumentError("Only UUID16 and UUID128 allowed: "+uuid.toString(), E_FILE_LINE);
                 }
                 pdu.put_uint16(1, startHandle);
                 pdu.put_uint16(3, endHandle);
@@ -1537,8 +1624,8 @@ namespace direct_bt {
             AttReadByTypeRsp(const uint8_t* source, const jau::nsize_t length)
             : AttElementList(source, length)
             {
-                check_range();
                 checkOpcode(Opcode::READ_BY_TYPE_RSP);
+                check_range();
 
                 if( getPDUValueSize() % getElementSize() != 0 ) {
                     throw AttValueException("AttReadByTypeRsp: Invalid packet size: pdu-value-size "+std::to_string(getPDUValueSize())+
@@ -1656,8 +1743,8 @@ namespace direct_bt {
             AttReadByGroupTypeRsp(const uint8_t* source, const jau::nsize_t length)
             : AttElementList(source, length)
             {
-                check_range();
                 checkOpcode(Opcode::READ_BY_GROUP_TYPE_RSP);
+                check_range();
 
                 if( getPDUValueSize() % getElementSize() != 0 ) {
                     throw AttValueException("AttReadByGroupTypeRsp: Invalid packet size: pdu-value-size "+std::to_string(getPDUValueSize())+
@@ -1755,22 +1842,22 @@ namespace direct_bt {
      * BT Core Spec v5.2: Vol 3, Part G GATT: 4.7.1 Discover All Characteristic Descriptors
      * </p>
      */
-    class AttFindInfoReq final : public AttPDUMsg
+    class AttFindInfoReq final : public AttPDUFixedMsg<5>
     {
         public:
             AttFindInfoReq(const uint8_t* source, const jau::nsize_t length)
-            : AttPDUMsg(source, length)
+            : AttPDUFixedMsg(source, length)
             {
-                check_range();
                 checkOpcode(Opcode::FIND_INFORMATION_REQ);
+                check_range();
             }
 
-            AttFindInfoReq(const uint16_t startHandle, const uint16_t endHandle)
-            : AttPDUMsg(Opcode::FIND_INFORMATION_REQ, 1+2+2)
+            AttFindInfoReq(const uint16_t startHandle, const uint16_t endHandle) noexcept
+            : AttPDUFixedMsg(Opcode::FIND_INFORMATION_REQ)
             {
                 pdu.put_uint16(1, startHandle);
                 pdu.put_uint16(3, endHandle);
-                check_range();
+                // check_range(); OK
             }
 
             /** opcode + handle_start + handle_end */
@@ -1847,8 +1934,9 @@ namespace direct_bt {
             AttFindInfoRsp(const uint8_t* source, const jau::nsize_t length)
             : AttElementList(source, length)
             {
-                check_range();
                 checkOpcode(Opcode::FIND_INFORMATION_RSP);
+                check_range();
+                
                 if( getPDUValueSize() % getElementSize() != 0 ) {
                     throw AttValueException("AttFindInfoRsp: Invalid packet size: pdu-value-size "+std::to_string(getPDUValueSize())+
                             " not multiple of element-size "+std::to_string(getElementSize()), E_FILE_LINE);
@@ -1951,7 +2039,7 @@ namespace direct_bt {
      * BT Core Spec v5.2: Vol 3, Part G GATT: 4.4.2 Discover Primary Service by Service UUID
      * </p>
      */
-    class AttFindByTypeValueReq final : public AttPDUMsg
+    class AttFindByTypeValueReq final : public AttPDUFixedMsg<7 + jau::uuid_t::number(jau::uuid_t::TypeSize::UUID128_SZ)>
     {
         private:
             jau::uuid_t::TypeSize getAttValueTypeSize() const {
@@ -1962,10 +2050,10 @@ namespace direct_bt {
 
         public:
             AttFindByTypeValueReq(const uint8_t* source, const jau::nsize_t length)
-            : AttPDUMsg(source, length)
+            : AttPDUFixedMsg(source, length)
             {
-                check_range();
                 checkOpcode(Opcode::FIND_BY_TYPE_VALUE_REQ);
+                check_range();
 
                 if( getPDUValueSize() == 0 ) {
                     throw AttValueException("AttFindByTypeValueReq: Invalid packet size: pdu-value-size "+std::to_string(getPDUValueSize())+
@@ -1976,7 +2064,7 @@ namespace direct_bt {
 
             AttFindByTypeValueReq(const uint16_t startHandle, const uint16_t endHandle,
                                   const jau::uuid16_t &att_type, const jau::uuid_t& att_value)
-            : AttPDUMsg(Opcode::FIND_BY_TYPE_VALUE_REQ, getPDUValueOffset()+att_value.getTypeSizeInt())
+            : AttPDUFixedMsg(Opcode::FIND_BY_TYPE_VALUE_REQ, getPDUValueOffset()+att_value.getTypeSizeInt())
             {
                 pdu.put_uint16(1, startHandle);
                 pdu.put_uint16(1+2, endHandle);
@@ -1998,7 +2086,7 @@ namespace direct_bt {
                 try {
                     return pdu.get_uuid(pdu_value_offset, getAttValueTypeSize()); 
                 } catch (const jau::ExceptionBase &e) {
-                    ERR_PRINT("invalid att uuid: %s", e.message().c_str());
+                    ERR_PRINT("invalid att uuid: %s", e.brief_message().c_str());
                 } catch (...) {
                     ERR_PRINT("invalid att uuid: Unknown exception");
                 }
@@ -2034,14 +2122,15 @@ namespace direct_bt {
      * BT Core Spec v5.2: Vol 3, Part G GATT: 4.4.2 Discover Primary Service by Service UUID
      * </p>
      */
-    class AttFindByTypeValueRsp final : public AttPDUMsg
+    class AttFindByTypeValueRsp final : public AttPDUHeapMsg
     {
         public:
             AttFindByTypeValueRsp(const uint8_t* source, const jau::nsize_t length)
-            : AttPDUMsg(source, length)
+            : AttPDUHeapMsg(source, length)
             {
-                check_range();
                 checkOpcode(Opcode::FIND_BY_TYPE_VALUE_RSP);
+                check_range();
+                
                 if( getPDUValueSize() % getElementSize() != 0 ) {
                     throw AttValueException("AttFindInfoRsp: Invalid packet size: pdu-value-size "+std::to_string(getPDUValueSize())+
                             " not multiple of element-size "+std::to_string(getElementSize()), E_FILE_LINE);
@@ -2078,11 +2167,11 @@ namespace direct_bt {
                 const jau::nsize_t element_length = getElementSize();
                 const jau::nsize_t new_size = getPDUValueOffset() + element_length * count;
                 if( pdu.size() < new_size ) {
-                    throw jau::IllegalArgumentException(getName()+": "+std::to_string(getPDUValueOffset())+
+                    throw jau::IllegalArgumentError(getName()+": "+std::to_string(getPDUValueOffset())+
                             " + element[len "+std::to_string(element_length)+
                             " * count "+std::to_string(count)+" > pdu "+std::to_string(pdu.size()), E_FILE_LINE);
                 }
-                pdu.resize( new_size );
+                resize( new_size );
                 if( getPDUValueSize() % getElementSize() != 0 ) {
                     throw AttValueException(getName()+": Invalid packet size: pdu-value-size "+std::to_string(getPDUValueSize())+
                             " not multiple of element-size "+std::to_string(getElementSize()), E_FILE_LINE);
@@ -2107,7 +2196,7 @@ namespace direct_bt {
              * @param total_length maximum
              */
             AttFindByTypeValueRsp(const jau::nsize_t total_length)
-            : AttPDUMsg(Opcode::FIND_BY_TYPE_VALUE_RSP, total_length)
+            : AttPDUHeapMsg(Opcode::FIND_BY_TYPE_VALUE_RSP, total_length)
             {
                 check_range();
             }

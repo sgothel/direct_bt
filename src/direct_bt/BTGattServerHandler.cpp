@@ -582,7 +582,7 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
                                 }
                                 AttReadNRsp rsp(isBlobReq, c->getValue(), value_offset); // Blob: value_size == value_offset -> OK, ends communication
                                 if( rsp.getPDUValueSize() > rspMaxSize ) {
-                                    rsp.pdu.resize(gh.getUsedMTU()); // requires another READ_BLOB_REQ
+                                    rsp.resize(gh.getUsedMTU()); // requires another READ_BLOB_REQ
                                 }
                                 COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: READ.3: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), gh.toString().c_str());
                                 return gh.send(rsp);
@@ -625,7 +625,7 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
                                     }
                                     AttReadNRsp rsp(isBlobReq, d->getValue(), value_offset); // Blob: value_size == value_offset -> OK, ends communication
                                     if( rsp.getPDUValueSize() > rspMaxSize ) {
-                                        rsp.pdu.resize(gh.getUsedMTU()); // requires another READ_BLOB_REQ
+                                        rsp.resize(gh.getUsedMTU()); // requires another READ_BLOB_REQ
                                     }
                                     COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: READ.5: %s -> %s from %s", pdu->toString().c_str(), rsp.toString().c_str(), gh.toString().c_str());
                                     return gh.send(rsp);
