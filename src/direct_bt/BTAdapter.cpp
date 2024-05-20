@@ -29,16 +29,11 @@
 #include <cstdint>
 #include <cstdio>
 
-#include <algorithm>
 #include <random>
 
 #include <jau/debug.hpp>
 
 #include <jau/basic_algos.hpp>
-
-#include "BTIoctl.hpp"
-#include "HCIIoctl.hpp"
-#include "HCIComm.hpp"
 
 #include "BTAdapter.hpp"
 #include "BTManager.hpp"
@@ -616,37 +611,45 @@ void BTAdapter::printWeakDeviceList(const std::string& prefix, BTAdapter::weak_d
     }
 }
 void BTAdapter::printDeviceLists() noexcept {
-    // Using expensive copies here: debug mode only
-    weak_device_list_t _sharedDevices, _discoveredDevices, _connectedDevices, _pausingDiscoveryDevice;
-    {
-        const std::lock_guard<std::mutex> lock(mtx_sharedDevices); // RAII-style acquire and relinquish via destructor
-        for(const BTDeviceRef& d : sharedDevices) { _sharedDevices.push_back(d); }
+    try {
+        // Using expensive copies here: debug mode only
+        weak_device_list_t _sharedDevices, _discoveredDevices, _connectedDevices, _pausingDiscoveryDevice;
+        {
+            const std::lock_guard<std::mutex> lock(mtx_sharedDevices); // RAII-style acquire and relinquish via destructor
+            for(const BTDeviceRef& d : sharedDevices) { _sharedDevices.push_back(d); }
+        }
+        {
+            const std::lock_guard<std::mutex> lock(mtx_discoveredDevices); // RAII-style acquire and relinquish via destructor
+            for(const BTDeviceRef& d : discoveredDevices) { _discoveredDevices.push_back(d); }
+        }
+        {
+            const std::lock_guard<std::mutex> lock(mtx_connectedDevices); // RAII-style acquire and relinquish via destructor
+            for(const BTDeviceRef& d : connectedDevices) { _connectedDevices.push_back(d); }
+        }
+        {
+            const std::lock_guard<std::mutex> lock(mtx_pausingDiscoveryDevices); // RAII-style acquire and relinquish via destructor
+            _pausingDiscoveryDevice = pausing_discovery_devices;
+        }
+        printWeakDeviceList("SharedDevices     ", _sharedDevices);
+        printWeakDeviceList("ConnectedDevices  ", _connectedDevices);
+        printWeakDeviceList("DiscoveredDevices ", _discoveredDevices);
+        printWeakDeviceList("PausingDiscoveryDevices ", _pausingDiscoveryDevice);
+        printStatusListenerList();
+    } catch(const std::exception &e) {
+        ERR_PRINT2("%s\n", e.what());
     }
-    {
-        const std::lock_guard<std::mutex> lock(mtx_discoveredDevices); // RAII-style acquire and relinquish via destructor
-        for(const BTDeviceRef& d : discoveredDevices) { _discoveredDevices.push_back(d); }
-    }
-    {
-        const std::lock_guard<std::mutex> lock(mtx_connectedDevices); // RAII-style acquire and relinquish via destructor
-        for(const BTDeviceRef& d : connectedDevices) { _connectedDevices.push_back(d); }
-    }
-    {
-        const std::lock_guard<std::mutex> lock(mtx_pausingDiscoveryDevices); // RAII-style acquire and relinquish via destructor
-        _pausingDiscoveryDevice = pausing_discovery_devices;
-    }
-    printWeakDeviceList("SharedDevices     ", _sharedDevices);
-    printWeakDeviceList("ConnectedDevices  ", _connectedDevices);
-    printWeakDeviceList("DiscoveredDevices ", _discoveredDevices);
-    printWeakDeviceList("PausingDiscoveryDevices ", _pausingDiscoveryDevice);
-    printStatusListenerList();
 }
 
 void BTAdapter::printStatusListenerList() noexcept {
-    auto begin = statusListenerList.begin(); // lock mutex and copy_store
-    jau::PLAIN_PRINT(true, "- BTAdapter::StatusListener    : %zu elements", (size_t)begin.size());
-    for(int ii=0; !begin.is_end(); ++ii, ++begin ) {
-        jau::PLAIN_PRINT(true, "  - %d / %zu: %p, %s", (ii+1), (size_t)begin.size(), begin->listener.get(), begin->listener->toString().c_str());
-    }
+    try {
+        auto begin = statusListenerList.begin(); // lock mutex and copy_store
+        jau::PLAIN_PRINT(true, "- BTAdapter::StatusListener    : %zu elements", (size_t)begin.size());
+        for(int ii=0; !begin.is_end(); ++ii, ++begin ) {
+            jau::PLAIN_PRINT(true, "  - %d / %zu: %p, %s", (ii+1), (size_t)begin.size(), begin->listener.get(), begin->listener->toString().c_str());
+        }
+    } catch(const std::exception &e) {
+        ERR_PRINT2("%s\n", e.what());
+    }    
 }
 
 HCIStatusCode BTAdapter::setName(const std::string &name, const std::string &short_name) noexcept {
@@ -988,8 +991,8 @@ bool BTAdapter::isDeviceWhitelisted(const BDAddressAndType & addressAndType) noe
 }
 
 bool BTAdapter::addDeviceToWhitelist(const BDAddressAndType & addressAndType, const HCIWhitelistConnectType ctype,
-                                      const uint16_t conn_interval_min, const uint16_t conn_interval_max,
-                                      const uint16_t conn_latency, const uint16_t timeout) {
+                                     const uint16_t conn_interval_min, const uint16_t conn_interval_max,
+                                     const uint16_t conn_latency, const uint16_t timeout) {
     if( !isPowered() ) { // isValid() && hci.isOpen() && POWERED
         poweredOff(false /* active */, "addDeviceToWhitelist.np");
         return false;
