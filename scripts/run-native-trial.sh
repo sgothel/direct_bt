@@ -15,9 +15,8 @@ bname=`basename $0 .sh`
 
 . $rootdir/jaulib/scripts/setup-machine-arch.sh "-quiet"
 
-dist_dir=$rootdir/"dist-$os_name-$archabi"
-build_dir=$rootdir/"build-$os_name-$archabi"
-echo dist_dir $dist_dir
+build_dir=$rootdir/build/default
+#build_dir=$rootdir/"build-$os_name-$archabi"
 echo build_dir $build_dir
 
 test_exe=${build_dir}/trial/direct_bt/test_client_server10_NoEnc
