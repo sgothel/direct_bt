@@ -27,13 +27,12 @@
 #define HCI_COMM_HPP_
 
 #include <cstring>
-#include <string>
 #include <cstdint>
-#include <memory>
 #include <mutex>
 
 #include <jau/basic_types.hpp>
-#include <jau/functional.hpp>
+#include <jau/functional.hpp> 
+#include <jau/secmem.hpp>
 
 #include "HCIIoctl.hpp"
 
@@ -130,7 +129,7 @@ namespace direct_bt {
         public:
             static inline void filter_clear(hci_ufilter *f) noexcept
             {
-                bzero(f, sizeof(*f));
+                jau::zero_bytes_sec(f, sizeof(*f));
             }
             static inline void filter_set_ptype(int t, hci_ufilter *f) noexcept
             {

@@ -30,8 +30,6 @@
 #include <string>
 #include <memory>
 #include <cstdint>
-#include <mutex>
-#include <atomic>
 #include <initializer_list>
 
 #include <jau/java_uplink.hpp>
@@ -42,7 +40,6 @@
 #include <jau/dfa_utf8_decode.hpp>
 
 #include "BTTypes0.hpp"
-#include "ATTPDUTypes.hpp"
 
 #include "BTTypes1.hpp"
 

@@ -32,7 +32,6 @@
 #include <cmath>
 
 #include <algorithm>
-#include <mutex>
 
 #include <jau/basic_types.hpp>
 #include <jau/octets.hpp>
@@ -538,7 +537,7 @@ namespace direct_bt {
         bool isResponder() const noexcept;
 
         void clear() noexcept {
-            bzero(reinterpret_cast<void *>(this), sizeof(SMPLongTermKey));
+            jau::zero_bytes_sec(reinterpret_cast<void *>(this), sizeof(SMPLongTermKey));
         }
 
         std::string toString() const noexcept { // hex-fmt aligned with btmon
@@ -625,7 +624,7 @@ namespace direct_bt {
         static bool matches(const jau::uint128dp_t& irk, const EUI48& rpa) noexcept;
 
         void clear() noexcept {
-            bzero(reinterpret_cast<void *>(this), sizeof(SMPIdentityResolvingKey));
+            jau::zero_bytes_sec(reinterpret_cast<void *>(this), sizeof(SMPIdentityResolvingKey));
         }
 
         std::string toString() const noexcept { // hex-fmt aligned with btmon
@@ -701,7 +700,7 @@ namespace direct_bt {
         bool isResponder() const noexcept;
 
         void clear() noexcept {
-            bzero(reinterpret_cast<void *>(this), sizeof(SMPSignatureResolvingKey));
+            jau::zero_bytes_sec(reinterpret_cast<void *>(this), sizeof(SMPSignatureResolvingKey));
         }
 
         std::string toString() const noexcept { // hex-fmt aligned with btmon
@@ -812,7 +811,7 @@ namespace direct_bt {
         bool isResponder() const noexcept { return responder; }
 
         void clear() noexcept {
-            bzero(reinterpret_cast<void *>(this), sizeof(SMPLinkKey));
+            jau::zero_bytes_sec(reinterpret_cast<void *>(this), sizeof(SMPLinkKey));
         }
 
         std::string toString() const noexcept { // hex-fmt aligned with btmon

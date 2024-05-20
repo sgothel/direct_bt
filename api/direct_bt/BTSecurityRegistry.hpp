@@ -29,7 +29,8 @@
 #include <string>
 #include <cstdio>
 
-#include <direct_bt/DirectBT.hpp>
+#include "BTAddress.hpp"
+#include "SMPTypes.hpp"
 
 namespace direct_bt {
 
@@ -163,7 +164,7 @@ namespace direct_bt {
         inline Entry* getStartOf(const EUI48& addr, const std::string& name) noexcept {
             return get(addr, name, [](const EUI48& a, const std::string& n, const Entry& e)->bool {
                return ( e.addrSub.length > 0 && 0 == a.indexOf(e.addrSub, jau::lb_endian_t::big) ) ||
-                      ( e.nameSub.length() > 0 && 0 == n.find(e.nameSub) );
+                      ( e.nameSub.length() > 0 && n.starts_with(e.nameSub) );
             });
         }
         /**
@@ -176,7 +177,7 @@ namespace direct_bt {
         inline Entry* getStartOf(const EUI48Sub& addrSub, const std::string& name) noexcept {
             return get(addrSub, name, [](const EUI48Sub& as, const std::string& n, const Entry& e)->bool {
                return ( e.addrSub.length > 0 && 0 == as.indexOf(e.addrSub, jau::lb_endian_t::big) ) ||
-                      ( e.nameSub.length() > 0 && 0 == n.find(e.nameSub) );
+                      ( e.nameSub.length() > 0 && n.starts_with(e.nameSub) );
             });
         }
         /**
@@ -187,7 +188,7 @@ namespace direct_bt {
          */
         inline Entry* getStartOf(const std::string& name) noexcept {
             return get(name, [](const std::string& n, const Entry& e)->bool {
-               return e.nameSub.length() > 0 && 0 == n.find(e.nameSub);
+               return e.nameSub.length() > 0 && n.starts_with(e.nameSub);
             });
         }
 

@@ -27,6 +27,7 @@
 #define HCI_TYPES_HPP_
 
 #include <cstring>
+#include <jau/secmem.hpp>
 #include <string>
 #include <cstdint>
 
@@ -931,7 +932,7 @@ namespace direct_bt {
             : HCICommand(opc, sizeof(hcistruct))
             {
                 hcistruct * cp = getWStruct();
-                bzero((void*)cp, sizeof(hcistruct));
+                jau::zero_bytes_sec((void*)cp, sizeof(hcistruct));
             }
 
             /** Enabling manual construction of command with given value.  */
