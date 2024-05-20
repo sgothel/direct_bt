@@ -1152,13 +1152,13 @@ std::shared_ptr<NameAndShortName> BTManager::setLocalName(const uint16_t dev_id,
  */
 
 static MgmtAdapterEventCallbackList::equal_comparator _mgmtAdapterEventCallbackEqComp_ID_CB =
-        [](const MgmtAdapterEventCallback &a, const MgmtAdapterEventCallback &b) -> bool { return a == b; };
+        [](const MgmtAdapterEventCallback &a, const MgmtAdapterEventCallback &b) noexcept -> bool { return a == b; };
 
 static MgmtAdapterEventCallbackList::equal_comparator _mgmtAdapterEventCallbackEqComp_CB =
-        [](const MgmtAdapterEventCallback &a, const MgmtAdapterEventCallback &b) -> bool { return a.getCallback() == b.getCallback(); };
+        [](const MgmtAdapterEventCallback &a, const MgmtAdapterEventCallback &b) noexcept -> bool { return a.getCallback() == b.getCallback(); };
 
 static MgmtAdapterEventCallbackList::equal_comparator _mgmtAdapterEventCallbackEqComp_ID =
-        [](const MgmtAdapterEventCallback &a, const MgmtAdapterEventCallback &b) -> bool { return a.getDevID() == b.getDevID(); };
+        [](const MgmtAdapterEventCallback &a, const MgmtAdapterEventCallback &b) noexcept -> bool { return a.getDevID() == b.getDevID(); };
 
 bool BTManager::addMgmtEventCallback(const int dev_id, const MgmtEvent::Opcode opc, const MgmtEventCallback &cb) noexcept {
     if( !isValidMgmtEventCallbackListsIndex(opc) ) {
@@ -1267,7 +1267,7 @@ void BTManager::mgmtEventAnyCB(const MgmtEvent& e) noexcept {
  */
 
 static ChangedAdapterSetCallbackList::equal_comparator _changedAdapterSetCallbackEqComp =
-        [](const ChangedAdapterSetCallback& a, const ChangedAdapterSetCallback& b) -> bool { return a == b; };
+        [](const ChangedAdapterSetCallback& a, const ChangedAdapterSetCallback& b) noexcept -> bool { return a == b; };
 
 
 void BTManager::addChangedAdapterSetCallback(const ChangedAdapterSetCallback & l) {

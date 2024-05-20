@@ -25,12 +25,8 @@
 
 #include <cstring>
 #include <string>
-#include <memory>
 #include <cstdint>
-#include <vector>
 #include <cstdio>
-
-#include  <algorithm>
 
 #include <jau/debug.hpp>
 
@@ -82,7 +78,7 @@ std::string direct_bt::to_string(const DBGattServer::Mode m) noexcept {
 }
 
 static jau::cow_darray<DBGattServer::ListenerRef>::equal_comparator _listenerRefEqComparator =
-        [](const DBGattServer::ListenerRef &a, const DBGattServer::ListenerRef &b) -> bool { return *a == *b; };
+        [](const DBGattServer::ListenerRef &a, const DBGattServer::ListenerRef &b) noexcept -> bool { return *a == *b; };
 
 bool DBGattServer::addListener(const ListenerRef& l) {
     if( nullptr == l ) {

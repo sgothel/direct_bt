@@ -27,7 +27,6 @@
 #include <string>
 #include <memory>
 #include <cstdint>
-#include <vector>
 #include <cstdio>
 
 #include  <algorithm>
@@ -305,7 +304,7 @@ std::unique_ptr<const SMPPDUMsg> SMPHandler::sendWithReply(const SMPPDUMsg & msg
  */
 
 static SMPHandler::SMPSecurityReqCallbackList::equal_comparator _changedSMPSecurityReqCallbackEqComp =
-        [](const SMPHandler::SMPSecurityReqCallback& a, const SMPHandler::SMPSecurityReqCallback& b) -> bool { return a == b; };
+        [](const SMPHandler::SMPSecurityReqCallback& a, const SMPHandler::SMPSecurityReqCallback& b) noexcept -> bool { return a == b; };
 
 
 void SMPHandler::addSMPSecurityReqCallback(const SMPSecurityReqCallback & l) {

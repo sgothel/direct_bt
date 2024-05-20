@@ -1015,7 +1015,7 @@ bool BTAdapter::removeDeviceFromWhitelist(const BDAddressAndType & addressAndTyp
 }
 
 BTAdapter::statusListenerList_t::equal_comparator BTAdapter::adapterStatusListenerRefEqComparator =
-        [](const StatusListenerPair &a, const StatusListenerPair &b) -> bool { return *a.listener == *b.listener; };
+        [](const StatusListenerPair &a, const StatusListenerPair &b) noexcept -> bool { return *a.listener == *b.listener; };
 
 bool BTAdapter::addStatusListener(const AdapterStatusListenerRef& l) noexcept {
     if( nullptr == l ) {

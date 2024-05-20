@@ -35,7 +35,6 @@ extern "C" {
     #include <unistd.h>
     #include <sys/socket.h>
     #include <poll.h>
-    #include <signal.h>
 }
 
 // #define PERF_PRINT_ON 1
@@ -47,16 +46,13 @@ extern "C" {
 
 #include <jau/basic_algos.hpp>
 
-#include "L2CAPIoctl.hpp"
 #include "GattNumbers.hpp"
 
 #include "BTGattHandler.hpp"
 
 #include "BTDevice.hpp"
 
-#include "BTManager.hpp"
 #include "BTAdapter.hpp"
-#include "BTManager.hpp"
 #include "DBTConst.hpp"
 
 #include "BTGattService.hpp"
@@ -103,7 +99,7 @@ bool BTGattHandler::validateConnected() noexcept {
 }
 
 BTGattHandler::gattCharListenerList_t::equal_comparator BTGattHandler::gattCharListenerRefEqComparator =
-        [](const GattCharListenerPair& a, const GattCharListenerPair& b) -> bool { return *a.listener == *b.listener; };
+        [](const GattCharListenerPair& a, const GattCharListenerPair& b) noexcept -> bool { return *a.listener == *b.listener; };
 
 bool BTGattHandler::addCharListener(const BTGattCharListenerRef& l) noexcept {
     if( nullptr == l ) {
@@ -155,7 +151,7 @@ bool BTGattHandler::removeCharListener(const BTGattCharListener * l) noexcept {
 }
 
 static jau::cow_darray<BTGattHandler::NativeGattCharListenerRef>::equal_comparator _nativeGattCharListenerRefEqComparator =
-        [](const BTGattHandler::NativeGattCharListenerRef& a, const BTGattHandler::NativeGattCharListenerRef& b) -> bool { return *a == *b; };
+        [](const BTGattHandler::NativeGattCharListenerRef& a, const BTGattHandler::NativeGattCharListenerRef& b) noexcept -> bool { return *a == *b; };
 
 bool BTGattHandler::addCharListener(const BTGattHandler::NativeGattCharListenerRef& l) noexcept {
     if( nullptr == l ) {

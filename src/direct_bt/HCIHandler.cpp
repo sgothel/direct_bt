@@ -2192,7 +2192,7 @@ const hci_cmd_event_struct* HCIHandler::getMetaReplyStruct(HCIEvent& event, HCIM
  */
 
 static MgmtEventCallbackList::equal_comparator _mgmtEventCallbackEqComparator =
-        [](const MgmtEventCallback &a, const MgmtEventCallback &b) -> bool { return a == b; };
+        [](const MgmtEventCallback &a, const MgmtEventCallback &b) noexcept -> bool { return a == b; };
 
 bool HCIHandler::addMgmtEventCallback(const MgmtEvent::Opcode opc, const MgmtEventCallback &cb) noexcept {
     if( !isValidMgmtEventCallbackListsIndex(opc) ) {
@@ -2230,7 +2230,7 @@ void HCIHandler::clearAllCallbacks() noexcept {
  */
 
 static HCISMPMsgCallbackList::equal_comparator _changedHCISMPMsgCallbackEqComp =
-        [](const HCISMPMsgCallback& a, const HCISMPMsgCallback& b) -> bool { return a == b; };
+        [](const HCISMPMsgCallback& a, const HCISMPMsgCallback& b) noexcept -> bool { return a == b; };
 
 
 void HCIHandler::addSMPMsgCallback(const HCISMPMsgCallback & l) {
