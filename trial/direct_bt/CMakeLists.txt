@@ -14,6 +14,9 @@ foreach( name ${TARGETS_IDIOMATIC_TRIALS} )
     add_test (NAME ${name} COMMAND sudo -E /sbin/capsh --caps=cap_net_raw,cap_net_admin+eip\ cap_setpcap,cap_setuid,cap_setgid+ep
                            --keep=1 --user=$ENV{USER} --addamb=cap_net_raw,cap_net_admin+eip
                            -- -c "ulimit -c unlimited; ./${name}")
+    if(DEFINED CMAKE_CXX_CLANG_TIDY)
+        set_target_properties(${name} PROPERTIES CXX_CLANG_TIDY "${CMAKE_CXX_CLANG_TIDY};--checks;-bugprone-chained-comparison")
+    endif()
 endforeach()
 
 file(GLOB_RECURSE SOURCES_IDIOMATIC_PROVOCATIONS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "provoke_*.cpp")
