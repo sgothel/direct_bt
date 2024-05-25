@@ -99,16 +99,16 @@ static std::unique_ptr<uuid_t> cmd_rsp_uuid = jau::uuid_t::create(std::string("2
 static const POctets cmd_data1( { 0x00 /* cmd-idx-0 */,
                                   0x14, 0x00, 0x00, 0x00, 0x22, 0x00, 0x00, 0x00,
                                   0x01, 0x5E, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00,
-                                  0x9B, 0x23, 0x84 }, lb_endian::little);
+                                  0x9B, 0x23, 0x84 }, lb_endian_t::little);
 
 static const POctets cmd_data2( { 0x01 /* cmd-idx-1 */,
-                                  0xB8 }, lb_endian::little);
+                                  0xB8 }, lb_endian_t::little);
 
 static const POctets resp_exp(  { 0x00 /* rsp-idx-0 */,
                                   0x14, 0x00, 0x00, 0x00, 0x01, 0x10, 0x00, 0x00,
                                   0x01, 0x89, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                                   0xf6, 0x64, 0x17,
-                                  0x01 /* rsp-idx-1 */, 0xed }, lb_endian::little );
+                                  0x01 /* rsp-idx-1 */, 0xed }, lb_endian_t::little );
 
 static bool SHOW_UPDATE_EVENTS = false;
 static bool QUIET = false;
@@ -562,7 +562,7 @@ static void processReadyDevice(const BTDeviceRef& device) {
                     fprintf_td(stderr, "  [%2.2d.%2.2d]     %s\n", i, j, serviceChar->toString().c_str());
                 }
                 if( serviceChar->hasProperties(BTGattChar::PropertyBitVal::Read) ) {
-                    POctets value(BTGattHandler::number(BTGattHandler::Defaults::MAX_ATT_MTU), 0, jau::lb_endian::little);
+                    POctets value(BTGattHandler::number(BTGattHandler::Defaults::MAX_ATT_MTU), 0, jau::lb_endian_t::little);
                     if( serviceChar->readValue(value) ) {
                         std::string sval = dfa_utf8_decode(value.get_ptr(), value.size());
                         {

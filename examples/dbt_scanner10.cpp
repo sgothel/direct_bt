@@ -471,7 +471,7 @@ static void processReadyDevice(const BTDeviceRef& device) {
             cmd.setVerbose(true);
             const bool cmd_resolved = cmd.isResolved();
             fprintf_td(stderr, "Command test: %s, resolved %d\n", cmd.toString().c_str(), cmd_resolved);
-            POctets cmd_data(1, lb_endian::little);
+            POctets cmd_data(1, lb_endian_t::little);
             cmd_data.put_uint8_nc(0, cmd_arg);
             const HCIStatusCode cmd_res = cmd.send(true /* prefNoAck */, cmd_data, 3_s);
             if( HCIStatusCode::SUCCESS == cmd_res ) {
@@ -523,7 +523,7 @@ static void processReadyDevice(const BTDeviceRef& device) {
                     fprintf_td(stderr, "  [%2.2d.%2.2d]     %s\n", i, j, serviceChar->toString().c_str());
                 }
                 if( serviceChar->hasProperties(BTGattChar::PropertyBitVal::Read) ) {
-                    POctets value(BTGattHandler::number(BTGattHandler::Defaults::MAX_ATT_MTU), 0, jau::lb_endian::little);
+                    POctets value(BTGattHandler::number(BTGattHandler::Defaults::MAX_ATT_MTU), 0, jau::lb_endian_t::little);
                     if( serviceChar->readValue(value) ) {
                         std::string sval = dfa_utf8_decode(value.get_ptr(), value.size());
                         {
