@@ -18,6 +18,7 @@
         "TRY_JAVA": "ON",
         "USE_LIBCURL": "OFF",
         "USE_LIBUNWIND": "ON",
+        "BUILDEXAMPLES": "ON",
         "BUILD_TESTING": "ON",
         "BUILD_TRIAL": "ON",
         "TEST_WITH_SUDO": "OFF"

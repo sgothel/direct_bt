@@ -4,6 +4,7 @@ include(jaulib/JaulibSetup.cmake)
 JaulibPreset()
 
 if(JAU_CMAKE_HARD_PRESETS)
+    set(BUILDEXAMPLES ON CACHE BOOL "" FORCE)
     set(BUILD_TRIAL ON CACHE STRING "" FORCE)
 endif()
 
