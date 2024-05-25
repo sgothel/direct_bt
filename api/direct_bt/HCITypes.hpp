@@ -634,7 +634,7 @@ namespace direct_bt {
             }
             std::string valueString() const noexcept override {
                 const jau::nsize_t psz = getParamSize();
-                const std::string ps = psz > 0 ? jau::bytesHexString(getParam(), 0, psz, true /* lsbFirst */) : "";
+                const std::string ps = psz > 0 ? jau::bytesHexString(getParam(), psz, true /* lsbFirst */) : "";
                 return "param[size "+std::to_string(getParamSize())+", data "+ps+"], tsz "+std::to_string(getTotalSize());
             }
 
@@ -720,7 +720,7 @@ namespace direct_bt {
 
             std::string valueString() const noexcept override {
                 const jau::nsize_t psz = getParamSize();
-                const std::string ps = psz > 0 ? jau::bytesHexString(getParam(), 0, psz, true /* lsbFirst */) : "";
+                const std::string ps = psz > 0 ? jau::bytesHexString(getParam(), psz, true /* lsbFirst */) : "";
                 return "param[size "+std::to_string(getParamSize())+", data "+ps+"], tsz "+std::to_string(getTotalSize());
             }
 
@@ -774,9 +774,9 @@ namespace direct_bt {
 
             std::string valueString() const noexcept override {
                 return "data[handle "+jau::to_hexstring(getHandle())+
-                        ", rand "+jau::bytesHexString(pdu.get_ptr_nc(number(HCIConstSizeT::COMMAND_HDR_SIZE)), 2,   8, false /* lsbFirst */)+
-                        ", ediv "+jau::bytesHexString(pdu.get_ptr_nc(number(HCIConstSizeT::COMMAND_HDR_SIZE)), 2+8, 2, false /* lsbFirst */)+
-                        ", ltk "+jau::bytesHexString(pdu.get_ptr_nc(number(HCIConstSizeT::COMMAND_HDR_SIZE)), 2+8+2, 16, true /* lsbFirst */)+
+                        ", rand "+jau::bytesHexString(pdu.get_ptr_nc(number(HCIConstSizeT::COMMAND_HDR_SIZE) + 2),      8, false /* lsbFirst */)+
+                        ", ediv "+jau::bytesHexString(pdu.get_ptr_nc(number(HCIConstSizeT::COMMAND_HDR_SIZE) + 2+8),    2, false /* lsbFirst */)+
+                        ", ltk "+jau::bytesHexString(pdu.get_ptr_nc(number(HCIConstSizeT::COMMAND_HDR_SIZE)  + 2+8+2), 16, true /* lsbFirst */)+
                         "], tsz "+std::to_string(getTotalSize());
             }
 
@@ -849,7 +849,7 @@ namespace direct_bt {
 
             std::string valueString() const noexcept override {
                 return "data[handle "+jau::to_hexstring(getHandle())+
-                        ", ltk "+jau::bytesHexString(pdu.get_ptr_nc(number(HCIConstSizeT::COMMAND_HDR_SIZE)), 2, 16, true /* lsbFirst */)+
+                        ", ltk "+jau::bytesHexString(pdu.get_ptr_nc(number(HCIConstSizeT::COMMAND_HDR_SIZE) + 2), 16, true /* lsbFirst */)+
                         "], tsz "+std::to_string(getTotalSize());
             }
         public:
@@ -1015,7 +1015,7 @@ namespace direct_bt {
                             ", psm "+to_string(psm)+", len "+std::to_string(len)+ "]";
                 }
                 std::string toString(const uint8_t* l2cap_data) const noexcept {
-                    const std::string ds = nullptr != l2cap_data && 0 < len ?  jau::bytesHexString(l2cap_data, 0, len, true /* lsbFirst*/) : "empty";
+                    const std::string ds = nullptr != l2cap_data && 0 < len ?  jau::bytesHexString(l2cap_data, len, true /* lsbFirst*/) : "empty";
                     return "l2cap[handle "+jau::to_hexstring(handle)+", flags[pb "+toString(pb_flag)+", bc "+jau::to_hexstring(bc_flag)+
                             "], cid "+to_string(cid)+
                             ", psm "+to_string(psm)+", len "+std::to_string(len)+", data "+ds+"]";
@@ -1109,7 +1109,7 @@ namespace direct_bt {
             std::string valueString() const noexcept override {
                 const jau::nsize_t d_sz_base = getBaseParamSize();
                 const jau::nsize_t d_sz = getParamSize();
-                const std::string d_str = d_sz > 0 ? jau::bytesHexString(getParam(), 0, d_sz, true /* lsbFirst */) : "";
+                const std::string d_str = d_sz > 0 ? jau::bytesHexString(getParam(), d_sz, true /* lsbFirst */) : "";
                 return "data[size "+std::to_string(d_sz)+"/"+std::to_string(d_sz_base)+", data "+d_str+"], tsz "+std::to_string(getTotalSize());
             }
 
@@ -1426,8 +1426,8 @@ namespace direct_bt {
 
             std::string valueString() const noexcept override {
                 return "data[handle "+jau::to_hexstring(getHandle())+
-                        ", rand "+jau::bytesHexString(pdu.get_ptr_nc(number(HCIConstSizeT::EVENT_HDR_SIZE)), 1+2,   8, false /* lsbFirst */)+
-                        ", ediv "+jau::bytesHexString(pdu.get_ptr_nc(number(HCIConstSizeT::EVENT_HDR_SIZE)), 1+2+8, 2, false /* lsbFirst */)+
+                        ", rand "+jau::bytesHexString(pdu.get_ptr_nc(number(HCIConstSizeT::EVENT_HDR_SIZE) + 1+2),   8, false /* lsbFirst */)+
+                        ", ediv "+jau::bytesHexString(pdu.get_ptr_nc(number(HCIConstSizeT::EVENT_HDR_SIZE) + 1+2+8), 2, false /* lsbFirst */)+
                         "], tsz "+std::to_string(getTotalSize());
             }
         public:

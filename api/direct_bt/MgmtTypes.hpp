@@ -206,9 +206,9 @@ namespace direct_bt {
             return "LTK[address["+address.toString()+", "+to_string(address_type)+BDAddressAndType::getBLERandomAddressTypeString(address, address_type, ", ")+
                    "], type "+to_string(key_type)+", role "+jau::to_hexstring(role)+
                    ", enc_size "+std::to_string(enc_size)+
-                   ", ediv "+jau::bytesHexString(reinterpret_cast<const uint8_t *>(&ediv), 0, sizeof(ediv), true /* lsbFirst */)+
-                   ", rand "+jau::bytesHexString(reinterpret_cast<const uint8_t *>(&rand), 0, sizeof(rand), true /* lsbFirst */)+
-                   ", ltk "+jau::bytesHexString(ltk.data, 0, sizeof(ltk), true /* lsbFirst */)+
+                   ", ediv "+jau::bytesHexString(reinterpret_cast<const uint8_t *>(&ediv), sizeof(ediv), true /* lsbFirst */)+
+                   ", rand "+jau::bytesHexString(reinterpret_cast<const uint8_t *>(&rand), sizeof(rand), true /* lsbFirst */)+
+                   ", ltk "+jau::bytesHexString(ltk.data, sizeof(ltk), true /* lsbFirst */)+
                    "]";
         }
 
@@ -269,7 +269,7 @@ namespace direct_bt {
 
         std::string toString() const noexcept {
             return "IRK[address["+address.toString()+", "+to_string(address_type)+BDAddressAndType::getBLERandomAddressTypeString(address, address_type, ", ")+
-                   "], irk "+jau::bytesHexString(irk.data, 0, sizeof(irk), true /* lsbFirst */)+
+                   "], irk "+jau::bytesHexString(irk.data, sizeof(irk), true /* lsbFirst */)+
                    "]";
         }
 
@@ -299,7 +299,7 @@ namespace direct_bt {
         std::string toString() const noexcept {
             return "CSRK[address["+address.toString()+", "+to_string(address_type)+BDAddressAndType::getBLERandomAddressTypeString(address, address_type, ", ")+
                    "], type "+to_string(key_type)+
-                   ", csrk "+jau::bytesHexString(csrk.data, 0, sizeof(csrk), true /* lsbFirst */)+
+                   ", csrk "+jau::bytesHexString(csrk.data, sizeof(csrk), true /* lsbFirst */)+
                    "]";
         }
     } );
@@ -321,7 +321,7 @@ namespace direct_bt {
         std::string toString() const noexcept {
             return "LK[address["+address.toString()+", "+to_string(address_type)+BDAddressAndType::getBLERandomAddressTypeString(address, address_type, ", ")+
                    "], type "+to_string(key_type)+
-                   ", key "+jau::bytesHexString(key.data, 0, sizeof(key), true /* lsbFirst */)+
+                   ", key "+jau::bytesHexString(key.data, sizeof(key), true /* lsbFirst */)+
                    ", pinLen "+jau::to_hexstring(pin_length)+
                    "]";
         }
@@ -527,7 +527,7 @@ namespace direct_bt {
 
             std::string valueString() const noexcept override {
                 const jau::nsize_t psz = getParamSize();
-                const std::string ps = psz > 0 ? jau::bytesHexString(getParam(), 0, psz, true /* lsbFirst */) : "";
+                const std::string ps = psz > 0 ? jau::bytesHexString(getParam(), psz, true /* lsbFirst */) : "";
                 return "param[size "+std::to_string(getParamSize())+", data "+ps+"], tsz "+std::to_string(getTotalSize());
             }
 
@@ -895,7 +895,7 @@ namespace direct_bt {
             std::string valueString() const noexcept override {
                 const jau::uint128dp_t& irk = getIdentityResolvingKey();
                 return "param[size "+std::to_string(getParamSize())+", data[privacy "+std::to_string(getPrivacy())+
-                        ", irk "+jau::bytesHexString(irk.data, 0, sizeof(irk), true /* lsbFirst */)+"]]";
+                        ", irk "+jau::bytesHexString(irk.data, sizeof(irk), true /* lsbFirst */)+"]]";
             }
 
         public:
@@ -1479,7 +1479,7 @@ namespace direct_bt {
             }
             std::string valueString() const noexcept override {
                 const jau::nsize_t d_sz = getDataSize();
-                const std::string d_str = d_sz > 0 ? jau::bytesHexString(getData(), 0, d_sz, true /* lsbFirst */) : "";
+                const std::string d_str = d_sz > 0 ? jau::bytesHexString(getData(), d_sz, true /* lsbFirst */) : "";
                 return "data[size "+std::to_string(d_sz)+", data "+d_str+"], tsz "+std::to_string(getTotalSize());
             }
 
@@ -2548,8 +2548,8 @@ namespace direct_bt {
             std::string baseString() const noexcept override {
                 return MgmtEvent::baseString()+", address="+getAddress().toString()+
                        ", addressType "+to_string(getAddressType())+
-                        ", rand "+jau::bytesHexString(pdu.get_ptr_nc(MGMT_HEADER_SIZE), 6+1,   8, false /* lsbFirst */)+
-                        ", ediv "+jau::bytesHexString(pdu.get_ptr_nc(MGMT_HEADER_SIZE), 6+1+8, 2, false /* lsbFirst */);
+                        ", rand "+jau::bytesHexString(pdu.get_ptr_nc(MGMT_HEADER_SIZE + 6+1),   8, false /* lsbFirst */)+
+                        ", ediv "+jau::bytesHexString(pdu.get_ptr_nc(MGMT_HEADER_SIZE + 6+1+8), 2, false /* lsbFirst */);
             }
         public:
             MgmtEvtHCILELTKReq(const uint16_t dev_id, const BDAddressAndType& addressAndType, const uint64_t rand, const uint16_t ediv)
@@ -2631,7 +2631,7 @@ namespace direct_bt {
             std::string baseString() const noexcept override {
                 return MgmtEvent::baseString()+", address="+getAddress().toString()+
                        ", addressType "+to_string(getAddressType())+
-                       ", ltk "+jau::bytesHexString(pdu.get_ptr_nc(MGMT_HEADER_SIZE), 6+1, 16, true /* lsbFirst */);
+                       ", ltk "+jau::bytesHexString(pdu.get_ptr_nc(MGMT_HEADER_SIZE + 6+1), 16, true /* lsbFirst */);
             }
         public:
             MgmtEvtHCILELTKReplyAckCmd(const uint16_t dev_id, const BDAddressAndType& addressAndType, const jau::uint128dp_t ltk)
@@ -2719,9 +2719,9 @@ namespace direct_bt {
             std::string baseString() const noexcept override {
                 return MgmtEvent::baseString()+", address="+getAddress().toString()+
                        ", addressType "+to_string(getAddressType())+
-                       ", rand "+jau::bytesHexString(pdu.get_ptr_nc(MGMT_HEADER_SIZE), 6+1,   8, false /* lsbFirst */)+
-                       ", ediv "+jau::bytesHexString(pdu.get_ptr_nc(MGMT_HEADER_SIZE), 6+1+8, 2, false /* lsbFirst */)+
-                       ", ltk "+jau::bytesHexString(pdu.get_ptr_nc(MGMT_HEADER_SIZE), 6+1+8+2, 16, true /* lsbFirst */);
+                       ", rand "+jau::bytesHexString(pdu.get_ptr_nc(MGMT_HEADER_SIZE + 6+1),      8, false /* lsbFirst */)+
+                       ", ediv "+jau::bytesHexString(pdu.get_ptr_nc(MGMT_HEADER_SIZE + 6+1+8),    2, false /* lsbFirst */)+
+                       ", ltk "+jau::bytesHexString(pdu.get_ptr_nc(MGMT_HEADER_SIZE  + 6+1+8+2), 16, true /* lsbFirst */);
             }
 
         public:
