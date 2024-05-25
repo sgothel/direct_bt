@@ -25,7 +25,7 @@
 
 #include "org_direct_bt_BTFactory.h"
 
-#include <direct_bt/version.h>
+#include <direct_bt/version.hpp>
 
 #include "helper_base.hpp"
 
@@ -33,9 +33,7 @@ jstring Java_org_direct_1bt_BTFactory_getNativeVersion(JNIEnv *env, jclass clazz
 {
     try {
         (void) clazz;
-
-        std::string api_version = std::string(DIRECT_BT_VERSION);
-        return env->NewStringUTF(api_version.c_str());
+        return env->NewStringUTF(DIRECT_BT_VERSION.versionString().c_str());
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }

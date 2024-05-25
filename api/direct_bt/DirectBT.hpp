@@ -40,7 +40,7 @@
 
 #include <jau/darray.hpp>
 
-#include "version.h"
+#include "version.hpp"
 
 #include "BTTypes0.hpp"
 

@@ -60,7 +60,7 @@ TEST_CASE( "BTManager Bringup Test 00", "[test][BTManager][bringup]" ) {
     {
         // setenv("direct_bt.debug", "true", 1 /* overwrite */);
     }
-    jau::fprintf_td(stderr, "Direct-BT Native Version %s (API %s)\n", DIRECT_BT_VERSION, DIRECT_BT_VERSION_API);
+    jau::fprintf_td(stderr, "Direct-BT Native Version %s (API %s)\n", DIRECT_BT_VERSION.toString().c_str(), DIRECT_BT_VERSION_API);
     jau::fprintf_td(stderr, "%s\n", jau::os::get_platform_info().c_str());    
     resetStates();
 

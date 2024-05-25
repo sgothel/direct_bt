@@ -26,12 +26,14 @@
 #ifndef DIRECT_BT_VERSION_H_
 #define DIRECT_BT_VERSION_H_
 
+#include <jau/util/VersionNumber.hpp>
+
 /** \addtogroup DBTUserAPI
  *
  *  @{
  */
 
-extern const char* DIRECT_BT_VERSION;
+extern const jau::util::VersionNumber DIRECT_BT_VERSION;
 extern const char* DIRECT_BT_VERSION_SHORT;
 extern const char* DIRECT_BT_VERSION_API;
 

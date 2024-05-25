@@ -914,7 +914,7 @@ int main(int argc, char *argv[])
 {
     bool waitForEnter=false;
 
-    fprintf_td(stderr, "Direct-BT Native Version %s (API %s)\n", DIRECT_BT_VERSION, DIRECT_BT_VERSION_API);
+    fprintf_td(stderr, "Direct-BT Native Version %s (API %s)\n", DIRECT_BT_VERSION.toString().c_str(), DIRECT_BT_VERSION_API);
 
     for(int i=1; i<argc; i++) {
         fprintf(stderr, "arg[%d/%d]: '%s'\n", i, argc, argv[i]);

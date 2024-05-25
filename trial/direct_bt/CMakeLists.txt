@@ -1,5 +1,6 @@
 include_directories(
   ${PROJECT_SOURCE_DIR}/jaulib/include
+  ${PROJECT_SOURCE_DIR}/jaulib/include/catch2_jau
   ${PROJECT_SOURCE_DIR}/api
 )
 
