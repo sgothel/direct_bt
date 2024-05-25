@@ -221,8 +221,8 @@ namespace direct_bt {
                 BDAddressAndType address_and_type;
                 HCIWhitelistConnectType ctype;
 
-                WhitelistElem(uint16_t dev_id_, BDAddressAndType address_and_type_, HCIWhitelistConnectType ctype_)
-                : dev_id(dev_id_), address_and_type(std::move(address_and_type_)), ctype(ctype_) { }
+                WhitelistElem(uint16_t dev_id_, const BDAddressAndType &address_and_type_, HCIWhitelistConnectType ctype_)   // NOLINT(modernize-pass-by-value): Wrong lint and as intended
+                : dev_id(dev_id_), address_and_type(address_and_type_), ctype(ctype_) { }
             };
             jau::darray<std::shared_ptr<WhitelistElem>> whitelist;
 

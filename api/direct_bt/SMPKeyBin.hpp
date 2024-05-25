@@ -237,13 +237,12 @@ class SMPKeyBin {
         static std::vector<SMPKeyBin> readAll(const std::string& dname, const bool verbose_);
         static std::vector<SMPKeyBin> readAllForLocalAdapter(const BDAddressAndType& localAddress, const std::string& dname, const bool verbose_);
 
-        SMPKeyBin(BTRole localRole_, BDAddressAndType localAddress_,
-                  BDAddressAndType remoteAddress_,
+        SMPKeyBin(BTRole localRole_, const BDAddressAndType &localAddress_, const BDAddressAndType &remoteAddress_, // NOLINT(modernize-pass-by-value): Wrong lint and as intended
                   const BTSecurityLevel sec_level_, const SMPIOCapability io_cap_)
         : version(VERSION), size(0),
           ts_creation_sec( jau::getWallClockSeconds() ),
           localRole(localRole_),
-          localAddress(std::move(localAddress_)), remoteAddress(std::move(remoteAddress_)),
+          localAddress(localAddress_), remoteAddress(remoteAddress_),
           sec_level(sec_level_), io_cap(io_cap_),
           keys_init(SMPKeyType::NONE), keys_resp(SMPKeyType::NONE),
           ltk_init(), irk_init(), csrk_init(), lk_init(),

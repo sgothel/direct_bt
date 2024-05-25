@@ -97,7 +97,7 @@ namespace direct_bt {
             BDAddressAndType addressAndType;
             std::string name;
 
-            DeviceID(BDAddressAndType  a, std::string  n) : addressAndType(std::move(a)), name(std::move(n)) {}
+            DeviceID(BDAddressAndType a, std::string  n) : addressAndType(std::move(a)), name(std::move(n)) {} // NOLINT(performance-unnecessary-value-param): Wrong lint
             DeviceID() : addressAndType(), name() {}
 
             /**

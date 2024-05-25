@@ -399,7 +399,7 @@ class DBTServer01 : public DBTServerTest {
                     pulse_service.start();
                 }
 
-                ~MyGATTServerListener() noexcept override {
+                ~MyGATTServerListener() noexcept override { // NOLINT(modernize-use-equals-default): Intended
                     pulse_service.stop();
                 }
 
@@ -582,7 +582,7 @@ class DBTServer01 : public DBTServerTest {
             dbGattServer->addListener( gattServerListener );
         }
 
-        ~DBTServer01() override {
+        ~DBTServer01() override { // NOLINT(modernize-use-equals-default): Intended
             fprintf_td(stderr, "****** Server dtor: running_threads %zu\n", running_threads.value());
             running_threads.wait_for( 10_s );
         }

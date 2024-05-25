@@ -1103,7 +1103,7 @@ namespace direct_bt {
                 check_range();
             }
 
-            AttWriteRsp() noexcept
+            AttWriteRsp() noexcept                    // NOLINT(modernize-use-equals-default): Intended as-is
             : AttPDUFixedMsg(Opcode::WRITE_RSP)
             { 
                 // check_range(); OK
@@ -1260,7 +1260,7 @@ namespace direct_bt {
                 check_range();
             }
 
-            AttExeWriteReq(const uint8_t flags) noexcept
+            AttExeWriteReq(const uint8_t flags) noexcept              // NOLINT(modernize-use-equals-default): Intended as-is
             : AttPDUFixedMsg(Opcode::EXECUTE_WRITE_REQ)
             {
                 pdu.put_uint8(1, flags);
@@ -1293,7 +1293,7 @@ namespace direct_bt {
                 check_range();
             }
 
-            AttExeWriteRsp() noexcept
+            AttExeWriteRsp() noexcept                               // NOLINT(modernize-use-equals-default): Intended as-is
             : AttPDUFixedMsg(Opcode::EXECUTE_WRITE_RSP)
             { 
                 // check_range(); OK
@@ -1395,7 +1395,7 @@ namespace direct_bt {
                 check_range();
             }
 
-            AttHandleValueCfm() noexcept
+            AttHandleValueCfm() noexcept                                 // NOLINT(modernize-use-equals-default): Intended as-is
             : AttPDUFixedMsg(Opcode::HANDLE_VALUE_CFM)
             { 
                 // check_range(); OK

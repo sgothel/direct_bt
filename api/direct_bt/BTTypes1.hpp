@@ -116,8 +116,8 @@ namespace direct_bt {
             std::string short_name;
 
         protected:
-            void setName(std::string v) noexcept { name = std::move(v); }
-            void setShortName(std::string v) noexcept { short_name = std::move(v); }
+            void setName(const std::string &v) noexcept { name = v; }
+            void setShortName(const std::string &v) noexcept { short_name = v; }
 
         public:
             NameAndShortName() noexcept
@@ -214,11 +214,11 @@ namespace direct_bt {
             std::string short_name;
 
         public:
-            AdapterInfo(const uint16_t dev_id_, BDAddressAndType addressAndType_,
+            AdapterInfo(const uint16_t dev_id_, const BDAddressAndType &addressAndType_,                       // NOLINT(modernize-pass-by-value): Wrong lint and as intended
                         const uint8_t version_, const uint16_t manufacturer_,
                         const AdapterSetting supported_setting_, const AdapterSetting current_setting_,
                         const uint32_t dev_class_, std::string name_, std::string short_name_) noexcept
-            : dev_id(dev_id_), addressAndType( std::move(addressAndType_) ), version(version_),
+            : dev_id(dev_id_), addressAndType( addressAndType_ ), version(version_),
               manufacturer(manufacturer_),
               supported_setting(supported_setting_),
               current_setting(current_setting_), dev_class(dev_class_),
@@ -269,8 +269,8 @@ namespace direct_bt {
                 current_setting = current_setting_;
             }
             void setDevClass(const uint32_t v) noexcept { dev_class = v; }
-            void setName(std::string v) noexcept { name = std::move(v); }
-            void setShortName(std::string v) noexcept { short_name = std::move(v); }
+            void setName(const std::string& v) noexcept { name = v; }
+            void setShortName(const std::string& v) noexcept { short_name = v; }
 
             constexpr const AdapterSetting& get_supportedSetting() const noexcept { return supported_setting; }
 
