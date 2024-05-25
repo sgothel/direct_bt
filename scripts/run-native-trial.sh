@@ -17,6 +17,10 @@ bname=`basename $0 .sh`
 
 build_dir=$rootdir/build/default
 #build_dir=$rootdir/"build-$os_name-$archabi"
+if [ ! -z "$1" ] ; then
+    build_dir=$1
+    shift 1
+fi
 echo build_dir $build_dir
 
 test_exe=${build_dir}/trial/direct_bt/test_client_server10_NoEnc
