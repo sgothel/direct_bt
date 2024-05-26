@@ -80,6 +80,8 @@
 #ifndef L2CAP_IOCTL_HPP_
 #define L2CAP_IOCTL_HPP_
 
+#include <jau/cpp_pragma.hpp>
+
 #include "BTAddress.hpp"
 
 #include "linux_kernel_types.hpp"
@@ -97,6 +99,10 @@ extern "C" {
  *
  *  @{
  */
+
+PRAGMA_DISABLE_WARNING_PUSH
+PRAGMA_DISABLE_WARNING_PEDANTIC
+PRAGMA_DISABLE_WARNING_ZERO_LENGTH_ARRAY
 
 /**
  * Information from include/net/bluetooth/l2cap.h
@@ -550,6 +556,8 @@ struct l2cap_le_credits {
 	__le16     cid;
 	__le16     credits;
 } __packed;
+
+PRAGMA_DISABLE_WARNING_POP
 
 /**@}*/
 

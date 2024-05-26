@@ -76,6 +76,8 @@
 #ifndef HCI_IOCTL_HPP_
 #define HCI_IOCTL_HPP_
 
+#include <jau/cpp_pragma.hpp>
+
 #include "BTAddress.hpp"
 
 #include "linux_kernel_types.hpp"
@@ -90,6 +92,10 @@ extern "C" {
  *
  *  @{
  */
+
+PRAGMA_DISABLE_WARNING_PUSH
+PRAGMA_DISABLE_WARNING_PEDANTIC
+PRAGMA_DISABLE_WARNING_ZERO_LENGTH_ARRAY
 
 /**
  * Missing information ???
@@ -2534,6 +2540,8 @@ struct hci_inquiry_req {
 	__u8  num_rsp;
 };
 #define IREQ_CACHE_FLUSH 0x0001
+
+PRAGMA_DISABLE_WARNING_POP
 
 /**@}*/
 
