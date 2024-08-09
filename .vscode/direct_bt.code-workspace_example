@@ -29,16 +29,17 @@
     // "java.format.settings.profile": "GoogleStyle",
     "java.codeGeneration.useBlocks": true,
     "java.inlayHints.parameterNames.enabled": "literals",
-    "java.configuration.runtimes": [    
-      { 
-        "name": "JavaSE-11",
-        "path": "/usr/lib/jvm/java-11-openjdk-amd64",
-      },
+    "java.configuration.runtimes": [
       { 
         "name": "JavaSE-17",
         "path": "/usr/lib/jvm/java-17-openjdk-amd64",
         "default": true
       },
+      { 
+        "name": "JavaSE-21",
+        "path": "/opt-linux-x86_64/jdk21",
+        "default": true
+      }
     ],
     "[cpp]": {
       "breadcrumbs.showKeys": true,
@@ -66,7 +67,8 @@
     "ShortcutMenuBar.userButton02Command": "clangd.memoryUsage",
     "ShortcutMenuBar.userButton03Command": "workbench.action.reloadWindow",
     "ShortcutMenuBar.userButton04Command": "clangd.restart",
-    "clang-tidy.buildPath": "${workspaceFolder}/build-vscode",
+    // "clang-tidy.buildPath": "${workspaceFolder}/build/default",
+    // "C_Cpp.default.cppStandard": "c++20",
   },
   "extensions": {
     "recommendations": [

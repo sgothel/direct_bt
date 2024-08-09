@@ -1,11 +1,10 @@
 # java/CMakeLists.txt
 
-set(CMAKE_JNI_TARGET TRUE)
-
 set(direct_bt_jar_file ${CMAKE_CURRENT_BINARY_DIR}/direct_bt.jar CACHE FILEPATH "direct_bt jar file" FORCE)
 
+set(CMAKE_JNI_TARGET TRUE)
 file(GLOB_RECURSE JAVA_SOURCES "*.java")
-
+set(CMAKE_JAVA_COMPILE_FLAGS ${direct_bt_JAVA_COMPILE_FLAGS})
 add_jar(direct_bt_jar 
         ${JAVA_SOURCES}
         ${PROJECT_SOURCE_DIR}/jaulib/java_base/org/jau/util/BasicTypes.java

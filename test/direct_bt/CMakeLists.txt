@@ -12,6 +12,8 @@ set( TARGETS_IDIOMATIC_EXAMPLES ${BASENAMES_IDIOMATIC_EXAMPLES} )
 
 foreach( name ${TARGETS_IDIOMATIC_EXAMPLES} )
     add_executable(${name} ${name}.cpp)
+    target_compile_options(${name} PUBLIC ${direct_bt_CXX_FLAGS})
+    target_link_options(${name} PUBLIC ${direct_bt_EXE_LINKER_FLAGS})
     target_link_libraries(${name} direct_bt catch2)
     add_dependencies(${name} direct_bt catch2)
     add_test (NAME ${name} COMMAND ${name})

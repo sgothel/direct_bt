@@ -316,30 +316,48 @@ Following debug presets are defined in `CMakePresets.json`
   - default compiler
   - C++20
   - debug enabled
+  - disabled `clang-tidy`
   - java (if available)
   - libunwind enabled
   - no: libcurl
   - testing on
   - testing with 2 bluetooth trial on
   - testing with sudo off
-- `debug-gcc`
-  - inherits from `debug`
-  - compiler: `gcc`
-  - disabled `clang-tidy`
+  - binary-dir `build/debug`
+  - install-dir `dist/debug`
 - `debug-clang`
   - inherits from `debug`
   - compiler: `clang`
   - enabled `clang-tidy`
+  - binary-dir `build/debug-clang`
+  - install-dir `dist/debug-clang`
+- `debug-gcc`
+  - inherits from `debug`
+  - compiler: `gcc`
+  - disabled `clang-tidy`
+  - binary-dir `build/debug-gcc`
+  - install-dir `dist/debug-gcc`
 - `release`
   - inherits from `debug`
   - debug disabled
-  - libunwind disabled
-- `release-gcc`
-  - compiler: `gcc`
   - disabled `clang-tidy`
+  - libunwind disabled
+  - binary-dir `build/release`
+  - install-dir `dist/release`
 - `release-clang`
   - compiler: `clang`
   - enabled `clang-tidy`
+  - binary-dir `build/release-clang`
+  - install-dir `dist/release-clang`
+- `release-gcc`
+  - compiler: `gcc`
+  - disabled `clang-tidy`
+  - binary-dir `build/release-gcc`
+  - install-dir `dist/release-gcc`
+- **`default`**
+  - inherits from `debug-clang`
+  - binary-dir `build/default`
+  - install-dir `dist/default`
 
 All presets enable [full unit testing](README.md#unit_testing) including actual Bluetooth trials,
 i.e. require two adapter to pass.
@@ -351,6 +369,8 @@ cmake --preset release-gcc
 cmake --build --preset release-gcc --parallel
 cmake --build --preset release-gcc --target test install doc
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You may utilize `scripts/build-preset.sh` for an initial build, install and test workflow.
 
 <a name="cmake_presets_hardcoded"></a>
 
@@ -422,8 +442,19 @@ The following issues are known and are under investigation:
 - *BlueZ* is not sending us all new key information under legacy security (SC 0) using at least one BT5 adapter
   - This is mitigated by *BTAdapter*'s *smp_watchdog*, leading to a retrial visible as *SMP Timeout*
 
+#### Build Scripts
+Build scripts use the recommended [cmake presets](README.md#cmake_presets_optional),
+supported via e.g. `scripts/build-preset.sh`.
+
+- `scripts/build-preset.sh` .. initial build incl. install and unit testing using [presets](README.md#cmake_presets_optional)
+- `scripts/rebuild-preset.sh` .. rebuild using [presets](README.md#cmake_presets_optional)
+- `scripts/build-preset-cross.sh` .. [cross-build](#cross-build) using [presets](README.md#cmake_presets_optional)
+- `scripts/rebuild-preset-cross.sh` .. [cross-build](#cross-build) using [presets](README.md#cmake_presets_optional)
+- `scripts/test_java.sh` .. invoke a java unit test
+- `scripts/test_exe_template.sh` .. invoke the symlink'ed files to invoke native unit tests
+
 ### Cross Build
-Also provided is a [cross-build script](https://jausoft.com/cgit/direct_bt.git/tree/scripts/build-cross.sh)
+Also provided is a [cross-build script](https://jausoft.com/cgit/direct_bt.git/tree/scripts/build-preset-cross.sh)
 using chroot into a target system using [QEMU User space emulation](https://qemu-project.gitlab.io/qemu/user/main.html)
 and [Linux kernel binfmt_misc](https://wiki.debian.org/QemuUserEmulation)
 to run on other architectures than the host.
@@ -492,10 +523,10 @@ vi ../direct_bt.code-workspace
 ~~~~~~~~~~~~~
 Then you can open it via `File . Open Workspace from File...` menu item.
 - All listed extensions are referenced in this workspace file to be installed via the IDE
-- The [local settings.json](.vscode/settings.json) has `clang-tidy` enabled
-  - If using `clang-tidy` is too slow, just remove it from the settings file.
-  - `clangd` will still contain a good portion of `clang-tidy` checks
-
+- Select one of the [CMake Presets](README.md#cmake_presets_optional) for
+  - Configuration
+  - Build
+  - Test
 
 ## Support & Sponsorship
 

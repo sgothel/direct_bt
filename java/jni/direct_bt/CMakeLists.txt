@@ -43,6 +43,8 @@ set (direct_bt_JNI_SRCS
 set (CMAKE_SHARED_LINKER_FLAGS "-Wl,--as-needed")
 
 add_library (javadirect_bt SHARED ${direct_bt_JNI_SRCS})
+target_compile_options(javadirect_bt PUBLIC ${direct_bt_CXX_FLAGS})
+target_link_options(javadirect_bt PUBLIC ${direct_bt_SHARED_LINKER_FLAGS})
 target_link_libraries(javadirect_bt ${JNI_LIBRARIES} direct_bt)
 
 if(USE_STRIP)

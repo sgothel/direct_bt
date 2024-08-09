@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # Arguments:
+# <preset-name>     One of CMakePresets.txt, see `cmake --list-presets`
 #   --perf_analysis   special performance analysis using 3rd party tools
 #   -v normal         dummy for full benchmarking
 #   <none>            auto_run, no benchmarking
@@ -14,8 +15,19 @@ bname=`basename $0 .sh`
 
 . $rootdir/jaulib/scripts/setup-machine-arch.sh "-quiet"
 
-dist_dir=$rootdir/"dist-$os_name-$archabi"
-build_dir=$rootdir/"build-$os_name-$archabi"
+tripleid="$os_name-$archabi"
+
+if [ ! -z "$1" ] ; then
+    preset_name=$1
+    shift 1
+else
+    echo "ERROR: No preset passed as 1st argument, use one of:"
+    cmake --list-presets
+    exit 1
+fi
+
+dist_dir="$rootdir/dist/${preset_name}-${tripleid}"
+build_dir="$rootdir/build/${preset_name}"
 echo dist_dir $dist_dir
 echo build_dir $build_dir
 
@@ -28,7 +40,7 @@ if [ "$1" = "-log" ] ; then
     logbasename=$2
     shift 2
 else
-    logbasename=$bname-$os_name-$archabi
+    logbasename=${bname}-${preset_name}-${tripleid}
 fi
 
 mkdir -p $rootdir/doc/test

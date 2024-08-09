@@ -14,6 +14,8 @@ file(GLOB_RECURSE TEST_JAVA_SOURCES "*.java")
 
 file(GLOB_RECURSE TEST_JAVA_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "Test*.java")
 
+set(CMAKE_JAVA_COMPILE_FLAGS ${direct_bt_JAVA_COMPILE_FLAGS})
+
 add_jar(direct_bt_test
         ${TEST_JAVA_SOURCES}
         INCLUDE_JARS ${jaulib_fat_jar_file} ${direct_bt_fat_jar_file} ${jaulib_test_jar_file} ${JUNIT_JAR} ${HAMCREST_JAR}

@@ -12,9 +12,11 @@ include_directories(
   ${SYS_INCLUDE_DIRS}
 )
 
-set (direct_bt_LIB_SRCS
+set (tinycrypt_LIB_SRCS
   ${PROJECT_SOURCE_DIR}/tinycrypt/lib/source/aes_encrypt.c
   ${PROJECT_SOURCE_DIR}/tinycrypt/lib/source/utils.c
+)
+set (direct_bt_LIB_SRCS
   ${PROJECT_SOURCE_DIR}/jaulib/src/basic_types.cpp
   ${PROJECT_SOURCE_DIR}/jaulib/src/base_codec.cpp
   ${PROJECT_SOURCE_DIR}/jaulib/src/cpuid.cpp
@@ -58,9 +60,16 @@ set (direct_bt_LIB_SRCS
   ${CMAKE_CURRENT_BINARY_DIR}/../version.cpp
 )
 
+add_library (tinycrypt STATIC ${tinycrypt_LIB_SRCS})
+target_compile_options(tinycrypt PRIVATE ${direct_bt_C_FLAGS})
+target_link_options(tinycrypt PRIVATE ${direct_bt_STATIC_LINKER_FLAGS})
+
 add_library (direct_bt SHARED ${direct_bt_LIB_SRCS})
+target_compile_options(direct_bt PUBLIC ${direct_bt_CXX_FLAGS})
+target_link_options(direct_bt PUBLIC ${direct_bt_SHARED_LINKER_FLAGS})
 target_link_libraries (
-  direct_bt
+  direct_bt 
+  tinycrypt
   ${LIBUNWIND_LIBNAME}
   ${CMAKE_THREAD_LIBS_INIT}
 )

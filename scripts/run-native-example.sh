@@ -2,6 +2,7 @@
 
 # Script arguments in order:
 #
+# <preset-name>     One of CMakePresets.txt, see `cmake --list-presets`
 # [-setcap]         Optional 1st argument to use setcap, see below
 # [-root]           Optional 1st argument to use sudo, see below
 # [-log <filename>] Optional argument to define logfile
@@ -19,25 +20,25 @@
 # Default logfile in ~/run-dbt_scanner10.log
 # 
 # Scan and read all devices (using default auto-sec w/ keyboard iocap)
-# ../scripts/run-dbt_scanner10.sh
+# ../scripts/run-dbt_scanner10.sh debug-clang
 #
 # Read device C0:26:DA:01:DA:B1  (using default auto-sec w/ keyboard iocap)
-# ../scripts/run-dbt_scanner10.sh -dev C0:26:DA:01:DA:B1
+# ../scripts/run-dbt_scanner10.sh debug-clang -dev C0:26:DA:01:DA:B1
 #
 # Read device C0:26:DA:01:DA:B1  (enforcing no security)
-# ../scripts/run-dbt_scanner10.sh -dev C0:26:DA:01:DA:B1 -seclevel C0:26:DA:01:DA:B1 1
+# ../scripts/run-dbt_scanner10.sh debug-clang -dev C0:26:DA:01:DA:B1 -seclevel C0:26:DA:01:DA:B1 1
 #
 # Read any device containing C0:26:DA  (enforcing no security)
-# ../scripts/run-dbt_scanner10.sh -dev C0:26:DA -seclevel C0:26:DA 1
+# ../scripts/run-dbt_scanner10.sh debug-clang -dev C0:26:DA -seclevel C0:26:DA 1
 #
 # Read any device containing name 'TAIDOC'  (enforcing no security)
-# ../scripts/run-dbt_scanner10.sh -dev 'TAIDOC' -seclevel 'TAIDOC' 1
+# ../scripts/run-dbt_scanner10.sh debug-clang -dev 'TAIDOC' -seclevel 'TAIDOC' 1
 #
 # Read device C0:26:DA:01:DA:B1, basic debug flags enabled (using default auto-sec w/ keyboard iocap)
-# ../scripts/run-dbt_scanner10.sh -dev C0:26:DA:01:DA:B1 -dbt_debug true
+# ../scripts/run-dbt_scanner10.sh debug-clang -dev C0:26:DA:01:DA:B1 -dbt_debug true
 #
 # Read device C0:26:DA:01:DA:B1, all debug flags enabled (using default auto-sec w/ keyboard iocap)
-# ../scripts/run-dbt_scanner10.sh -dev C0:26:DA:01:DA:B1 -dbt_debug adapter.event,gatt.data,hci.event,hci.scan_ad_eir,mgmt.event
+# ../scripts/run-dbt_scanner10.sh debug-clang -dev C0:26:DA:01:DA:B1 -dbt_debug adapter.event,gatt.data,hci.event,hci.scan_ad_eir,mgmt.event
 #
 # To do a BT adapter removal/add via software, assuming the device is '1-4' (Bus 1.Port 4):
 #   echo '1-4' > /sys/bus/usb/drivers/usb/unbind 
@@ -76,8 +77,19 @@ bname=`basename $0 .sh`
 
 . $rootdir/jaulib/scripts/setup-machine-arch.sh "-quiet"
 
-dist_dir=$rootdir/"dist-$os_name-$archabi"
-build_dir=$rootdir/"build-$os_name-$archabi"
+tripleid="$os_name-$archabi"
+
+if [ ! -z "$1" ] ; then
+    preset_name=$1
+    shift 1
+else
+    echo "ERROR: No preset passed as 1st argument, use one of:"
+    cmake --list-presets
+    exit 1
+fi
+
+dist_dir="$rootdir/dist/${preset_name}-${tripleid}"
+build_dir="$rootdir/build/${preset_name}"
 echo dist_dir $dist_dir
 echo build_dir $build_dir
 
@@ -105,7 +117,7 @@ if [ "$1" = "-log" ] ; then
     logbasename=$2
     shift 2
 else
-    logbasename=$bname-$os_name-$archabi
+    logbasename=${bname}-${preset_name}-${tripleid}
 fi
 
 mkdir -p $rootdir/doc/test

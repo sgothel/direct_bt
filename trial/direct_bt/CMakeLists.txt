@@ -10,6 +10,8 @@ string( REPLACE ".cpp" "" TARGETS_IDIOMATIC_TRIALS "${SOURCES_IDIOMATIC_TRIALS}"
 
 foreach( name ${TARGETS_IDIOMATIC_TRIALS} )
     add_executable(${name} ${name}.cpp)
+    target_compile_options(${name} PUBLIC ${direct_bt_CXX_FLAGS})
+    target_link_options(${name} PUBLIC ${direct_bt_EXE_LINKER_FLAGS})
     target_link_libraries(${name} direct_bt catch2)
     add_dependencies(${name} direct_bt catch2)
     add_test (NAME ${name} COMMAND sudo -E /sbin/capsh --caps=cap_net_raw,cap_net_admin+eip\ cap_setpcap,cap_setuid,cap_setgid+ep
@@ -25,6 +27,8 @@ string( REPLACE ".cpp" "" TARGETS_IDIOMATIC_PROVOCATIONS "${SOURCES_IDIOMATIC_PR
 
 foreach( name ${TARGETS_IDIOMATIC_PROVOCATIONS} )
     add_executable(${name} ${name}.cpp)
+    target_compile_options(${name} PUBLIC ${direct_bt_CXX_FLAGS})
+    target_link_options(${name} PUBLIC ${direct_bt_EXE_LINKER_FLAGS})
     target_link_libraries(${name} direct_bt catch2)
     add_dependencies(${name} direct_bt catch2)
 endforeach()

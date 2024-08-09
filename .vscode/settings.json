@@ -1,26 +1,26 @@
 {
-    "java.settings.url": "${workspaceFolder}/.settings/org.eclipse.jdt.core.prefs",
     "files.associations": {
         "*.hpp": "cpp",
         "*.cpp": "cpp",
         "*.cxx": "cpp"
     },
+    "cmake.useCMakePresets": "always",
     "cmake.configureOnOpen": true,
     "cmake.copyCompileCommands": "${workspaceFolder}/compile_commands.json",
     "cmake.sourceDirectory": "${workspaceFolder}",
-    "cmake.buildDirectory": "${workspaceFolder}/build-vscode",
     "cmake.configureArgs": [
-        "-DCMAKE_INSTALL_PREFIX=${workspaceFolder}/dist-vscode",
-        "-DCMAKE_C_COMPILER=/usr/bin/clang",
-        "-DCMAKE_CXX_COMPILER=/usr/bin/clang++",
-        "-DCMAKE_CXX_CLANG_TIDY=/usr/bin/clang-tidy;-p;${workspaceFolder}/build-vscode",
-        "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
-        "-DBUILD_TRIAL=ON",
-        "-DBUILDJAVA=ON"
+    ],
+    // "cmake.parallelJobs": 16,
+    "cmake.buildEnvironment": {
+        // "CMAKE_BUILD_PARALLEL_LEVEL": "16"
+    },
+    "cmake.buildArgs": [
+        "--parallel"
     ],
     "clangd.arguments": [
         "--background-index",
         "--project-root=${workspaceFolder}"
     ],
     "workbench.editor.labelFormat": "medium",
+    "C_Cpp.errorSquiggles": "disabled"
 }

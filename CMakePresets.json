@@ -9,11 +9,11 @@
     {
       "name": "debug",
       "displayName": "Debug (cc, C++20, java)",
-      "binaryDir": "${sourceDir}/build/preset-debug",
+      "binaryDir": "${sourceDir}/build/debug",
       "cacheVariables": {
         "CMAKE_CXX_STANDARD": "20",
         "CMAKE_BUILD_TYPE": "Debug",
-        "CMAKE_INSTALL_PREFIX": "dist/preset-debug",
+        "CMAKE_INSTALL_PREFIX": "dist/debug",
         "JAU_CMAKE_FIX_INSTALL_PREFIX": "ON",
         "TRY_JAVA": "ON",
         "USE_LIBCURL": "OFF",
@@ -28,19 +28,21 @@
       "name": "debug-clang",
       "inherits": "debug",
       "displayName": "Debug (clang, clang-tidy, C++20, java)",
-      "binaryDir": "${sourceDir}/build/preset-debug-clang",
+      "binaryDir": "${sourceDir}/build/debug-clang",
       "cacheVariables": {
+        "CMAKE_INSTALL_PREFIX": "dist/debug-clang",
         "CMAKE_C_COMPILER": "clang",
         "CMAKE_CXX_COMPILER": "clang++",
-        "CMAKE_CXX_CLANG_TIDY": "clang-tidy;-p;${sourceDir}/build/preset-debug-clang"
+        "CMAKE_CXX_CLANG_TIDY": "clang-tidy;-p;${sourceDir}/build/debug-clang"
       }
     },
     {
       "name": "debug-gcc",
       "inherits": "debug",
       "displayName": "Debug (gcc, C++20, java)",
-      "binaryDir": "${sourceDir}/build/preset-debug-gcc",
+      "binaryDir": "${sourceDir}/build/debug-gcc",
       "cacheVariables": {
+        "CMAKE_INSTALL_PREFIX": "dist/debug-gcc",
         "CMAKE_C_COMPILER": "gcc",
         "CMAKE_CXX_COMPILER": "g++"
       }
@@ -49,10 +51,10 @@
       "name": "release",
       "inherits": "debug",
       "displayName": "Release (cc, C++20, java)",
-      "binaryDir": "${sourceDir}/build/preset-release",
+      "binaryDir": "${sourceDir}/build/release",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
-        "CMAKE_INSTALL_PREFIX": "dist/preset-release",
+        "CMAKE_INSTALL_PREFIX": "dist/release",
         "JAU_CMAKE_FIX_INSTALL_PREFIX": "ON",
         "USE_LIBUNWIND": "OFF"
       }
@@ -61,21 +63,33 @@
       "name": "release-clang",
       "inherits": "release",
       "displayName": "Release (clang, clang-tidy, C++20, java)",
-      "binaryDir": "${sourceDir}/build/preset-release-clang",
+      "binaryDir": "${sourceDir}/build/release-clang",
       "cacheVariables": {
+        "CMAKE_INSTALL_PREFIX": "dist/release-clang",
         "CMAKE_C_COMPILER": "clang",
         "CMAKE_CXX_COMPILER": "clang++",
-        "CMAKE_CXX_CLANG_TIDY": "clang-tidy;-p;${sourceDir}/build/preset-release-clang"
+        "CMAKE_CXX_CLANG_TIDY": "clang-tidy;-p;${sourceDir}/build/release-clang"
       }
     },
     {
       "name": "release-gcc",
       "inherits": "release",
       "displayName": "Release (gcc, C++20, java)",
-      "binaryDir": "${sourceDir}/build/preset-release-gcc",
+      "binaryDir": "${sourceDir}/build/release-gcc",
       "cacheVariables": {
+        "CMAKE_INSTALL_PREFIX": "dist/release-gcc",
         "CMAKE_C_COMPILER": "gcc",
         "CMAKE_CXX_COMPILER": "g++"
+      }
+    },
+    {
+      "name": "default",
+      "inherits": "debug-clang",
+      "displayName": "Default (debug-clang)",
+      "binaryDir": "${sourceDir}/build/default",
+      "cacheVariables": {
+        "CMAKE_INSTALL_PREFIX": "dist/default",
+        "CMAKE_CXX_CLANG_TIDY": "clang-tidy;-p;${sourceDir}/build/default"
       }
     }
   ],
@@ -85,24 +99,28 @@
       "configurePreset": "debug"
     },
     {
-      "name": "debug-gcc",
-      "configurePreset": "debug-gcc"
-    },
-    {
       "name": "debug-clang",
       "configurePreset": "debug-clang"
+    },
+    {
+      "name": "debug-gcc",
+      "configurePreset": "debug-gcc"
     },
     {
       "name": "release",
       "configurePreset": "release"
     },
     {
+      "name": "release-clang",
+      "configurePreset": "release-clang"
+    },
+    {
       "name": "release-gcc",
       "configurePreset": "release-gcc"
     },
     {
-      "name": "release-clang",
-      "configurePreset": "release-clang"
+      "name": "default",
+      "configurePreset": "default"
     }
   ],
   "testPresets": [
@@ -113,14 +131,14 @@
       "execution": {"noTestsAction": "error", "stopOnFailure": true}
     },
     {
-      "name": "debug-gcc",
-      "configurePreset": "debug-gcc",
+      "name": "debug-clang",
+      "configurePreset": "debug-clang",
       "output": {"outputOnFailure": true},
       "execution": {"noTestsAction": "error", "stopOnFailure": true}
     },
     {
-      "name": "debug-clang",
-      "configurePreset": "debug-clang",
+      "name": "debug-gcc",
+      "configurePreset": "debug-gcc",
       "output": {"outputOnFailure": true},
       "execution": {"noTestsAction": "error", "stopOnFailure": true}
     },
@@ -131,14 +149,20 @@
       "execution": {"noTestsAction": "error", "stopOnFailure": true}
     },
     {
+      "name": "release-clang",
+      "configurePreset": "release-clang",
+      "output": {"outputOnFailure": true},
+      "execution": {"noTestsAction": "error", "stopOnFailure": true}
+    },
+    {
       "name": "release-gcc",
       "configurePreset": "release-gcc",
       "output": {"outputOnFailure": true},
       "execution": {"noTestsAction": "error", "stopOnFailure": true}
     },
     {
-      "name": "release-clang",
-      "configurePreset": "release-clang",
+      "name": "default",
+      "configurePreset": "default",
       "output": {"outputOnFailure": true},
       "execution": {"noTestsAction": "error", "stopOnFailure": true}
     }

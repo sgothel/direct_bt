@@ -2,6 +2,7 @@
 
 # Script arguments in order:
 #
+# <preset-name>     One of CMakePresets.txt, see `cmake --list-presets`
 # [-setcap]         Optional 1st argument to use setcap, see below
 # [-root]           Optional 1st argument to use sudo, see below
 # [-log <filename>] Optional argument to define logfile
@@ -31,13 +32,24 @@ bname=`basename $0 .sh`
 
 . $rootdir/jaulib/scripts/setup-machine-arch.sh "-quiet"
 
-dist_dir=$rootdir/"dist-$os_name-$archabi"
-build_dir=$rootdir/"build-$os_name-$archabi"
+tripleid="$os_name-$archabi"
+
+if [ ! -z "$1" ] ; then
+    preset_name=$1
+    shift 1
+else
+    echo "ERROR: No preset passed as 1st argument, use one of:"
+    cmake --list-presets
+    exit 1
+fi
+
+dist_dir="$rootdir/dist/${preset_name}-${tripleid}"
+build_dir="$rootdir/build/${preset_name}"
 echo dist_dir $dist_dir
 echo build_dir $build_dir
 
-if [ ! -e $dist_dir/lib/java/direct_bt-test.jar ] ; then
-    echo "test exe $dist_dir/lib/java/direct_bt-test.jar not existing"
+if [ ! -e $dist_dir/lib/java/direct_bt.jar -o ! -e $dist_dir/lib/libdirect_bt.so -o ! -e $dist_dir/lib/java/direct_bt-test.jar ] ; then
+    echo "dist-dir incomplete: $dist_dir"
     exit 1
 fi
 
@@ -61,7 +73,7 @@ if [ "$1" = "-log" ] ; then
     shift 2
 else
     mkdir -p $rootdir/doc/test
-    logfile=$rootdir/doc/test/${bname}-${os_name}-${archabi}.log
+    logfile=$rootdir/doc/test/${bname}-${preset_name}-${tripleid}.log
 fi
 rm -f $logfile
 logbasename=`basename ${logfile} .log`
