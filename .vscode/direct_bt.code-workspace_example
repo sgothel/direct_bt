@@ -48,17 +48,33 @@
       "breadcrumbs.showFunctions": true,
       "editor.defaultFormatter": "llvm-vs-code-extensions.vscode-clangd"
     },
-    "clangd.onConfigChanged": "restart",
-    "clangd.checkUpdates": true,
-    // "clangd.path": "/home/sven/.config/VSCodium/User/globalStorage/llvm-vs-code-extensions.vscode-clangd/install/15.0.3/clangd_15.0.3/bin/clangd",
-    "clangd.arguments": [
-        "--background-index"
-    ],
     "files.associations": {
         "*.hpp": "cpp",
         "*.cpp": "cpp",
         "*.cxx": "cpp"
     },
+    "clangd.onConfigChanged": "restart",
+    "clangd.checkUpdates": true,
+    "clangd.arguments": [ // "-log=verbose",
+                         "-pretty"
+                         , "--background-index"
+                         , "--compile-commands-dir=${workspaceFolder}"
+                         // , "--project-root=${workspaceFolder}"
+                         // , "--query-driver=/bin/arm-buildroot-linux-gnueabihf-g++" //for cross compile usage
+                         ],
+    "cmake.useCMakePresets": "always",
+    "cmake.configureOnOpen": true,
+    "cmake.copyCompileCommands": "${workspaceFolder}/compile_commands.json",
+    "cmake.sourceDirectory": "${workspaceFolder}",
+    "cmake.configureArgs": [
+    ],
+    // "cmake.parallelJobs": 16,
+    "cmake.buildEnvironment": {
+        // "CMAKE_BUILD_PARALLEL_LEVEL": "16"
+    },
+    "cmake.buildArgs": [
+        "--parallel"
+    ],
     "ShortcutMenuBar.compareWithSaved": false,
     "ShortcutMenuBar.openFilesList": false,
     "ShortcutMenuBar.saveAll": true,
@@ -69,6 +85,7 @@
     "ShortcutMenuBar.userButton04Command": "clangd.restart",
     // "clang-tidy.buildPath": "${workspaceFolder}/build/default",
     // "C_Cpp.default.cppStandard": "c++20",
+    "C_Cpp.errorSquiggles": "disabled",
   },
   "extensions": {
     "recommendations": [

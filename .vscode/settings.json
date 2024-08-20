@@ -1,26 +1,3 @@
+// empty default, mostly using project workspace settings
 {
-    "files.associations": {
-        "*.hpp": "cpp",
-        "*.cpp": "cpp",
-        "*.cxx": "cpp"
-    },
-    "cmake.useCMakePresets": "always",
-    "cmake.configureOnOpen": true,
-    "cmake.copyCompileCommands": "${workspaceFolder}/compile_commands.json",
-    "cmake.sourceDirectory": "${workspaceFolder}",
-    "cmake.configureArgs": [
-    ],
-    // "cmake.parallelJobs": 16,
-    "cmake.buildEnvironment": {
-        // "CMAKE_BUILD_PARALLEL_LEVEL": "16"
-    },
-    "cmake.buildArgs": [
-        "--parallel"
-    ],
-    "clangd.arguments": [
-        "--background-index",
-        "--project-root=${workspaceFolder}"
-    ],
-    "workbench.editor.labelFormat": "medium",
-    "C_Cpp.errorSquiggles": "disabled"
 }
