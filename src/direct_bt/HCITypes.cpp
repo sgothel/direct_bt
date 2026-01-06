@@ -136,6 +136,7 @@ namespace direct_bt {
         X(RFKILLED) \
         X(ALREADY_PAIRED) \
         X(PERMISSION_DENIED) \
+        X(L2CAP_CLIENT_TIMEOUT) \
         X(INTERNAL_TIMEOUT) \
         X(INTERNAL_FAILURE) \
         X(UNKNOWN)

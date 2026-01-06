@@ -31,4 +31,23 @@ Source: <https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware
 [Do Sep 30 11:35:45 2021] Bluetooth: hci1: RTL: cfg_sz 6, total sz 20522
 [Do Sep 30 11:35:46 2021] Bluetooth: hci1: RTL: fw version 0x0999646b
 
++++
 
+Kernel/System: 6.12.57+deb13-amd64 / Debian 13.2 (trixie)
+- Bluetooth: Core ver 2.22
+- USB ID 0b05:190e ASUSTek Computer, Inc. ASUS USB-BT500
+[1688369.884367] Bluetooth: MGMT ver 1.23
+[1689162.225018] usb 5-2: new full-speed USB device number 7 using xhci_hcd
+[1689162.533342] usb 5-2: New USB device found, idVendor=0b05, idProduct=190e, bcdDevice= 2.00
+[1689162.533348] usb 5-2: New USB device strings: Mfr=1, Product=2, SerialNumber=3
+[1689162.533349] usb 5-2: Product: ASUS USB-BT500
+[1689162.533350] usb 5-2: Manufacturer: Realtek
+[1689162.533351] usb 5-2: SerialNumber: 00E04C239987
+[1689162.562102] Bluetooth: hci1: RTL: examining hci_ver=0a hci_rev=000b lmp_ver=0a lmp_subver=8761
+[1689162.565081] Bluetooth: hci1: RTL: rom_version status=0 version=1
+[1689162.565085] Bluetooth: hci1: RTL: loading rtl_bt/rtl8761bu_fw.bin
+[1689162.640743] Bluetooth: hci1: RTL: loading rtl_bt/rtl8761bu_config.bin
+[1689162.646927] Bluetooth: hci1: RTL: cfg_sz 6, total sz 30210
+[1689163.394121] Bluetooth: hci1: RTL: fw version 0xdfc6d922
+
+3C:7C:3F:AB:C8:22

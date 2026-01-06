@@ -1,0 +1,30 @@
+Intel AX210
+
+Bluetooth 5
+
+ID 8087:0032 Intel Corp. AX210 Bluetooth
+
+Firmware
+    intel/ibt-0041-0041.sfi
+    Firmware Version: 200-48.24
+
+Kernel/System: 6.12.57+deb13-amd64 / Debian 13.2 (trixie)
+- Bluetooth: Core ver 2.22
+- Bus 005 Device 002: ID 8087:0032 Intel Corp. AX210 Bluetooth
+[Wed Dec 17 03:05:47 2025] usb 5-7: New USB device found, idVendor=8087, idProduct=0032, bcdDevice= 0.00
+[Wed Dec 17 03:05:47 2025] usb 5-7: New USB device strings: Mfr=0, Product=0, SerialNumber=0
+[Wed Dec 17 03:06:23 2025] Bluetooth: hci0: Found device firmware: intel/ibt-0041-0041.sfi
+[Wed Dec 17 03:06:23 2025] Bluetooth: hci0: Boot Address: 0x100800
+[Wed Dec 17 03:06:23 2025] Bluetooth: hci0: Firmware Version: 200-48.24
+[Wed Dec 17 03:06:23 2025] Bluetooth: hci0: Firmware already loaded
+[Wed Dec 17 03:06:23 2025] iwlwifi 0000:49:00.0: Detected Killer(R) Wi-Fi 6E AX1675x 160MHz Wireless Network Adapter (210NGW)
+[Wed Dec 17 03:06:23 2025] Bluetooth: hci0: Found device firmware: intel/ibt-0041-0041.sfi
+[Wed Dec 17 03:06:23 2025] Bluetooth: hci0: Boot Address: 0x100800
+[Wed Dec 17 03:06:23 2025] Bluetooth: hci0: Firmware Version: 200-48.24
+[Wed Dec 17 03:06:23 2025] Bluetooth: hci0: Firmware already loaded
+[Wed Dec 17 03:06:23 2025] Bluetooth: hci0: Fseq status: Success (0x00)
+[Wed Dec 17 03:06:23 2025] Bluetooth: hci0: Fseq executed: 00.00.02.42
+[Wed Dec 17 03:06:23 2025] Bluetooth: hci0: Fseq BT Top: 00.00.02.41
+[Wed Dec 17 03:06:23 2025] iwlwifi 0000:49:00.0: TLV_FW_FSEQ_VERSION: FSEQ Version: 0.0.2.42
+[Wed Dec 17 03:06:23 2025] iwlwifi 0000:49:00.0: loaded firmware version 89.4d42c933.0 ty-a0-gf-a0-89.ucode op_mode iwlmvm
+

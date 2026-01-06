@@ -132,6 +132,7 @@ EInfoReportRef BTDevice::getEIRScanRsp() noexcept {
 
 std::string BTDevice::toString(bool includeDiscoveredServices) const noexcept {
     const uint64_t t0 = jau::getCurrentMilliseconds();
+    bool l2cap_att_open = l2cap_att->is_open();
     jau::sc_atomic_critical sync(sync_data);
     std::string resaddr_s = visibleAddressAndType != addressAndType ? ", visible "+visibleAddressAndType.toString() : "";
     std::shared_ptr<const EInfoReport> eir_ = eir;
@@ -140,7 +141,8 @@ std::string BTDevice::toString(bool includeDiscoveredServices) const noexcept {
             "'], age[total "+std::to_string(t0-ts_creation)+", ldisc "+std::to_string(t0-ts_last_discovery)+", lup "+std::to_string(t0-ts_last_update)+
             "]ms, connected["+std::to_string(allowDisconnect)+"/"+std::to_string(isConnected)+", handle "+jau::to_hexstring(hciConnHandle)+
             ", phy[Tx "+direct_bt::to_string(le_phy_tx)+", Rx "+direct_bt::to_string(le_phy_rx)+
-            "], sec[enc "+std::to_string(pairing_data.encryption_enabled)+", lvl "+to_string(pairing_data.sec_level_conn)+", io "+to_string(pairing_data.io_cap_conn)+
+            "], l2cap "+jau::to_string(l2cap_att_open)+
+            ", sec[enc "+std::to_string(pairing_data.encryption_enabled)+", lvl "+to_string(pairing_data.sec_level_conn)+", io "+to_string(pairing_data.io_cap_conn)+
             ", auto "+to_string(pairing_data.io_cap_auto)+", pairing "+to_string(pairing_data.mode)+", state "+to_string(pairing_data.state)+
             ", sc "+std::to_string(pairing_data.use_sc)+"]], rssi "+std::to_string(getRSSI())+
             ", tx-power "+std::to_string(tx_power)+eir_s+
@@ -646,19 +648,24 @@ void BTDevice::processL2CAPSetup(std::shared_ptr<BTDevice> sthis) { // NOLINT(pe
 
         bool l2cap_open;
         if( is_local_server ) {
-            const uint64_t t0 = ( jau::environment::get().debug ) ? jau::getCurrentMilliseconds() : 0;
-            std::unique_ptr<L2CAPClient> l2cap_att_new = adapter.get_l2cap_connection(sthis);
-            const uint64_t td = ( jau::environment::get().debug ) ? jau::getCurrentMilliseconds() - t0 : 0;
-            if( nullptr == l2cap_att_new ) {
-                DBG_PRINT("L2CAP-ACCEPT: BTDevice::processL2CAPSetup: dev_id %d, td %" PRIu64 "ms, NULL l2cap_att", adapter.dev_id, td);
-                l2cap_open = false;
+            l2cap_open = l2cap_att->is_open();
+            if( !l2cap_open ) {
+                const uint64_t t0 = ( jau::environment::get().debug ) ? jau::getCurrentMilliseconds() : 0;
+                std::unique_ptr<L2CAPClient> l2cap_att_new = adapter.get_l2cap_connection(sthis);
+                const uint64_t td = ( jau::environment::get().debug ) ? jau::getCurrentMilliseconds() - t0 : 0;
+                if( nullptr == l2cap_att_new ) {
+                    DBG_PRINT("L2CAP-ACCEPT: New: BTDevice::processL2CAPSetup: dev_id %d, td %" PRIu64 "ms, NULL l2cap_att", adapter.dev_id, td);
+                } else {
+                    l2cap_att = std::move(l2cap_att_new);
+                    DBG_PRINT("L2CAP-ACCEPT: New: BTDevice::processL2CAPSetup: dev_id %d, td %" PRIu64 "ms, l2cap_att %s", adapter.dev_id, td, l2cap_att->toString().c_str());
+                    l2cap_open = true;
+                }
             } else {
-                l2cap_att = std::move(l2cap_att_new);
-                DBG_PRINT("L2CAP-ACCEPT: BTDevice::processL2CAPSetup: dev_id %d, td %" PRIu64 "ms, l2cap_att %s", adapter.dev_id, td, l2cap_att->toString().c_str());
+                DBG_PRINT("L2CAP-ACCEPT: Old: BTDevice::processL2CAPSetup: dev_id %d, l2cap_att %s", adapter.dev_id, l2cap_att->toString().c_str());
+            }
+            if( l2cap_open ) {
                 if( BTSecurityLevel::UNSET < sec_level && sec_level < BTSecurityLevel::ENC_AUTH ) { // authentication must be left alone in server mode
                     l2cap_open = l2cap_att->setBTSecurityLevel(sec_level);
-                } else {
-                    l2cap_open = true;
                 }
             }
         } else {
@@ -684,7 +691,7 @@ void BTDevice::processL2CAPSetup(std::shared_ptr<BTDevice> sthis) { // NOLINT(pe
                 cv_pairing_state_changed.notify_all();
             } else {
                 callDisconnect = true;
-                disconnect(HCIStatusCode::INTERNAL_FAILURE);
+                disconnect(HCIStatusCode::L2CAP_CLIENT_TIMEOUT);
             }
         } else if( !l2cap_enc ) {
             callProcessDeviceReady = true;
@@ -694,7 +701,7 @@ void BTDevice::processL2CAPSetup(std::shared_ptr<BTDevice> sthis) { // NOLINT(pe
             processDeviceReady(sthis, ts);
         }
     } else {
-        DBG_PRINT("BTDevice::processL2CAPSetup: Skipped (not LE) dev_id %u, %s", adapter.dev_id, toString().c_str());
+        DBG_PRINT("BTDevice::processL2CAPSetup: Skipped dev_id %u, %s", adapter.dev_id, toString().c_str());
     }
     DBG_PRINT("BTDevice::processL2CAPSetup: End [dev_id %u, disconnect %d, deviceReady %d, smp_auto %d], %s",
             adapter.dev_id, callDisconnect, callProcessDeviceReady, smp_auto, toString().c_str());

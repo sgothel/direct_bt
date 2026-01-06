@@ -342,6 +342,8 @@ namespace direct_bt {
             HCIConnectionRef removeDisconnectCmd(const uint16_t handle) noexcept {
                 return removeHCIConnection(disconnectCmdList, handle);
             }
+            void dumpHCIConnections(const char *msg, jau::darray<HCIConnectionRef> &list) noexcept;
+
 
             /** One MgmtAdapterEventCallbackList per event type, allowing multiple callbacks to be invoked for each event */
             std::array<MgmtEventCallbackList, static_cast<uint16_t>(MgmtEvent::Opcode::MGMT_EVENT_TYPE_COUNT)> mgmtEventCallbackLists;

@@ -223,6 +223,7 @@ namespace direct_bt {
 
         // Direct-BT
 
+        L2CAP_CLIENT_TIMEOUT = 0xfc,
         INTERNAL_TIMEOUT = 0xfd,
         INTERNAL_FAILURE = 0xfe,
         UNKNOWN = 0xff
