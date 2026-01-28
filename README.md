@@ -18,9 +18,10 @@ Peripheral server device programming is supported as well as the central client,
 
 Further, the [provided repeater](https://jausoft.com/projects/direct_bt/build/documentation/cpp/html/dbt_repeater00_8cpp-example.html) application allows to connect between a Bluetooth client and server to analyze their protocol.
 
-Direct-BT has been used successfully in a medical trial, as well as in a [connected medical device application](https://www.zafena.se/en/product/zafena-552-poc-workstation/).
+*Direct-BT* has been used successfully in a medical trial, as well as in a [connected medical device application](https://www.zafena.se/en/product/zafena-552-poc-workstation/).
 
-The [Jau C++ and Java support library](https://jausoft.com/cgit/jaulib.git/about/) has been extracted to encapsulate its generic use-cases.
+*Direct-BT* uses [jaulib](https://jausoft.com/cgit/jaulib.git/about/) for general purpose
+functionality including lock-free concurrent data-structures.
 
 Below you can find a few notes about [*Direct-BT* Origins](#direct_bt_origins).
 
@@ -280,6 +281,7 @@ systemctl mask bluetooth
 #### Install on Debian or Ubuntu
 
 Installing build dependencies for Debian >= 12 and Ubuntu >= 22:
+
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~{.sh}
 apt install git
 apt install build-essential g++ gcc libc-dev libpthread-stubs0-dev 
@@ -364,6 +366,7 @@ i.e. require two adapter to pass.
 
 Kick-off the workflow by e.g. using preset `release-gcc` to configure, build, test, install and building documentation.
 You may skip `install` and `doc` by dropping it from `--target`.
+
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~{.sh}
 cmake --preset release-gcc
 cmake --build --preset release-gcc --parallel
@@ -386,6 +389,7 @@ The hardcoded presets resemble `debug-clang` [presets](README.md#cmake_presets_o
 
 Kick-off the workflow to configure, build, test, install and building documentation.
 You may skip `install` and `doc` by dropping it from `--target`.
+
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~{.sh}
 rm -rf build/default
 cmake -B build/default
@@ -517,10 +521,12 @@ IDE integration configuration files are provided for
 
 For VSCodium one might copy the [example root-workspace file](https://jausoft.com/cgit/direct_bt.git/tree/.vscode/direct_bt.code-workspace_example)
 to the parent folder of this project (*note the filename change*) and adjust the `path` to your filesystem.
+
 ~~~~~~~~~~~~~
 cp .vscode/direct_bt.code-workspace_example ../direct_bt.code-workspace
 vi ../direct_bt.code-workspace
 ~~~~~~~~~~~~~
+
 Then you can open it via `File . Open Workspace from File...` menu item.
 - All listed extensions are referenced in this workspace file to be installed via the IDE
 - Select one of the [CMake Presets](README.md#cmake_presets_optional) for
