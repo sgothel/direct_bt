@@ -2553,9 +2553,21 @@ void BTAdapter::mgmtEvDeviceFoundHCI(const MgmtEvent& e) {
             }
 
             {
-                const HCIStatusCode res = mgmt->unpairDevice(dev_id, dev_shared->getAddressAndType(), false /* disconnect */);
-                if( HCIStatusCode::SUCCESS != res && HCIStatusCode::NOT_PAIRED != res ) {
-                    jau_WARN_PRINT("(dev_id %u): Unpair device failed %s of %s", dev_id, res, dev_shared->getAddressAndType());
+                /**
+                 * Skip Master-role unpair to avoid blocking the HCI management channel
+                 *
+                 * In Master role, unpairDevice() is issued on every disconnect and for every
+                 * newly discovered device. Each mgmt UNPAIR_DEVICE can time out (around 10s)
+                 * and block the single HCI management channel, which stalls GATT traffic on
+                 * the connected device. The unpair is only required for the Slave SC DHKey
+                 * path, so guard both call sites with BTRole::Master and keep just the local
+                 * SMP state cleanup for Masters.
+                 */
+                if( BTRole::Master != getRole() ) {
+                    const HCIStatusCode res = mgmt->unpairDevice(dev_id, dev_shared->getAddressAndType(), false /* disconnect */);
+                    if( HCIStatusCode::SUCCESS != res && HCIStatusCode::NOT_PAIRED != res ) {
+                        jau_WARN_PRINT("(dev_id %u): Unpair device failed %s of %s", dev_id, res, dev_shared->getAddressAndType());
+                    }
                 }
             }
             size_t i=0;
