@@ -2578,6 +2578,12 @@ std::uint32_t BTDevice::getResponderSMPPassKey() const noexcept {
 
 HCIStatusCode BTDevice::unpair() noexcept {
     if constexpr ( USE_LINUX_BT_SECURITY ) {
+        // In Master role the mgmt UNPAIR_DEVICE round-trip is unnecessary (it can block the mgmt
+        // channel and is only required for the Slave SC DHKey path); just do the local SMP cleanup.
+        if( BTRole::Master == adapter.getRole() ) {
+            clearSMPStates(getConnected() /* connected */);
+            return HCIStatusCode::SUCCESS;
+        }
         const BTManagerRef& mngr = adapter.getManager();
         const HCIStatusCode res = mngr->unpairDevice(adapter.dev_id, addressAndType, false /* disconnect */);
         if( HCIStatusCode::SUCCESS != res && HCIStatusCode::NOT_PAIRED != res ) {

@@ -2558,10 +2558,14 @@ void BTAdapter::mgmtEvDeviceFoundHCI(const MgmtEvent& e) noexcept {
             }
 
             {
-                const HCIStatusCode res = mgmt->unpairDevice(dev_id, dev_shared->getAddressAndType(), false /* disconnect */);
-                if( HCIStatusCode::SUCCESS != res && HCIStatusCode::NOT_PAIRED != res ) {
-                    WARN_PRINT("(dev_id %d): Unpair device failed %s of %s",
-                            dev_id, to_string(res).c_str(), dev_shared->getAddressAndType().toString().c_str());
+                // Skip the per-discovery mgmt UNPAIR_DEVICE in Master role: it runs for every
+                // discovered device and can block the mgmt channel; only relevant for the Slave role.
+                if( BTRole::Master != getRole() ) {
+                    const HCIStatusCode res = mgmt->unpairDevice(dev_id, dev_shared->getAddressAndType(), false /* disconnect */);
+                    if( HCIStatusCode::SUCCESS != res && HCIStatusCode::NOT_PAIRED != res ) {
+                        WARN_PRINT("(dev_id %d): Unpair device failed %s of %s",
+                                dev_id, to_string(res).c_str(), dev_shared->getAddressAndType().toString().c_str());
+                    }
                 }
             }
             int i=0;
