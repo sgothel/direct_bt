@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <!--
+    Maven metadata (pom) for publishing the Direct-BT Java library as org.direct_bt:direct-bt.
+
+    The artifact itself is the fat jar produced by the CMake build (Java API plus the platform native
+    libraries). This pom is not built; it is passed to install-file / deploy-file by publish.sh, which
+    attaches the prebuilt fat jar and source zip. See maven/README.md.
+  -->
+
+  <groupId>org.direct_bt</groupId>
+  <artifactId>direct-bt</artifactId>
+  <version>3.3.5</version>
+  <packaging>jar</packaging>
+
+  <name>Direct-BT</name>
+  <description>Direct-BT userspace Bluetooth LE library for the JVM, including its native libraries.</description>
+  <url>https://github.com/sgothel/direct_bt</url>
+
+  <licenses>
+    <license>
+      <name>MIT License</name>
+      <url>https://github.com/sgothel/direct_bt/blob/master/COPYING</url>
+    </license>
+  </licenses>
+
+  <developers>
+    <developer>
+      <name>Sven Gothel</name>
+      <email>sgothel@jausoft.com</email>
+      <organization>Gothel Software e.K.</organization>
+    </developer>
+  </developers>
+
+  <scm>
+    <connection>scm:git:https://github.com/sgothel/direct_bt.git</connection>
+    <url>https://github.com/sgothel/direct_bt</url>
+  </scm>
+
+  <distributionManagement>
+    <!-- Set the repository target before deploying. Maven Central (Sonatype) or any Nexus/Artifactory. -->
+    <repository>
+      <id>ossrh</id>
+      <name>Release repository</name>
+      <url>https://central.sonatype.com/api/v1/publisher</url>
+    </repository>
+  </distributionManagement>
+</project>
