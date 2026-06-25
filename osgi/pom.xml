@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <!--
+    OSGi bundle for Direct-BT, published as a Maven artifact.
+
+    This module wraps the Direct-BT fat jar produced by the CMake build
+    (build/<preset>/java_fat/direct_bt-fat.jar, containing the Java API and the platform natives
+    under natives/) into a proper OSGi bundle: it adds a BundleActivator that extracts the bundled
+    natives onto java.library.path on start, exports the public packages and imports the OSGi API.
+
+    Build and publish are documented in osgi/README.md. In short: build the CMake fat jar target,
+    run install-fatjar.sh to install it locally, then run a Maven install (or deploy with the
+    release profile) on this pom.
+
+    The artifact coordinate is org.direct_bt:direct-bt, intended for consumers such as the openHAB
+    Direct-BT binding which reference it as an mvn bundle URL.
+  -->
+
+  <groupId>org.direct_bt</groupId>
+  <artifactId>direct-bt</artifactId>
+  <version>3.3.5</version>
+  <packaging>bundle</packaging>
+
+  <name>Direct-BT OSGi bundle</name>
+  <description>OSGi bundle of the Direct-BT userspace Bluetooth LE library, including its native libraries.</description>
+  <url>https://github.com/sgothel/direct_bt</url>
+
+  <licenses>
+    <license>
+      <name>MIT License</name>
+      <url>https://github.com/sgothel/direct_bt/blob/master/COPYING</url>
+    </license>
+  </licenses>
+
+  <developers>
+    <developer>
+      <name>Sven Gothel</name>
+      <email>sgothel@jausoft.com</email>
+      <organization>Gothel Software e.K.</organization>
+    </developer>
+  </developers>
+
+  <scm>
+    <connection>scm:git:https://github.com/sgothel/direct_bt.git</connection>
+    <url>https://github.com/sgothel/direct_bt</url>
+  </scm>
+
+  <properties>
+    <maven.compiler.release>17</maven.compiler.release>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  </properties>
+
+  <dependencies>
+    <!-- The CMake-built fat jar (Java classes + natives), installed locally by install-fatjar.sh.
+         Embedded (inlined) into this bundle below. -->
+    <dependency>
+      <groupId>org.direct_bt</groupId>
+      <artifactId>direct-bt-fat</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <!-- OSGi framework API for the activator; provided by the runtime, not embedded. -->
+    <dependency>
+      <groupId>org.osgi</groupId>
+      <artifactId>org.osgi.framework</artifactId>
+      <version>1.10.0</version>
+      <scope>provided</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.felix</groupId>
+        <artifactId>maven-bundle-plugin</artifactId>
+        <version>5.1.9</version>
+        <extensions>true</extensions>
+        <configuration>
+          <instructions>
+            <Bundle-SymbolicName>org.direct_bt</Bundle-SymbolicName>
+            <Bundle-Name>org.direct_bt</Bundle-Name>
+            <Bundle-Vendor>Gothel Software e.K.</Bundle-Vendor>
+            <Bundle-Activator>org.direct_bt.osgi.DirectBTActivator</Bundle-Activator>
+            <!-- Fold the CMake fat jar (classes + natives/) into this bundle. -->
+            <Embed-Dependency>direct-bt-fat;inline=true</Embed-Dependency>
+            <Embed-Transitive>false</Embed-Transitive>
+            <Export-Package>org.direct_bt,org.jau.net</Export-Package>
+            <Import-Package>org.osgi.framework</Import-Package>
+          </instructions>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+
+  <!--
+    distributionManagement and the release profile are scaffolding for the maintainer to publish.
+    Fill in the repository URLs (e.g. Sonatype Central, or any Nexus/Artifactory), provide GPG and
+    server credentials in settings.xml, then run: mvn -f osgi/pom.xml deploy -Prelease
+  -->
+  <distributionManagement>
+    <repository>
+      <id>ossrh</id>
+      <name>Release repository</name>
+      <url>https://central.sonatype.com/api/v1/publisher</url>
+    </repository>
+    <snapshotRepository>
+      <id>ossrh</id>
+      <name>Snapshot repository</name>
+      <url>https://central.sonatype.com/api/v1/publisher</url>
+    </snapshotRepository>
+  </distributionManagement>
+
+  <profiles>
+    <profile>
+      <id>release</id>
+      <build>
+        <plugins>
+          <!-- Sources and javadoc jars are required by Maven Central. -->
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-source-plugin</artifactId>
+            <version>3.3.1</version>
+            <executions>
+              <execution>
+                <id>attach-sources</id>
+                <goals><goal>jar-no-fork</goal></goals>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-javadoc-plugin</artifactId>
+            <version>3.7.0</version>
+            <executions>
+              <execution>
+                <id>attach-javadoc</id>
+                <goals><goal>jar</goal></goals>
+              </execution>
+            </executions>
+          </plugin>
+          <!-- GPG signing; maintainer provides the key via settings.xml / gpg agent. -->
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-gpg-plugin</artifactId>
+            <version>3.2.4</version>
+            <executions>
+              <execution>
+                <id>sign-artifacts</id>
+                <phase>verify</phase>
+                <goals><goal>sign</goal></goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+</project>
