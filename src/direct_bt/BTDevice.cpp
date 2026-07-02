@@ -332,13 +332,34 @@ HCIStatusCode BTDevice::connectLE(const uint16_t le_scan_interval, const uint16_
     HCILEOwnAddressType hci_own_mac_type = adapter.visibleMACType;
     HCILEPeerAddressType hci_peer_mac_type;
 
-    switch( addressAndType.type ) {
+    /**
+     * A peer that distributed its identity during pairing is tracked by its identity address
+     * (see updateIdentityAddress()), but keeps advertising under its visible address,
+     * e.g. a resolvable private address or a static random address.
+     * The controller performs no address resolution here (no resolving list, see TODO below),
+     * hence connect to the visible address and map HCI events back to the identity address
+     * via setResolvHCIConnectionAddr().
+     *
+     * Note: If such peer switches to advertise under its identity address while its old
+     * visible address is still tracked, the visible address is stale and this connect
+     * attempt will fail until re-discovery updates it (BTAdapter::findDevice()).
+     */
+    BDAddressAndType connect_address = addressAndType;
+    {
+        jau::sc_atomic_critical sync(sync_data);
+        if( visibleAddressAndType != addressAndType &&
+            BDAddressType::BDADDR_UNDEFINED != visibleAddressAndType.type ) {
+            connect_address = visibleAddressAndType;
+        }
+    }
+
+    switch( connect_address.type ) {
         case BDAddressType::BDADDR_LE_PUBLIC:
             hci_peer_mac_type = HCILEPeerAddressType::PUBLIC;
             break;
         case BDAddressType::BDADDR_LE_RANDOM: {
             // TODO: Shall we support 'resolving list' and/or LE Set Privacy Mode (HCI) ?
-            const BLERandomAddressType leRandomAddressType = addressAndType.getBLERandomAddressType();
+            const BLERandomAddressType leRandomAddressType = connect_address.getBLERandomAddressType();
             switch( leRandomAddressType ) {
                 case BLERandomAddressType::UNRESOLVABLE_PRIVAT:
                     // TODO: OK to not be able to resolve?
@@ -360,7 +381,7 @@ HCIStatusCode BTDevice::connectLE(const uint16_t le_scan_interval, const uint16_
             }
         } break;
         default: {
-            ERR_PRINT("Can't connectLE to address type '%s': %s", to_string(addressAndType.type).c_str(), toString().c_str());
+            ERR_PRINT("Can't connectLE to address type '%s': %s", to_string(connect_address.type).c_str(), toString().c_str());
             return HCIStatusCode::UNACCEPTABLE_CONNECTION_PARAM;
         }
     }
@@ -427,10 +448,15 @@ HCIStatusCode BTDevice::connectLE(const uint16_t le_scan_interval, const uint16_
                 return HCIStatusCode::INTERNAL_FAILURE;
             }
         }
-        statusConnect = hci.le_create_conn(addressAndType.address,
+        statusConnect = hci.le_create_conn(connect_address.address,
                                     hci_peer_mac_type, hci_own_mac_type,
                                     le_scan_interval, le_scan_window, conn_interval_min, conn_interval_max,
                                     conn_latency, conn_supervision_timeout);
+        if( HCIStatusCode::SUCCESS == statusConnect && connect_address != addressAndType ) {
+            // Map HCI events of the pending connection (tracked under the visible
+            // connect_address) back to the tracked identity address.
+            hci.setResolvHCIConnectionAddr(connect_address, addressAndType);
+        }
         supervision_timeout = 10 * conn_supervision_timeout; // [ms] = 10 * [ms/10]
         allowDisconnect = true;
         if( HCIStatusCode::COMMAND_DISALLOWED == statusConnect ) {

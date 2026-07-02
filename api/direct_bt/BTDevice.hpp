@@ -399,6 +399,26 @@ namespace direct_bt {
             BDAddressAndType const & getVisibleAddressAndType() const noexcept { return visibleAddressAndType; }
 
             /**
+             * Returns the BDAddressAndType under which the OS kernel tracks this device's ACL connection,
+             * i.e. the address to be used for L2CAP connections.
+             * <p>
+             * The kernel registers the connection under the address reported in the HCI connection-complete
+             * event (the visible address, see BTDevice::connectLE()), rewritten to the paired identity
+             * address only where the kernel itself can resolve it via the peer's
+             * Identity Resolving Key (IRK), i.e. for a resolvable private (visible) address.
+             * For any other visible address differing from the identity address, e.g. a static random
+             * address of a peer that distributed a public identity, the kernel keeps the visible address.
+             * </p>
+             */
+            BDAddressAndType const & getKernelConnectionAddressAndType() const noexcept {
+                if( visibleAddressAndType == addressAndType ||
+                    BLERandomAddressType::RESOLVABLE_PRIVAT == visibleAddressAndType.getBLERandomAddressType() ) {
+                    return addressAndType;
+                }
+                return visibleAddressAndType;
+            }
+
+            /**
              * Returns Received Signal Strength Indicator (RSSI)
              * in dBm with ±6 dB accuracy of device as recognized at discovery and connect.
              * <p>
