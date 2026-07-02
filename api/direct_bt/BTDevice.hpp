@@ -396,6 +396,19 @@ namespace direct_bt {
             BDAddressAndType const & getVisibleAddressAndType() const noexcept { return visibleAddressAndType; }
 
             /**
+             * Returns the BDAddressAndType under which the kernel subsystem tracks this device's ACL connection,
+             * i.e. the address to be used for L2CAP connections.
+             *
+             * On GNU/Linux (BlueZ) the identity address getAddressAndType() is returned in case its
+             * - non-randomized
+             * - randomized BLERandomAddressType::RESOLVABLE_PRIVAT.
+             * Otherwise the visible randomized address is returned for BLERandomAddressType::STATIC_PUBLIC.
+             *
+             * On all other kernel subsystems the identity address getAddressAndType() is returned.
+             */
+            BDAddressAndType const & getL2CAPAddressAndType() const noexcept;
+
+            /**
              * Returns Received Signal Strength Indicator (RSSI)
              * in dBm with ±6 dB accuracy of device as recognized at discovery and connect.
              * <p>
