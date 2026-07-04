@@ -10,6 +10,8 @@ platform native libraries) and the Java source zip, and runs a local install or 
 
 ## 1. Build the artifacts
 
+For a **single-architecture** jar (the host's arch only):
+
 ```
 cmake --preset release-gcc
 cmake --build build/release-gcc --target direct_bt_fat_jar
@@ -18,6 +20,22 @@ cmake --build build/release-gcc --target direct_bt_fat_jar
 This produces `build/release-gcc/java_fat/direct_bt-fat.jar` and `direct_bt-java-src.zip`.
 Override the locations with `DIRECT_BT_FATJAR` / `DIRECT_BT_SRCZIP` (or `DIRECT_BT_BUILD`) if your
 build output is elsewhere.
+
+For a **multi-architecture** jar (natives for every supported arch under `natives/<os_and_arch>/` in one
+jar — what a published artifact should carry), use the reproducible docker build:
+
+```
+# one-time: register qemu binfmt for foreign-arch containers
+docker run --privileged --rm tonistiigi/binfmt --install arm64,arm
+
+scripts/build-fatjar-multiarch.sh
+```
+
+It builds each architecture in a Debian container under that platform (docker + qemu) and merges the
+per-arch natives into a single fat jar at `build-docker/fatjar/direct_bt-fat.jar`. This replaces the
+mounted-rootfs cross build in `scripts/build-preset-cross.sh`, which needs private disk images. Default
+architectures are `linux/amd64` + `linux/arm64/v8`; see the script header for the armhf status. Point
+`DIRECT_BT_FATJAR` / `DIRECT_BT_SRCZIP` at its output when publishing (step 2/3).
 
 ## 2. Install locally
 
