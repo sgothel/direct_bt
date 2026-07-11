@@ -1502,11 +1502,34 @@ HCIStatusCode HCIHandler::disconnect(const uint16_t conn_handle, const BDAddress
     // Always issue DISCONNECT command, even in case of an ioError (lost-connection),
     // see Issue #124 fast re-connect on CSR adapter.
     // This will always notify the adapter of a disconnected device.
+    //
+    // The DISCONNECT command only accepts the error codes listed in BT Core Spec v5.2, Vol 4, Part E,
+    // 7.1.6 (0x05, 0x13-0x15, 0x1a, 0x29, 0x3b). Our extended HCIStatusCode values (MgmtStatus mappings
+    // and Direct-BT internal codes like L2CAP_CLIENT_TIMEOUT) are rejected by the controller with
+    // INVALID_HCI_COMMAND_PARAMETERS, in which case no disconnect happens at all: the tracker entry is
+    // dropped below while the ACL stays up, the peripheral never advertises again and can only be
+    // recovered by closing the HCI channel. Hence map any non-transmittable reason to
+    // REMOTE_USER_TERMINATED_CONNECTION for the wire, keeping the caller's reason for tracking/logging.
+    HCIStatusCode wire_reason;
+    switch( reason ) {
+        case HCIStatusCode::AUTHENTICATION_FAILURE:
+        case HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION:
+        case HCIStatusCode::REMOTE_DEVICE_TERMINATED_CONNECTION_LOW_RESOURCES:
+        case HCIStatusCode::REMOTE_DEVICE_TERMINATED_CONNECTION_POWER_OFF:
+        case HCIStatusCode::UNSUPPORTED_REMOTE_OR_LMP_FEATURE:
+        case HCIStatusCode::PAIRING_WITH_UNIT_KEY_NOT_SUPPORTED:
+        case HCIStatusCode::UNACCEPTABLE_CONNECTION_PARAM:
+            wire_reason = reason;
+            break;
+        default:
+            wire_reason = HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION;
+            break;
+    }
     {
         HCIStructCommand<hci_cp_disconnect> req0(HCIOpcode::DISCONNECT);
         hci_cp_disconnect * cp = req0.getWStruct();
         cp->handle = jau::cpu_to_le(conn_handle);
-        cp->reason = number(reason);
+        cp->reason = number(wire_reason);
 
         std::unique_ptr<HCIEvent> ev = processCommandStatus(req0, &status);
     }
