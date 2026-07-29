@@ -904,6 +904,10 @@ namespace direct_bt {
              * however, it shall comply at least with the HCI Reset command
              * and bring up the device from standby into a POWERED functional state afterwards.
              * </p>
+             * <p>
+             * Reset stops discovery and clears both native and meta scan state. A new discovery session must be
+             * started explicitly after the reset.
+             * </p>
              * <pre>
              * BT Core Spec v5.2: Vol 4, Part E HCI: 7.3.2 Reset command
              * </pre>

@@ -326,7 +326,13 @@ public class DBTAdapter extends DBTObject implements BTAdapter
 
     @Override
     public final HCIStatusCode reset() {
-        return HCIStatusCode.get( resetImpl() );
+        final HCIStatusCode status = HCIStatusCode.get( resetImpl() );
+        if( HCIStatusCode.SUCCESS == status ) {
+            // A successful native reset stops discovery. Keep the Java-side cache correct even when the controller
+            // does not emit a discoveringChanged event for the implicit stop.
+            currentMetaScanType.set(ScanType.NONE);
+        }
+        return status;
     }
     private native byte resetImpl();
 

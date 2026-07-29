@@ -952,6 +952,15 @@ HCIStatusCode BTAdapter::reset() noexcept {
         ERR_PRINT("HCI closed: %s, %s", jau::to_hexstring(this).c_str(), toString().c_str());
         return HCIStatusCode::UNSPECIFIED_ERROR;
     }
+    const ScanType previousMetaScanType = currentMetaScanType;
+    const DiscoveryPolicy previousDiscoveryPolicy = discovery_policy;
+
+    // resetAdapter() clears HCIHandler::currentScanType as part of taking the controller down. Prevent the
+    // keep-alive worker from racing that reset and treat discovery as explicitly stopped; the caller may start a
+    // fresh discovery session after reset completes.
+    discovery_policy = DiscoveryPolicy::AUTO_OFF;
+    discovery_service.stop();
+
     DBG_PRINT("BTAdapter::reset.0: %s", toString().c_str());
     HCIStatusCode res = hci.resetAdapter( [&]() noexcept -> HCIStatusCode {
         jau::nsize_t connCount = getConnectedDeviceCount();
@@ -973,6 +982,30 @@ HCIStatusCode BTAdapter::reset() noexcept {
         }
         return HCIStatusCode::SUCCESS; // keep going
     });
+
+    const ScanType currentNativeScanType = hci.getCurrentScanType();
+    if( ScanType::NONE == currentNativeScanType ) {
+        currentMetaScanType = ScanType::NONE;
+        if( ScanType::NONE != previousMetaScanType ) {
+            const uint64_t eventTimestamp = jau::getCurrentMilliseconds();
+            int i = 0;
+            jau::for_each_fidelity(statusListenerList, [&](StatusListenerPair &p) {
+                try {
+                    p.listener->discoveringChanged(*this, currentMetaScanType, previousMetaScanType, false,
+                                                  discovery_policy, eventTimestamp);
+                } catch (std::exception &except) {
+                    ERR_PRINT("BTAdapter::reset:DeviceDiscovering-CBs %d/%zd: %s of %s: Caught exception %s",
+                              i+1, statusListenerList.size(), p.listener->toString().c_str(), toString().c_str(),
+                              except.what());
+                }
+                i++;
+            });
+        }
+    } else {
+        // The controller never reached the reset state; preserve the discovery contract that is still live.
+        discovery_policy = previousDiscoveryPolicy;
+    }
+
     DBG_PRINT("BTAdapter::reset.X: %s - %s", to_string(res).c_str(), toString().c_str());
     return res;
 }
