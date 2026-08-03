@@ -125,7 +125,7 @@ jbyteArray Java_jau_direct_1bt_DBTGattChar_readValueImpl(JNIEnv *env, jobject ob
         jau::POctets res(BTGattHandler::number(BTGattHandler::Defaults::MAX_ATT_MTU), 0, jau::lb_endian_t::little);
         if( !characteristic->readValue(res) ) {
             ERR_PRINT("Characteristic readValue failed: %s", characteristic->toString().c_str());
-            return env->NewByteArray((jsize)0);
+            return nullptr;
         }
 
         const size_t value_size = res.size();
