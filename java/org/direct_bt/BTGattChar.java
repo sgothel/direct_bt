@@ -296,7 +296,8 @@ public interface BTGattChar extends BTObject
     List<BTGattDesc> getDescriptors();
 
     /** Reads the value of this characteristic.
-      * @return A std::vector<unsgined char> containing the value of this characteristic.
+      * @return A byte array containing the value of this characteristic, including a zero-length array for an empty
+      * value, or {@code null} if the native read failed.
       */
     byte[] readValue() throws BTException;
 

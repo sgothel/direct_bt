@@ -721,6 +721,7 @@ namespace direct_bt {
              * If expectedLength > 0, then long values using multiple ATT_READ_BLOB_REQ/RSP will be used
              * if required until the response returns zero.
              * </p>
+             * @return @c true after a valid read response, including a zero-length value; otherwise @c false.
              */
             bool readValue(const uint16_t handle, jau::POctets & res, ssize_type expectedLength=-1) noexcept;
 
