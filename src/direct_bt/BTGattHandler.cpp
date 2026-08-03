@@ -1264,6 +1264,7 @@ bool BTGattHandler::readValue(const uint16_t handle, jau::POctets & res, ssize_t
     jau_PERF2_TS_T0();
 
     bool done=false;
+    bool success=false;
     size_type offset=0;
 
     jau_COND_PRINT(env.DEBUG_DATA, "GATTHandler::readValue expLen %zu, handle %s from %s", (size_t)expectedLength, jau::toHexString(handle), toString());
@@ -1291,6 +1292,7 @@ bool BTGattHandler::readValue(const uint16_t handle, jau::POctets & res, ssize_t
         if( pdu->getOpcode() == AttPDUMsg::Opcode::READ_RSP ) {
             const AttReadNRsp * p = static_cast<const AttReadNRsp*>(pdu.get());
             const jau::TOctetSlice & v = p->getValue();
+            success = true;
             res += v;
             offset += v.size();
             if( p->getPDUValueSize() < p->getMaxPDUValueSize(usedMTU) ) {
@@ -1299,6 +1301,7 @@ bool BTGattHandler::readValue(const uint16_t handle, jau::POctets & res, ssize_t
         } else if( pdu->getOpcode() == AttPDUMsg::Opcode::READ_BLOB_RSP ) {
             const AttReadNRsp * p = static_cast<const AttReadNRsp*>(pdu.get());
             const jau::TOctetSlice & v = p->getValue();
+            success = true;
             if( 0 == v.size() ) {
                 done = true; // OK by spec: No more data - end of communication
             } else {
@@ -1322,16 +1325,18 @@ bool BTGattHandler::readValue(const uint16_t handle, jau::POctets & res, ssize_t
                 done = true; // OK by spec: No more data - end of communication
             } else {
                 jau_WORDY_PRINT("GATT readValue unexpected error %s; req %s from %s", pdu->toString(), req, toString());
+                success = false;
                 done = true;
             }
         } else {
             jau_ERR_PRINT("GATT readValue unexpected reply %s; req %s from %s", pdu->toString(), req, toString());
+            success = false;
             done = true;
         }
     }
     jau_PERF2_TS_TD("GATT readValue");
 
-    return offset > 0;
+    return success;
 }
 
 bool BTGattHandler::writeDescriptorValue(const BTGattDesc & cd) {

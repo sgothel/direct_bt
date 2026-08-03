@@ -528,9 +528,7 @@ static void processReadyDevice(const BTDeviceRef& device) {
                     POctets value(BTGattHandler::number(BTGattHandler::Defaults::MAX_ATT_MTU), 0, jau::lb_endian_t::little);
                     if( serviceChar->readValue(value) ) {
                         std::string sval = dfa_utf8_decode(value.get_ptr(), value.size());
-                        {
-                            jau_fprintf_td(stderr, "  [%2.2zu.%2.2zu]     value: %s ('%s')\n", (int)i, (int)j, value, sval);
-                        }
+                        jau_fprintf_td(stderr, "  [%2.2zu.%2.2zu]     value: %s ('%s')\n", (int)i, (int)j, value, sval);
                     }
                 }
                 jau::darray<BTGattDescRef> & charDescList = serviceChar->descriptorList;

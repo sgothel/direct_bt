@@ -508,10 +508,14 @@ public class DBTClient01 implements DBTClientTest {
                             }
                             final GattCharPropertySet properties = serviceChar.getProperties();
                             if( properties.isSet(GattCharPropertySet.Type.Read) ) {
-                                final byte[] value = serviceChar.readValue();
-                                final String svalue = BTUtils.decodeUTF8String(value, 0, value.length);
                                 if( GATT_VERBOSE ) {
-                                    PrintUtil.fprintf_td(System.err, "  [%02d.%02d]     value: %s ('%s')\n", i, j, BasicTypes.bytesHexString(value, 0, -1, true), svalue);
+                                    final byte[] value = serviceChar.readValue();
+                                    if (value != null) {
+                                        final String svalue = BTUtils.decodeUTF8String(value, 0, value.length);
+                                        PrintUtil.fprintf_td(System.err, "  [%02d.%02d]     value: %s ('%s')\n", i, j, BasicTypes.bytesHexString(value, 0, -1, true), svalue);
+                                    } else {
+                                        PrintUtil.fprintf_td(System.err, "  [%02d.%02d]     value: read-error\n", i, j);
+                                    }
                                 }
                             }
                             int k=0;
