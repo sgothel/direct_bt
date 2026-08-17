@@ -272,6 +272,14 @@ namespace direct_bt {
     };
     inline std::string to_string(const AdapterInfo& a) noexcept { return a.toString(); }
 
+    /// HCI_HARDWARE_ERROR Event
+    struct HardwareError {
+        /** Monotonic ms of the last HCI HARDWARE_ERROR, 0 if none */
+        uint64_t timestamp;
+        /** Code of the HCI HARDWARE_ERROR, 0 if none */
+        uint8_t error_code;
+    };
+
     /**@}*/
 
 } // namespace direct_bt

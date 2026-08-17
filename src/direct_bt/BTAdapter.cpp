@@ -38,7 +38,9 @@
 
 #include "BTAdapter.hpp"
 #include "BTManager.hpp"
+#include "BTTypes1.hpp"
 #include "DBTConst.hpp"
+#include "HCITypes.hpp"
 #include "jau/cpp_lang_util.hpp"
 
 extern "C" {
@@ -396,6 +398,7 @@ bool BTAdapter::enableListening(const bool enable) noexcept {
         ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::DISCOVERING, jau::bind_member(this, &BTAdapter::mgmtEvDeviceDiscoveringHCI)) && ok;
         ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_CONNECTED, jau::bind_member(this, &BTAdapter::mgmtEvDeviceConnectedHCI)) && ok;
         ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::CONNECT_FAILED, jau::bind_member(this, &BTAdapter::mgmtEvConnectFailedHCI)) && ok;
+        ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::HCI_HARDWARE_ERROR, jau::bind_member(this, &BTAdapter::mgmtEvHardwareErrorHCI)) && ok;
         ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_DISCONNECTED, jau::bind_member(this, &BTAdapter::mgmtEvDeviceDisconnectedHCI)) && ok;
         ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_FOUND, jau::bind_member(this, &BTAdapter::mgmtEvDeviceFoundHCI)) && ok;
         ok = hci.addMgmtEventCallback(MgmtEvent::Opcode::HCI_LE_REMOTE_FEATURES, jau::bind_member(this, &BTAdapter::mgmtEvHCILERemoteUserFeaturesHCI)) && ok;
@@ -432,6 +435,7 @@ BTAdapter::BTAdapter(const BTAdapter::ctor_cookie& cc, BTManagerRef mgmt_, Adapt
   mgmt( std::move(mgmt_) ),
   adapterInfo( std::move(adapterInfo_) ),
   adapter_initialized( false ), adapter_poweredoff_at_init( true ),
+  hw_healthy(true), last_hw_error(HardwareError{.timestamp=0, .error_code=0}), hw_error_count(0),
   le_features( LE_Features::NONE ),
   hci_uses_ext_scan( false ), hci_uses_ext_conn( false ), hci_uses_ext_adv( false ),
   visibleAddressAndType( adapterInfo.addressAndType ),
@@ -555,7 +559,7 @@ void BTAdapter::poweredOff(bool active, const std::string& msg) noexcept {
     }
 
     // Removes all device references from the lists: connectedDevices, discoveredDevices
-    disconnectAllDevices(HCIStatusCode::NOT_POWERED);
+    disconnectAllDevices(hw_healthy ? HCIStatusCode::NOT_POWERED : HCIStatusCode::HARDWARE_FAILURE);
     removeDiscoveredDevices();
 
     // ensure all hci states are reset.
@@ -952,10 +956,13 @@ HCIStatusCode BTAdapter::reset() noexcept {
 
     discovery_policy = DiscoveryPolicy::AUTO_OFF;
     discovery_service.stop();
+    const bool was_healthy = hw_healthy;
 
     HCIStatusCode res = hci.resetAdapter( [&]() noexcept -> HCIStatusCode {
+        // Shall trigger poweredOff -> disconnectAllDevices
         jau::nsize_t connCount = getConnectedDeviceCount();
-        if( 0 < connCount ) {
+        // Don't wait until disconnect in case of hw-failure
+        if( was_healthy && 0 < connCount ) {
             const jau::fraction_i64 timeout = hci.env.HCI_COMMAND_COMPLETE_REPLY_TIMEOUT;
             const jau::fraction_i64 poll_period = hci.env.HCI_COMMAND_POLL_PERIOD;
             jau_DBG_PRINT("BTAdapter::reset: %zu connections pending - %s", connCount, toString());
@@ -978,6 +985,15 @@ HCIStatusCode BTAdapter::reset() noexcept {
         }
         return HCIStatusCode::SUCCESS; // keep going
     });
+    if (!was_healthy) {
+        // Just in case poweredOff didn't get triggered, i.e. failed reset
+        disconnectAllDevices(HCIStatusCode::HARDWARE_FAILURE);
+    }
+    if( HCIStatusCode::SUCCESS == res ) {
+        // Device-init path re-ran; a still-faulty controller clears this again on the next HARDWARE_ERROR.
+        hw_healthy = true;
+        last_hw_error = HardwareError{.timestamp=0, .error_code=0};
+    }
     jau_DBG_PRINT("BTAdapter::reset.X: %s - %s", res, toString());
     return res;
 }
@@ -2195,6 +2211,30 @@ void BTAdapter::mgmtEvDeviceConnectedMgmt(const MgmtEvent& e) noexcept {
         ad_report.read_data(event.getData(), event.getDataSize());
     }
     jau_DBG_PRINT("BTAdapter::mgmtEvDeviceConnectedMgmt(dev_id %u): Event %s, AD EIR %s", dev_id, e, ad_report.toString(true));
+}
+
+void BTAdapter::mgmtEvHardwareErrorHCI(const MgmtEvent& e) noexcept {
+    const MgmtEvtHCIHardwareError &event = *static_cast<const MgmtEvtHCIHardwareError *>(&e);
+    const uint8_t error_code = event.getErrorCode();
+
+    // Record and notify only, recovery is left to the caller. isValid()/isPowered() still read true here.
+    hw_healthy = false;
+    last_hw_error = HardwareError{.timestamp=event.getTimestamp(), .error_code=error_code};
+    const uint32_t error_count = ++hw_error_count;
+
+    jau_ERR_PRINT("BTAdapter::hci:HardwareError(dev_id %u): error-code %#2.2x, count %u; controller non-functional until reset(true) - %s",
+        dev_id, error_code, error_count, toString());
+
+    size_t i=0;
+    jau::for_each_fidelity(statusListenerList, [&](StatusListenerPair &p) {
+        try {
+            p.listener->adapterHardwareError(*this, error_code, error_count, event.getTimestamp());
+        } catch (std::exception &except) {
+            jau_ERR_PRINT("BTAdapter::hci:HardwareError-CBs %zu/%zu: %s of %s: Caught exception %s",
+                i+1, statusListenerList.size(), p.listener->toString(), toString(), except.what());
+        }
+        i++;
+    });
 }
 
 void BTAdapter::mgmtEvConnectFailedHCI(const MgmtEvent& e) noexcept {

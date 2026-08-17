@@ -138,6 +138,29 @@ namespace direct_bt {
             }
 
             /**
+             * The controller reported a hardware-error and is non-functional until reset.
+             *
+             * The adapter may still report isValid() and isPowered() as true. BTAdapter::reset() may recover it.
+             *
+             * <pre>
+             * BT Core Spec v5.2: Vol 4, Part E HCI: 7.7.16 Hardware Error event
+             * </pre>
+             *
+             * @param adapter the adapter whose controller failed
+             * @param error_code controller hardware error-code
+             * @param error_count number of hardware error occurred so far
+             * @param timestamp the time in monotonic milliseconds when this event occurred. See BasicTypes::getCurrentMilliseconds().
+             * @see BTAdapter::reset()
+             * @see BTAdapter::isHardwareHealthy()
+             */
+            virtual void adapterHardwareError(BTAdapter &adapter, const uint8_t error_code, const uint32_t error_count, const uint64_t timestamp) {
+                (void)adapter;
+                (void)error_code;
+                (void)error_count;
+                (void)timestamp;
+            }
+
+            /**
              * BTAdapter's discovery state has changed, i.e. enabled or disabled.
              * @param adapter the adapter which discovering state has changed.
              * @param currentMeta the current meta ScanType
@@ -328,6 +351,15 @@ namespace direct_bt {
             jau::sc_atomic_bool adapter_initialized;
             /** Flag signaling whether adapter was powered-off at initialize() */
             jau::sc_atomic_bool adapter_poweredoff_at_init;
+
+            /** Cleared on HCI HARDWARE_ERROR, set again by a successful reset(true) */
+            jau::sc_atomic_bool hw_healthy;
+
+            /** Last HCIHardwareError event, 0 values if none */
+            jau::ordered_atomic<HardwareError, std::memory_order_relaxed> last_hw_error;
+
+            /** Total HCI HARDWARE_ERROR events seen, never reset */
+            jau::relaxed_atomic_uint32 hw_error_count;
 
             LE_Features le_features;
 
@@ -532,6 +564,7 @@ namespace direct_bt {
             void mgmtEvDeviceConnectedMgmt(const MgmtEvent& e) noexcept;
 
             void mgmtEvConnectFailedHCI(const MgmtEvent& e) noexcept;
+            void mgmtEvHardwareErrorHCI(const MgmtEvent& e) noexcept;
             void mgmtEvHCILERemoteUserFeaturesHCI(const MgmtEvent& e);
             void mgmtEvHCILEPhyUpdateCompleteHCI(const MgmtEvent& e) noexcept;
             void mgmtEvDeviceDisconnectedHCI(const MgmtEvent& e) noexcept;
@@ -651,10 +684,11 @@ namespace direct_bt {
 
             /**
              * Returns whether the adapter is valid, i.e. reference is valid, plugged in and generally operational,
-             * but not necessarily BTAdapter::isPowered() powered.
+             * but not isPowered() nor isHardwareHealthy().
              * @return true if this adapter references are valid and hasn't been BTAdapter::close() 'ed
-             * @see #isPowered()
-             * @see #isSuspended()
+             * @see isPowered()
+             * @see isSuspended()
+             * @see isHardwareHealthy()
              */
             bool isValid() const noexcept {
                 return BTObject::isValidInstance() && adapter_operational;
@@ -891,15 +925,52 @@ namespace direct_bt {
             bool isInitialized() const noexcept { return adapter_initialized.load(); }
 
             /**
+             * Returns false if the controller reported a hardware-error, otherwise true.
+             * <p>
+             * Unlike isValid() and isPowered(), which stays true after such a
+             * fault, this reports controller liveness. If false, reset() may recover the adapter.
+             * </p>
+             * <p>
+             * Cleared on the HCI HARDWARE_ERROR event, set again by a successful reset().
+             * </p>
+             * @see reset()
+             * @see isPowered()
+             * @see isValid()
+             * @see AdapterStatusListener::adapterHardwareError()
+             */
+            bool isHardwareHealthy() const noexcept { return hw_healthy; }
+
+            /**
+             * Returns last HCIHardwareError, 0 values if none occured since last successful reset().
+             * @see BasicTypes::getCurrentMilliseconds()
+             * @see isHardwareHealthy()
+             */
+            HardwareError getLastHardwareError() const noexcept { return last_hw_error; }
+
+            /**
+             * Total HCI HARDWARE_ERROR events seen by this adapter instance, never reset.
+             * @see isHardwareHealthy()
+             */
+            uint32_t getHardwareErrorCount() const noexcept { return hw_error_count; }
+
+            /**
              * Reset the adapter.
              * <p>
              * The semantics are specific to the HCI host implementation,
              * however, it shall comply at least with the HCI Reset command
              * and bring up the device from standby into a POWERED functional state afterwards.
              * </p>
+             * <p>
+             * If no hardware-error occurred, waits until all devices are disconnected after powered-off during reset,
+             * see isHardwareHealthy().
+             * </p>
+             * <p>
+             * Resets isHardwareHealthy() flag to `true`.
+             * </p>
              * <pre>
              * BT Core Spec v5.2: Vol 4, Part E HCI: 7.3.2 Reset command
              * </pre>
+             * @see isHardwareHealthy()
              */
             HCIStatusCode reset() noexcept;
 

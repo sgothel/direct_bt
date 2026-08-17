@@ -155,6 +155,11 @@ class DBTClientServer1x {
                 (void)a;
             }
 
+            void adapterHardwareError(BTAdapter &a, const uint8_t error_code, const uint32_t error_count, const uint64_t timestamp) override {
+                jau_fprintf_td(stderr, "****** Client HARDWARE-ERROR: Error-code %#2.2x, count %u: %s\n", error_code, error_count, a);
+                (void)timestamp;
+            }
+
             void deviceReady(const BTDeviceRef& device, const uint64_t timestamp) override {
                 (void)timestamp;
                 const std::lock_guard<std::mutex> lock(parent.mtx_sync); // RAII-style acquire and relinquish via destructor

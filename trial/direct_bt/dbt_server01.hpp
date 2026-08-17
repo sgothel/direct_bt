@@ -181,6 +181,11 @@ class DBTServer01 : public DBTServerTest {
                 (void)timestamp;
             }
 
+            void adapterHardwareError(BTAdapter &a, const uint8_t error_code, const uint32_t error_count, const uint64_t timestamp) override {
+                jau_fprintf_td(stderr, "****** Server HARDWARE-ERROR: Error-code %#2.2x, count %u: %s\n", error_code, error_count, a);
+                (void)timestamp;
+            }
+
             void discoveringChanged(BTAdapter &a, const ScanType currentMeta, const ScanType changedType, const bool changedEnabled, const DiscoveryPolicy policy, const uint64_t timestamp) override {
                 jau_fprintf_td(stderr, "****** Server DISCOVERING: meta %s, changed[%s, enabled %d, policy %s]: %s\n",
                         currentMeta, changedType, changedEnabled, policy, a);
