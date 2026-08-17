@@ -535,10 +535,11 @@ public interface BTAdapter extends BTObject
 
     /**
      * Returns whether the adapter is valid, i.e. reference is valid, plugged in and generally operational,
-     * but not necessarily {@link #isPowered()}.
+     * but not {@link #isPowered()} nor {@link #isHardwareHealthy()}.
      * @return true if this adapter references are valid and hadn't been {@link #close()}'ed
      * @see #isPowered()
      * @see #isSuspended()
+     * @see #isHardwareHealthy()
      * @since 2.0.0
      */
     boolean isValid();
@@ -706,16 +707,52 @@ public interface BTAdapter extends BTObject
     boolean isInitialized();
 
     /**
+     * Returns false if the controller reported a hardware-error, otherwise true.
+     * <p>
+     * Unlike isValid() and isPowered(), which stays true after such a
+     * fault, this reports controller liveness. If false, reset() may recover the adapter.
+     * </p>
+     * <p>
+     * Cleared on the HCI HARDWARE_ERROR event, set again by a successful reset().
+     * </p>
+     * @see #reset()
+     * @see #isPowered()
+     * @see #isValid()
+     * @see AdapterStatusListener#adapterHardwareError()
+     */
+    boolean isHardwareHealthy();
+
+    /**
+     * Returns last HCIHardwareError, 0 values if none occured since last successful reset().
+     * @see #isHardwareHealthy()
+     */
+    HardwareError getLastHardwareError();
+
+    /**
+     * Total HCI HARDWARE_ERROR events seen by this adapter instance, never reset.
+     * @see #isHardwareHealthy()
+     */
+    int getHardwareErrorCount();
+
+    /**
      * Reset the adapter.
      * <p>
      * The semantics are specific to the HCI host implementation,
      * however, it shall comply at least with the HCI Reset command
      * and bring up the device from standby into a POWERED functional state afterwards.
      * </p>
+     * <p>
+     * If no hardware-error occurred, waits until all devices are disconnected after powered-off during reset,
+     * see isHardwareHealthy().
+     * </p>
+     * <p>
+     * Resets isHardwareHealthy() flag to `true`.
+     * </p>
      * <pre>
      * BT Core Spec v5.2: Vol 4, Part E HCI: 7.3.2 Reset command
      * </pre>
      * @since 2.0.0
+     * @see #isHardwareHealthy()
      */
     HCIStatusCode reset();
 

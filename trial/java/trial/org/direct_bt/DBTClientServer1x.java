@@ -161,6 +161,11 @@ public abstract class DBTClientServer1x extends BaseDBTClientServer {
             }
 
             @Override
+            public void adapterHardwareError(final BTAdapter adapter, final byte error_code, final int error_count, final long timestamp) {
+                PrintUtil.println(System.err, "XXXXXX Client HARDWARE-ERROR: Error-code 0x"+Integer.toHexString(error_code)+", count "+error_count+" on "+adapter);
+            }
+
+            @Override
             public void deviceReady(final BTDevice device, final long timestamp) {
                 synchronized( mtx_sync ) {
                     lastCompletedDevice = device;

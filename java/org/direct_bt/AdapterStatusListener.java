@@ -78,6 +78,24 @@ public abstract class AdapterStatusListener extends DBTNativeDownlink {
                                        final AdapterSettings changedmask, final long timestamp) { }
 
     /**
+     * The controller reported a hardware-error and is non-functional until reset.
+     * <p>
+     * The adapter may still report isValid() and isPowered() as true. {@link BTAdapter#reset()} may recover it.
+     * </p>
+     * <pre>
+     * BT Core Spec v5.2: Vol 4, Part E HCI: 7.7.16 Hardware Error event
+     * </pre>
+     *
+     * @param adapter the adapter whose controller failed
+     * @param error_code controller hardware error-code
+     * @param error_count number of hardware error occurred so far
+     * @param timestamp the time in monotonic milliseconds when this event occurred. See {@link BTUtils#currentTimeMillis()}.
+     * @see BTAdapter#reset()
+     * @see BTAdapter#isHardwareHealthy()
+     */
+    public void adapterHardwareError(final BTAdapter adapter, final byte error_code, final int error_count, final long timestamp) { }
+
+    /**
      * {@link BTAdapter}'s discovery state has changed, i.e. enabled or disabled.
      * @param adapter the adapter which discovering state has changed.
      * @param currentMeta the current meta {@link ScanType}

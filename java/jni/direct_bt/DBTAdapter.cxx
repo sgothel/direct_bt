@@ -55,6 +55,7 @@ static constexpr std::string_view _pairingStateClazzGetArgs("(B)Lorg/direct_bt/S
 static constexpr std::string_view _deviceClazzCtorArgs("(JLjau/direct_bt/DBTAdapter;[BBJLjava/lang/String;)V");
 
 static constexpr std::string_view _adapterSettingsChangedMethodArgs("(Lorg/direct_bt/BTAdapter;Lorg/direct_bt/AdapterSettings;Lorg/direct_bt/AdapterSettings;Lorg/direct_bt/AdapterSettings;J)V");
+static constexpr std::string_view _adapterHardwareErrorMethodArgs("(Lorg/direct_bt/BTAdapter;BIJ)V");
 static constexpr std::string_view _discoveringChangedMethodArgs("(Lorg/direct_bt/BTAdapter;Lorg/direct_bt/ScanType;Lorg/direct_bt/ScanType;ZLorg/direct_bt/DiscoveryPolicy;J)V");
 static constexpr std::string_view _deviceFoundMethodArgs("(Lorg/direct_bt/BTDevice;J)Z");
 static constexpr std::string_view _deviceUpdatedMethodArgs("(Lorg/direct_bt/BTDevice;Lorg/direct_bt/EIRDataTypeSet;J)V");
@@ -70,6 +71,7 @@ class JNIAdapterStatusListener : public AdapterStatusListener { // NOLINT(misc-u
             public void adapterSettingsChanged(final BluetoothAdapter adapter,
                                                final AdapterSettings oldmask, final AdapterSettings newmask,
                                                final AdapterSettings changedmask, final long timestamp) { }
+            public void adapterHardwareError(final BTAdapter adapter, final byte error_code, final int error_count, final long timestamp) { }
             public void discoveringChanged(final BluetoothAdapter adapter, final ScanType currentMeta, final ScanType changedType, final boolean changedEnabled,
                                            final DiscoveryPolicy policy, final long timestamp) { }
             public void deviceFound(final BluetoothDevice device, final long timestamp) { }
@@ -78,7 +80,6 @@ class JNIAdapterStatusListener : public AdapterStatusListener { // NOLINT(misc-u
             public void devicePairingState(final BluetoothDevice device, final SMPPairingState state, final PairingMode mode, final long timestamp) {}
             public void deviceReady(final BluetoothDevice device, final long timestamp) {}
             public void deviceDisconnected(final BluetoothDevice device, final HCIStatusCode reason, final short handle, final long timestamp) { }
-
         };
     */
     static std::atomic<int> iname_next;
@@ -105,6 +106,7 @@ class JNIAdapterStatusListener : public AdapterStatusListener { // NOLINT(misc-u
     jfieldID deviceClazzTSLastUpdateField;
     jfieldID deviceClazzConnectionHandleField;
     jmethodID  mAdapterSettingsChanged = nullptr;
+    jmethodID  mAdapterHardwareError = nullptr;
     jmethodID  mDiscoveringChanged = nullptr;
     jmethodID  mDeviceFound = nullptr;
     jmethodID  mDeviceUpdated = nullptr;
@@ -196,6 +198,7 @@ class JNIAdapterStatusListener : public AdapterStatusListener { // NOLINT(misc-u
         deviceClazzConnectionHandleField = search_field(env, deviceClazzRef.getClass(), "hciConnHandle", "S", false);
 
         mAdapterSettingsChanged = search_method(env, listenerClazz, "adapterSettingsChanged", _adapterSettingsChangedMethodArgs.data(), false); // NOLINT(bugprone-suspicious-stringview-data-usage): Safe (see above)
+        mAdapterHardwareError = search_method(env, listenerClazz, "adapterHardwareError", _adapterHardwareErrorMethodArgs.data(), false); // NOLINT(bugprone-suspicious-stringview-data-usage): Safe (see above)
         mDiscoveringChanged = search_method(env, listenerClazz, "discoveringChanged", _discoveringChangedMethodArgs.data(), false); // NOLINT(bugprone-suspicious-stringview-data-usage): Safe (see above)
         mDeviceFound = search_method(env, listenerClazz, "deviceFound", _deviceFoundMethodArgs.data(), false); // NOLINT(bugprone-suspicious-stringview-data-usage): Safe (see above)
         mDeviceUpdated = search_method(env, listenerClazz, "deviceUpdated", _deviceUpdatedMethodArgs.data(), false); // NOLINT(bugprone-suspicious-stringview-data-usage): Safe (see above)
@@ -421,6 +424,19 @@ class JNIAdapterStatusListener : public AdapterStatusListener { // NOLINT(misc-u
         java_exception_check_and_throw(env, E_FILE_LINE);
 
         env->CallVoidMethod(JavaGlobalObj::GetObject(asl_java), mDeviceDisconnected, jdevice, hciErrorCode, (jshort)handle, (jlong)timestamp);
+        java_exception_check_and_throw(env, E_FILE_LINE);
+    }
+
+    void adapterHardwareError(BTAdapter &a, const uint8_t error_code, const uint32_t error_count, const uint64_t timestamp) override {
+        JNIEnv *env = *jni_env;
+        JavaAnonRef asl_java = getJavaObject(); // hold until done!
+        JavaGlobalObj::check(asl_java, E_FILE_LINE);
+
+        JavaAnonRef adapter_java = a.getJavaObject(); // hold until done!
+        JavaGlobalObj::check(adapter_java, E_FILE_LINE);
+
+        env->CallVoidMethod(JavaGlobalObj::GetObject(asl_java), mAdapterHardwareError,
+                            JavaGlobalObj::GetObject(adapter_java), (jbyte)error_code, (jint)error_count, (jlong)timestamp);
         java_exception_check_and_throw(env, E_FILE_LINE);
     }
 };
@@ -1031,6 +1047,57 @@ jboolean Java_jau_direct_1bt_DBTAdapter_isInitialized(JNIEnv *env, jobject obj) 
         rethrow_and_raise_java_exception(env);
     }
     return JNI_FALSE;
+}
+
+jboolean Java_jau_direct_1bt_DBTAdapter_isHardwareHealthy(JNIEnv *env, jobject obj) {
+    try {
+        shared_ptr_ref<BTAdapter> adapter(env, obj); // hold until done
+        JavaAnonRef adapter_java = adapter->getJavaObject(); // hold until done!
+        JavaGlobalObj::check(adapter_java, E_FILE_LINE);
+
+        return adapter->isHardwareHealthy() ? JNI_TRUE : JNI_FALSE;
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return JNI_FALSE;
+}
+
+static constexpr std::string_view _hardwareErrorClazzName("org/direct_bt/HardwareError");
+static constexpr std::string_view _hardwareErrorClazzCtorArgs("(JB)V");
+
+static jobject _createHardwareErrorFromAdapter(JNIEnv *env_, jclass clazz, jmethodID clazz_ctor, const BTAdapterRef& adapter) {
+    const HardwareError value = adapter->getLastHardwareError();
+    jobject jValue = env_->NewObject(clazz, clazz_ctor, (jlong)value.timestamp, (jbyte)value.error_code);
+    java_exception_check_and_throw(env_, E_FILE_LINE);
+    return jValue;
+};
+
+jobject Java_jau_direct_1bt_DBTAdapter_getLastHardwareError(JNIEnv *env, jobject obj) {
+    try {
+        shared_ptr_ref<BTAdapter> adapter(env, obj); // hold until done
+        JavaAnonRef adapter_java = adapter->getJavaObject(); // hold until done!
+        JavaGlobalObj::check(adapter_java, E_FILE_LINE);
+        
+        jclass clazz = search_class(env, _hardwareErrorClazzName.data()); // NOLINT(bugprone-suspicious-stringview-data-usage): Safe (see above)
+        return jau::jni::convert_instance_to_jobject<BTAdapter>(env, clazz, _hardwareErrorClazzCtorArgs.data(), _createHardwareErrorFromAdapter, adapter.shared_ptr()); // NOLINT(bugprone-suspicious-stringview-data-usage): Safe (see above)
+
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return nullptr;
+}
+
+jint Java_jau_direct_1bt_DBTAdapter_getHardwareErrorCount(JNIEnv *env, jobject obj) {
+    try {
+        shared_ptr_ref<BTAdapter> adapter(env, obj); // hold until done
+        JavaAnonRef adapter_java = adapter->getJavaObject(); // hold until done!
+        JavaGlobalObj::check(adapter_java, E_FILE_LINE);
+
+        return (jint) adapter->getHardwareErrorCount();
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return 0;
 }
 
 jbyte Java_jau_direct_1bt_DBTAdapter_resetImpl(JNIEnv *env, jobject obj) {

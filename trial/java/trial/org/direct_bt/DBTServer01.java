@@ -265,6 +265,11 @@ public class DBTServer01 implements DBTServerTest {
         }
 
         @Override
+        public void adapterHardwareError(final BTAdapter adapter, final byte error_code, final int error_count, final long timestamp) {
+            PrintUtil.println(System.err, "****** Server HARDWARE-ERROR: Error-code 0x"+Integer.toHexString(error_code)+", count "+error_count+" on "+adapter);
+        }
+
+        @Override
         public void discoveringChanged(final BTAdapter adapter, final ScanType currentMeta, final ScanType changedType, final boolean changedEnabled, final DiscoveryPolicy policy, final long timestamp) {
             PrintUtil.println(System.err, "****** Server DISCOVERING: meta "+currentMeta+", changed["+changedType+", enabled "+changedEnabled+", policy "+policy+"] on "+adapter);
         }

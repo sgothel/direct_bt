@@ -51,6 +51,7 @@ import org.direct_bt.EIRDataTypeSet;
 import org.direct_bt.EInfoReport;
 import org.direct_bt.HCIStatusCode;
 import org.direct_bt.HCIWhitelistConnectType;
+import org.direct_bt.HardwareError;
 import org.direct_bt.LE_Features;
 import org.direct_bt.LE_PHYs;
 import org.direct_bt.PairingMode;
@@ -325,6 +326,15 @@ public class DBTAdapter extends DBTObject implements BTAdapter
     public final native boolean isInitialized();
 
     @Override
+    public final native boolean isHardwareHealthy();
+
+    @Override
+    public final native HardwareError getLastHardwareError();
+
+    @Override
+    public final native int getHardwareErrorCount();
+
+    @Override
     public final HCIStatusCode reset() {
         return HCIStatusCode.get( resetImpl() );
     }
@@ -587,6 +597,14 @@ public class DBTAdapter extends DBTObject implements BTAdapter
                 }
             }
         }
+
+        @Override
+        public void adapterHardwareError(final BTAdapter adapter, final byte error_code, final int error_count, final long timestamp) {
+            if( DEBUG ) {
+                PrintUtil.println(System.err, "Adapter.StatusListener.HARDWARE-ERROR: Error-code 0x"+Integer.toHexString(error_code)+", count "+error_count+" on "+adapter);
+            }
+        }
+
         @Override
         public void discoveringChanged(final BTAdapter adapter, final ScanType currentMeta, final ScanType changedType, final boolean changedEnabled, final DiscoveryPolicy policy, final long timestamp) {
             if( DEBUG ) {
