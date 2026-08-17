@@ -398,6 +398,12 @@ std::unique_ptr<MgmtEvent> HCIHandler::translate(HCIEvent& ev) noexcept {
             }
             return jau::make_unique_or_abort<MgmtEvtHCIEncryptionChanged>(dev_id, conn->getAddressAndType(), status, ev_cc->encrypt);
         }
+        case HCIEventType::HARDWARE_ERROR: {
+            // Bare hardware_code, no status octet, hence read directly and not via getReplyStruct<>().
+            const uint8_t error_code = 0 < ev.getParamSize() ? *ev.getParam() : 0;
+            jau_ERR_PRINT("HARDWARE_ERROR: controller reported error-code 0x%2.2X - %s", error_code, toString());
+            return jau::make_unique_or_abort<MgmtEvtHCIHardwareError>(dev_id, error_code);
+        }
         case HCIEventType::ENCRYPT_KEY_REFRESH_COMPLETE: {
             HCIStatusCode status;
             const hci_ev_key_refresh_complete * ev_cc = getReplyStruct<hci_ev_key_refresh_complete>(ev, evt, &status);

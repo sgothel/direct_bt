@@ -94,7 +94,7 @@ namespace direct_bt {
         EXT_INDEX_ADDED, EXT_INDEX_REMOVED, LOCAL_OOB_DATA_UPDATED, ADVERTISING_ADDED, ADVERTISING_REMOVED,
         EXT_INFO_CHANGED, PHY_CONFIGURATION_CHANGED, EXP_FEATURE_CHANGED, DEVICE_FLAGS_CHANGED, ADV_MONITOR_ADDED,
         ADV_MONITOR_REMOVED, PAIR_DEVICE_COMPLETE, HCI_ENC_CHANGED, HCI_ENC_KEY_REFRESH_COMPLETE, HCI_LE_REMOTE_FEATURES,
-        HCI_LE_PHY_UPDATE_COMPLETE, HCI_LE_LTK_REQUEST, HCI_LE_LTK_REPLY_ACK, HCI_LE_LTK_REPLY_REJ, HCI_LE_ENABLE_ENC
+        HCI_LE_PHY_UPDATE_COMPLETE, HCI_LE_LTK_REQUEST, HCI_LE_LTK_REPLY_ACK, HCI_LE_LTK_REPLY_REJ, HCI_LE_ENABLE_ENC, HCI_HARDWARE_ERROR
     );
 
     JAU_MAKE_ENUM_STRING2_CODE(MgmtEvtDeviceDisconnected::DisconnectReason, DisconnectReason,
@@ -461,6 +461,10 @@ std::string MgmtEvtHCIEncryptionChanged::baseString() const noexcept {
 std::string MgmtEvtHCIEncryptionKeyRefreshComplete::baseString() const noexcept {
     return jau_format_string("%s, address[%s, type %s], status %s",
         MgmtEvent::baseString(), getAddress(), getAddressType(), getHCIStatus());
+}
+
+std::string MgmtEvtHCIHardwareError::baseString() const noexcept {
+    return jau_format_string("%s, error-code %#2.2x", MgmtEvent::baseString(), getErrorCode());
 }
 
 std::string MgmtEvtAdapterInfo::valueString() const noexcept {
