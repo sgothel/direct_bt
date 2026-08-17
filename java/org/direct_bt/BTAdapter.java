@@ -716,8 +716,28 @@ public interface BTAdapter extends BTObject
      * BT Core Spec v5.2: Vol 4, Part E HCI: 7.3.2 Reset command
      * </pre>
      * @since 2.0.0
+     * @see #reset(boolean)
      */
     HCIStatusCode reset();
+
+    /**
+     * Reset the adapter, optionally forcing it past the usual adapter-state preconditions.
+     * <p>
+     * A forced reset skips the validity precondition and requires only an open HCI socket, as it is driven by the
+     * {@code HCIDEVDOWN} / {@code HCIDEVUP} ioctls and not HCI commands. It is intended for a controller which no
+     * longer accepts HCI commands, where the adapter still reads as valid.
+     * </p>
+     * <p>
+     * A forced reset also skips the pending-connection drain, which such a controller never completes, and does
+     * not restore the previous discovery policy.
+     * </p>
+     * @param force if true, skip the validity precondition and the pending-connection drain
+     * @return {@link HCIStatusCode#SUCCESS} on success, {@link HCIStatusCode#DISCONNECTED} if forced and the HCI
+     *         socket is closed, otherwise the failing status.
+     * @see #reset()
+     * @see #isControllerHealthy()
+     */
+    HCIStatusCode reset(boolean force);
 
     /**
      * Sets default preference of LE_PHYs.

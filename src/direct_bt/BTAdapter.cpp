@@ -943,14 +943,16 @@ bool BTAdapter::unlockConnectAny() noexcept {
     }
 }
 
-HCIStatusCode BTAdapter::reset() noexcept {
-    if( !isValid() ) {
+HCIStatusCode BTAdapter::reset(const bool force) noexcept {
+    // Forced: skip isValid(), which still reads true on a controller that no longer accepts HCI commands.
+    // Only the HCI socket is required, as resetAdapter() uses HCIDEVDOWN/HCIDEVUP ioctls, not HCI commands.
+    if( !force && !isValid() ) {
         ERR_PRINT("Adapter invalid: %s, %s", jau::to_hexstring(this).c_str(), toString().c_str());
         return HCIStatusCode::UNSPECIFIED_ERROR;
     }
     if( !hci.isOpen() ) {
         ERR_PRINT("HCI closed: %s, %s", jau::to_hexstring(this).c_str(), toString().c_str());
-        return HCIStatusCode::UNSPECIFIED_ERROR;
+        return force ? HCIStatusCode::DISCONNECTED : HCIStatusCode::UNSPECIFIED_ERROR;
     }
     const ScanType previousMetaScanType = currentMetaScanType;
     const DiscoveryPolicy previousDiscoveryPolicy = discovery_policy;
@@ -961,8 +963,15 @@ HCIStatusCode BTAdapter::reset() noexcept {
     discovery_policy = DiscoveryPolicy::AUTO_OFF;
     discovery_service.stop();
 
-    DBG_PRINT("BTAdapter::reset.0: %s", toString().c_str());
-    HCIStatusCode res = hci.resetAdapter( [&]() noexcept -> HCIStatusCode {
+    if( force ) {
+        WARN_PRINT("BTAdapter::reset.0(force): %s", toString().c_str());
+    } else {
+        DBG_PRINT("BTAdapter::reset.0: %s", toString().c_str());
+    }
+    // Forced: no pending-connection drain, an unresponsive controller never completes them. HCIDEVDOWN
+    // drops the links anyway.
+    HCIStatusCode res = force ? hci.resetAdapter( nullptr )
+                              : hci.resetAdapter( [&]() noexcept -> HCIStatusCode {
         jau::nsize_t connCount = getConnectedDeviceCount();
         if( 0 < connCount ) {
             const jau::fraction_i64 timeout = hci.env.HCI_COMMAND_COMPLETE_REPLY_TIMEOUT;
@@ -983,8 +992,9 @@ HCIStatusCode BTAdapter::reset() noexcept {
         return HCIStatusCode::SUCCESS; // keep going
     });
 
+    // Forced: always treat discovery as stopped, don't restore the previous policy.
     const ScanType currentNativeScanType = hci.getCurrentScanType();
-    if( ScanType::NONE == currentNativeScanType ) {
+    if( force || ScanType::NONE == currentNativeScanType ) {
         currentMetaScanType = ScanType::NONE;
         if( ScanType::NONE != previousMetaScanType ) {
             const uint64_t eventTimestamp = jau::getCurrentMilliseconds();
@@ -1006,7 +1016,11 @@ HCIStatusCode BTAdapter::reset() noexcept {
         discovery_policy = previousDiscoveryPolicy;
     }
 
-    DBG_PRINT("BTAdapter::reset.X: %s - %s", to_string(res).c_str(), toString().c_str());
+    if( force ) {
+        WARN_PRINT("BTAdapter::reset.X(force): %s - %s", to_string(res).c_str(), toString().c_str());
+    } else {
+        DBG_PRINT("BTAdapter::reset.X: %s - %s", to_string(res).c_str(), toString().c_str());
+    }
     return res;
 }
 

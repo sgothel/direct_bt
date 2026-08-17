@@ -911,8 +911,30 @@ namespace direct_bt {
              * <pre>
              * BT Core Spec v5.2: Vol 4, Part E HCI: 7.3.2 Reset command
              * </pre>
-             */
-            HCIStatusCode reset() noexcept;
+             *
+             * @param force if true, skip the isValid() precondition and the pending-connection drain, see below.
+             *
+             * <p>
+             * A plain reset() refuses unless isValid(), which makes it unusable in the very situation a reset is
+             * most needed: a controller which stopped accepting HCI commands (the kernel logs
+             * `Controller not accepting commands anymore: ncmd = 0` and its own HCI_Reset times out). The adapter is
+             * then still valid-looking and its HCI socket still open, yet every command-based recovery path is dead.
+             * </p>
+             * <p>
+             * A forced reset requires only an open HCI socket. Recovery does not depend on the controller answering:
+             * resetAdapter() drives the HCIDEVDOWN / HCIDEVUP ioctls through that socket, and the kernel then re-runs
+             * its full device-init path (for btusb including controller setup and firmware handshake).
+             * </p>
+             * <p>
+             * A forced reset additionally skips the pending-connection drain, since a wedged controller never
+             * completes those connections and waiting only burns the recovery window (HCIDEVDOWN tears the links
+             * down regardless), and it always treats discovery as stopped rather than restoring the previous
+             * discovery policy.
+             * </p>
+             * @return HCIStatusCode::SUCCESS on a successful reset; DISCONNECTED if forced and the HCI socket is
+             *         closed (nothing to drive the ioctls through), else the failing status.
+                         */
+            HCIStatusCode reset(const bool force=false) noexcept;
 
             /**
              * Sets default preference of LE_PHYs.

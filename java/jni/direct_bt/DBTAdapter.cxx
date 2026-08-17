@@ -1033,13 +1033,13 @@ jboolean Java_jau_direct_1bt_DBTAdapter_isInitialized(JNIEnv *env, jobject obj) 
     return JNI_FALSE;
 }
 
-jbyte Java_jau_direct_1bt_DBTAdapter_resetImpl(JNIEnv *env, jobject obj) {
+jbyte Java_jau_direct_1bt_DBTAdapter_resetImpl(JNIEnv *env, jobject obj, jboolean force) {
     try {
         shared_ptr_ref<BTAdapter> adapter(env, obj); // hold until done
         JavaAnonRef adapter_java = adapter->getJavaObject(); // hold until done!
         JavaGlobalObj::check(adapter_java, E_FILE_LINE);
 
-        HCIStatusCode res = adapter->reset();
+        HCIStatusCode res = adapter->reset(JNI_TRUE == force);
         return (jbyte) number(res);
     } catch(...) {
         rethrow_and_raise_java_exception(env);

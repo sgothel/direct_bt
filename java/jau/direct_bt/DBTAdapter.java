@@ -326,7 +326,12 @@ public class DBTAdapter extends DBTObject implements BTAdapter
 
     @Override
     public final HCIStatusCode reset() {
-        final HCIStatusCode status = HCIStatusCode.get( resetImpl() );
+        return reset(false);
+    }
+
+    @Override
+    public final HCIStatusCode reset(final boolean force) {
+        final HCIStatusCode status = HCIStatusCode.get( resetImpl(force) );
         if( HCIStatusCode.SUCCESS == status ) {
             // A successful native reset stops discovery. Keep the Java-side cache correct even when the controller
             // does not emit a discoveringChanged event for the implicit stop.
@@ -334,7 +339,7 @@ public class DBTAdapter extends DBTObject implements BTAdapter
         }
         return status;
     }
-    private native byte resetImpl();
+    private native byte resetImpl(boolean force);
 
     @Override
     public final HCIStatusCode setDefaultLE_PHY(final LE_PHYs Tx, final LE_PHYs Rx) {
