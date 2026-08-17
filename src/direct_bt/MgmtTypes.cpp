@@ -394,7 +394,8 @@ std::vector<MgmtDefaultParam> MgmtReadDefaultSysParamCmd::getParams(const uint8_
     X(HCI_LE_LTK_REQUEST) \
     X(HCI_LE_LTK_REPLY_ACK) \
     X(HCI_LE_LTK_REPLY_REJ) \
-    X(HCI_LE_ENABLE_ENC)
+    X(HCI_LE_ENABLE_ENC) \
+    X(HCI_HARDWARE_ERROR)
 
 #define MGMT_EV_OPCODE_CASE_TO_STRING(V) case MgmtEvent::Opcode::V: return #V;
 

@@ -62,6 +62,7 @@ static const std::string _deviceConnectedMethodArgs("(Lorg/direct_bt/BTDevice;ZJ
 static const std::string _devicePairingStateMethodArgs("(Lorg/direct_bt/BTDevice;Lorg/direct_bt/SMPPairingState;Lorg/direct_bt/PairingMode;J)V");
 static const std::string _deviceReadyMethodArgs("(Lorg/direct_bt/BTDevice;J)V");
 static const std::string _deviceDisconnectedMethodArgs("(Lorg/direct_bt/BTDevice;Lorg/direct_bt/HCIStatusCode;SJ)V");
+static const std::string _adapterHardwareErrorMethodArgs("(Lorg/direct_bt/BTAdapter;BJ)V");
 
 class JNIAdapterStatusListener : public AdapterStatusListener {
   private:
@@ -112,6 +113,7 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
     jmethodID  mDevicePairingState= nullptr;
     jmethodID  mDeviceReady = nullptr;
     jmethodID  mDeviceDisconnected = nullptr;
+    jmethodID  mAdapterHardwareError = nullptr;
 
   public:
 
@@ -203,6 +205,7 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
         mDevicePairingState = search_method(env, listenerClazz, "devicePairingState", _devicePairingStateMethodArgs.c_str(), false);
         mDeviceReady = search_method(env, listenerClazz, "deviceReady", _deviceReadyMethodArgs.c_str(), false);
         mDeviceDisconnected = search_method(env, listenerClazz, "deviceDisconnected", _deviceDisconnectedMethodArgs.c_str(), false);
+        mAdapterHardwareError = search_method(env, listenerClazz, "adapterHardwareError", _adapterHardwareErrorMethodArgs.c_str(), false);
     }
 
     void adapterSettingsChanged(BTAdapter &a, const AdapterSetting oldmask, const AdapterSetting newmask,
@@ -421,6 +424,19 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
         java_exception_check_and_throw(env, E_FILE_LINE);
 
         env->CallVoidMethod(JavaGlobalObj::GetObject(asl_java), mDeviceDisconnected, jdevice, hciErrorCode, (jshort)handle, (jlong)timestamp);
+        java_exception_check_and_throw(env, E_FILE_LINE);
+    }
+
+    void adapterHardwareError(BTAdapter &a, const uint8_t hardware_code, const uint64_t timestamp) override {
+        JNIEnv *env = *jni_env;
+        JavaAnonRef asl_java = getJavaObject(); // hold until done!
+        JavaGlobalObj::check(asl_java, E_FILE_LINE);
+
+        JavaAnonRef adapter_java = a.getJavaObject(); // hold until done!
+        JavaGlobalObj::check(adapter_java, E_FILE_LINE);
+
+        env->CallVoidMethod(JavaGlobalObj::GetObject(asl_java), mAdapterHardwareError,
+                            JavaGlobalObj::GetObject(adapter_java), (jbyte)hardware_code, (jlong)timestamp);
         java_exception_check_and_throw(env, E_FILE_LINE);
     }
 };
@@ -1033,13 +1049,65 @@ jboolean Java_jau_direct_1bt_DBTAdapter_isInitialized(JNIEnv *env, jobject obj) 
     return JNI_FALSE;
 }
 
-jbyte Java_jau_direct_1bt_DBTAdapter_resetImpl(JNIEnv *env, jobject obj) {
+jboolean Java_jau_direct_1bt_DBTAdapter_isControllerHealthy(JNIEnv *env, jobject obj) {
     try {
         shared_ptr_ref<BTAdapter> adapter(env, obj); // hold until done
         JavaAnonRef adapter_java = adapter->getJavaObject(); // hold until done!
         JavaGlobalObj::check(adapter_java, E_FILE_LINE);
 
-        HCIStatusCode res = adapter->reset();
+        return adapter->isControllerHealthy() ? JNI_TRUE : JNI_FALSE;
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return JNI_FALSE;
+}
+
+jlong Java_jau_direct_1bt_DBTAdapter_getControllerErrorTimestamp(JNIEnv *env, jobject obj) {
+    try {
+        shared_ptr_ref<BTAdapter> adapter(env, obj); // hold until done
+        JavaAnonRef adapter_java = adapter->getJavaObject(); // hold until done!
+        JavaGlobalObj::check(adapter_java, E_FILE_LINE);
+
+        return (jlong) adapter->getControllerErrorTimestamp();
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return 0;
+}
+
+jbyte Java_jau_direct_1bt_DBTAdapter_getControllerErrorCode(JNIEnv *env, jobject obj) {
+    try {
+        shared_ptr_ref<BTAdapter> adapter(env, obj); // hold until done
+        JavaAnonRef adapter_java = adapter->getJavaObject(); // hold until done!
+        JavaGlobalObj::check(adapter_java, E_FILE_LINE);
+
+        return (jbyte) adapter->getControllerErrorCode();
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return 0;
+}
+
+jint Java_jau_direct_1bt_DBTAdapter_getControllerErrorCount(JNIEnv *env, jobject obj) {
+    try {
+        shared_ptr_ref<BTAdapter> adapter(env, obj); // hold until done
+        JavaAnonRef adapter_java = adapter->getJavaObject(); // hold until done!
+        JavaGlobalObj::check(adapter_java, E_FILE_LINE);
+
+        return (jint) adapter->getControllerErrorCount();
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return 0;
+}
+
+jbyte Java_jau_direct_1bt_DBTAdapter_resetImpl(JNIEnv *env, jobject obj, jboolean force) {
+    try {
+        shared_ptr_ref<BTAdapter> adapter(env, obj); // hold until done
+        JavaAnonRef adapter_java = adapter->getJavaObject(); // hold until done!
+        JavaGlobalObj::check(adapter_java, E_FILE_LINE);
+
+        HCIStatusCode res = adapter->reset(JNI_TRUE == force);
         return (jbyte) number(res);
     } catch(...) {
         rethrow_and_raise_java_exception(env);

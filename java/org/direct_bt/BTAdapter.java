@@ -716,8 +716,65 @@ public interface BTAdapter extends BTObject
      * BT Core Spec v5.2: Vol 4, Part E HCI: 7.3.2 Reset command
      * </pre>
      * @since 2.0.0
+     * @see #reset(boolean)
      */
     HCIStatusCode reset();
+
+    /**
+     * Reset the adapter, optionally forcing it past the usual adapter-state preconditions.
+     * <p>
+     * A forced reset skips the validity precondition and requires only an open HCI socket, as it is driven by the
+     * {@code HCIDEVDOWN} / {@code HCIDEVUP} ioctls and not HCI commands. It is intended for a controller which no
+     * longer accepts HCI commands, where the adapter still reads as valid.
+     * </p>
+     * <p>
+     * A forced reset also skips the pending-connection drain, which such a controller never completes, and does
+     * not restore the previous discovery policy.
+     * </p>
+     * @param force if true, skip the validity precondition and the pending-connection drain
+     * @return {@link HCIStatusCode#SUCCESS} on success, {@link HCIStatusCode#DISCONNECTED} if forced and the HCI
+     *         socket is closed, otherwise the failing status.
+     * @see #reset()
+     * @see #isControllerHealthy()
+     */
+    HCIStatusCode reset(boolean force);
+
+    /**
+     * Returns false if the controller reported an unrecoverable hardware fault, otherwise true.
+     * <p>
+     * Unlike the adapter's valid and powered state, which reflect cached adapter state and stay true after such a
+     * fault, this reports controller liveness. If false, only {@link #reset(boolean)} with {@code force=true} can
+     * recover the adapter.
+     * </p>
+     * <p>
+     * Cleared on the HCI HARDWARE_ERROR event, set again by a successful forced reset.
+     * </p>
+     * @see #reset(boolean)
+     * @see AdapterStatusListener#adapterHardwareError(BTAdapter, byte, long)
+     */
+    boolean isControllerHealthy();
+
+    /**
+     * Monotonic milliseconds of the last HCI HARDWARE_ERROR, or 0 if none since the last successful forced reset.
+     * See {@link BTUtils#currentTimeMillis()}.
+     * @see #isControllerHealthy()
+     */
+    long getControllerErrorTimestamp();
+
+    /**
+     * Code of the last HCI HARDWARE_ERROR, or 0 if none since the last successful forced reset.
+     * <pre>
+     * BT Core Spec v5.2: Vol 4, Part E HCI: 7.7.16 Hardware Error event
+     * </pre>
+     * @see #isControllerHealthy()
+     */
+    byte getControllerErrorCode();
+
+    /**
+     * Total HCI HARDWARE_ERROR events seen by this adapter instance, never reset.
+     * @see #isControllerHealthy()
+     */
+    int getControllerErrorCount();
 
     /**
      * Sets default preference of LE_PHYs.

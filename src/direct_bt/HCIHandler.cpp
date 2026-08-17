@@ -315,6 +315,13 @@ std::unique_ptr<MgmtEvent> HCIHandler::translate(HCIEvent& ev) noexcept {
         }
     }
     switch( evt ) {
+        case HCIEventType::HARDWARE_ERROR: {
+            // Bare hardware_code, no status octet, hence read directly and not via getReplyStruct<>().
+            const uint8_t hardware_code = 0 < ev.getParamSize() ? *ev.getParam() : 0;
+            ERR_PRINT("HARDWARE_ERROR: controller reported hardware error 0x%2.2X, adapter is non-functional until reset - %s",
+                    hardware_code, toString().c_str());
+            return std::make_unique<MgmtEvtHCIHardwareError>(dev_id, hardware_code);
+        }
         case HCIEventType::CONN_COMPLETE: {
             HCIStatusCode status;
             const hci_ev_conn_complete * ev_cc = getReplyStruct<hci_ev_conn_complete>(ev, evt, &status);

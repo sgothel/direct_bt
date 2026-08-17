@@ -1450,7 +1450,8 @@ namespace direct_bt {
                 HCI_LE_LTK_REPLY_ACK         = 0x0033,
                 HCI_LE_LTK_REPLY_REJ         = 0x0034,
                 HCI_LE_ENABLE_ENC            = 0x0035,
-                MGMT_EVENT_TYPE_COUNT        = 0x0036
+                HCI_HARDWARE_ERROR           = 0x0036, // direct_bt extension HCIHandler -> listener
+                MGMT_EVENT_TYPE_COUNT        = 0x0037
             };
             static constexpr uint16_t number(const Opcode rhs) noexcept {
                 return static_cast<uint16_t>(rhs);
@@ -2873,6 +2874,41 @@ namespace direct_bt {
             HCIStatusCode getHCIStatus() const noexcept { return static_cast<HCIStatusCode>( pdu.get_uint8_nc(MGMT_HEADER_SIZE+6+1) ); }
 
             jau::nsize_t getDataOffset() const noexcept override { return MGMT_HEADER_SIZE+1+2+1; }
+            jau::nsize_t getDataSize() const noexcept override { return 0; }
+            const uint8_t* getData() const noexcept override { return nullptr; }
+    };
+
+    /**
+     * uint8_t hardware_code (1 Octet)
+     * <p>
+     * The controller reports an unrecoverable hardware fault and is non-functional until reset. Linux also
+     * injects this event when a controller stops accepting commands.
+     * </p>
+     * <p>
+     * This is a Direct_BT extension for HCI.
+     * </p>
+     * <pre>
+     * BT Core Spec v5.2: Vol 4, Part E HCI: 7.7.16 HCIEventType::HARDWARE_ERROR
+     * </pre>
+     */
+    class MgmtEvtHCIHardwareError : public MgmtEvent
+    {
+        protected:
+            std::string baseString() const noexcept override {
+                return MgmtEvent::baseString()+", hardware_code "+jau::to_hexstring(getHardwareCode());
+            }
+
+        public:
+            MgmtEvtHCIHardwareError(const uint16_t dev_id, const uint8_t hardware_code)
+            : MgmtEvent(Opcode::HCI_HARDWARE_ERROR, dev_id, 1)
+            {
+                pdu.put_uint8_nc(MGMT_HEADER_SIZE, hardware_code);
+            }
+
+            /** Controller-defined hardware error code, see BT Core Spec v5.2: Vol 4, Part E HCI: 7.7.16. */
+            uint8_t getHardwareCode() const noexcept { return pdu.get_uint8_nc(MGMT_HEADER_SIZE); }
+
+            jau::nsize_t getDataOffset() const noexcept override { return MGMT_HEADER_SIZE+1; }
             jau::nsize_t getDataSize() const noexcept override { return 0; }
             const uint8_t* getData() const noexcept override { return nullptr; }
     };
