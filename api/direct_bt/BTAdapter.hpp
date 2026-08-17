@@ -271,6 +271,28 @@ namespace direct_bt {
                 (void)timestamp;
             }
 
+            /**
+             * The controller reported an unrecoverable hardware fault and is non-functional until reset.
+             *
+             * The adapter may still report isValid() and isPowered() as true, as both reflect cached adapter
+             * state. Only BTAdapter::reset(true) can recover it.
+             *
+             * <pre>
+             * BT Core Spec v5.2: Vol 4, Part E HCI: 7.7.16 Hardware Error event
+             * </pre>
+             *
+             * @param adapter the adapter whose controller failed
+             * @param hardware_code controller-defined error code
+             * @param timestamp the time in monotonic milliseconds when this event occurred. See BasicTypes::getCurrentMilliseconds().
+             * @see BTAdapter::reset(const bool)
+             * @see BTAdapter::isControllerHealthy()
+             */
+            virtual void adapterHardwareError(BTAdapter &adapter, const uint8_t hardware_code, const uint64_t timestamp) {
+                (void)adapter;
+                (void)hardware_code;
+                (void)timestamp;
+            }
+
             ~AdapterStatusListener() noexcept override = default;
 
             std::string toString() const noexcept override { return "AdapterStatusListener["+jau::to_hexstring(this)+"]"; }
@@ -334,6 +356,15 @@ namespace direct_bt {
             jau::sc_atomic_bool adapter_initialized;
             /** Flag signaling whether adapter was powered-off at initialize() */
             jau::sc_atomic_bool adapter_poweredoff_at_init;
+
+            /** Cleared on HCI HARDWARE_ERROR, set again by a successful reset(true) */
+            jau::sc_atomic_bool controller_healthy;
+            /** Monotonic ms of the last HCI HARDWARE_ERROR, 0 if none */
+            jau::relaxed_atomic_uint64 controller_error_timestamp;
+            /** Code of the last HCI HARDWARE_ERROR, 0 if none */
+            jau::relaxed_atomic_uint8 controller_error_code;
+            /** Total HCI HARDWARE_ERROR events seen, never reset */
+            jau::relaxed_atomic_uint32 controller_error_count;
 
             LE_Features le_features;
 
@@ -539,6 +570,7 @@ namespace direct_bt {
             void mgmtEvDeviceConnectedMgmt(const MgmtEvent& e) noexcept;
 
             void mgmtEvConnectFailedHCI(const MgmtEvent& e) noexcept;
+            void mgmtEvHardwareErrorHCI(const MgmtEvent& e) noexcept;
             void mgmtEvHCILERemoteUserFeaturesHCI(const MgmtEvent& e) noexcept;
             void mgmtEvHCILEPhyUpdateCompleteHCI(const MgmtEvent& e) noexcept;
             void mgmtEvDeviceDisconnectedHCI(const MgmtEvent& e) noexcept;
@@ -898,6 +930,42 @@ namespace direct_bt {
             bool isInitialized() const noexcept { return adapter_initialized.load(); }
 
             /**
+             * Returns false if the controller reported an unrecoverable hardware fault, otherwise true.
+             * <p>
+             * Unlike isValid() and isPowered(), which reflect cached adapter state and stay true after such a
+             * fault, this reports controller liveness. If false, only reset(true) can recover the adapter.
+             * </p>
+             * <p>
+             * Cleared on the HCI HARDWARE_ERROR event, set again by a successful reset(true).
+             * </p>
+             * @see reset(const bool)
+             * @see AdapterStatusListener::adapterHardwareError()
+             */
+            bool isControllerHealthy() const noexcept { return controller_healthy.load(); }
+
+            /**
+             * Monotonic milliseconds of the last HCI HARDWARE_ERROR, or 0 if none since the last successful
+             * reset(true). See BasicTypes::getCurrentMilliseconds().
+             * @see isControllerHealthy()
+             */
+            uint64_t getControllerErrorTimestamp() const noexcept { return controller_error_timestamp.load(); }
+
+            /**
+             * Code of the last HCI HARDWARE_ERROR, or 0 if none since the last successful reset(true).
+             * <pre>
+             * BT Core Spec v5.2: Vol 4, Part E HCI: 7.7.16 Hardware Error event
+             * </pre>
+             * @see isControllerHealthy()
+             */
+            uint8_t getControllerErrorCode() const noexcept { return controller_error_code.load(); }
+
+            /**
+             * Total HCI HARDWARE_ERROR events seen by this adapter instance, never reset.
+             * @see isControllerHealthy()
+             */
+            uint32_t getControllerErrorCount() const noexcept { return controller_error_count.load(); }
+
+            /**
              * Reset the adapter.
              * <p>
              * The semantics are specific to the HCI host implementation,
@@ -912,28 +980,21 @@ namespace direct_bt {
              * BT Core Spec v5.2: Vol 4, Part E HCI: 7.3.2 Reset command
              * </pre>
              *
-             * @param force if true, skip the isValid() precondition and the pending-connection drain, see below.
+             * <p>
+             * A forced reset skips the isValid() precondition and requires only an open HCI socket, as
+             * resetAdapter() drives the HCIDEVDOWN / HCIDEVUP ioctls and not HCI commands. It is intended for a
+             * controller which no longer accepts HCI commands, where isValid() still reads true.
+             * </p>
+             * <p>
+             * A forced reset also skips the pending-connection drain, which such a controller never completes,
+             * and does not restore the previous discovery policy.
+             * </p>
              *
-             * <p>
-             * A plain reset() refuses unless isValid(), which makes it unusable in the very situation a reset is
-             * most needed: a controller which stopped accepting HCI commands (the kernel logs
-             * `Controller not accepting commands anymore: ncmd = 0` and its own HCI_Reset times out). The adapter is
-             * then still valid-looking and its HCI socket still open, yet every command-based recovery path is dead.
-             * </p>
-             * <p>
-             * A forced reset requires only an open HCI socket. Recovery does not depend on the controller answering:
-             * resetAdapter() drives the HCIDEVDOWN / HCIDEVUP ioctls through that socket, and the kernel then re-runs
-             * its full device-init path (for btusb including controller setup and firmware handshake).
-             * </p>
-             * <p>
-             * A forced reset additionally skips the pending-connection drain, since a wedged controller never
-             * completes those connections and waiting only burns the recovery window (HCIDEVDOWN tears the links
-             * down regardless), and it always treats discovery as stopped rather than restoring the previous
-             * discovery policy.
-             * </p>
-             * @return HCIStatusCode::SUCCESS on a successful reset; DISCONNECTED if forced and the HCI socket is
-             *         closed (nothing to drive the ioctls through), else the failing status.
-                         */
+             * @param force if true, skip the isValid() precondition and the pending-connection drain
+             * @return HCIStatusCode::SUCCESS on success, DISCONNECTED if forced and the HCI socket is closed,
+             *         otherwise the failing status.
+             * @see isControllerHealthy()
+             */
             HCIStatusCode reset(const bool force=false) noexcept;
 
             /**
