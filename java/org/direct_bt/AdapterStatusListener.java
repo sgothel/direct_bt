@@ -170,6 +170,24 @@ public abstract class AdapterStatusListener extends DBTNativeDownlink {
      */
     public void deviceDisconnected(final BTDevice device, final HCIStatusCode reason, final short handle, final long timestamp) { }
 
+    /**
+     * The controller reported an unrecoverable hardware fault and is non-functional until reset.
+     * <p>
+     * The adapter may still report valid and powered, as both reflect cached adapter state. Only
+     * {@link BTAdapter#reset(boolean)} with {@code force=true} can recover it.
+     * </p>
+     * <pre>
+     * BT Core Spec v5.2: Vol 4, Part E HCI: 7.7.16 Hardware Error event
+     * </pre>
+     *
+     * @param adapter the adapter whose controller failed
+     * @param hardware_code controller-defined error code
+     * @param timestamp the time in monotonic milliseconds when this event occurred. See {@link BTUtils#currentTimeMillis()}.
+     * @see BTAdapter#reset(boolean)
+     * @see BTAdapter#isControllerHealthy()
+     */
+    public void adapterHardwareError(final BTAdapter adapter, final byte hardware_code, final long timestamp) { }
+
     @Override
     public String toString() {
         return "AdapterStatusListener[valid "+isValid()+"]";

@@ -342,6 +342,18 @@ public class DBTAdapter extends DBTObject implements BTAdapter
     private native byte resetImpl(boolean force);
 
     @Override
+    public final native boolean isControllerHealthy();
+
+    @Override
+    public final native long getControllerErrorTimestamp();
+
+    @Override
+    public final native byte getControllerErrorCode();
+
+    @Override
+    public final native int getControllerErrorCount();
+
+    @Override
     public final HCIStatusCode setDefaultLE_PHY(final LE_PHYs Tx, final LE_PHYs Rx) {
         return HCIStatusCode.get( setDefaultLE_PHYImpl(Tx.mask, Rx.mask) );
     }

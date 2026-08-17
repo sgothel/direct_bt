@@ -740,6 +740,43 @@ public interface BTAdapter extends BTObject
     HCIStatusCode reset(boolean force);
 
     /**
+     * Returns false if the controller reported an unrecoverable hardware fault, otherwise true.
+     * <p>
+     * Unlike the adapter's valid and powered state, which reflect cached adapter state and stay true after such a
+     * fault, this reports controller liveness. If false, only {@link #reset(boolean)} with {@code force=true} can
+     * recover the adapter.
+     * </p>
+     * <p>
+     * Cleared on the HCI HARDWARE_ERROR event, set again by a successful forced reset.
+     * </p>
+     * @see #reset(boolean)
+     * @see AdapterStatusListener#adapterHardwareError(BTAdapter, byte, long)
+     */
+    boolean isControllerHealthy();
+
+    /**
+     * Monotonic milliseconds of the last HCI HARDWARE_ERROR, or 0 if none since the last successful forced reset.
+     * See {@link BTUtils#currentTimeMillis()}.
+     * @see #isControllerHealthy()
+     */
+    long getControllerErrorTimestamp();
+
+    /**
+     * Code of the last HCI HARDWARE_ERROR, or 0 if none since the last successful forced reset.
+     * <pre>
+     * BT Core Spec v5.2: Vol 4, Part E HCI: 7.7.16 Hardware Error event
+     * </pre>
+     * @see #isControllerHealthy()
+     */
+    byte getControllerErrorCode();
+
+    /**
+     * Total HCI HARDWARE_ERROR events seen by this adapter instance, never reset.
+     * @see #isControllerHealthy()
+     */
+    int getControllerErrorCount();
+
+    /**
      * Sets default preference of LE_PHYs.
      *
      * BT Core Spec v5.2: Vol 4, Part E, 7.8.49 LE Set PHY command
