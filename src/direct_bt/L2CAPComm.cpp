@@ -295,7 +295,7 @@ bool L2CAPClient::open(const BTDevice& device, const BTSecurityLevel sec_level) 
      * - l2cap_connect with destination address
      * -- connect(fd, ..)
      */
-    remoteAddressAndType = device.getAddressAndType();
+    remoteAddressAndType = device.getKernelConnectionAddressAndType();
 
     /** BT Core Spec v5.2: Vol 3, Part A: L2CAP_CONNECTION_REQ */
     sockaddr_l2 req;
