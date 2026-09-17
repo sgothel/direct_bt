@@ -25,20 +25,28 @@ functionality including lock-free concurrent data-structures.
 
 Below you can find a few notes about [*Direct-BT* Origins](#direct_bt_origins).
 
-**The Direct-BT project needs funding and we offer commercial support**<br/>
-Please contact [Göthel Software (Jausoft)](https://jausoft.com/).
+### Current Development
+
+The `next-wip` secure & safe branch is under development
+and [Gothel Software](https://jausoft.com) seeks *contracting or funding*.
+
+Further enhancements across multiple OS like FreeBSD or Windows has been initially evaluated,
+but would also require professional collaboration and contracting.
 
 ### Further Readings
 - S. Gothel, [*Direct-BT: BLE Programming with C++ & Java*](https://jausoft.com/Files/direct_bt/doc/direct_bt-jughh2022.pdf), Nov 2022, pdf slides
 - S. Gothel, [*Direct-BT, Bluetooth Server and Client Programming in C++ and Java (Part 1)*](https://jausoft.com/blog/2022/05/22/direct-bt-bluetooth-server-and-client-programming-in-cpp-and-java_pt1/), May 2022
 - S. Gothel, [*Direct-BT C++ Implementation Details (Part 1)*](https://jausoft.com/blog/2022/05/22/direct-bt-implementation-details-pt1/), May 2022
 
+## License
+*Direct-BT* is licensed under the `MIT license`, See [LICENSE](LICENSE) for details.
+
 ## Details
 You will find a [detailed overview of *Direct-BT*](https://jausoft.com/projects/direct_bt/build/documentation/cpp/html/namespacedirect__bt.html#details) (C++)
 and the [same in the Java API](https://jausoft.com/projects/direct_bt/build/documentation/java/html/namespaceorg_1_1direct__bt.html#details).<br/>
 See details on the [C++ and Java API](#direct_bt_apidoc) including its different C++ API level modules.
 
-[AdapterStatusListener](https://jausoft.com/projects/direct_bt/build/documentation/cpp/html/classdirect__bt_1_1AdapterStatusListener.html) 
+[AdapterStatusListener](https://jausoft.com/projects/direct_bt/build/documentation/cpp/html/classdirect__bt_1_1AdapterStatusListener.html)
 allows listening to adapter changes and device discovery and
 [BTGattCharListener](https://jausoft.com/projects/direct_bt/build/documentation/cpp/html/classdirect__bt_1_1BTGattCharListener.html)
 to GATT indications and notifications.
@@ -52,7 +60,7 @@ to GATT indications and notifications.
 Some elaboration on the implementation details
 > The host-side of HCI, L2CAP etc is usually implemented within the OS, e.g. *Linux/BlueZ* Kernel.
 > These layers communicate with the actual BT controller and the user application, acting as the middleman.
-> 
+>
 > *Direct-BT* offers packet types and handler facilities for HCI, L2CAP, SMP, ATT-PDU and GATT (as well to *Linux/BlueZ-Mngr*)
 > to communicate with these universal host-side Bluetooth layers and hence to reach-out to devices.
 >
@@ -67,12 +75,12 @@ Some elaboration on the implementation details
 >   - GATT Server with user code interaction via listener
 >   - Slave / Server SMP Security, reusing persisting *SMPKeyBin* files.
 >   - Resolvable Private Address (RPA) for remote LE master/GATT clients
-> 
+>
 > *SMP LE Secure Connections* and *LE legacy pairing* is fully supported,
 > exposing BTSecurityLevel and SMPIOCapability setup per connection
 > and providing *automatic security mode negotiation* including authentication.
 >
-> Provoding *dbt_repeater00*, a *BT repeater* forwading between *GATT-Server* and *-Client*, 
+> Provoding *dbt_repeater00*, a *BT repeater* forwading between *GATT-Server* and *-Client*,
 > allowing protocol analysis between an external client and server.
 >
 > *Online* unit testing with two BT adapter is provided.
@@ -129,7 +137,7 @@ Please check the [adapter list](doc/adapter/adapter.md) for more details.
 
 Since *Direct-BT* is not using a 3rd party Bluetooth client library or daemon/service,
 they should be disabled to allow operation without any interference.
-To disable the *BlueZ* D-Bus userspace daemon *bluetoothd* via systemd, 
+To disable the *BlueZ* D-Bus userspace daemon *bluetoothd* via systemd,
 you may use the following commands.
 
 ```
@@ -144,12 +152,12 @@ Since *Direct-BT* requires root permissions to certain Bluetooth network device 
 non-root user require to be granted such permissions.
 
 For GNU/Linux, these permissions are called [capabilities](https://linux.die.net/man/7/capabilities).
-The following capabilites are required 
+The following capabilites are required
 
 - *CAP_NET_RAW* (Raw HCI access)
 - *CAP_NET_ADMIN* (Additional raw HCI access plus (re-)setting the adapter etc)
 
-On Debian >= 11 and Ubuntu >= 20.04 we can use package `libcap2-bin`, version `1:2.44-1`, 
+On Debian >= 11 and Ubuntu >= 20.04 we can use package `libcap2-bin`, version `1:2.44-1`,
 which provides the binaries `/sbin/setcap` and `/sbin/getcap`.
 It depends on package `libcap2`, version `>= 1:2.33`.
 If using earlier `setcap` binaries, *your mileage may vary (YMMV)*.
@@ -164,7 +172,7 @@ LD_LIBRARY_PATH=`pwd`/dist-amd64/lib sudo dist-amd64/bin/dbt_scanner10
 
 #### Launch as user using setcap
 
-To launch your Direct-BT application as a user, 
+To launch your Direct-BT application as a user,
 you may set the required `capabilities` before launch via [setcap](https://linux.die.net/man/8/setcap)
 
 ```
@@ -174,7 +182,7 @@ LD_LIBRARY_PATH=`pwd`/dist-amd64/lib dist-amd64/bin/dbt_scanner10
 
 #### Launch as user via capsh
 
-Alternatively one can set the required `capabilities` of a Direct-BT application 
+Alternatively one can set the required `capabilities` of a Direct-BT application
 and launch it as a user via [capsh](https://linux.die.net/man/1/capsh).
 
 ```
@@ -249,7 +257,7 @@ as a git submodule, which has been extracted from this project to encapsulate it
 This project also uses the [TinyCrypt](https://jausoft.com/cgit/tinycrypt.git/about/)
 as a git submodule, supporting `AES128` for IRK w/ LE Resolvable Private Address (RPA) matching.
 
-*Direct-BT* does not require GLib/GIO 
+*Direct-BT* does not require GLib/GIO
 nor shall the *BlueZ* userspace service *bluetoothd* be active for best experience.
 
 To disable the *bluetoothd* service using systemd:
@@ -284,7 +292,7 @@ Installing build dependencies for Debian >= 12 and Ubuntu >= 22:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~{.sh}
 apt install git
-apt install build-essential g++ gcc libc-dev libpthread-stubs0-dev 
+apt install build-essential g++ gcc libc-dev libpthread-stubs0-dev
 apt install clang-18 clang-tidy-18 clangd-18 clang-tools-18 clang-format-18
 apt install libunwind8 libunwind-dev
 apt install openjdk-17-jdk openjdk-17-jre junit4
@@ -292,7 +300,7 @@ apt install cmake cmake-extras extra-cmake-modules pkg-config
 apt install doxygen graphviz
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-If using optional clang toolchain, 
+If using optional clang toolchain,
 perhaps change the clang version-suffix of above clang install line to the appropriate version.
 
 After complete clang installation, you might want to setup the latest version as your default.
@@ -380,9 +388,9 @@ You may utilize `scripts/build-preset.sh` for an initial build, install and test
 #### CMake Build via Hardcoded Presets
 Analog to [jaulib CMake hardcoded presets](https://jausoft.com/cgit/jaulib.git/about/README.md#cmake_presets_hardcoded) ...
 
-Besides above `CMakePresets.json` presets, 
+Besides above `CMakePresets.json` presets,
 `JaulibSetup.cmake` contains hardcoded presets for *undefined variables* if
-- `CMAKE_INSTALL_PREFIX` and `CMAKE_CXX_CLANG_TIDY` cmake variables are unset, or 
+- `CMAKE_INSTALL_PREFIX` and `CMAKE_CXX_CLANG_TIDY` cmake variables are unset, or
 - `JAU_CMAKE_ENFORCE_PRESETS` cmake- or environment-variable is set to `TRUE` or `ON`
 
 The hardcoded presets resemble `debug-clang` [presets](README.md#cmake_presets_optional).
@@ -420,14 +428,14 @@ Both is enabled with above CMake [presets](README.md#cmake_presets_optional).
 
 The *trial* tests utilize one or more actual Bluetooth adapter,
 hence using the *capsh* launch for the required permissions as described above.
-Therefor, *sudo* will be called and a user interaction to enter the *sudo* password may occur. 
+Therefor, *sudo* will be called and a user interaction to enter the *sudo* password may occur.
 
 The *trial* tests cover *Direct-BT*'s Bluetooth functionality,
 having its *master/client* and *slave/server peripheral* facilities communicating via actual adapter,
 supporting regression testing of the API, its implementation and adapter.
 
-The tests are implemented in both, C++ and Java. 
-The C++ unit tests are also being used for *valgrind* memory leak and data race validation. 
+The tests are implemented in both, C++ and Java.
+The C++ unit tests are also being used for *valgrind* memory leak and data race validation.
 At this point we are free of leaks and use-after-free issues.
 
 The *trial* tests take around 110 seconds, since `TestDBClientServer1*` performs the test twelve fold altogether:
@@ -463,7 +471,7 @@ using chroot into a target system using [QEMU User space emulation](https://qemu
 and [Linux kernel binfmt_misc](https://wiki.debian.org/QemuUserEmulation)
 to run on other architectures than the host.
 
-You may use [our pi-gen branch](https://jausoft.com/cgit/pi-gen.git/about/) to produce 
+You may use [our pi-gen branch](https://jausoft.com/cgit/pi-gen.git/about/) to produce
 a Raspi-arm64, Raspi-armhf or PC-amd64 target image.
 
 
@@ -472,10 +480,10 @@ a Raspi-arm64, Raspi-armhf or PC-amd64 target image.
 
 ## IDE Integration
 
-### Eclipse 
+### Eclipse
 Tested Eclipse 2024-03 (4.31).
 
-IDE integration configuration files are provided for 
+IDE integration configuration files are provided for
 - [Eclipse](https://download.eclipse.org/eclipse/downloads/) with extensions
   - [CDT](https://github.com/eclipse-cdt/) or [CDT @ eclipse.org](https://projects.eclipse.org/projects/tools.cdt)
   - [CDT-LSP](https://github.com/eclipse-cdt/cdt-lsp) *recommended*
@@ -486,7 +494,7 @@ IDE integration configuration files are provided for
   - `CMake Support`, install `C/C++ CMake Build Support` with ID `org.eclipse.cdt.cmake.feature.group`
     - Usable via via [Hardcoded CMake Presets](README.md#cmake_presets_hardcoded) with `debug-clang`
 
-The [Hardcoded CMake Presets](README.md#cmake_presets_hardcoded) will 
+The [Hardcoded CMake Presets](README.md#cmake_presets_hardcoded) will
 use `build/default` as the default build folder with debug enabled.
 
 Make sure to set the environment variable `CMAKE_BUILD_PARALLEL_LEVEL`
@@ -495,16 +503,16 @@ This will enable parallel build with the IDE.
 
 You can import the project to your workspace via `File . Import...` and `Existing Projects into Workspace` menu item.
 
-For Eclipse one might need to adjust some setting in the `.project` and `.cproject` (CDT) 
+For Eclipse one might need to adjust some setting in the `.project` and `.cproject` (CDT)
 via Eclipse settings UI, but it should just work out of the box.
 
-Otherwise recreate the Eclipse project by 
-- delete `.project` and `.cproject` 
+Otherwise recreate the Eclipse project by
+- delete `.project` and `.cproject`
 - `File . New . C/C++ Project` and `Empty or Existing CMake Project` while using this project folder.
 
 ### VSCodium or VS Code
 
-IDE integration configuration files are provided for 
+IDE integration configuration files are provided for
 - [VSCodium](https://vscodium.com/) or [VS Code](https://code.visualstudio.com/) with extensions
   - [vscode-clangd](https://github.com/clangd/vscode-clangd)
   - [twxs.cmake](https://github.com/twxs/vs.language.cmake)
@@ -538,11 +546,11 @@ Then you can open it via `File . Open Workspace from File...` menu item.
 
 *Direct-BT* is the new implementation as provided by [Gothel Software](https://jausoft.com/) and [Zafena ICT](https://ict.zafena.se).
 
-If you like to utilize *Direct-BT* in a commercial setting, 
+If you like to utilize *Direct-BT* in a commercial setting,
 please contact [Gothel Software](https://jausoft.com/) to setup a potential support contract.
 
 ## Common issues
-If you have any issues, please go through the [Troubleshooting Guide](TROUBLESHOOTING.md). 
+If you have any issues, please go through the [Troubleshooting Guide](TROUBLESHOOTING.md).
 
 If the solution is not there, please search for an existing issue in our [Bugzilla DB](https://jausoft.com/bugzilla/describecomponents.cgi?product=Direct-BT),
 please [contact us](https://jausoft.com/) for a new bugzilla account via email to Sven Gothel <sgothel@jausoft.com>.
@@ -550,7 +558,7 @@ please [contact us](https://jausoft.com/) for a new bugzilla account via email t
 
 ## Contributing to Direct-BT
 You shall agree to Developer Certificate of Origin and Sign-off your code,
-using a real name and e-mail address. 
+using a real name and e-mail address.
 
 Please check the [Contribution](CONTRIBUTING.md) document for more details.
 
@@ -562,9 +570,9 @@ Please check the [Contribution](CONTRIBUTING.md) document for more details.
 *Direct-BT* development started around April 2020,
 initially as an alternative *TinyB* Java-API implementation.
 
-The work was motivated due to strict 
+The work was motivated due to strict
 performance, discovery- and connection timing requirements,
-as well as being able to handle multiple devices concurrently 
+as well as being able to handle multiple devices concurrently
 using a real-time event driven low-overhead architecture.
 
 Zafena's [POC-Workstation](https://www.zafena.se/en/product/zafena-552-poc-workstation/)
@@ -576,9 +584,9 @@ Advertising package details were not exposed.
 
 Connections attempts often took up to 10 seconds to be completed.
 Detailed information from the *Bluetooth* layer were inaccessible
-including detailed error states. 
+including detailed error states.
 
-Fine grained control about discovery and connection parameter 
+Fine grained control about discovery and connection parameter
 were not exposed by the D-Bus API and hence *TinyB*.
 
 In January 2020 we tried to remedy certain aspects to meet our goals,
@@ -593,7 +601,7 @@ We then implemented data types for
 - *ATT PDU Messages* to handle GATT communication with the remote device
 - *SMP Packets* to implement *Secure Connections (SC)* and *Legacy pairing*.
 
-Last but not least we added 
+Last but not least we added
 - *Bluetooth* version 5 support
 - *GATT-Server* support to enable implementing *peripheral* devices,
   as well as to allow self-testing of *Direct-BT*.
@@ -602,7 +610,7 @@ Today, *Direct-BT*'s C++ and Java API match 1:1
 and shall not contain legacy API artifacts.
 
 ### TinyB Removal since version 2.3
-Heading towards feature completion for *Direct-BT*, 
+Heading towards feature completion for *Direct-BT*,
 we completely removed the previously refactored *TinyB*.
 
 Detailing full *Bluetooth* support in *Direct-BT* including the addition
