@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.21.0 FATAL_ERROR)
+cmake_minimum_required (VERSION 3.21 FATAL_ERROR)
 set(USE_LIBCURL OFF CACHE BOOL "" FORCE)
 include(jaulib/JaulibSetup.cmake)
 JaulibPreset()
@@ -29,9 +29,9 @@ endif()
 JaulibSetup()
 
 # Fixup clangd w/ absolute path
-set (direct_bt_clangd_source_args "-isystem, ${CMAKE_CURRENT_SOURCE_DIR}/jaulib/include, -isystem, ${CMAKE_CURRENT_SOURCE_DIR}/jaulib/src, -isystem, ${CMAKE_CURRENT_SOURCE_DIR}/jaulib/java_jni/jni, -isystem, ${CMAKE_CURRENT_SOURCE_DIR}/jaulib/java_jni/jni/jau")
-set (direct_bt_clangd_source_args "${direct_bt_clangd_source_args}, -isystem, ${CMAKE_CURRENT_SOURCE_DIR}/jaulib/include/catch2_jau, -isystem, ${CMAKE_CURRENT_SOURCE_DIR}/jaulib/test")
-set (direct_bt_clangd_source_args "${direct_bt_clangd_source_args}, -isystem, ${CMAKE_CURRENT_SOURCE_DIR}/api/direct_bt, -isystem, ${CMAKE_CURRENT_SOURCE_DIR}/src/direct_bt, -isystem, ${CMAKE_CURRENT_SOURCE_DIR}/src/direct_bt/ieee11073, -isystem, ${CMAKE_CURRENT_SOURCE_DIR}/java/jni, -isystem, ${CMAKE_CURRENT_SOURCE_DIR}/java/jni/direct_bt, -isystem, ${CMAKE_CURRENT_SOURCE_DIR}/test/direct_bt, -isystem, ${CMAKE_CURRENT_SOURCE_DIR}/test/ieee11073, -isystem, ${CMAKE_CURRENT_SOURCE_DIR}/trial/direct_bt")
+set (direct_bt_clangd_source_args "-I, ${CMAKE_CURRENT_SOURCE_DIR}/jaulib/include, -I, ${CMAKE_CURRENT_SOURCE_DIR}/jaulib/src, -I, ${CMAKE_CURRENT_SOURCE_DIR}/jaulib/java_jni/jni, -I, ${CMAKE_CURRENT_SOURCE_DIR}/jaulib/java_jni/jni/jau")
+set (direct_bt_clangd_source_args "${direct_bt_clangd_source_args}, -I, ${CMAKE_CURRENT_SOURCE_DIR}/jaulib/include/catch2_jau, -I, ${CMAKE_CURRENT_SOURCE_DIR}/jaulib/test")
+set (direct_bt_clangd_source_args "${direct_bt_clangd_source_args}, -I, ${CMAKE_CURRENT_SOURCE_DIR}/api/direct_bt, -I, ${CMAKE_CURRENT_SOURCE_DIR}/src/direct_bt, -I, ${CMAKE_CURRENT_SOURCE_DIR}/src/direct_bt/ieee11073, -I, ${CMAKE_CURRENT_SOURCE_DIR}/java/jni, -I, ${CMAKE_CURRENT_SOURCE_DIR}/java/jni/direct_bt, -I, ${CMAKE_CURRENT_SOURCE_DIR}/test/direct_bt, -I, ${CMAKE_CURRENT_SOURCE_DIR}/test/ieee11073, -I, ${CMAKE_CURRENT_SOURCE_DIR}/trial/direct_bt, -I, ${CMAKE_CURRENT_SOURCE_DIR}/examples")
 configure_file (${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/clangd.in
                 ${CMAKE_CURRENT_BINARY_DIR}/.clangd)
 file(COPY_FILE ${CMAKE_CURRENT_BINARY_DIR}/.clangd ${CMAKE_CURRENT_SOURCE_DIR}/.clangd)
@@ -74,9 +74,10 @@ ENDIF(BUILDJAVA)
 # add a target to generate API documentation with Doxygen
 find_package (Doxygen)
 if (DOXYGEN_FOUND)
-  configure_file (${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.cpp.in ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile.cpp.out @ONLY)
+  configure_file (${CMAKE_CURRENT_SOURCE_DIR}/doc/Doxyfile.cpp.in ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile.cpp.out @ONLY)
+  file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/jaulib/doc/doxygen-awesome.css DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
   if (BUILDJAVA)
-    configure_file (${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.java.in ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile.java.out @ONLY)
+    configure_file (${CMAKE_CURRENT_SOURCE_DIR}/doc/Doxyfile.java.in ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile.java.out @ONLY)
     add_custom_command (OUTPUT ${direct_bt_DOCS_DIR}/cpp ${direct_bt_DOCS_DIR}/java
       COMMAND ${CMAKE_COMMAND} -E make_directory ${direct_bt_DOCS_DIR}
       COMMAND ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile.cpp.out

@@ -28,7 +28,12 @@ CheckOptions:
     value:           'false'
 
 WarningsAsErrors: '*'
+
+# Use -header-filter=.* to display errors from all non-system headers. Use -system-headers to display errors from system headers as well.
 HeaderFilterRegex: '(api/|trial/direct_bt/|test/direct_bt/|java/jni|jaulib/include/jau/).*$'
+# HeaderFilterRegex: '.*'
+# ExcludeHeaderFilterRegex: 'jaulib/include/catch2.*$'
+# SystemHeaders: true
 
 # AnalyzeTemporaryDtors: false
 FormatStyle:     none
