@@ -165,15 +165,15 @@ void Java_jau_direct_1bt_DBTDevice_deleteImpl(JNIEnv *env, jobject obj, jlong na
         shared_ptr_ref<BTDevice> sref(nativeInstance, false /* throw_on_nullptr */); // hold copy until done
         if( nullptr != sref.pointer() ) {
             if( !sref.is_null() ) {
-                DBG_PRINT("Java_jau_direct_1bt_DBTDevice_deleteImpl (w/ remove) %s", sref->toString().c_str());
+                jau_DBG_PRINT("Java_jau_direct_1bt_DBTDevice_deleteImpl (w/ remove) %s", sref->toString());
                 sref->remove();
             } else {
-                DBG_PRINT("Java_jau_direct_1bt_DBTDevice_deleteImpl null reference");
+                jau_DBG_PRINT("Java_jau_direct_1bt_DBTDevice_deleteImpl null reference");
             }
             std::shared_ptr<BTDevice>* sref_ptr = castInstance<BTDevice>(nativeInstance);
             delete sref_ptr;
         } else {
-            DBG_PRINT("Java_jau_direct_1bt_DBTDevice_deleteImpl null reference store");
+            jau_DBG_PRINT("Java_jau_direct_1bt_DBTDevice_deleteImpl null reference store");
         }
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -264,7 +264,7 @@ jboolean Java_jau_direct_1bt_DBTDevice_addCharListenerImpl(JNIEnv *env, jobject 
 
         std::shared_ptr<BTGattHandler> gatt = device->getGattHandler();
         if( nullptr == gatt ) {
-            ERR_PRINT("BTGattChar's device GATTHandle not connected: %s", device->toString().c_str());
+            jau_ERR_PRINT("BTGattChar's device GATTHandle not connected: %s", device->toString());
             return false;
         }
 
@@ -277,7 +277,7 @@ jboolean Java_jau_direct_1bt_DBTDevice_addCharListenerImpl(JNIEnv *env, jobject 
         if( addRes ) {
             return JNI_TRUE;
         }
-        ERR_PRINT("BTDevice::addCharListener: FAILED: %s", gcl->toString().c_str());
+        jau_ERR_PRINT("BTDevice::addCharListener: FAILED: %s", gcl->toString());
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
@@ -301,12 +301,12 @@ jboolean Java_jau_direct_1bt_DBTDevice_removeCharListener(JNIEnv *env, jobject o
         std::shared_ptr<BTGattHandler> gatt = device->getGattHandler();
         if( nullptr == gatt ) {
             // OK to have BTGattHandler being shutdown @ disable
-            DBG_PRINT("BTGattChar's device GATTHandle not connected: %s", device->toString().c_str());
+            jau_DBG_PRINT("BTGattChar's device GATTHandle not connected: %s", device->toString());
             return false;
         }
 
         if( ! gatt->removeCharListener(gcl.shared_ptr()) ) {
-            WARN_PRINT("Failed to remove BTGattCharListener with nativeInstance: %p at %s", gcl.shared_ptr().get(), device->toString().c_str());
+            jau_WARN_PRINT("Failed to remove BTGattCharListener with nativeInstance: %p at %s", gcl.shared_ptr().get(), device->toString());
             return false;
         }
         return true;
@@ -333,7 +333,7 @@ jint Java_jau_direct_1bt_DBTDevice_removeAllAssociatedCharListener(JNIEnv *env, 
         std::shared_ptr<BTGattHandler> gatt = device->getGattHandler();
         if( nullptr == gatt ) {
             // OK to have BTGattHandler being shutdown @ disable
-            DBG_PRINT("BTGattChar's device GATTHandle not connected: %s", device->toString().c_str());
+            jau_DBG_PRINT("BTGattChar's device GATTHandle not connected: %s", device->toString());
             return 0;
         }
 
@@ -357,7 +357,7 @@ jint Java_jau_direct_1bt_DBTDevice_removeAllCharListener(JNIEnv *env, jobject ob
         std::shared_ptr<BTGattHandler> gatt = device->getGattHandler();
         if( nullptr == gatt ) {
             // OK to have BTGattHandler being shutdown @ disable
-            DBG_PRINT("BTGattChar's device GATTHandle not connected: %s", device->toString().c_str());
+            jau_DBG_PRINT("BTGattChar's device GATTHandle not connected: %s", device->toString());
             return 0;
         }
         return (jint) gatt->removeAllCharListener();

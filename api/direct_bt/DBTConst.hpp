@@ -1,6 +1,6 @@
 /*
  * Author: Sven Gothel <sgothel@jausoft.com>
- * Copyright (c) 2021 Gothel Software e.K.
+ * Copyright (c) 2021-2026 Gothel Software e.K.
  * Copyright (c) 2021 ZAFENA AB
  *
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -26,9 +26,8 @@
 #ifndef DBT_CONST_HPP_
 #define DBT_CONST_HPP_
 
-#include <cstddef>
-
 #include <jau/int_types.hpp>
+#include <jau/fraction_type.hpp>
 
 namespace direct_bt {
 

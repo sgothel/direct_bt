@@ -1,6 +1,6 @@
 /*
  * Author: Sven Gothel <sgothel@jausoft.com>
- * Copyright (c) 2020 Gothel Software e.K.
+ * Copyright (c) 2020-2026 Gothel Software e.K.
  * Copyright (c) 2020 ZAFENA AB
  *
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -28,9 +28,7 @@
 
 #include <cstring>
 #include <string>
-#include <memory>
 #include <cstdint>
-#include <vector>
 #include <cmath>
 
 /**
@@ -46,15 +44,13 @@
  */
 namespace ieee11073 {
 
-    #define E_FILE_LINE __FILE__,__LINE__
-
     class RuntimeException : public std::exception {
       protected:
         std::string msg;
-        
+
         RuntimeException(std::string type, std::string const& m, const char* file, int line) noexcept
-        : msg( std::move(type) ) 
-        { 
+        : msg( std::move(type) )
+        {
             msg.append(" @ ").append(file).append(":").append(std::to_string(line)).append(": ").append(m);
         }
 

@@ -1,6 +1,6 @@
 /*
  * Author: Sven Gothel <sgothel@jausoft.com>
- * Copyright (c) 2021 Gothel Software e.K.
+ * Copyright (c) 2021-2026 Gothel Software e.K.
  * Copyright (c) 2020 ZAFENA AB
  *
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -24,17 +24,18 @@
  */
 
 #include <cstring>
-#include <jau/basic_types.hpp>
 #include <string>
 #include <memory>
 #include <cstdint>
 #include <cstdio>
-#include <sstream>
 
 #include  <algorithm>
+#include "jau/string_cfmt.hpp"
+#include "jau/string_util.hpp"
 
-#include <jau/debug.hpp>
+#include <jau/basic_types.hpp>
 #include <jau/darray.hpp>
+#include <jau/debug.hpp>
 
 #include "BTTypes0.hpp"
 
@@ -65,21 +66,6 @@ BDAddressType direct_bt::to_BDAddressType(const HCILEPeerAddressType hciPeerAddr
         default:
             return BDAddressType::BDADDR_UNDEFINED;
     }
-}
-
-#define CHAR_DECL_HCILEPeerAddressType_ENUM(X) \
-        X(HCILEPeerAddressType,PUBLIC) \
-        X(HCILEPeerAddressType,RANDOM) \
-        X(HCILEPeerAddressType,PUBLIC_IDENTITY) \
-        X(HCILEPeerAddressType,RANDOM_STATIC_IDENTITY) \
-        X(HCILEPeerAddressType,UNDEFINED)
-
-std::string direct_bt::to_string(const HCILEPeerAddressType type) noexcept {
-    switch(type) {
-        CHAR_DECL_HCILEPeerAddressType_ENUM(CASE2_TO_STRING)
-        default: ; // fall through intended
-    }
-    return "Unknown HCILEPeerAddressType "+jau::to_hexstring(number(type));
 }
 
 BDAddressType direct_bt::to_BDAddressType(const HCILEOwnAddressType hciOwnAddrType) noexcept {
@@ -115,52 +101,14 @@ HCILEOwnAddressType direct_bt::to_HCILEOwnAddressType(const BDAddressType addrTy
     }
 }
 
-#define CHAR_DECL_HCILEOwnAddressType_ENUM(X) \
-        X(HCILEOwnAddressType,PUBLIC) \
-        X(HCILEOwnAddressType,RANDOM) \
-        X(HCILEOwnAddressType,RESOLVABLE_OR_PUBLIC) \
-        X(HCILEOwnAddressType,RESOLVABLE_OR_RANDOM) \
-        X(HCILEOwnAddressType,UNDEFINED)
-
-std::string direct_bt::to_string(const HCILEOwnAddressType type) noexcept {
-    switch(type) {
-        CHAR_DECL_HCILEOwnAddressType_ENUM(CASE2_TO_STRING)
-        default: ; // fall through intended
-    }
-    return "Unknown HCILEOwnAddressType "+jau::to_hexstring(number(type));
+namespace direct_bt { // from BTAddress.hpp
+    JAU_MAKE_ENUM_STRING_CODE(BDAddressType, BDADDR_BREDR, BDADDR_LE_PUBLIC, BDADDR_LE_RANDOM, BDADDR_UNDEFINED);
+    JAU_MAKE_ENUM_STRING_CODE(BLERandomAddressType, UNRESOLVABLE_PRIVAT, RESOLVABLE_PRIVAT, RESERVED, STATIC_PUBLIC, UNDEFINED);
+    JAU_MAKE_ENUM_STRING_CODE(HCILEPeerAddressType, PUBLIC, RANDOM, PUBLIC_IDENTITY, RANDOM_STATIC_IDENTITY, UNDEFINED);
+    JAU_MAKE_ENUM_STRING_CODE(HCILEOwnAddressType, PUBLIC, RANDOM, RESOLVABLE_OR_PUBLIC, RESOLVABLE_OR_RANDOM, UNDEFINED);
 }
 
-
-#define CHAR_DECL_BDADDRESSTYPE_ENUM(X) \
-        X(BDAddressType,BDADDR_BREDR) \
-        X(BDAddressType,BDADDR_LE_PUBLIC) \
-        X(BDAddressType,BDADDR_LE_RANDOM) \
-        X(BDAddressType,BDADDR_UNDEFINED)
-
-std::string direct_bt::to_string(const BDAddressType type) noexcept {
-    switch(type) {
-        CHAR_DECL_BDADDRESSTYPE_ENUM(CASE2_TO_STRING)
-        default: ; // fall through intended
-    }
-    return "Unknown BDAddressType "+jau::to_hexstring(number(type));
-}
-
-#define CHAR_DECL_LERANDOMADDRESSTYPE_ENUM(X) \
-        X(BLERandomAddressType,UNRESOLVABLE_PRIVAT) \
-        X(BLERandomAddressType,RESOLVABLE_PRIVAT) \
-        X(BLERandomAddressType,RESERVED) \
-        X(BLERandomAddressType,STATIC_PUBLIC) \
-        X(BLERandomAddressType,UNDEFINED)
-
-std::string direct_bt::to_string(const BLERandomAddressType type) noexcept {
-    switch(type) {
-        CHAR_DECL_LERANDOMADDRESSTYPE_ENUM(CASE2_TO_STRING)
-        default: ; // fall through intended
-    }
-    return "Unknown BLERandomAddressType "+jau::to_hexstring(number(type));
-}
-
-BLERandomAddressType BDAddressAndType::getBLERandomAddressType(const jau::EUI48& address, const BDAddressType addressType) noexcept {
+BLERandomAddressType BDAddressAndType::getBLERandomAddressType(const jau::io::net::EUI48& address, const BDAddressType addressType) noexcept {
     if( BDAddressType::BDADDR_LE_RANDOM != addressType ) {
         return BLERandomAddressType::UNDEFINED;
     }
@@ -174,18 +122,22 @@ BLERandomAddressType BDAddressAndType::getBLERandomAddressType(const jau::EUI48&
     }
 }
 
-std::string BDAddressAndType::getBLERandomAddressTypeString(const jau::EUI48& address, const BDAddressType addressType, const std::string& prefix) noexcept {
+std::string BDAddressAndType::getBLERandomAddressTypeString(const jau::io::net::EUI48& address, const BDAddressType addressType, const std::string& prefix) noexcept {
     if( BDAddressType::BDADDR_LE_RANDOM != addressType ) {
         return std::string();
     }
-    return prefix+to_string( BDAddressAndType::getBLERandomAddressType(address, addressType) );
+    std::string res;
+    jau::reserve_string(res, prefix.size() + 20);
+    jau::append_string(res, prefix);
+    jau::append_string(res, to_string(BDAddressAndType::getBLERandomAddressType(address, addressType)));
+    return res;
 }
 
-const BDAddressAndType direct_bt::BDAddressAndType::ANY_BREDR_DEVICE(jau::EUI48::ANY_DEVICE, BDAddressType::BDADDR_BREDR);
-const BDAddressAndType direct_bt::BDAddressAndType::ANY_DEVICE(jau::EUI48::ANY_DEVICE, BDAddressType::BDADDR_UNDEFINED);
+const BDAddressAndType direct_bt::BDAddressAndType::ANY_BREDR_DEVICE(jau::io::net::EUI48::ANY_DEVICE, BDAddressType::BDADDR_BREDR);
+const BDAddressAndType direct_bt::BDAddressAndType::ANY_DEVICE(jau::io::net::EUI48::ANY_DEVICE, BDAddressType::BDADDR_UNDEFINED);
 
 std::string BDAddressAndType::toString() const noexcept {
-    return "["+address.toString()+", "+to_string(type)+getBLERandomAddressTypeString(address, type, ", ")+"]";
+    return jau_format_string("[%s, %s%s]", address, type, getBLERandomAddressTypeString(address, type, ", "));
 }
 
 // *************************************************
@@ -196,33 +148,51 @@ static inline const int8_t * const_uint8_to_const_int8_ptr(const uint8_t* p) noe
     return static_cast<const int8_t *>( static_cast<void *>( const_cast<uint8_t*>( p ) ) ); // NOLINT(bugprone-casting-through-void): Alignment OK - same as reinterpret_cast<T*>( p )
 }
 
-std::string direct_bt::to_string(const BTRole v) noexcept {
-    switch(v) {
-        case BTRole::None: return "None";
-        case BTRole::Master: return "Master";
-        case BTRole::Slave: return "Slave";
-    }
-    return "Unknown BTRole "+jau::to_hexstring(number(v));
-}
-
-std::string direct_bt::to_string(const GATTRole v) noexcept {
-    switch(v) {
-        case GATTRole::None: return "None";
-        case GATTRole::Client: return "Client";
-        case GATTRole::Server: return "Server";
-    }
-    return "Unknown GATTRole "+jau::to_hexstring(number(v));
-}
-
-std::string direct_bt::to_string(const BTMode v) noexcept {
-    switch(v) {
-        case BTMode::NONE: return "NONE";
-        case BTMode::DUAL: return "DUAL";
-        case BTMode::BREDR: return "BREDR";
-        case BTMode::LE: return "LE";
-    }
-    return "Unknown BTMode "+jau::to_hexstring(number(v));
-}
+namespace direct_bt { // from BTTypes0.hpp
+    JAU_MAKE_ENUM_STRING_CODE(BTRole, None, Master, Slave);
+    JAU_MAKE_ENUM_STRING_CODE(GATTRole, None, Server, Client);
+    JAU_MAKE_ENUM_STRING_CODE(BTMode, NONE, DUAL, BREDR);
+    JAU_MAKE_BITFIELD_ENUM_STRING_CODE(LE_Features,
+       LE_Encryption, Conn_Param_Req_Proc, Ext_Rej_Ind, SlaveInit_Feat_Exchg, LE_Ping,
+       LE_Data_Pkt_Len_Ext, LL_Privacy, Ext_Scan_Filter_Pol, LE_2M_PHY,
+       Stable_Mod_Idx_Tx, Stable_Mod_Idx_Rx, LE_Coded_PHY, LE_Ext_Adv, LE_Per_Adv,
+       Chan_Sel_Algo_2, LE_Pwr_Cls_1, Min_Num_Used_Chan_Proc,
+       Conn_CTE_Req, Conn_CTE_Res, ConnLess_CTE_Tx, ConnLess_CTE_Rx,
+       AoD, AoA, Rx_Const_Tone_Ext, Per_Adv_Sync_Tx_Sender, Per_Adv_Sync_Tx_Rec,
+       Zzz_Clk_Acc_Upd, Rem_Pub_Key_Val, Conn_Iso_Stream_Master, Conn_Iso_Stream_Slave,
+       Iso_Brdcst, Sync_Rx, Iso_Chan, LE_Pwr_Ctrl_Req, LE_Pwr_Chg_Ind, LE_Path_Loss_Mon);
+    JAU_MAKE_BITFIELD_ENUM_STRING_CODE(LE_PHYs, LE_1M, LE_2M, LE_CODED);
+    JAU_MAKE_ENUM_STRING_CODE(BTSecurityLevel, NONE, ENC_ONLY, ENC_AUTH, ENC_AUTH_FIPS);
+    JAU_MAKE_ENUM_STRING_CODE(PairingMode, NEGOTIATING, JUST_WORKS, PASSKEY_ENTRY_ini, PASSKEY_ENTRY_res,
+                                           NUMERIC_COMPARE_ini, NUMERIC_COMPARE_res, OUT_OF_BAND, PRE_PAIRED);
+    JAU_MAKE_BITFIELD_ENUM_STRING_CODE(ScanType, BREDR, LE);
+    JAU_MAKE_ENUM_STRING_CODE(AD_PDU_Type, ADV_IND, ADV_DIRECT_IND, ADV_SCAN_IND, ADV_NONCONN_IND, SCAN_RSP,
+                                           ADV_IND2, DIRECT_IND2, SCAN_IND2, NONCONN_IND2,
+                                           SCAN_RSP_to_ADV_IND, SCAN_RSP_to_ADV_SCAN_IND, UNDEFINED);
+    JAU_MAKE_BITFIELD_ENUM_STRING_CODE(EAD_Event_Type, CONN_ADV, SCAN_ADV, DIR_ADV, SCAN_RSP, LEGACY_PDU, DATA_B0, DATA_B1);
+    JAU_MAKE_ENUM_STRING_CODE(L2CAP_CID, UNDEFINED, SIGNALING, CONN_LESS, A2MP, ATT, LE_SIGNALING, SMP, SMP_BREDR, DYN_START, DYN_END, LE_DYN_END);
+    JAU_MAKE_ENUM_STRING_CODE(L2CAP_PSM, UNDEFINED, SDP, RFCOMM, TCSBIN, TCSBIN_CORDLESS, BNEP, HID_CONTROL, HID_INTERRUPT,
+                                         UPNP, AVCTP, AVDTP, AVCTP_BROWSING, UDI_C_PLANE, ATT, LE_DYN_START, LE_DYN_END,
+                                         DYN_START, DYN_END, AUTO_END);
+    JAU_MAKE_ENUM_STRING_CODE(AppearanceCat, UNKNOWN, GENERIC_PHONE, GENERIC_COMPUTER, GENERIC_WATCH, SPORTS_WATCH, GENERIC_CLOCK,
+         GENERIC_DISPLAY, GENERIC_REMOTE_CLOCK, GENERIC_EYE_GLASSES, GENERIC_TAG, GENERIC_KEYRING,
+         GENERIC_MEDIA_PLAYER, GENERIC_BARCODE_SCANNER, GENERIC_THERMOMETER, GENERIC_THERMOMETER_EAR,
+         GENERIC_HEART_RATE_SENSOR, HEART_RATE_SENSOR_BELT, GENERIC_BLOD_PRESSURE,
+         BLOD_PRESSURE_ARM, BLOD_PRESSURE_WRIST, HID, HID_KEYBOARD, HID_MOUSE, HID_JOYSTICK, HID_GAMEPAD,
+         HID_DIGITIZER_TABLET, HID_CARD_READER, HID_DIGITAL_PEN, HID_BARCODE_SCANNER, GENERIC_GLUCOSE_METER,
+         GENERIC_RUNNING_WALKING_SENSOR, RUNNING_WALKING_SENSOR_IN_SHOE, RUNNING_WALKING_SENSOR_ON_SHOE,
+         RUNNING_WALKING_SENSOR_HIP, GENERIC_CYCLING, CYCLING_COMPUTER, CYCLING_SPEED_SENSOR, CYCLING_CADENCE_SENSOR,
+         CYCLING_POWER_SENSOR, CYCLING_SPEED_AND_CADENCE_SENSOR, GENERIC_PULSE_OXIMETER, PULSE_OXIMETER_FINGERTIP,
+         PULSE_OXIMETER_WRIST, GENERIC_WEIGHT_SCALE, GENERIC_PERSONAL_MOBILITY_DEVICE, PERSONAL_MOBILITY_DEVICE_WHEELCHAIR,
+         PERSONAL_MOBILITY_DEVICE_SCOOTER, GENERIC_CONTINUOUS_GLUCOSE_MONITOR, GENERIC_INSULIN_PUMP, INSULIN_PUMP_DURABLE,
+         INSULIN_PUMP_PATCH, INSULIN_PUMP_PEN, GENERIC_MEDICATION_DELIVERY, GENERIC_OUTDOOR_SPORTS_ACTIVITY,
+         OUTDOOR_SPORTS_ACTIVITY_LOCATION_DISPLAY_DEVICE, OUTDOOR_SPORTS_ACTIVITY_LOCATION_AND_NAVIGATION_DISPLAY_DEVICE,
+         OUTDOOR_SPORTS_ACTIVITY_LOCATION_POD, OUTDOOR_SPORTS_ACTIVITY_LOCATION_AND_NAVIGATION_POD);
+    JAU_MAKE_BITFIELD_ENUM_STRING_CODE(GAPFlags, LE_Ltd_Disc, LE_Gen_Disc, BREDR_UNSUP, Dual_SameCtrl, Dual_SameHost, RESERVED1, RESERVED2, RESERVED3);
+    JAU_MAKE_BITFIELD_ENUM_STRING_CODE(EIRDataType, EVT_TYPE, EXT_EVT_TYPE, BDADDR_TYPE, BDADDR, FLAGS, NAME, NAME_SHORT, RSSI, TX_POWER,
+                                                    MANUF_DATA, DEVICE_CLASS, APPEARANCE, HASH, RANDOMIZER, DEVICE_ID, CONN_IVAL,
+                                                    SERVICE_UUID);
+}  // namespace direct_bt
 
 BTMode direct_bt::to_BTMode(const std::string & value) noexcept {
     if( "DUAL" == value ) {
@@ -241,99 +211,6 @@ BTMode direct_bt::to_BTMode(const std::string & value) noexcept {
 // *************************************************
 // *************************************************
 
-#define LEFEATURES_ENUM(X,M) \
-    X(LE_Features,LE_Encryption,M) \
-    X(LE_Features,Conn_Param_Req_Proc,M) \
-    X(LE_Features,Ext_Rej_Ind,M) \
-    X(LE_Features,SlaveInit_Feat_Exchg,M) \
-    X(LE_Features,LE_Ping,M) \
-    X(LE_Features,LE_Data_Pkt_Len_Ext,M) \
-    X(LE_Features,LL_Privacy,M) \
-    X(LE_Features,Ext_Scan_Filter_Pol,M) \
-    X(LE_Features,LE_2M_PHY,M) \
-    X(LE_Features,Stable_Mod_Idx_Tx,M) \
-    X(LE_Features,Stable_Mod_Idx_Rx,M) \
-    X(LE_Features,LE_Coded_PHY,M) \
-    X(LE_Features,LE_Ext_Adv,M) \
-    X(LE_Features,LE_Per_Adv,M) \
-    X(LE_Features,Chan_Sel_Algo_2,M) \
-    X(LE_Features,LE_Pwr_Cls_1,M) \
-    X(LE_Features,Min_Num_Used_Chan_Proc,M) \
-    X(LE_Features,Conn_CTE_Req,M) \
-    X(LE_Features,Conn_CTE_Res,M) \
-    X(LE_Features,ConnLess_CTE_Tx,M) \
-    X(LE_Features,ConnLess_CTE_Rx,M) \
-    X(LE_Features,AoD,M) \
-    X(LE_Features,AoA,M) \
-    X(LE_Features,Rx_Const_Tone_Ext,M) \
-    X(LE_Features,Per_Adv_Sync_Tx_Sender,M) \
-    X(LE_Features,Per_Adv_Sync_Tx_Rec,M) \
-    X(LE_Features,Zzz_Clk_Acc_Upd,M) \
-    X(LE_Features,Rem_Pub_Key_Val,M) \
-    X(LE_Features,Conn_Iso_Stream_Master,M) \
-    X(LE_Features,Conn_Iso_Stream_Slave,M) \
-    X(LE_Features,Iso_Brdcst,M) \
-    X(LE_Features,Sync_Rx,M) \
-    X(LE_Features,Iso_Chan,M) \
-    X(LE_Features,LE_Pwr_Ctrl_Req,M) \
-    X(LE_Features,LE_Pwr_Chg_Ind,M) \
-    X(LE_Features,LE_Path_Loss_Mon,M)
-
-std::string direct_bt::to_string(const LE_Features mask) noexcept {
-    std::string out("[");
-    bool comma = false;
-    LEFEATURES_ENUM(APPEND_BITSTR,mask)
-    out.append("]");
-    return out;
-}
-
-// *************************************************
-// *************************************************
-// *************************************************
-
-#define LE_PHYs_ENUM(X,M) \
-    X(LE_PHYs,LE_1M,M) \
-    X(LE_PHYs,LE_2M,M) \
-    X(LE_PHYs,LE_CODED,M)
-
-std::string direct_bt::to_string(const LE_PHYs mask) noexcept {
-    std::string out("[");
-    bool comma = false;
-    LE_PHYs_ENUM(APPEND_BITSTR,mask)
-    out.append("]");
-    return out;
-}
-
-// *************************************************
-// *************************************************
-// *************************************************
-
-std::string direct_bt::to_string(const BTSecurityLevel v) noexcept {
-    switch(v) {
-        case BTSecurityLevel::UNSET:         return "UNSET";
-        case BTSecurityLevel::NONE:          return "NONE";
-        case BTSecurityLevel::ENC_ONLY:      return "ENC_ONLY";
-        case BTSecurityLevel::ENC_AUTH:      return "ENC_AUTH";
-        case BTSecurityLevel::ENC_AUTH_FIPS: return "ENC_AUTH_FIPS";
-    }
-    return "Unknown BTSecurityLevel "+jau::to_hexstring(number(v));
-}
-
-std::string direct_bt::to_string(const PairingMode v) noexcept {
-    switch(v) {
-        case PairingMode::NONE:                return "NONE";
-        case PairingMode::NEGOTIATING:         return "NEGOTIATING";
-        case PairingMode::JUST_WORKS:          return "JUST_WORKS";
-        case PairingMode::PASSKEY_ENTRY_ini:   return "PASSKEY_ini";
-        case PairingMode::PASSKEY_ENTRY_res:   return "PASSKEY_res";
-        case PairingMode::NUMERIC_COMPARE_ini: return "NUMCOMP_ini";
-        case PairingMode::NUMERIC_COMPARE_res: return "NUMCOMP_res";
-        case PairingMode::OUT_OF_BAND:         return "OUT_OF_BAND";
-        case PairingMode::PRE_PAIRED:          return "PRE_PAIRED";
-    }
-    return "Unknown PairingMode "+jau::to_hexstring(number(v));
-}
-
 ScanType direct_bt::to_ScanType(BTMode btMode) {
     switch ( btMode ) {
         case BTMode::DUAL:
@@ -345,195 +222,6 @@ ScanType direct_bt::to_ScanType(BTMode btMode) {
         default:
             throw jau::IllegalArgumentError("Unsupported BTMode "+to_string(btMode), E_FILE_LINE);
     }
-}
-
-#define SCANTYPE_ENUM(X) \
-        X(NONE) \
-        X(BREDR) \
-        X(LE) \
-        X(DUAL)
-
-#define SCANTYPE_CASE_TO_STRING(V) case ScanType::V: return #V;
-
-std::string direct_bt::to_string(const ScanType v) noexcept {
-    switch(v) {
-        SCANTYPE_ENUM(SCANTYPE_CASE_TO_STRING)
-        default: ; // fall through intended
-    }
-    return "Unknown ScanType "+jau::to_hexstring(number(v));
-}
-
-#define AD_PDU_Type_ENUM(X) \
-    X(ADV_IND) \
-    X(ADV_DIRECT_IND) \
-    X(ADV_SCAN_IND) \
-    X(ADV_NONCONN_IND) \
-    X(SCAN_RSP) \
-    X(ADV_IND2) \
-    X(DIRECT_IND2) \
-    X(SCAN_IND2) \
-    X(NONCONN_IND2) \
-    X(SCAN_RSP_to_ADV_IND) \
-    X(SCAN_RSP_to_ADV_SCAN_IND) \
-    X(UNDEFINED)
-
-#define AD_PDU_Type_CASE_TO_STRING(V) case AD_PDU_Type::V: return #V;
-
-std::string direct_bt::to_string(const AD_PDU_Type v) noexcept {
-    switch(v) {
-        AD_PDU_Type_ENUM(AD_PDU_Type_CASE_TO_STRING)
-        default: ; // fall through intended
-    }
-    return "Unknown AD_PDU_Type "+jau::to_hexstring(number(v));
-}
-
-// *************************************************
-// *************************************************
-// *************************************************
-
-#define EAD_Event_Type_ENUM(X,M) \
-    X(EAD_Event_Type,CONN_ADV,M) \
-    X(EAD_Event_Type,SCAN_ADV,M) \
-    X(EAD_Event_Type,DIR_ADV,M) \
-    X(EAD_Event_Type,SCAN_RSP,M) \
-    X(EAD_Event_Type,LEGACY_PDU,M) \
-    X(EAD_Event_Type,DATA_B0,M) \
-    X(EAD_Event_Type,DATA_B1,M)
-
-std::string direct_bt::to_string(const EAD_Event_Type mask) noexcept {
-    std::string out("[");
-    bool comma = false;
-    EAD_Event_Type_ENUM(APPEND_BITSTR,mask)
-    out.append("]");
-    return out;
-}
-
-// *************************************************
-// *************************************************
-// *************************************************
-
-#define L2CAP_CID_ENUM(X) \
-    X(UNDEFINED) \
-    X(SIGNALING) \
-    X(CONN_LESS) \
-    X(A2MP) \
-    X(ATT) \
-    X(LE_SIGNALING) \
-    X(SMP) \
-    X(SMP_BREDR) \
-    X(DYN_START) \
-    X(DYN_END) \
-    X(LE_DYN_END)
-
-#define L2CAP_CID_CASE_TO_STRING(V) case L2CAP_CID::V: return #V;
-
-std::string direct_bt::to_string(const L2CAP_CID v) noexcept {
-    switch(v) {
-        L2CAP_CID_ENUM(L2CAP_CID_CASE_TO_STRING)
-        default: ; // fall through intended
-    }
-    return "Unknown L2CAP_CID "+jau::to_hexstring(number(v));
-}
-
-#define L2CAP_PSM_ENUM(X) \
-    X(UNDEFINED) \
-    X(SDP) \
-    X(RFCOMM) \
-    X(TCSBIN) \
-    X(TCSBIN_CORDLESS) \
-    X(BNEP) \
-    X(HID_CONTROL) \
-    X(HID_INTERRUPT) \
-    X(UPNP) \
-    X(AVCTP) \
-    X(AVDTP) \
-    X(AVCTP_BROWSING) \
-    X(UDI_C_PLANE) \
-    X(ATT) \
-    X(LE_DYN_START) \
-    X(LE_DYN_END) \
-    X(DYN_START) \
-    X(DYN_END) \
-    X(AUTO_END)
-
-#define L2CAP_PSM_CASE_TO_STRING(V) case L2CAP_PSM::V: return #V;
-
-std::string direct_bt::to_string(const L2CAP_PSM v) noexcept {
-    switch(v) {
-        L2CAP_PSM_ENUM(L2CAP_PSM_CASE_TO_STRING)
-        default: ; // fall through intended
-    }
-    return "Unknown L2CAP_PSM "+jau::to_hexstring(number(v));
-}
-
-#define APPEARANCECAT_ENUM(X) \
-    X(UNKNOWN) \
-    X(GENERIC_PHONE) \
-    X(GENERIC_COMPUTER) \
-    X(GENERIC_WATCH) \
-    X(SPORTS_WATCH) \
-    X(GENERIC_CLOCK) \
-    X(GENERIC_DISPLAY) \
-    X(GENERIC_REMOTE_CLOCK) \
-    X(GENERIC_EYE_GLASSES) \
-    X(GENERIC_TAG) \
-    X(GENERIC_KEYRING) \
-    X(GENERIC_MEDIA_PLAYER) \
-    X(GENERIC_BARCODE_SCANNER) \
-    X(GENERIC_THERMOMETER) \
-    X(GENERIC_THERMOMETER_EAR) \
-    X(GENERIC_HEART_RATE_SENSOR) \
-    X(HEART_RATE_SENSOR_BELT) \
-    X(GENERIC_BLOD_PRESSURE) \
-    X(BLOD_PRESSURE_ARM) \
-    X(BLOD_PRESSURE_WRIST) \
-    X(HID) \
-    X(HID_KEYBOARD) \
-    X(HID_MOUSE) \
-    X(HID_JOYSTICK) \
-    X(HID_GAMEPAD) \
-    X(HID_DIGITIZER_TABLET) \
-    X(HID_CARD_READER) \
-    X(HID_DIGITAL_PEN) \
-    X(HID_BARCODE_SCANNER) \
-    X(GENERIC_GLUCOSE_METER) \
-    X(GENERIC_RUNNING_WALKING_SENSOR) \
-    X(RUNNING_WALKING_SENSOR_IN_SHOE) \
-    X(RUNNING_WALKING_SENSOR_ON_SHOE) \
-    X(RUNNING_WALKING_SENSOR_HIP) \
-    X(GENERIC_CYCLING) \
-    X(CYCLING_COMPUTER) \
-    X(CYCLING_SPEED_SENSOR) \
-    X(CYCLING_CADENCE_SENSOR) \
-    X(CYCLING_POWER_SENSOR) \
-    X(CYCLING_SPEED_AND_CADENCE_SENSOR) \
-    X(GENERIC_PULSE_OXIMETER) \
-    X(PULSE_OXIMETER_FINGERTIP) \
-    X(PULSE_OXIMETER_WRIST) \
-    X(GENERIC_WEIGHT_SCALE) \
-    X(GENERIC_PERSONAL_MOBILITY_DEVICE) \
-    X(PERSONAL_MOBILITY_DEVICE_WHEELCHAIR) \
-    X(PERSONAL_MOBILITY_DEVICE_SCOOTER) \
-    X(GENERIC_CONTINUOUS_GLUCOSE_MONITOR) \
-    X(GENERIC_INSULIN_PUMP) \
-    X(INSULIN_PUMP_DURABLE) \
-    X(INSULIN_PUMP_PATCH) \
-    X(INSULIN_PUMP_PEN) \
-    X(GENERIC_MEDICATION_DELIVERY) \
-    X(GENERIC_OUTDOOR_SPORTS_ACTIVITY) \
-    X(OUTDOOR_SPORTS_ACTIVITY_LOCATION_DISPLAY_DEVICE) \
-    X(OUTDOOR_SPORTS_ACTIVITY_LOCATION_AND_NAVIGATION_DISPLAY_DEVICE) \
-    X(OUTDOOR_SPORTS_ACTIVITY_LOCATION_POD) \
-    X(OUTDOOR_SPORTS_ACTIVITY_LOCATION_AND_NAVIGATION_POD) \
-
-#define APPEARANCE_CASE_TO_STRING(V) case AppearanceCat::V: return #V;
-
-std::string direct_bt::to_string(const AppearanceCat v) noexcept {
-    switch(v) {
-        APPEARANCECAT_ENUM(APPEARANCE_CASE_TO_STRING)
-        default: ; // fall through intended
-    }
-    return "Unknown AppearanceCat "+jau::to_hexstring(number(v));
 }
 
 // *************************************************
@@ -555,137 +243,81 @@ ManufactureSpecificData::ManufactureSpecificData(uint16_t const company_, uint8_
 { }
 
 std::string ManufactureSpecificData::toString() const noexcept {
-  std::string out("MSD[company[");
-  out.append(std::to_string(company)+" "+companyName);
-  out.append("], data["+data.toString()+"]]");
-  return out;
+  return jau_format_string("MSD[company[%u %s], data[%s]]", company, companyName, data);
 }
 
 // *************************************************
 // *************************************************
 // *************************************************
 
-#define GAPFLAGS_ENUM(X,M) \
-    X(GAPFlags,LE_Ltd_Disc,M) \
-    X(GAPFlags,LE_Gen_Disc,M) \
-    X(GAPFlags,BREDR_UNSUP,M) \
-    X(GAPFlags,Dual_SameCtrl,M) \
-    X(GAPFlags,Dual_SameHost,M) \
-    X(GAPFlags,RESERVED1,M) \
-    X(GAPFlags,RESERVED2,M) \
-    X(GAPFlags,RESERVED3,M)
-
-std::string direct_bt::to_string(const GAPFlags v) noexcept {
-    std::string out("[");
-    bool comma = false;
-    GAPFLAGS_ENUM(APPEND_BITSTR,v)
-    out.append("]");
-    return out;
-}
-
-// *************************************************
-// *************************************************
-// *************************************************
-
-#define EIRDATATYPE_ENUM(X,M) \
-    X(EIRDataType,EVT_TYPE,M) \
-    X(EIRDataType,EXT_EVT_TYPE,M) \
-    X(EIRDataType,BDADDR_TYPE,M) \
-    X(EIRDataType,BDADDR,M) \
-    X(EIRDataType,FLAGS,M) \
-    X(EIRDataType,NAME,M) \
-    X(EIRDataType,NAME_SHORT,M) \
-    X(EIRDataType,RSSI,M) \
-    X(EIRDataType,TX_POWER,M) \
-    X(EIRDataType,MANUF_DATA,M) \
-    X(EIRDataType,DEVICE_CLASS,M) \
-    X(EIRDataType,APPEARANCE,M) \
-    X(EIRDataType,HASH,M) \
-    X(EIRDataType,RANDOMIZER,M) \
-    X(EIRDataType,DEVICE_ID,M) \
-    X(EIRDataType,CONN_IVAL,M) \
-    X(EIRDataType,SERVICE_UUID,M) \
-    X(EIRDataType,ALL,M)
-
-std::string direct_bt::to_string(const EIRDataType mask) noexcept {
-    std::string out("[");
-    bool comma = false;
-    EIRDATATYPE_ENUM(APPEND_BITSTR,mask)
-    out.append("]");
-    return out;
-}
-
-// *************************************************
-// *************************************************
-// *************************************************
-
-void EInfoReport::clear() noexcept {
+void EInfoReport::clear() {
     EInfoReport eir_clean;
     *this = eir_clean;
 }
 
-EIRDataType EInfoReport::set(const EInfoReport& eir) noexcept {
+EIRDataType EInfoReport::set(const EInfoReport& eir) {
     EIRDataType res = EIRDataType::NONE;
 
     if( eir.isSet( EIRDataType::EVT_TYPE ) ) {
         if( !isSet( EIRDataType::EVT_TYPE ) || getEvtType() != eir.getEvtType() ) {
             setEvtType(eir.getEvtType());
-            direct_bt::set(res, EIRDataType::EVT_TYPE);
+            res |= EIRDataType::EVT_TYPE;
+            res |= EIRDataType::EVT_TYPE;
         }
     }
     if( eir.isSet( EIRDataType::EXT_EVT_TYPE ) ) {
         if( !isSet( EIRDataType::EXT_EVT_TYPE ) || getExtEvtType() != eir.getExtEvtType() ) {
             setExtEvtType(eir.getExtEvtType());
-            direct_bt::set(res, EIRDataType::EXT_EVT_TYPE);
+            res |= EIRDataType::EXT_EVT_TYPE;
         }
     }
     if( eir.isSet( EIRDataType::BDADDR_TYPE ) ) {
         if( !isSet( EIRDataType::BDADDR_TYPE ) || getAddressType() != eir.getAddressType() ) {
             setAddressType(eir.getAddressType());
-            direct_bt::set(res, EIRDataType::BDADDR_TYPE);
+            res |= EIRDataType::BDADDR_TYPE;
         }
     }
     if( eir.isSet( EIRDataType::BDADDR ) ) {
         if( !isSet( EIRDataType::BDADDR ) || getAddress() != eir.getAddress() ) {
             setAddress(eir.getAddress());
-            direct_bt::set(res, EIRDataType::BDADDR);
+            res |= EIRDataType::BDADDR;
         }
     }
     if( eir.isSet( EIRDataType::RSSI ) ) {
         if( !isSet( EIRDataType::RSSI ) || getRSSI() != eir.getRSSI() ) {
             setRSSI(eir.getRSSI());
-            direct_bt::set(res, EIRDataType::RSSI);
+            res |= EIRDataType::RSSI;
         }
     }
     if( eir.isSet( EIRDataType::TX_POWER ) ) {
         if( !isSet( EIRDataType::TX_POWER ) || getTxPower() != eir.getTxPower() ) {
             setTxPower(eir.getTxPower());
-            direct_bt::set(res, EIRDataType::TX_POWER);
+            res |= EIRDataType::TX_POWER;
         }
     }
     if( eir.isSet( EIRDataType::FLAGS ) ) {
         if( !isSet( EIRDataType::FLAGS ) || getFlags() != eir.getFlags() ) {
             addFlags(eir.getFlags());
-            direct_bt::set(res, EIRDataType::FLAGS);
+            res |= EIRDataType::FLAGS;
         }
     }
     if( eir.isSet( EIRDataType::NAME) ) {
         if( !isSet( EIRDataType::NAME ) || getName() != eir.getName() ) {
             setName(eir.getName());
-            direct_bt::set(res, EIRDataType::NAME);
+            res |= EIRDataType::NAME;
         }
     }
     if( eir.isSet( EIRDataType::NAME_SHORT) ) {
         if( !isSet( EIRDataType::NAME_SHORT ) || getShortName() != eir.getShortName() ) {
             setShortName(eir.getShortName());
-            direct_bt::set(res, EIRDataType::NAME_SHORT);
+            res |= EIRDataType::NAME_SHORT;
         }
     }
     if( eir.isSet( EIRDataType::MANUF_DATA) ) {
         std::shared_ptr<ManufactureSpecificData> o_msd = eir.getManufactureSpecificData();
         if( nullptr != o_msd && ( !isSet( EIRDataType::MANUF_DATA ) || nullptr == getManufactureSpecificData() || *getManufactureSpecificData() != *o_msd ) ) {
             setManufactureSpecificData(*o_msd);
-            direct_bt::set(res, EIRDataType::MANUF_DATA);
+            res |= EIRDataType::MANUF_DATA;
         }
     }
     if( eir.isSet( EIRDataType::SERVICE_UUID) ) {
@@ -696,31 +328,31 @@ EIRDataType EInfoReport::set(const EInfoReport& eir) noexcept {
         }
         if( added ) {
             setServicesComplete(eir.getServicesComplete());
-            direct_bt::set(res, EIRDataType::SERVICE_UUID);
+            res |= EIRDataType::SERVICE_UUID;
         }
     }
     if( eir.isSet( EIRDataType::DEVICE_CLASS) ) {
         if( !isSet( EIRDataType::DEVICE_CLASS ) || getDeviceClass() != eir.getDeviceClass() ) {
             setDeviceClass(eir.getDeviceClass());
-            direct_bt::set(res, EIRDataType::DEVICE_CLASS);
+            res |= EIRDataType::DEVICE_CLASS;
         }
     }
     if( eir.isSet( EIRDataType::APPEARANCE) ) {
         if( !isSet( EIRDataType::APPEARANCE ) || getAppearance() != eir.getAppearance() ) {
             setAppearance(eir.getAppearance());
-            direct_bt::set(res, EIRDataType::APPEARANCE);
+            res |= EIRDataType::APPEARANCE;
         }
     }
     if( eir.isSet( EIRDataType::HASH) ) {
         if( !isSet( EIRDataType::HASH ) || getHash() != eir.getHash() ) {
             setHash(eir.getHash().get_ptr());
-            direct_bt::set(res, EIRDataType::HASH);
+            res |= EIRDataType::HASH;
         }
     }
     if( eir.isSet( EIRDataType::RANDOMIZER) ) {
         if( !isSet( EIRDataType::RANDOMIZER ) || getRandomizer() != eir.getRandomizer() ) {
             setRandomizer(eir.getRandomizer().get_ptr());
-            direct_bt::set(res, EIRDataType::RANDOMIZER);
+            res |= EIRDataType::RANDOMIZER;
         }
     }
     if( eir.isSet( EIRDataType::DEVICE_ID) ) {
@@ -730,7 +362,7 @@ EIRDataType EInfoReport::set(const EInfoReport& eir) noexcept {
             did_source != source_ || did_vendor != vendor_ || did_product != product_ || did_version != version_ )
         {
             setDeviceID(source_, vendor_, product_, version_);
-            direct_bt::set(res, EIRDataType::DEVICE_ID);
+            res |= EIRDataType::DEVICE_ID;
         }
     }
     if( eir.isSet( EIRDataType::CONN_IVAL) ) {
@@ -738,7 +370,7 @@ EIRDataType EInfoReport::set(const EInfoReport& eir) noexcept {
         eir.getConnInterval(min, max);
         if( !isSet( EIRDataType::CONN_IVAL ) || conn_interval_min != min || conn_interval_max != max ) {
             setConnInterval(min, max);
-            direct_bt::set(res, EIRDataType::CONN_IVAL);
+            res |= EIRDataType::CONN_IVAL;
         }
     }
     if( EIRDataType::NONE != res ) {
@@ -850,66 +482,63 @@ bool EInfoReport::addService(const jau::uuid_t& uuid) noexcept {
 }
 
 std::string EInfoReport::eirDataMaskToString() const noexcept {
-    return std::string("Set"+ direct_bt::to_string( EIR_DATA_TYPE_MASK & eir_data_mask ) );
+    return jau_format_string("Set%s", (EIR_DATA_TYPE_MASK & eir_data_mask));
 }
 std::string EInfoReport::toString(const bool includeServices) const noexcept {
-    const std::string source_ext_s = source_ext ? "bt5" : "bt4";
-    std::string out(to_string(source)+
-                    "["+source_ext_s+", address["+address.toString()+", "+to_string(getAddressType())+"/"+std::to_string(ad_address_type)+
-                    "], "+eirDataMaskToString()+", ");
-    if( isSet(EIRDataType::NAME) || isSet(EIRDataType::NAME_SHORT) ) {
-        out += "name['"+name+"'/'"+name_short+"'], ";
-    }
+    const std::string_view source_ext_s = source_ext ? "bt5" : "bt4";
+    std::string out = jau_format_string("%s[%s, address[%s, %s/%u], %s, ",
+        source, source_ext_s, address, getAddressType(), ad_address_type, eirDataMaskToString());
 
+    if( isSet(EIRDataType::NAME) || isSet(EIRDataType::NAME_SHORT) ) {
+        jau_append_string(out, "name['%s'/'%s'], ", name, name_short);
+    }
     if( isSet(EIRDataType::EVT_TYPE) || isSet(EIRDataType::EXT_EVT_TYPE) ) {
-        out += "type[evt "+to_string(evt_type)+", ead "+to_string(ead_type)+"], ";
+        jau_append_string(out, "type[evt %s, ead %s], ", evt_type, ead_type);
     }
     if( isSet(EIRDataType::FLAGS) ) {
-        out += "flags"+to_string(flags)+", ";
+        jau_append_string(out, "flags%s, ", flags);
     }
     if( isSet(EIRDataType::RSSI) ) {
-        out += "rssi "+std::to_string(rssi)+", ";
+        jau_append_string(out, "rssi %d, ", rssi);
     }
     if( isSet(EIRDataType::TX_POWER) ) {
-        out += "tx-power "+std::to_string(tx_power)+", ";
+        jau_append_string(out, "tx-power %d, ", tx_power);
     }
     if( isSet(EIRDataType::CONN_IVAL) ) {
-        std::stringstream conn_s;
-        conn_s.precision(4+2);
-        conn_s << "conn[" << (1.25f * (float)conn_interval_min) << "ms - " << (1.25f * (float)conn_interval_max) << "ms], ";
-        out += conn_s.str();
+        jau_append_string(out, "conn[%.6fms - %.6fms], ", 1.25f * (float)conn_interval_min, 1.25f * (float)conn_interval_max);
     }
     if( isSet(EIRDataType::DEVICE_CLASS) ) {
-        out += "dev-class "+jau::to_hexstring(device_class)+", ";
+        jau_append_string(out, "dev-class %#x, ", device_class);
     }
     if( isSet(EIRDataType::APPEARANCE) ) {
-        out += "appearance "+jau::to_hexstring(static_cast<uint16_t>(appearance))+" ("+to_string(appearance)+"), ";
+        jau_append_string(out, "appearance %#x (%s), ", *appearance, appearance);
     }
     if( isSet(EIRDataType::HASH) ) {
-        out += "hash["+hash.toString()+"], ";
+        jau_append_string(out, "hash[%s], ", hash);
     }
     if( isSet(EIRDataType::RANDOMIZER) ) {
-        out += "randomizer["+randomizer.toString()+"], ";
+        jau_append_string(out, "randomizer[%s], ", randomizer);
     }
     if( isSet(EIRDataType::DEVICE_ID) ) {
-        out += "device-id[source "+jau::to_hexstring(did_source)+
-                ", vendor "+jau::to_hexstring(did_vendor)+
-                ", product "+jau::to_hexstring(did_product)+
-                ", version "+jau::to_hexstring(did_version)+"], ";
+        jau_append_string(out, "device-id[source %#x, vendor %#x, product %#x, version %#x], ",
+            did_source, did_vendor, did_product, did_version);
     }
     if( isSet(EIRDataType::SERVICE_UUID) ) {
-        out += "services[complete "+std::to_string(services_complete)+", count "+std::to_string(services.size())+"], ";
+        jau_append_string(out, "services[complete %s, count %zu], ", services_complete, services.size());
     }
     if( isSet(EIRDataType::MANUF_DATA) ) {
-        std::string msdstr = nullptr != msd ? msd->toString() : "MSD[null]";
-        out += msdstr+", ";
+        if (nullptr != msd) {
+            jau_append_string(out, "%s, ", msd->toString());
+        } else {
+            jau_append_string(out, "MSD[null], ");
+        }
     }
-    out += "]";
+    jau_append_string(out, "]");
 
     if( includeServices && services.size() > 0 && isSet(EIRDataType::SERVICE_UUID) ) {
-        out.append("\n");
+        jau_append_string(out, "\n");
         for(const auto& p : services) {
-            out.append("  ").append(p->toUUID128String()).append(", ").append(std::to_string(static_cast<int>(p->getTypeSize()))).append(" bytes\n");
+            jau_append_string(out, "  %s, %2zu bytes\n", p->toUUID128String(), *(p->getTypeSize()));
         }
     }
     return out;
@@ -949,29 +578,14 @@ bool EInfoReport::operator==(const EInfoReport& o) const noexcept {
 }
 
 std::string EInfoReport::getDeviceIDModalias() const noexcept {
-    char *cstr = nullptr;
-    int length;
-
     switch (did_source) {
         case 0x0001:
-            length = asprintf(&cstr, "bluetooth:v%04Xp%04Xd%04X", did_vendor, did_product, did_version);
-            break;
+            return jau_format_string("bluetooth:v%04Xp%04Xd%04X", did_vendor, did_product, did_version);
         case 0x0002:
-            length = asprintf(&cstr, "usb:v%04Xp%04Xd%04X", did_vendor, did_product, did_version);
-            break;
+            return jau_format_string("usb:v%04Xp%04Xd%04X", did_vendor, did_product, did_version);
         default:
-            length = asprintf(&cstr, "source<0x%X>:v%04Xp%04Xd%04X", did_source, did_vendor, did_product, did_version);
-            break;
+            return jau_format_string("source<0x%X>:v%04Xp%04Xd%04X", did_source, did_vendor, did_product, did_version);
     }
-    if( 0 >= length ) {
-        if( nullptr != cstr ) {
-            free(cstr);
-        }
-        return std::string();
-    }
-    std::string res(cstr);
-    free(cstr);
-    return res;
 }
 
 // *************************************************
@@ -1023,7 +637,7 @@ int EInfoReport::read_data(uint8_t const * data, uint8_t const data_length) noex
                 [[fallthrough]];
             case GAP_T::UUID16_COMPLETE:
                 setServicesComplete( GAP_T::UUID32_COMPLETE == static_cast<GAP_T>(elem_type) );
-                for(jau::nsize_t j=0; j<elem_len/2; j++) {
+                for(jau::nsize_t j=0; j<elem_len/2U; j++) {
                     const std::shared_ptr<const jau::uuid_t> uuid( std::make_shared<const jau::uuid16_t>(elem_data + j*2, jau::lb_endian_t::little) );
                     addService( uuid );
                 }
@@ -1033,7 +647,7 @@ int EInfoReport::read_data(uint8_t const * data, uint8_t const data_length) noex
                 [[fallthrough]];
             case GAP_T::UUID32_COMPLETE:
                 setServicesComplete( GAP_T::UUID32_COMPLETE == static_cast<GAP_T>(elem_type) );
-                for(jau::nsize_t j=0; j<elem_len/4; j++) {
+                for(jau::nsize_t j=0; j<elem_len/4U; j++) {
                     const std::shared_ptr<const jau::uuid_t> uuid( std::make_shared<const jau::uuid32_t>(elem_data + j*4, jau::lb_endian_t::little) );
                     addService( uuid );
                 }
@@ -1043,7 +657,7 @@ int EInfoReport::read_data(uint8_t const * data, uint8_t const data_length) noex
                 [[fallthrough]];
             case GAP_T::UUID128_COMPLETE:
                 setServicesComplete( GAP_T::UUID32_COMPLETE == static_cast<GAP_T>(elem_type) );
-                for(jau::nsize_t j=0; j<elem_len/16; j++) {
+                for(jau::nsize_t j=0; j<elem_len/16U; j++) {
                     const std::shared_ptr<const jau::uuid_t> uuid( std::make_shared<const jau::uuid128_t>(elem_data + j*16, jau::lb_endian_t::little) );
                     addService( uuid );
                 }
@@ -1137,15 +751,15 @@ int EInfoReport::read_data(uint8_t const * data, uint8_t const data_length) noex
 
             default:
                 // FIXME: Use a data blob!!!!
-                DBG_PRINT("%s-Element @ [%d/%d]: Unhandled type 0x%.2X with %d bytes net\n",
-                          to_string(source).c_str(), offset, data_length, elem_type, elem_len);
+                jau_DBG_PRINT("%s-Element @ [%d/%d]: Unhandled type 0x%.2X with %d bytes net\n",
+                          source, offset, data_length, elem_type, elem_len);
                 break;
         }
     }
     return count;
 }
 
-#define _WARN_OOB(a) DBG_PRINT("%s: Out of buffer: count %zd + 1 + ad_sz %zd > data_len %zd -> drop %s\n", (a), count, ad_sz, data_length, toString(true).c_str());
+#define _WARN_OOB(a) jau_DBG_PRINT("%s: Out of buffer: count %zu + 1 + ad_sz %zu > data_len %zu -> drop %s\n", (a), count, ad_sz, data_length, true);
 
 jau::nsize_t EInfoReport::write_data(EIRDataType write_mask, uint8_t * data, jau::nsize_t const data_length) const noexcept {
     jau::nsize_t count = 0;
@@ -1217,7 +831,7 @@ jau::nsize_t EInfoReport::write_data(EIRDataType write_mask, uint8_t * data, jau
                     uuid128s.push_back(p);
                     break;
                 default:
-                    WARN_PRINT("Undefined UUID of size %zd: %s -> drop\n", p->getTypeSizeInt(), p->toString().c_str());
+                    jau_WARN_PRINT("Undefined UUID of size %zu: %s -> drop\n", p->getTypeSizeInt(), p->toString());
             }
         }
         if( uuid16s.size() > 0 ) {
@@ -1351,7 +965,7 @@ jau::darray<std::unique_ptr<EInfoReport>> EInfoReport::read_ad_reports(uint8_t c
     jau::darray<std::unique_ptr<EInfoReport>> ad_reports;
 
     if( 0 == num_reports || num_reports > 0x19 ) {
-        DBG_PRINT("AD-Reports: Invalid reports count: %d", num_reports);
+        jau_DBG_PRINT("AD-Reports: Invalid reports count: %zu", num_reports);
         return ad_reports;
     }
     uint8_t const *limes = data + data_length;
@@ -1369,7 +983,7 @@ jau::darray<std::unique_ptr<EInfoReport>> EInfoReport::read_ad_reports(uint8_t c
 
         if( i_octets + seg4_size > limes ) {
             const jau::snsize_t bytes_left = static_cast<jau::snsize_t>(limes - i_octets);
-            WARN_PRINT("AD-Reports: Insufficient data length (1) %zu: report %zu/%zu: min_data_len %zu > bytes-left %zu (Drop)",
+            jau_WARN_PRINT("AD-Reports: Insufficient data length (1) %zu: report %zu/%zu: min_data_len %zu > bytes-left %zu (Drop)",
                     data_length, i, num_reports, seg4_size, bytes_left);
             ad_reports.pop_back();
             goto errout;
@@ -1386,7 +1000,7 @@ jau::darray<std::unique_ptr<EInfoReport>> EInfoReport::read_ad_reports(uint8_t c
         ad_reports[i]->setADAddressType(*i_octets++);
 
         // seg 3: 6
-        ad_reports[i]->setAddress( jau::le_to_cpu( *((jau::EUI48 const *)i_octets) ) );
+        ad_reports[i]->setAddress( jau::io::net::le_to_cpu( *((jau::io::net::EUI48 const *)i_octets) ) );
         i_octets += 6;
 
         // seg 4: 1
@@ -1395,7 +1009,7 @@ jau::darray<std::unique_ptr<EInfoReport>> EInfoReport::read_ad_reports(uint8_t c
         // seg 5: ADV Response Data (EIR)
         if( i_octets + ad_data_len[i] + 1 > limes ) {
             const jau::snsize_t bytes_left = static_cast<jau::snsize_t>(limes - i_octets);
-            WARN_PRINT("AD-Reports: Insufficient data length (2) %zu: report %zu/%zu: eir_data_len + rssi %zu > bytes-left %zu (Drop)",
+            jau_WARN_PRINT("AD-Reports: Insufficient data length (2) %zu: report %zu/%zu: eir_data_len + rssi %zu > bytes-left %zu (Drop)",
                     data_length, i, num_reports, (ad_data_len[i] + 1), bytes_left);
             ad_reports.pop_back();
             goto errout;
@@ -1415,17 +1029,17 @@ errout:
         const jau::snsize_t bytes_left = static_cast<jau::snsize_t>(limes - i_octets);
         const jau::snsize_t bytes_took = static_cast<jau::snsize_t>(i_octets - data);
         if( 0 > bytes_left ) {
-            ERR_PRINT("AD-Reports: Buffer overflow: %zu reports, bytes[consumed %zu, left %zu, total %zu]",
+            jau_ERR_PRINT("AD-Reports: Buffer overflow: %zu reports, bytes[consumed %zu, left %zu, total %zu]",
                     num_reports, bytes_took, bytes_left, data_length);
         }
 #ifdef AD_DEBUG
         else {
-            DBG_PRINT("AD-Reports: %zu reports, bytes[consumed %zu, left %zu, total %zu]",
+            jau_DBG_PRINT("AD-Reports: %zu reports, bytes[consumed %zu, left %zu, total %zu]",
                     num_reports, bytes_took, bytes_left, data_length);
         }
         if( jau::environment::get().debug ) {
             for(i=0; i<num_reports; i++) {
-                jau::INFO_PRINT("AD[%d]: ad_data_length %d, %s\n", (int)i, (int)ad_data_len[i], ad_reports[i]->toString(false).c_str());
+                jau_INFO_PRINT("AD[%d]: ad_data_length %d, %s\n", (int)i, (int)ad_data_len[i], ad_reports[i]->toString(false));
             }
         }
 #endif
@@ -1438,7 +1052,7 @@ jau::darray<std::unique_ptr<EInfoReport>> EInfoReport::read_ext_ad_reports(uint8
     jau::darray<std::unique_ptr<EInfoReport>> ad_reports;
 
     if( 0 == num_reports || num_reports > 0x19 ) {
-        DBG_PRINT("EAD-Reports: Invalid reports count: %d", num_reports);
+        jau_DBG_PRINT("EAD-Reports: Invalid reports count: %zu", num_reports);
         return ad_reports;
     }
     uint8_t const *limes = data + data_length;
@@ -1456,7 +1070,7 @@ jau::darray<std::unique_ptr<EInfoReport>> EInfoReport::read_ext_ad_reports(uint8
 
         if( i_octets + seg12_size > limes ) {
             const jau::snsize_t bytes_left = static_cast<jau::snsize_t>(limes - i_octets);
-            WARN_PRINT("EAD-Reports: Insufficient data length (1) %zu: report %zu/%zu: min_data_len %zu > bytes-left %zu (Drop)",
+            jau_WARN_PRINT("EAD-Reports: Insufficient data length (1) %zu: report %zu/%zu: min_data_len %zu > bytes-left %zu (Drop)",
                     data_length, i, num_reports, seg12_size, bytes_left);
             ad_reports.pop_back();
             goto errout;
@@ -1480,7 +1094,7 @@ jau::darray<std::unique_ptr<EInfoReport>> EInfoReport::read_ext_ad_reports(uint8
         ad_reports[i]->setADAddressType(*i_octets++);
 
         // seg 3: 6
-        ad_reports[i]->setAddress( jau::le_to_cpu( *((jau::EUI48 const *)i_octets) ) );
+        ad_reports[i]->setAddress( jau::io::net::le_to_cpu( *((jau::io::net::EUI48 const *)i_octets) ) );
         i_octets += 6;
 
         // seg 4: 1
@@ -1521,7 +1135,7 @@ jau::darray<std::unique_ptr<EInfoReport>> EInfoReport::read_ext_ad_reports(uint8
         // seg 13: ADV Response Data (EIR)
         if( i_octets + ad_data_len[i] > limes ) {
             const jau::snsize_t bytes_left = static_cast<jau::snsize_t>(limes - i_octets);
-            WARN_PRINT("EAD-Reports: Insufficient data length (2) %zu: report %zu/%zu: eir_data_len %zu > bytes-left %zu (Drop)",
+            jau_WARN_PRINT("EAD-Reports: Insufficient data length (2) %zu: report %zu/%zu: eir_data_len %zu > bytes-left %zu (Drop)",
                     data_length, i, num_reports, ad_data_len[i], bytes_left);
             ad_reports.pop_back();
             goto errout;
@@ -1537,17 +1151,17 @@ errout:
         const jau::snsize_t bytes_left = static_cast<jau::snsize_t>(limes - i_octets);
         const jau::snsize_t bytes_took = static_cast<jau::snsize_t>(i_octets - data);
         if( 0 > bytes_left ) {
-            ERR_PRINT("EAD-Reports: Buffer overflow: %zu reports, bytes[consumed %zu, left %zu, total %zu]",
+            jau_ERR_PRINT("EAD-Reports: Buffer overflow: %zu reports, bytes[consumed %zu, left %zu, total %zu]",
                     num_reports, bytes_took, bytes_left, data_length);
         }
 #ifdef AD_DEBUG
         else {
-            DBG_PRINT("EAD-Reports: %zu reports, bytes[consumed %zu, left %zu, total %zu]",
+            jau_DBG_PRINT("EAD-Reports: %zu reports, bytes[consumed %zu, left %zu, total %zu]",
                     num_reports, bytes_took, bytes_left, data_length);
         }
         if( jau::environment::get().debug ) {
             for(i=0; i<num_reports; i++) {
-                jau::INFO_PRINT("EAD[%d]: ad_data_length %d, %s\n", (int)i, (int)ad_data_len[i], ad_reports[i]->toString(false).c_str());
+                jau_INFO_PRINT("EAD[%d]: ad_data_length %d, %s\n", (int)i, (int)ad_data_len[i], ad_reports[i]->toString(false));
             }
         }
 #endif

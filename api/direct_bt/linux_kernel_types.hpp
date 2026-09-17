@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Gothel Software e.K.
+ * Copyright (c) 2020-2026 Gothel Software e.K.
  * Copyright (c) 2020 ZAFENA AB
  *
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -27,7 +27,7 @@
 #define LINUX_KERNEL_TYPES_HPP_
 
 #include <jau/packed_attribute.hpp>
-#include <jau/eui48.hpp>
+#include <jau/io/eui48.hpp>
 
 #if defined(__linux__)
     extern "C" {
@@ -47,6 +47,6 @@
     typedef uint64_t __be64;
 #endif /* !defined(__linux__) */
 
-typedef jau::EUI48 bdaddr_t;
+typedef jau::io::net::EUI48 bdaddr_t;
 
 #endif /* LINUX_KERNEL_TYPES_HPP_ */

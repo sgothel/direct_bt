@@ -25,9 +25,7 @@
 #ifndef DBT_ENDPOINT_HPP_
 #define DBT_ENDPOINT_HPP_
 
-#include <iostream>
 #include <cassert>
-#include <cinttypes>
 #include <cstring>
 
 #include <catch2/catch_amalgamated.hpp>
@@ -103,21 +101,21 @@ class DBTEndpoint {
                     if( nullptr == endpt->getAdapter() ) {
                         if( endpt->initAdapter( adapter ) ) {
                             endpt->setAdapter(adapter);
-                            jau::fprintf_td(stderr, "****** Adapter ADDED__: InitOK: %s\n", adapter->toString().c_str());
+                            jau_fprintf_td(stderr, "****** Adapter ADDED__: InitOK: %s\n", adapter->toString());
                             return;
                         }
                     }
                 }
-                jau::fprintf_td(stderr, "****** Adapter ADDED__: Ignored: %s\n", adapter->toString().c_str());
+                jau_fprintf_td(stderr, "****** Adapter ADDED__: Ignored: %s\n", adapter->toString());
             } else {
                 for(const DBTEndpointRef& endpt : cas_endpts ) {
                     if( nullptr != endpt->getAdapter() && *adapter == *endpt->getAdapter() ) {
                         endpt->setAdapter(nullptr);
-                        jau::fprintf_td(stderr, "****** Adapter REMOVED: %s\n", adapter->toString().c_str());
+                        jau_fprintf_td(stderr, "****** Adapter REMOVED: %s\n", adapter->toString());
                         return;
                     }
                 }
-                jau::fprintf_td(stderr, "****** Adapter REMOVED: Ignored: %s\n", adapter->toString().c_str());
+                jau_fprintf_td(stderr, "****** Adapter REMOVED: Ignored: %s\n", adapter->toString());
             }
         }
 
@@ -160,7 +158,9 @@ class DBTEndpoint {
         }
 };
 
+// NOLINTBEGIN(misc-definitions-in-headers)
 std::mutex DBTEndpoint::mtx_cas_endpts;
 std::vector<DBTEndpointRef> DBTEndpoint::cas_endpts;
+// NOLINTEND(misc-definitions-in-headers)
 
 #endif /* DBT_ENDPOINT_HPP_ */

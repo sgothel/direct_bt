@@ -1,6 +1,6 @@
 /*
  * Author: Sven Gothel <sgothel@jausoft.com>
- * Copyright (c) 2021 Gothel Software e.K.
+ * Copyright (c) 2021-2026 Gothel Software e.K.
  * Copyright (c) 2021 ZAFENA AB
  *
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -31,6 +31,7 @@
 #include <memory>
 #include <cstdint>
 #include <initializer_list>
+#include <string_view>
 
 #include <jau/java_uplink.hpp>
 #include <jau/octets.hpp>
@@ -43,10 +44,7 @@
 
 #include "BTTypes1.hpp"
 
-// #include "BTGattDesc.hpp"
 #include "BTGattChar.hpp"
-#include "jau/int_types.hpp"
-// #include "BTGattService.hpp"
 
 // #define JAU_TRACE_DBGATT 1
 #ifdef JAU_TRACE_DBGATT
@@ -223,12 +221,10 @@ namespace direct_bt {
             bool isUserDescription() const noexcept{ return *BTGattDesc::TYPE_USER_DESC == *type; }
 
             std::string toString() const noexcept override {
-                const std::string len = variable_length ? "var" : "fixed";
-                return "Desc[type 0x"+type->toString()+", handle "+jau::to_hexstring(handle)+
-                       ", value[len "+len+
-                       ", "+value.toString()+
-                       " '" + jau::dfa_utf8_decode( value.get_ptr(), value.size() ) + "'"+
-                       "], "+javaObjectToString()+"]";
+                const std::string_view len = variable_length ? "var" : "fixed";
+                return jau_format_string("Desc[type 0x%s, handle %#x, value[len %s, %s '%s'], %s]",
+                    type, handle, len, value,
+                    jau::dfa_utf8_decode(value.get_ptr(), value.size()), javaObjectToString());
             }
     };
     inline bool operator==(const DBGattDesc& lhs, const DBGattDesc& rhs) noexcept
@@ -475,20 +471,17 @@ namespace direct_bt {
                 {
                     const DBGattDescRef ud = getUserDescription();
                     if( nullptr != ud ) {
-                        char_name = ", '" + jau::dfa_utf8_decode( ud->getValue().get_ptr(), ud->getValue().size() ) + "'";
+                        char_name = jau_format_string(", '%s'", jau::dfa_utf8_decode( ud->getValue().get_ptr(), ud->getValue().size() ));
                     }
                 }
                 if( hasProperties(BTGattChar::PropertyBitVal::Notify) || hasProperties(BTGattChar::PropertyBitVal::Indicate) ) {
-                    notify_str = ", enabled[notify "+std::to_string(enabledNotifyState)+", indicate "+std::to_string(enabledIndicateState)+"]";
+                    notify_str = jau_format_string(", enabled[notify %s, indicate %s]", enabledNotifyState, enabledIndicateState);
                 }
-                const std::string len = variable_length ? "var" : "fixed";
-                return "Char[handle ["+jau::to_hexstring(handle)+".."+jau::to_hexstring(end_handle)+
-                       "], props "+jau::to_hexstring(properties)+" "+to_string(properties)+
-                       char_name+", value[type 0x"+value_type->toString()+", handle "+jau::to_hexstring(value_handle)+", len "+len+
-                       ", "+value.toString()+
-                       " '" + jau::dfa_utf8_decode( value.get_ptr(), value.size() ) + "'"+
-                       "], ccd-idx "+std::to_string(clientCharConfigIndex)+notify_str+
-                       ", "+javaObjectToString()+"]";
+                const std::string_view len = variable_length ? "var" : "fixed";
+                return jau_format_string("Char[handle [%#x..%#x], props %#x %s%s, value[type 0x%s, handle %#x, len %s, %s '%s'], ccd-idx %d%s, %s]",
+                       handle, end_handle, *properties, properties, char_name, value_type->toString(),
+                       value_handle, len, value.toString(), jau::dfa_utf8_decode( value.get_ptr(), value.size() ),
+                       clientCharConfigIndex, notify_str, javaObjectToString());
             }
     };
     inline bool operator==(const DBGattChar& lhs, const DBGattChar& rhs) noexcept
@@ -670,9 +663,8 @@ namespace direct_bt {
             }
 
             std::string toString() const noexcept override {
-                return "Srvc[type 0x"+type->toString()+", handle ["+jau::to_hexstring(handle)+".."+jau::to_hexstring(end_handle)+"], "+
-                       std::to_string(characteristics.size())+" chars, "+javaObjectToString()+"]";
-
+                return jau_format_string("Srvc[type 0x%s, handle[%#x..%#x], %zu chars, %s]",
+                    type->toString(), handle, end_handle, characteristics.size(), javaObjectToString());
             }
     };
     inline bool operator==(const DBGattService& lhs, const DBGattService& rhs) noexcept
@@ -862,7 +854,7 @@ namespace direct_bt {
             typedef jau::cow_darray<ListenerRef, size_type> ListenerList_t;
             typedef jau::darray<DBGattServiceRef, size_type> GattServiceList_t;
 
-        private:            
+        private:
             ListenerList_t listenerList;
 
             uint16_t max_att_mtu;
@@ -1022,19 +1014,7 @@ namespace direct_bt {
             bool removeListener(const ListenerRef& l);
             ListenerList_t& listener() { return listenerList; }
 
-            std::string toFullString() {
-                std::string res = toString()+"\n";
-                for(DBGattServiceRef& s : services) {
-                    res.append("  ").append(s->toString()).append("\n");
-                    for(DBGattCharRef& c : s->getCharacteristics()) {
-                        res.append("    ").append(c->toString()).append("\n");
-                        for(DBGattDescRef& d : c->getDescriptors()) {
-                            res.append("      ").append(d->toString()).append("\n");
-                        }
-                    }
-                }
-                return res;
-            }
+            std::string toFullString() const noexcept;
 
             std::string toString() const noexcept override;
     };

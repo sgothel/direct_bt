@@ -21,7 +21,7 @@
  * ****************************************************************************************
  * ****************************************************************************************
  *
- * Copyright (c) 2020 Gothel Software e.K.
+ * Copyright (c) 2020-2026  Gothel Software e.K.
  * Copyright (c) 2020 ZAFENA AB
  *
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -87,6 +87,7 @@ extern "C" {
     #include <sys/socket.h>
 } /* extern "C" */
 
+// NOLINTBEGIN(modernize-macro-to-enum)
 
 /** \addtogroup DBTSystemAPI
  *
@@ -2378,14 +2379,14 @@ static inline struct hci_sco_hdr *hci_sco_hdr(const struct sk_buff *skb)
 #endif
 
 /* Command opcode pack/unpack */
-#define hci_opcode_pack(ogf, ocf)	((__u16) ((ocf & 0x03ff)|(ogf << 10)))
-#define hci_opcode_ogf(op)		(op >> 10)
-#define hci_opcode_ocf(op)		(op & 0x03ff)
+#define hci_opcode_pack(ogf, ocf)	((__u16) (((ocf) & 0x03ff)|((ogf) << 10)))
+#define hci_opcode_ogf(op)		((op) >> 10)
+#define hci_opcode_ocf(op)		((op) & 0x03ff)
 
 /* ACL handle and flags pack/unpack */
-#define hci_handle_pack(h, f)	((__u16) ((h & 0x0fff)|(f << 12)))
-#define hci_handle(h)		(h & 0x0fff)
-#define hci_flags(h)		(h >> 12)
+#define hci_handle_pack(h, f)	((__u16) (((h) & 0x0fff)|((f) << 12)))
+#define hci_handle(h)		((h) & 0x0fff)
+#define hci_flags(h)		((h) >> 12)
 
 /**
  * Information from include/net/bluetooth/hci_sock.h
@@ -2544,6 +2545,8 @@ struct hci_inquiry_req {
 PRAGMA_DISABLE_WARNING_POP
 
 /**@}*/
+
+// NOLINTEND(modernize-macro-to-enum)
 
 #endif /* HCI_IOCTL_HPP_ */
 

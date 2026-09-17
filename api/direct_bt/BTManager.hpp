@@ -1,6 +1,6 @@
 /*
  * Author: Sven Gothel <sgothel@jausoft.com>
- * Copyright (c) 2020 Gothel Software e.K.
+ * Copyright (c) 2020-2026 Gothel Software e.K.
  * Copyright (c) 2020 ZAFENA AB
  *
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -31,8 +31,6 @@
 #include <cstdint>
 
 #include <mutex>
-#include <atomic>
-#include <thread>
 
 #include <jau/environment.hpp>
 #include <jau/ringbuffer.hpp>
@@ -43,11 +41,10 @@
 #include <jau/service_runner.hpp>
 
 #include "BTTypes0.hpp"
-#include "BTIoctl.hpp"
+#include "DBTConst.hpp"
 #include "HCIComm.hpp"
 #include "MgmtTypes.hpp"
 #include "BTAdapter.hpp"
-#include "jau/int_types.hpp"
 
 namespace direct_bt {
 
@@ -209,7 +206,7 @@ namespace direct_bt {
             };
 
             typedef jau::nsize_t size_type;
-            
+
         private:
             friend BTAdapter;
 
@@ -296,8 +293,12 @@ namespace direct_bt {
                     s->initialize(s);
                     return s;
                 } catch (const std::bad_alloc &e) {
-                    ABORT("Error: bad_alloc: BTManager allocation failed");
+                    jau_ABORT("Error: bad_alloc: BTManager allocation failed");
                     return nullptr; // unreachable
+                } catch (...) {
+                    jau::fput_exception(stderr, std::current_exception(), E_FILE_LINE);
+                    jau_ERR_PRINT3("Exception caught while allocating shared BTManager");
+                    return nullptr;
                 }
             }
 

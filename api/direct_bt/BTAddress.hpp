@@ -1,6 +1,6 @@
 /*
  * Author: Sven Gothel <sgothel@jausoft.com>
- * Copyright (c) 2021 Gothel Software e.K.
+ * Copyright (c) 2021-2026 Gothel Software e.K.
  * Copyright (c) 2020 ZAFENA AB
  *
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -31,14 +31,17 @@
 #include <cstdint>
 #include <functional>
 
+#include <jau/enum_util.hpp>
 #include <jau/packed_attribute.hpp>
 #include <jau/ordered_atomic.hpp>
-#include <jau/eui48.hpp>
+#include <jau/io/eui48.hpp>
 
-using jau::EUI48;
-using jau::EUI48Sub;
+using jau::io::net::EUI48;
+using jau::io::net::EUI48Sub;
 
 namespace direct_bt {
+
+    using namespace jau::enums;
 
     /** \addtogroup DBTUserAPI
      *
@@ -73,10 +76,7 @@ namespace direct_bt {
         }
         return BDAddressType::BDADDR_UNDEFINED;
     }
-    constexpr uint8_t number(const BDAddressType rhs) noexcept {
-        return static_cast<uint8_t>(rhs);
-    }
-    std::string to_string(const BDAddressType type) noexcept;
+    JAU_MAKE_ENUM_STRING_DECL(BDAddressType);
 
     /**
      * BT Core Spec v5.2:  Vol 6 LE, Part B Link Layer Specification: 1.3 Device Address
@@ -113,8 +113,7 @@ namespace direct_bt {
         /** Undefined, e.g. address not of type {@link BDAddressType::BDADDR_LE_RANDOM} */
         UNDEFINED           = 0xff
     };
-    constexpr uint8_t number(const BLERandomAddressType rhs) noexcept { return static_cast<uint8_t>(rhs); }
-    std::string to_string(const BLERandomAddressType type) noexcept;
+    JAU_MAKE_ENUM_STRING_DECL(BLERandomAddressType);
 
     /**
      * HCI LE Address-Type is PUBLIC: 0x00, RANDOM: 0x01
@@ -143,9 +142,8 @@ namespace direct_bt {
         RANDOM_STATIC_IDENTITY = 0x03,
         UNDEFINED = 0xff /**< HCIADDR_UNDEFINED */
     };
-    constexpr uint8_t number(const HCILEPeerAddressType rhs) noexcept { return static_cast<uint8_t>(rhs); }
+    JAU_MAKE_ENUM_STRING_DECL(HCILEPeerAddressType);
     BDAddressType to_BDAddressType(const HCILEPeerAddressType hciPeerAddrType) noexcept;
-    std::string to_string(const HCILEPeerAddressType type) noexcept;
 
     enum class HCILEOwnAddressType : uint8_t {
         /** Public Device Address */
@@ -158,11 +156,9 @@ namespace direct_bt {
         RESOLVABLE_OR_RANDOM = 0x03,
         UNDEFINED = 0xff
     };
-    constexpr uint8_t number(const HCILEOwnAddressType rhs) noexcept { return static_cast<uint8_t>(rhs); }
+    JAU_MAKE_ENUM_STRING_DECL(HCILEOwnAddressType);
     BDAddressType to_BDAddressType(const HCILEOwnAddressType hciOwnAddrType) noexcept;
     HCILEOwnAddressType to_HCILEOwnAddressType(const BDAddressType addrType, bool resolvable) noexcept;
-    std::string to_string(const HCILEOwnAddressType type) noexcept;
-
 
     /**
      * Unique Bluetooth EUI48 address and ::BDAddressType tuple.
@@ -183,14 +179,14 @@ namespace direct_bt {
              */
             static const BDAddressAndType ANY_DEVICE;
 
-            jau::EUI48 address;
+            jau::io::net::EUI48 address;
             BDAddressType type;
 
         private:
             jau::relaxed_atomic_size_t hash = 0; // default 0, cache
 
         public:
-            BDAddressAndType(const jau::EUI48 & address_, BDAddressType type_)
+            BDAddressAndType(const jau::io::net::EUI48 & address_, BDAddressType type_)
             : address(address_), type(type_) {}
 
             constexpr BDAddressAndType() noexcept : address(), type{BDAddressType::BDADDR_UNDEFINED} { }
@@ -266,7 +262,7 @@ namespace direct_bt {
              * </p>
              * @since 2.2.0
              */
-            static BLERandomAddressType getBLERandomAddressType(const jau::EUI48& address, const BDAddressType addressType) noexcept;
+            static BLERandomAddressType getBLERandomAddressType(const jau::io::net::EUI48& address, const BDAddressType addressType) noexcept;
 
             /**
              * Returns the BLERandomAddressType std::string representation.
@@ -280,7 +276,7 @@ namespace direct_bt {
              * </p>
              * @since 2.5.3
              */
-            static std::string getBLERandomAddressTypeString(const jau::EUI48& address, const BDAddressType addressType, const std::string& prefix) noexcept;
+            static std::string getBLERandomAddressTypeString(const jau::io::net::EUI48& address, const BDAddressType addressType, const std::string& prefix) noexcept;
 
             /**
              * Returns the BLERandomAddressType.

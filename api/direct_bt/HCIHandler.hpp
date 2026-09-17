@@ -1,6 +1,6 @@
 /*
  * Author: Sven Gothel <sgothel@jausoft.com>
- * Copyright (c) 2020 Gothel Software e.K.
+ * Copyright (c) 2020-2026 Gothel Software e.K.
  * Copyright (c) 2020 ZAFENA AB
  *
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -33,7 +33,6 @@
 
 #include <mutex>
 #include <atomic>
-#include <thread>
 
 #include <jau/darray.hpp>
 #include <jau/environment.hpp>
@@ -44,7 +43,6 @@
 #include <jau/functional.hpp>
 
 #include "BTTypes0.hpp"
-#include "BTIoctl.hpp"
 #include "HCIComm.hpp"
 #include "HCITypes.hpp"
 #include "MgmtTypes.hpp"
@@ -164,7 +162,7 @@ namespace direct_bt {
     };
 
     typedef jau::function<void(const BDAddressAndType& /* addressAndType */,
-                               const SMPPDUMsg&, const HCIACLData::l2cap_frame& /* source */)> HCISMPMsgCallback;
+                               const SMPPDUMsg&, const L2CapFrame& /* source */)> HCISMPMsgCallback;
     typedef jau::cow_darray<HCISMPMsgCallback> HCISMPMsgCallbackList;
 
     /**
@@ -229,7 +227,7 @@ namespace direct_bt {
 
                     std::string toString() const {
                         std::string resaddr_s = visibleAddressAndType != addressAndType ? ", visible "+visibleAddressAndType.toString() : "";
-                        return "HCIConnection[handle "+jau::to_hexstring(handle)+
+                        return "HCIConnection[handle "+jau::toHexString(handle)+
                                ", address "+addressAndType.toString()+resaddr_s+"]";
                     }
             };
@@ -279,9 +277,8 @@ namespace direct_bt {
             jau::relaxed_atomic_bool sup_commands_set;
 
             jau::sc_atomic_bool allowClose;
-            std::atomic<BTMode> btMode;
-
-            std::atomic<ScanType> currentScanType;
+            jau::ordered_atomic<BTMode, std::memory_order_seq_cst> btMode;
+            jau::ordered_atomic<ScanType, std::memory_order_seq_cst> currentScanType;
             jau::sc_atomic_bool advertisingEnabled;
 
             HCIConnectionRefList_t connectionList;
@@ -303,12 +300,12 @@ namespace direct_bt {
         private:
             /**
              * Returns a newly added HCIConnectionRef tracker connection with given parameters, if not existing yet.
-             * <p>
+             *
              * In case the HCIConnectionRef tracker connection already exists,
              * its handle will be updated (see below) and reference returned.
-             * <p>
+             *
              * Overwrite existing tracked connection handle with given _valid_ handle only, i.e. non zero!
-             * </p>
+             *
              * @param address key to matching connection
              * @param addrType key to matching connection
              * @param handle ignored for existing tracker _if_ invalid, i.e. zero.
@@ -356,7 +353,7 @@ namespace direct_bt {
             std::unique_ptr<MgmtEvent> translate(HCIEvent& ev) noexcept;
             std::unique_ptr<MgmtEvent> translate(HCICommand& ev) noexcept;
 
-            std::unique_ptr<const SMPPDUMsg> getSMPPDUMsg(const HCIACLData::l2cap_frame & l2cap, const uint8_t * l2cap_data) const noexcept;
+            std::unique_ptr<const SMPPDUMsg> getSMPPDUMsg(const L2CapFrame & l2cap, const uint8_t * l2cap_data) const noexcept;
             void hciReaderWork(jau::service_runner& sr) noexcept;
             void hciReaderEndLocked(jau::service_runner& sr) noexcept;
 
@@ -405,7 +402,7 @@ namespace direct_bt {
 
             /** Returns true if this mgmt instance is open, connected and hence valid, otherwise false */
             bool isOpen() const noexcept {
-                return true == allowClose.load() && comm.is_open();
+                return true == allowClose && comm.is_open();
             }
 
             /** Use extended scanning if HCI_LE_Set_Extended_Scan_Parameters and HCI_LE_Set_Extended_Scan_Enable is supported (Bluetooth 5.0). */
@@ -432,7 +429,7 @@ namespace direct_bt {
                 return is_set(le_ll_feats, LE_Features::LE_Ext_Adv);
             }
 
-            ScanType getCurrentScanType() const noexcept { return currentScanType.load(); }
+            ScanType getCurrentScanType() const noexcept { return currentScanType; }
             void setCurrentScanType(const ScanType v) noexcept { currentScanType = v; }
 
             /**
@@ -442,7 +439,7 @@ namespace direct_bt {
              *
              * @return true if advertising is active, otherwise false.
              */
-            bool isAdvertising() const noexcept { return advertisingEnabled.load(); }
+            bool isAdvertising() const noexcept { return advertisingEnabled; }
 
             std::string toString() const noexcept;
 
@@ -539,7 +536,7 @@ namespace direct_bt {
              * Return HCIStatusCode::SUCCESS if isOpen() and the conn_handle is tracked
              * and matching the give peerAddressAndType
              *
-             * @param caller caller method base-name for DBG_ or ERR_PRINT.
+             * @param caller caller method base-name for DBG_ or jau_ERR_PRINT.
              * @param conn_handle
              * @param peerAddressAndType
              * @param addUntrackedConn true adds connection if not tracked,
@@ -755,7 +752,7 @@ namespace direct_bt {
              * </p>
              */
             HCIStatusCode le_read_peer_resolv_addr(const BDAddressAndType& peerIdentityAddressAndType,
-                                                   jau::EUI48& peerResolvableAddress) noexcept;
+                                                   jau::io::net::EUI48& peerResolvableAddress) noexcept;
             /**
              * BT Core Spec v5.2: Vol 4, Part E HCI: 7.8.43 LE Read Local Resolvable Address command
              * <p>
@@ -763,7 +760,7 @@ namespace direct_bt {
              * </p>
              */
             HCIStatusCode le_read_local_resolv_addr(const BDAddressAndType& peerIdentityAddressAndType,
-                                                    jau::EUI48& localResolvableAddress) noexcept;
+                                                    jau::io::net::EUI48& localResolvableAddress) noexcept;
             /**
              * BT Core Spec v5.2: Vol 4, Part E HCI: 7.8.44 LE Set Address Resolution Enable command
              */
@@ -973,8 +970,8 @@ namespace direct_bt {
             /** Removes all MgmtEventCallbacks from the to the named MgmtEvent::Opcode list. */
             void clearMgmtEventCallbacks(const MgmtEvent::Opcode opc) noexcept;
 
-            void addSMPMsgCallback(const HCISMPMsgCallback & l);
-            size_type removeSMPMsgCallback(const HCISMPMsgCallback & l);
+            bool addSMPMsgCallback(const HCISMPMsgCallback & l) noexcept;
+            size_type removeSMPMsgCallback(const HCISMPMsgCallback & l) noexcept;
 
             /** Removes all MgmtEventCallbacks from all MgmtEvent::Opcode lists and all SMPSecurityReqCallbacks. */
             void clearAllCallbacks() noexcept;

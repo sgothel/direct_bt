@@ -168,7 +168,7 @@ bool smp_crypto_rpa_irk_matches(const jau::uint128dp_t irk, const EUI48& rpa) no
     if constexpr ( !USE_SMP_CRYPTO_IRK ) {
         return false;
     }
-    // DBG_PRINT("IRK %s bdaddr %s", bt_hex(irk, 16), bt_addr_str(addr));
+    // jau_DBG_PRINT("IRK %s bdaddr %s", bt_hex(irk, 16), bt_addr_str(addr));
     uint8_t hash[3];
     int err = smp_crypto_ah(irk.data, &rpa.b[3], hash);
     if (err) {
@@ -249,16 +249,16 @@ bool smp_crypto_f5(const jau::uint256_t w, const jau::uint128dp_t n1, const jau:
     uint8_t ws[32];
     jau::uint128dp_t t, temp_;
 
-    DBG_PRINT("w %s", jau::bytesHexString(w.data, 0, 32, true /* lsbFirst */).c_str());
-    DBG_PRINT("n1 %s", jau::bytesHexString(n1.data, 0, 16, true /* lsbFirst */).c_str());
-    DBG_PRINT("n2 %s", jau::bytesHexString(n2.data, 0, 16, true /* lsbFirst */).c_str());
+    jau_DBG_PRINT("w %s", jau::toHexString(w.data, 0, 32, true /* lsbFirst */));
+    jau_DBG_PRINT("n1 %s", jau::toHexString(n1.data, 0, 16, true /* lsbFirst */));
+    jau_DBG_PRINT("n2 %s", jau::toHexString(n2.data, 0, 16, true /* lsbFirst */));
 
     jau::bswap(ws, w.data, 32); // little -> big
 
     if( bt_smp_aes_cmac(salt, ws, 32, t) ) {
         return false;
     }
-    DBG_PRINT("t %s", jau::bytesHexString(t, 0, 16, false /* lsbFirst */).c_str());
+    jau_DBG_PRINT("t %s", jau::toHexString(t, 0, 16, false /* lsbFirst */));
 
     jau::bswap(m + 5, n1.data, 16); // little -> big
     jau::bswap(m + 21, n2.data, 16); // little -> big
@@ -275,7 +275,7 @@ bool smp_crypto_f5(const jau::uint256_t w, const jau::uint128dp_t n1, const jau:
         return false;
     }
     mackey = jau::bswap(temp_); // big -> little
-    DBG_PRINT("mackey %1s", jau::bytesHexString(mackey.data, 0, 16, true /* lsbFirst */).c_str());
+    jau_DBG_PRINT("mackey %1s", jau::toHexString(mackey.data, 0, 16, true /* lsbFirst */));
 
     /* counter for ltk is 1 */
     m[0] = 0x01;
@@ -284,7 +284,7 @@ bool smp_crypto_f5(const jau::uint256_t w, const jau::uint128dp_t n1, const jau:
         return false;
     }
     ltk = jau::bswap(temp_); // big -> little
-    DBG_PRINT("ltk %s", jau::bytesHexString(ltk.data, 0, 16, true /* lsbFirst */).c_str());
+    jau_DBG_PRINT("ltk %s", jau::toHexString(ltk.data, 0, 16, true /* lsbFirst */));
 
     return true;
 }

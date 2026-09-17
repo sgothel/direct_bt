@@ -293,7 +293,7 @@ public class DBTLabPadClient01 {
                     // next: KEY_DISTRIBUTION or FAILED
                   } break;
                 case OOB_EXPECTED:
-                    // FIXME: ABORT
+                    // FIXME: jau_ABORT
                     break;
                 case KEY_DISTRIBUTION:
                     // next: COMPLETED or FAILED

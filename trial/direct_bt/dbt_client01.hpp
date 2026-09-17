@@ -28,6 +28,7 @@
 #include "dbt_constants.hpp"
 
 #include "dbt_client_test.hpp"
+#include "jau/string_util.hpp"
 
 #include <jau/latch.hpp>
 
@@ -78,11 +79,9 @@ class DBTClient01 : public DBTClientTest {
                                         const AdapterSetting changedmask, const uint64_t timestamp) override {
                 const bool initialSetting = AdapterSetting::NONE == oldmask;
                 if( initialSetting ) {
-                    fprintf_td(stderr, "****** Client SETTINGS_INITIAL: %s -> %s, changed %s\n", to_string(oldmask).c_str(),
-                            to_string(newmask).c_str(), to_string(changedmask).c_str());
+                    jau_fprintf_td(stderr, "****** Client SETTINGS_INITIAL: %s -> %s, changed %s\n", oldmask, newmask, changedmask);
                 } else {
-                    fprintf_td(stderr, "****** Client SETTINGS_CHANGED: %s -> %s, changed %s\n", to_string(oldmask).c_str(),
-                            to_string(newmask).c_str(), to_string(changedmask).c_str());
+                    jau_fprintf_td(stderr, "****** Client SETTINGS_CHANGED: %s -> %s, changed %s\n", oldmask, newmask, changedmask);
 
                     const bool justPoweredOn = isAdapterSettingBitSet(changedmask, AdapterSetting::POWERED) &&
                                                isAdapterSettingBitSet(newmask, AdapterSetting::POWERED);
@@ -91,14 +90,14 @@ class DBTClient01 : public DBTClientTest {
                         dc.detach();
                     }
                 }
-                fprintf_td(stderr, "Client Status BTAdapter:\n");
-                fprintf_td(stderr, "%s\n", a.toString().c_str());
+                jau_fprintf_td(stderr, "Client Status BTAdapter:\n");
+                jau_fprintf_td(stderr, "%s\n", a);
                 (void)timestamp;
             }
 
             void discoveringChanged(BTAdapter &a, const ScanType currentMeta, const ScanType changedType, const bool changedEnabled, const DiscoveryPolicy policy, const uint64_t timestamp) override {
-                fprintf_td(stderr, "****** Client DISCOVERING: meta %s, changed[%s, enabled %d, policy %s]: %s\n",
-                        to_string(currentMeta).c_str(), to_string(changedType).c_str(), changedEnabled, to_string(policy).c_str(), a.toString().c_str());
+                jau_fprintf_td(stderr, "****** Client DISCOVERING: meta %s, changed[%s, enabled %d, policy %s]: %s\n",
+                        currentMeta, changedType, changedEnabled, policy, a);
                 (void)timestamp;
             }
 
@@ -108,17 +107,17 @@ class DBTClient01 : public DBTClientTest {
                     0 < parent.measurementsLeft
                   )
                 {
-                    fprintf_td(stderr, "****** Client FOUND__-0: Connecting %s\n", device->toString(true).c_str());
+                    jau_fprintf_td(stderr, "****** Client FOUND__-0: Connecting %s\n", device->toString(true));
                     {
                         const uint64_t td = jau::getCurrentMilliseconds() - parent.timestamp_t0; // adapter-init -> now
-                        fprintf_td(stderr, "PERF: adapter-init -> FOUND__-0  %" PRIu64 " ms\n", td);
+                        jau_fprintf_td(stderr, "PERF: adapter-init -> FOUND__-0  %" PRIu64 " ms\n", td);
                     }
                     parent.running_threads.count_up();
                     std::thread dc(&DBTClient01::connectDiscoveredDevice, &parent, device); // @suppress("Invalid arguments")
                     dc.detach();
                     return true;
                 } else {
-                    fprintf_td(stderr, "****** Client FOUND__-1: NOP %s\n", device->toString(true).c_str());
+                    jau_fprintf_td(stderr, "****** Client FOUND__-1: NOP %s\n", device->toString(true));
                     return false;
                 }
             }
@@ -130,14 +129,14 @@ class DBTClient01 : public DBTClientTest {
             }
 
             void deviceConnected(const BTDeviceRef& device, const bool discovered, const uint64_t timestamp) override {
-                fprintf_td(stderr, "****** Client CONNECTED (discovered %d): %s\n", discovered, device->toString(true).c_str());
+                jau_fprintf_td(stderr, "****** Client CONNECTED (discovered %d): %s\n", discovered, device->toString(true));
                 (void)discovered;
                 (void)timestamp;
             }
 
             void devicePairingState(const BTDeviceRef& device, const SMPPairingState state, const PairingMode mode, const uint64_t timestamp) override {
-                fprintf_td(stderr, "****** Client PAIRING STATE: state %s, mode %s, %s\n",
-                    to_string(state).c_str(), to_string(mode).c_str(), device->toString().c_str());
+                jau_fprintf_td(stderr, "****** Client PAIRING STATE: state %s, mode %s, %s\n",
+                    state, mode, device->toString());
                 (void)timestamp;
                 switch( state ) {
                     case SMPPairingState::NONE:
@@ -145,8 +144,8 @@ class DBTClient01 : public DBTClientTest {
                         break;
                     case SMPPairingState::FAILED: {
                         const bool res  = SMPKeyBin::remove(DBTConstants::CLIENT_KEY_PATH, *device);
-                        fprintf_td(stderr, "****** PAIRING_STATE: state %s; Remove key file %s, res %d\n",
-                                to_string(state).c_str(), SMPKeyBin::getFilename(DBTConstants::CLIENT_KEY_PATH, *device).c_str(), res);
+                        jau_fprintf_td(stderr, "****** PAIRING_STATE: state %s; Remove key file %s, res %d\n",
+                                state, SMPKeyBin::getFilename(DBTConstants::CLIENT_KEY_PATH, *device), res);
                         // next: deviceReady() or deviceDisconnected(..)
                     } break;
                     case SMPPairingState::REQUESTED_BY_RESPONDER:
@@ -182,7 +181,7 @@ class DBTClient01 : public DBTClientTest {
                         // next: KEY_DISTRIBUTION or FAILED
                       } break;
                     case SMPPairingState::OOB_EXPECTED:
-                        // FIXME: ABORT
+                        // FIXME: jau_ABORT
                         break;
                     case SMPPairingState::KEY_DISTRIBUTION:
                         // next: COMPLETED or FAILED
@@ -195,7 +194,7 @@ class DBTClient01 : public DBTClientTest {
                 }
             }
 
-            void disconnectDeviceRandomly(BTDeviceRef device) { // NOLINT(performance-unnecessary-value-param): 
+            void disconnectDeviceRandomly(BTDeviceRef device) { // NOLINT(performance-unnecessary-value-param):
                 // sleep range: 100 - 1500 ms
                 // sleep range: 100 - 1500 ms
                 static const int sleep_min = 100;
@@ -205,10 +204,10 @@ class DBTClient01 : public DBTClientTest {
                 const int64_t sleep_dur = rng_dist(rng_hw);
                 jau::sleep_for( sleep_dur * 1_ms );
                 if( nullptr != device ) {
-                    fprintf_td(stderr, "****** Client i470 disconnectDevice(delayed %d ms): client %s\n", sleep_dur, device->toString().c_str());
+                    jau_fprintf_td(stderr, "****** Client i470 disconnectDevice(delayed %" PRIi64 " ms): client %s\n", sleep_dur, device->toString());
                     device->disconnect();
                 } else {
-                    fprintf_td(stderr, "****** Client i470 disconnectDevice(delayed %d ms): client null\n", sleep_dur);
+                    jau_fprintf_td(stderr, "****** Client i470 disconnectDevice(delayed %" PRIi64 " ms): client null\n", sleep_dur);
                 }
                 parent.running_threads.count_down();
             }
@@ -217,7 +216,7 @@ class DBTClient01 : public DBTClientTest {
                 (void)timestamp;
                 {
                     parent.deviceReadyCount++;
-                    fprintf_td(stderr, "****** Client READY-0: Processing[%d] %s\n", parent.deviceReadyCount.load(), device->toString(true).c_str());
+                    jau_fprintf_td(stderr, "****** Client READY-0: Processing[%d] %s\n", parent.deviceReadyCount.load(), device->toString(true));
 
                     // Be nice to Test* case, allowing to reach its own listener.deviceReady() added later
                     parent.running_threads.count_up();
@@ -234,9 +233,9 @@ class DBTClient01 : public DBTClientTest {
             }
 
             void deviceDisconnected(const BTDeviceRef& device, const HCIStatusCode reason, const uint16_t handle, const uint64_t timestamp) override {
-                fprintf_td(stderr, "****** Client DISCONNECTED: Reason 0x%X (%s), old handle %s: %s\n",
-                        static_cast<uint8_t>(reason), to_string(reason).c_str(),
-                        to_hexstring(handle).c_str(), device->toString(true).c_str());
+                jau_fprintf_td(stderr, "****** Client DISCONNECTED: Reason 0x%X (%s), old handle %s: %s\n",
+                        static_cast<uint8_t>(reason), reason,
+                        toHexString(handle), device->toString(true));
                 (void)timestamp;
 
                 parent.disconnectCount++;
@@ -247,7 +246,7 @@ class DBTClient01 : public DBTClientTest {
             }
 
             std::string toString() const noexcept override {
-                return "Client MyAdapterStatusListener[this "+to_hexstring(this)+"]";
+                return "Client MyAdapterStatusListener[this "+toHexString(this)+"]";
             }
 
         };
@@ -262,11 +261,11 @@ class DBTClient01 : public DBTClientTest {
             void notificationReceived(BTGattCharRef charDecl, const TROOctets& char_value, const uint64_t timestamp) override {
                 if( GATT_VERBOSE ) {
                     const uint64_t tR = jau::getCurrentMilliseconds();
-                    fprintf_td(stderr, "** Characteristic-Notify: UUID %s, td %" PRIu64 " ******\n",
-                            charDecl->value_type->toUUID128String().c_str(), (tR-timestamp));
-                    fprintf_td(stderr, "**    Characteristic: %s ******\n", charDecl->toString().c_str());
-                    fprintf_td(stderr, "**    Value R: %s ******\n", char_value.toString().c_str());
-                    fprintf_td(stderr, "**    Value S: %s ******\n", jau::dfa_utf8_decode(char_value.get_ptr(), char_value.size()).c_str());
+                    jau_fprintf_td(stderr, "** Characteristic-Notify: UUID %s, td %" PRIu64 " ******\n",
+                            charDecl->value_type->toUUID128String(), (tR-timestamp));
+                    jau_fprintf_td(stderr, "**    Characteristic: %s ******\n", charDecl->toString());
+                    jau_fprintf_td(stderr, "**    Value R: %s ******\n", char_value);
+                    jau_fprintf_td(stderr, "**    Value S: %s ******\n", jau::dfa_utf8_decode(char_value.get_ptr(), char_value.size()));
                 }
                 parent.notificationsReceived++;
             }
@@ -277,11 +276,11 @@ class DBTClient01 : public DBTClientTest {
             {
                 if( GATT_VERBOSE ) {
                     const uint64_t tR = jau::getCurrentMilliseconds();
-                    fprintf_td(stderr, "** Characteristic-Indication: UUID %s, td %" PRIu64 ", confirmed %d ******\n",
-                            charDecl->value_type->toUUID128String().c_str(), (tR-timestamp), confirmationSent);
-                    fprintf_td(stderr, "**    Characteristic: %s ******\n", charDecl->toString().c_str());
-                    fprintf_td(stderr, "**    Value R: %s ******\n", char_value.toString().c_str());
-                    fprintf_td(stderr, "**    Value S: %s ******\n", jau::dfa_utf8_decode(char_value.get_ptr(), char_value.size()).c_str());
+                    jau_fprintf_td(stderr, "** Characteristic-Indication: UUID %s, td %" PRIu64 ", confirmed %d ******\n",
+                            charDecl->value_type->toUUID128String(), (tR-timestamp), confirmationSent);
+                    jau_fprintf_td(stderr, "**    Characteristic: %s ******\n", charDecl->toString());
+                    jau_fprintf_td(stderr, "**    Value R: %s ******\n", char_value);
+                    jau_fprintf_td(stderr, "**    Value S: %s ******\n", jau::dfa_utf8_decode(char_value.get_ptr(), char_value.size()));
                 }
                 parent.indicationsReceived++;
             }
@@ -303,7 +302,7 @@ class DBTClient01 : public DBTClientTest {
         }
 
         ~DBTClient01() override {
-            fprintf_td(stderr, "****** Client dtor: running_threads %zu\n", running_threads.value());
+            jau_fprintf_td(stderr, "****** Client dtor: running_threads %zu\n", running_threads.value());
             running_threads.wait_for( 10_s );
         }
 
@@ -349,40 +348,40 @@ class DBTClient01 : public DBTClientTest {
         }
 
         void connectDiscoveredDevice(BTDeviceRef device) { // NOLINT(performance-unnecessary-value-param): Pass-by-value out-of-thread
-            fprintf_td(stderr, "****** Client Connecting Device: Start %s\n", device->toString().c_str());
+            jau_fprintf_td(stderr, "****** Client Connecting Device: Start %s\n", device->toString());
 
             resetLastProcessingStats();
 
             const BTSecurityRegistry::Entry* sec = BTSecurityRegistry::getStartOf(device->getAddressAndType().address, device->getName());
             if( nullptr != sec ) {
-                fprintf_td(stderr, "****** Client Connecting Device: Found SecurityDetail %s for %s\n", sec->toString().c_str(), device->toString().c_str());
+                jau_fprintf_td(stderr, "****** Client Connecting Device: Found SecurityDetail %s for %s\n", sec->toString(), device->toString());
             } else {
-                fprintf_td(stderr, "****** Client Connecting Device: No SecurityDetail for %s\n", device->toString().c_str());
+                jau_fprintf_td(stderr, "****** Client Connecting Device: No SecurityDetail for %s\n", device->toString());
             }
             const BTSecurityLevel req_sec_level = nullptr != sec ? sec->getSecLevel() : BTSecurityLevel::UNSET;
             HCIStatusCode res = device->uploadKeys(DBTConstants::CLIENT_KEY_PATH, req_sec_level, true /* verbose_ */);
-            fprintf_td(stderr, "****** Client Connecting Device: BTDevice::uploadKeys(...) result %s\n", to_string(res).c_str());
+            jau_fprintf_td(stderr, "****** Client Connecting Device: BTDevice::uploadKeys(...) result %s\n", res);
             if( HCIStatusCode::SUCCESS != res ) {
                 if( nullptr != sec ) {
                     if( sec->isSecurityAutoEnabled() ) {
                         bool r = device->setConnSecurityAuto( sec->getSecurityAutoIOCap() );
-                        fprintf_td(stderr, "****** Client Connecting Device: Using SecurityDetail.SEC AUTO %s, set OK %d\n", sec->toString().c_str(), r);
+                        jau_fprintf_td(stderr, "****** Client Connecting Device: Using SecurityDetail.SEC AUTO %s, set OK %d\n", sec->toString(), r);
                     } else if( sec->isSecLevelOrIOCapSet() ) {
                         bool r = device->setConnSecurity( sec->getSecLevel(), sec->getIOCap() );
-                        fprintf_td(stderr, "****** Client Connecting Device: Using SecurityDetail.Level+IOCap %s, set OK %d\n", sec->toString().c_str(), r);
+                        jau_fprintf_td(stderr, "****** Client Connecting Device: Using SecurityDetail.Level+IOCap %s, set OK %d\n", sec->toString(), r);
                     } else {
                         bool r = device->setConnSecurityAuto( SMPIOCapability::KEYBOARD_ONLY );
-                        fprintf_td(stderr, "****** Client Connecting Device: Setting SEC AUTO security detail w/ KEYBOARD_ONLY (%s) -> set OK %d\n", sec->toString().c_str(), r);
+                        jau_fprintf_td(stderr, "****** Client Connecting Device: Setting SEC AUTO security detail w/ KEYBOARD_ONLY (%s) -> set OK %d\n", sec->toString(), r);
                     }
                 } else {
                     bool r = device->setConnSecurityAuto( SMPIOCapability::KEYBOARD_ONLY );
-                    fprintf_td(stderr, "****** Client Connecting Device: Setting SEC AUTO security detail w/ KEYBOARD_ONLY -> set OK %d\n", r);
+                    jau_fprintf_td(stderr, "****** Client Connecting Device: Setting SEC AUTO security detail w/ KEYBOARD_ONLY -> set OK %d\n", r);
                 }
             }
             std::shared_ptr<const EInfoReport> eir = device->getEIR();
-            fprintf_td(stderr, "Client EIR-1 %s\n", device->getEIRInd()->toString().c_str());
-            fprintf_td(stderr, "Client EIR-2 %s\n", device->getEIRScanRsp()->toString().c_str());
-            fprintf_td(stderr, "Client EIR-+ %s\n", eir->toString().c_str());
+            jau_fprintf_td(stderr, "Client EIR-1 %s\n", device->getEIRInd()->toString());
+            jau_fprintf_td(stderr, "Client EIR-2 %s\n", device->getEIRScanRsp()->toString());
+            jau_fprintf_td(stderr, "Client EIR-+ %s\n", eir->toString());
 
             uint16_t conn_interval_min  = (uint16_t)8;  // 10ms
             uint16_t conn_interval_max  = (uint16_t)12; // 15ms
@@ -390,14 +389,14 @@ class DBTClient01 : public DBTClientTest {
             if( eir->isSet(EIRDataType::CONN_IVAL) ) {
                 eir->getConnInterval(conn_interval_min, conn_interval_max);
             }
-            const uint16_t supervision_timeout = (uint16_t) getHCIConnSupervisorTimeout(conn_latency, (int) ( conn_interval_max * 1.25 ) /* ms */);
+            const uint16_t supervision_timeout = getHCIConnSupervisorTimeout(conn_latency, (int) ( conn_interval_max * 1.25 ) /* ms */);
             res = device->connectLE(le_scan_interval, le_scan_window, conn_interval_min, conn_interval_max, conn_latency, supervision_timeout);
-            fprintf_td(stderr, "****** Client Connecting Device: End result %s of %s\n", to_string(res).c_str(), device->toString().c_str());
+            jau_fprintf_td(stderr, "****** Client Connecting Device: End result %s of %s\n", res, device->toString());
             running_threads.count_down();
         }
 
         void processReadyDevice(BTDeviceRef device) { // NOLINT(performance-unnecessary-value-param): Pass-by-value out-of-thread
-            fprintf_td(stderr, "****** Client Processing Ready Device: Start %s\n", device->toString().c_str());
+            jau_fprintf_td(stderr, "****** Client Processing Ready Device: Start %s\n", device->toString());
 
             const uint64_t t1 = jau::getCurrentMilliseconds();
 
@@ -410,8 +409,7 @@ class DBTClient01 : public DBTClientTest {
             {
                 LE_PHYs resTx, resRx;
                 HCIStatusCode res = device->getConnectedLE_PHY(resTx, resRx);
-                fprintf_td(stderr, "****** Client Got Connected LE PHY: status %s: Tx %s, Rx %s\n",
-                        to_string(res).c_str(), to_string(resTx).c_str(), to_string(resRx).c_str());
+                jau_fprintf_td(stderr, "****** Client Got Connected LE PHY: status %s: Tx %s, Rx %s\n", res, resTx, resRx);
             }
 
             const uint64_t t3 = jau::getCurrentMilliseconds();
@@ -422,7 +420,7 @@ class DBTClient01 : public DBTClientTest {
             try {
                 jau::darray<BTGattServiceRef> primServices = device->getGattServices();
                 if( 0 == primServices.size() ) {
-                    fprintf_td(stderr, "****** Client Processing Ready Device: getServices() failed %s\n", device->toString().c_str());
+                    jau_fprintf_td(stderr, "****** Client Processing Ready Device: getServices() failed %s\n", device->toString());
                     goto exit;
                 }
 
@@ -437,8 +435,8 @@ class DBTClient01 : public DBTClientTest {
                     const uint64_t td23 = t3 - t2; // LE_PHY
                     const uint64_t td13 = t3 - t1; // SMPKeyBin + LE_PHY
                     const uint64_t td35 = t5 - t3; // get-gatt-services
-                    fprintf_td(stderr, "\n\n\n");
-                    fprintf_td(stderr, "PERF: GATT primary-services completed\n"
+                    jau_fprintf_td(stderr, "\n\n\n");
+                    jau_fprintf_td(stderr, "PERF: GATT primary-services completed\n"
                                        "PERF:  adapter-init to discovered %" PRIu64 " ms,\n"
                                        "PERF:  adapter-init to processing-start %" PRIu64 " ms,\n"
                                        "PERF:  adapter-init to gatt-complete %" PRIu64 " ms\n"
@@ -455,20 +453,20 @@ class DBTClient01 : public DBTClientTest {
                     BTGattCmd cmd = BTGattCmd(*device, "TestCmd", DBTConstants::CommandUUID, DBTConstants::ResponseUUID, 256);
                     cmd.setVerbose(true);
                     const bool cmd_resolved = cmd.isResolved();
-                    fprintf_td(stderr, "Command test: %s, resolved %d\n", cmd.toString().c_str(), cmd_resolved);
+                    jau_fprintf_td(stderr, "Command test: %s, resolved %d\n", cmd, cmd_resolved);
                     POctets cmd_data(1, lb_endian_t::little);
                     cmd_data.put_uint8_nc(0, cmd_arg);
                     const HCIStatusCode cmd_res = cmd.send(true /* prefNoAck */, cmd_data, 3_s);
                     if( HCIStatusCode::SUCCESS == cmd_res ) {
                         const jau::TROOctets& resp = cmd.getResponse();
                         if( 1 == resp.size() && resp.get_uint8_nc(0) == cmd_arg ) {
-                            fprintf_td(stderr, "Client Success: %s -> %s (echo response)\n", cmd.toString().c_str(), resp.toString().c_str());
+                            jau_fprintf_td(stderr, "Client Success: %s -> %s (echo response)\n", cmd, resp);
                             completedGATTCommands++;
                         } else {
-                            fprintf_td(stderr, "Client Failure: %s -> %s (different response)\n", cmd.toString().c_str(), resp.toString().c_str());
+                            jau_fprintf_td(stderr, "Client Failure: %s -> %s (different response)\n", cmd, resp);
                         }
                     } else {
-                        fprintf_td(stderr, "Client Failure: %s -> %s\n", cmd.toString().c_str(), to_string(cmd_res).c_str());
+                        jau_fprintf_td(stderr, "Client Failure: %s -> %s\n", cmd, cmd_res);
                     }
                     // cmd.close(); // done via dtor
                 }
@@ -480,26 +478,26 @@ class DBTClient01 : public DBTClientTest {
                     for(size_t i=0; i<primServices.size(); i++) {
                         BTGattService & primService = *primServices.at(i);
                         if( GATT_VERBOSE ) {
-                            fprintf_td(stderr, "  [%2.2d] Service UUID %s (%s)\n", i,
-                                    primService.type->toUUID128String().c_str(),
-                                    primService.type->getTypeSizeString().c_str());
-                            fprintf_td(stderr, "  [%2.2d]         %s\n", i, primService.toString().c_str());
+                            jau_fprintf_td(stderr, "  [%2.2zu] Service UUID %s (%s)\n", i,
+                                    primService.type->toUUID128String(),
+                                    primService.type->getTypeSizeString());
+                            jau_fprintf_td(stderr, "  [%2.2zu]         %s\n", i, primService);
                         }
                         jau::darray<BTGattCharRef> & serviceCharacteristics = primService.characteristicList;
                         for(size_t j=0; j<serviceCharacteristics.size(); j++) {
                             BTGattCharRef & serviceChar = serviceCharacteristics.at(j);
                             if( GATT_VERBOSE ) {
-                                fprintf_td(stderr, "  [%2.2d.%2.2d] Characteristic: UUID %s (%s)\n", i, j,
-                                        serviceChar->value_type->toUUID128String().c_str(),
-                                        serviceChar->value_type->getTypeSizeString().c_str());
-                                fprintf_td(stderr, "  [%2.2d.%2.2d]     %s\n", i, j, serviceChar->toString().c_str());
+                                jau_fprintf_td(stderr, "  [%2.2zu.%2.2zu] Characteristic: UUID %s (%s)\n", i, j,
+                                        serviceChar->value_type->toUUID128String(),
+                                        serviceChar->value_type->getTypeSizeString());
+                                jau_fprintf_td(stderr, "  [%2.2zu.%2.2zu]     %s\n", i, j, serviceChar->toString());
                             }
                             if( serviceChar->hasProperties(BTGattChar::PropertyBitVal::Read) ) {
                                 POctets value(BTGattHandler::number(BTGattHandler::Defaults::MAX_ATT_MTU), 0, jau::lb_endian_t::little);
                                 if( serviceChar->readValue(value) ) {
                                     std::string sval = dfa_utf8_decode(value.get_ptr(), value.size());
                                     if( GATT_VERBOSE ) {
-                                        fprintf_td(stderr, "  [%2.2d.%2.2d]     value: %s ('%s')\n", (int)i, (int)j, value.toString().c_str(), sval.c_str());
+                                        jau_fprintf_td(stderr, "  [%2.2zu.%2.2zu]     value: %s ('%s')\n", i, j, value, sval);
                                     }
                                 }
                             }
@@ -507,10 +505,10 @@ class DBTClient01 : public DBTClientTest {
                             for(size_t k=0; k<charDescList.size(); k++) {
                                 BTGattDesc & charDesc = *charDescList.at(k);
                                 if( GATT_VERBOSE ) {
-                                    fprintf_td(stderr, "  [%2.2d.%2.2d.%2.2d] Descriptor: UUID %s (%s)\n", i, j, k,
-                                            charDesc.type->toUUID128String().c_str(),
-                                            charDesc.type->getTypeSizeString().c_str());
-                                    fprintf_td(stderr, "  [%2.2d.%2.2d.%2.2d]     %s\n", i, j, k, charDesc.toString().c_str());
+                                    jau_fprintf_td(stderr, "  [%2.2zu.%2.2zu.%2.2zu] Descriptor: UUID %s (%s)\n", i, j, k,
+                                            charDesc.type->toUUID128String(),
+                                            charDesc.type->getTypeSizeString());
+                                    jau_fprintf_td(stderr, "  [%2.2zu.%2.2zu.%2.2zu]     %s\n", i, j, k, charDesc);
                                 }
                             }
                             if( 0 == loop ) {
@@ -523,19 +521,19 @@ class DBTClient01 : public DBTClientTest {
                                         gattListener.push_back(gattEventListener);
                                     } else {
                                         gattListenerError = true;
-                                        fprintf_td(stderr, "Client Error: Failed to add GattListener: %s @ %s, gattListener %zu\n",
-                                                gattEventListener->toString().c_str(), serviceChar->toString().c_str(), gattListener.size());
+                                        jau_fprintf_td(stderr, "Client Error: Failed to add GattListener: %s @ %s, gattListener %zu\n",
+                                                gattEventListener->toString(), serviceChar->toString(), gattListener.size());
                                     }
                                     if( GATT_VERBOSE ) {
-                                        fprintf_td(stderr, "  [%2.2d.%2.2d] Characteristic-Listener: Notification(%d), Indication(%d): Added %d\n",
+                                        jau_fprintf_td(stderr, "  [%2.2d.%2.2d] Characteristic-Listener: Notification(%d), Indication(%d): Added %d\n",
                                                 (int)i, (int)j, cccdEnableResult[0], cccdEnableResult[1], clAdded);
-                                        fprintf_td(stderr, "\n");
+                                        jau_fprintf_td(stderr, "\n");
                                     }
                                 }
                             }
                         }
                         if( GATT_VERBOSE ) {
-                            fprintf_td(stderr, "\n");
+                            jau_fprintf_td(stderr, "\n");
                         }
                     }
                     success = notificationsReceived >= 2 || indicationsReceived >= 2;
@@ -551,8 +549,8 @@ class DBTClient01 : public DBTClientTest {
                     int i = 0;
                     for(const BTGattCharListenerRef& gcl : gattListener) {
                         if( !device->removeCharListener(gcl) ) {
-                            fprintf_td(stderr, "Client Error: Failed to remove GattListener[%d/%zu]: %s @ %s\n",
-                                    i, gattListener.size(), gcl->toString().c_str(), device->toString().c_str());
+                            jau_fprintf_td(stderr, "Client Error: Failed to remove GattListener[%d/%zu]: %s @ %s\n",
+                                    i, gattListener.size(), gcl->toString(), device->toString());
                             success = false;
                         }
                         ++i;
@@ -564,7 +562,7 @@ class DBTClient01 : public DBTClientTest {
                     BTGattCmd cmd = BTGattCmd(*device, "FinalHandshake", DBTConstants::CommandUUID, DBTConstants::ResponseUUID, 256);
                     cmd.setVerbose(true);
                     const bool cmd_resolved = cmd.isResolved();
-                    fprintf_td(stderr, "FinalCommand test: %s, resolved %d\n", cmd.toString().c_str(), cmd_resolved);
+                    jau_fprintf_td(stderr, "FinalCommand test: %s, resolved %d\n", cmd, cmd_resolved);
                     const size_t data_sz = DBTConstants::FailHandshakeCommandData.size();
                     POctets cmd_data(data_sz, lb_endian_t::little);
                     if( success ) {
@@ -579,27 +577,27 @@ class DBTClient01 : public DBTClientTest {
                         if( cmd_data.size() == resp.size() &&
                             0 == ::memcmp(cmd_data.get_ptr(), resp.get_ptr(), resp.size()) )
                         {
-                            fprintf_td(stderr, "Client Success: %s -> %s (echo response)\n", cmd.toString().c_str(), resp.toString().c_str());
+                            jau_fprintf_td(stderr, "Client Success: %s -> %s (echo response)\n", cmd, resp);
                         } else {
-                            fprintf_td(stderr, "Client Failure: %s -> %s (different response)\n", cmd.toString().c_str(), resp.toString().c_str());
+                            jau_fprintf_td(stderr, "Client Failure: %s -> %s (different response)\n", cmd, resp);
                         }
                     } else {
-                        fprintf_td(stderr, "Client Failure: %s -> %s\n", cmd.toString().c_str(), to_string(cmd_res).c_str());
+                        jau_fprintf_td(stderr, "Client Failure: %s -> %s\n", cmd, cmd_res);
                     }
                     // cmd.close(); // done via dtor
                 }
             } catch ( std::exception & e ) {
-                fprintf_td(stderr, "****** Client Processing Ready Device: Exception.2 caught for %s: %s\n", device->toString().c_str(), e.what());
+                jau_fprintf_td(stderr, "****** Client Processing Ready Device: Exception.2 caught for %s: %s\n", device->toString(), e.what());
             }
 
         exit:
-            fprintf_td(stderr, "****** Client Processing Ready Device: End-1: Success %d on %s\n", success, device->toString().c_str());
+            jau_fprintf_td(stderr, "****** Client Processing Ready Device: End-1: Success %d on %s\n", success, device->toString());
 
             if( DiscoveryPolicy::PAUSE_CONNECTED_UNTIL_DISCONNECTED == discoveryPolicy ) {
                 device->getAdapter().removeDevicePausingDiscovery(*device);
             }
 
-            fprintf_td(stderr, "****** Client Processing Ready Device: End-2: Success %d on %s\n", success, device->toString().c_str());
+            jau_fprintf_td(stderr, "****** Client Processing Ready Device: End-2: Success %d on %s\n", success, device->toString());
 
             device->removeAllCharListener();
 
@@ -618,17 +616,17 @@ class DBTClient01 : public DBTClientTest {
                     measurementsLeft--;
                 }
             }
-            fprintf_td(stderr, "****** Client Processing Ready Device: Success %d; Measurements completed %d"
+            jau_fprintf_td(stderr, "****** Client Processing Ready Device: Success %d; Measurements completed %d"
                             ", left %d; Received notitifications %d, indications %d"
                             "; Completed GATT commands %d: %s\n",
                             success, completedMeasurementsSuccess.load(),
                             measurementsLeft.load(), notificationsReceived.load(), indicationsReceived.load(),
-                            completedGATTCommands.load(), device->getAddressAndType().toString().c_str());
+                            completedGATTCommands.load(), device->getAddressAndType());
             running_threads.count_down();
         }
 
         void removeDevice(BTDeviceRef device) { // NOLINT(performance-unnecessary-value-param): Pass-by-value out-of-thread
-            fprintf_td(stderr, "****** Client Remove Device: removing: %s\n", device->getAddressAndType().toString().c_str());
+            jau_fprintf_td(stderr, "****** Client Remove Device: removing: %s\n", device->getAddressAndType());
 
             if( do_remove_device ) {
                 device->remove();
@@ -646,27 +644,27 @@ class DBTClient01 : public DBTClientTest {
 
         HCIStatusCode startDiscovery(const std::string& msg) override {
             HCIStatusCode status = clientAdapter->startDiscovery( nullptr, discoveryPolicy, le_scan_active, le_scan_interval, le_scan_window, filter_policy, filter_dup );
-            fprintf_td(stderr, "****** Client Start discovery (%s) result: %s: %s\n", msg.c_str(), to_string(status).c_str(), clientAdapter->toString().c_str());
+            jau_fprintf_td(stderr, "****** Client Start discovery (%s) result: %s: %s\n", msg, status, clientAdapter->toString());
             return status;
         }
 
         HCIStatusCode stopDiscovery(const std::string& msg) override {
             HCIStatusCode status = clientAdapter->stopDiscovery();
-            fprintf_td(stderr, "****** Client Stop discovery (%s) result: %s\n", msg.c_str(), to_string(status).c_str());
+            jau_fprintf_td(stderr, "****** Client Stop discovery (%s) result: %s\n", msg, status);
             return status;
         }
 
         void close(const std::string& msg) override {
-            fprintf_td(stderr, "****** Client Close: %s\n", msg.c_str());
+            jau_fprintf_td(stderr, "****** Client Close: %s\n", msg);
             clientAdapter->stopDiscovery();
             REQUIRE( true == clientAdapter->removeStatusListener( myAdapterStatusListener ) );
-            fprintf_td(stderr, "****** Client close: running_threads %zu\n", running_threads.value());
+            jau_fprintf_td(stderr, "****** Client close: running_threads %zu\n", running_threads.value());
             running_threads.wait_for( 10_s );
         }
 
         bool initAdapter(BTAdapterRef adapter) override {
             if( useAdapter != EUI48::ALL_DEVICE && useAdapter != adapter->getAddressAndType().address ) {
-                fprintf_td(stderr, "initClientAdapter: Adapter not selected: %s\n", adapter->toString().c_str());
+                jau_fprintf_td(stderr, "initClientAdapter: Adapter not selected: %s\n", adapter->toString());
                 return false;
             }
             adapterName = adapterName + "-" + adapter->getAddressAndType().address.toString();
@@ -679,47 +677,46 @@ class DBTClient01 : public DBTClientTest {
             if( !adapter->isInitialized() ) {
                 HCIStatusCode status = adapter->initialize( btMode, false );
                 if( HCIStatusCode::SUCCESS != status ) {
-                    fprintf_td(stderr, "initClientAdapter: Adapter initialization failed: %s: %s\n",
-                            to_string(status).c_str(), adapter->toString().c_str());
+                    jau_fprintf_td(stderr, "initClientAdapter: Adapter initialization failed: %s: %s\n",
+                            status, adapter->toString());
                     return false;
                 }
             } else if( !adapter->setPowered( false ) ) {
-                fprintf_td(stderr, "initClientAdapter: Already initialized adapter power-off failed:: %s\n", adapter->toString().c_str());
+                jau_fprintf_td(stderr, "initClientAdapter: Already initialized adapter power-off failed:: %s\n", adapter->toString());
                 return false;
             }
             // adapter is powered-off
-            fprintf_td(stderr, "initClientAdapter.1: %s\n", adapter->toString().c_str());
+            jau_fprintf_td(stderr, "initClientAdapter.1: %s\n", adapter->toString());
             {
                 const LE_Features le_feats = adapter->getLEFeatures();
-                fprintf_td(stderr, "initClientAdapter: LE_Features %s\n", to_string(le_feats).c_str());
+                jau_fprintf_td(stderr, "initClientAdapter: LE_Features %s\n", le_feats);
             }
 
             {
                 HCIStatusCode status = adapter->setName(adapterName, adapterShortName);
                 if( HCIStatusCode::SUCCESS == status ) {
-                    fprintf_td(stderr, "initClientAdapter: setLocalName OK: %s\n", adapter->toString().c_str());
+                    jau_fprintf_td(stderr, "initClientAdapter: setLocalName OK: %s\n", adapter->toString());
                 } else {
-                    fprintf_td(stderr, "initClientAdapter: setLocalName failed: %s\n", adapter->toString().c_str());
+                    jau_fprintf_td(stderr, "initClientAdapter: setLocalName failed: %s\n", adapter->toString());
                     return false;
                 }
 
                 if( !adapter->setPowered( true ) ) {
-                    fprintf_td(stderr, "initClientAdapter: setPower.2 on failed: %s\n", adapter->toString().c_str());
+                    jau_fprintf_td(stderr, "initClientAdapter: setPower.2 on failed: %s\n", adapter->toString());
                     return false;
                 }
             }
             // adapter is powered-on
-            fprintf_td(stderr, "initClientAdapter.2: %s\n", adapter->toString().c_str());
+            jau_fprintf_td(stderr, "initClientAdapter.2: %s\n", adapter->toString());
 
             {
                 const LE_Features le_feats = adapter->getLEFeatures();
-                fprintf_td(stderr, "initClientAdapter: LE_Features %s\n", to_string(le_feats).c_str());
+                jau_fprintf_td(stderr, "initClientAdapter: LE_Features %s\n", le_feats);
             }
             if( adapter->getBTMajorVersion() > 4 ) {
                 LE_PHYs Tx { LE_PHYs::LE_2M }, Rx { LE_PHYs::LE_2M };
                 HCIStatusCode res = adapter->setDefaultLE_PHY(Tx, Rx);
-                fprintf_td(stderr, "initClientAdapter: Set Default LE PHY: status %s: Tx %s, Rx %s\n",
-                        to_string(res).c_str(), to_string(Tx).c_str(), to_string(Rx).c_str());
+                jau_fprintf_td(stderr, "initClientAdapter: Set Default LE PHY: status %s: Tx %s, Rx %s\n", res, Tx, Rx);
             }
             REQUIRE( true == adapter->addStatusListener( myAdapterStatusListener ) );
 

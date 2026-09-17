@@ -1,6 +1,6 @@
 /*
  * Author: Sven Gothel <sgothel@jausoft.com>
- * Copyright (c) 2020 Gothel Software e.K.
+ * Copyright (c) 2020-2026 Gothel Software e.K.
  * Copyright (c) 2020 ZAFENA AB
  *
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -28,8 +28,6 @@
 #include <memory>
 #include <cstdint>
 #include <cstdio>
-
-#include  <algorithm>
 
 // #define VERBOSE_ON 1
 #include <jau/environment.hpp>
@@ -92,9 +90,9 @@ BTDevice::BTDevice(const ctor_cookie& cc, BTAdapter & a, EInfoReport const & r)
 }
 
 BTDevice::~BTDevice() noexcept {
-    DBG_PRINT("BTDevice::dtor: ... %p %s", this, addressAndType.toString().c_str());
+    jau_DBG_PRINT("BTDevice::dtor: ... %p %s", this, addressAndType);
     adapter.removeAllStatusListener(*this);
-    DBG_PRINT("BTDevice::dtor: XXX %p %s", this, addressAndType.toString().c_str());
+    jau_DBG_PRINT("BTDevice::dtor: XXX %p %s", this, addressAndType);
 }
 
 std::shared_ptr<BTDevice> BTDevice::getSharedInstance() const noexcept {
@@ -134,26 +132,32 @@ std::string BTDevice::toString(bool includeDiscoveredServices) const noexcept {
     const uint64_t t0 = jau::getCurrentMilliseconds();
     bool l2cap_att_open = l2cap_att->is_open();
     jau::sc_atomic_critical sync(sync_data);
-    std::string resaddr_s = visibleAddressAndType != addressAndType ? ", visible "+visibleAddressAndType.toString() : "";
     std::shared_ptr<const EInfoReport> eir_ = eir;
-    std::string eir_s = BTRole::Slave == getRole() ? ", "+eir_->toString( includeDiscoveredServices ) : "";
-    std::string out("Device["+to_string(getRole())+", "+addressAndType.toString()+resaddr_s+", name['"+name+
-            "'], age[total "+std::to_string(t0-ts_creation)+", ldisc "+std::to_string(t0-ts_last_discovery)+", lup "+std::to_string(t0-ts_last_update)+
-            "]ms, connected["+std::to_string(allowDisconnect)+"/"+std::to_string(isConnected)+", handle "+jau::to_hexstring(hciConnHandle)+
-            ", phy[Tx "+direct_bt::to_string(le_phy_tx)+", Rx "+direct_bt::to_string(le_phy_rx)+
-            "], l2cap "+jau::to_string(l2cap_att_open)+
-            ", sec[enc "+std::to_string(pairing_data.encryption_enabled)+", lvl "+to_string(pairing_data.sec_level_conn)+", io "+to_string(pairing_data.io_cap_conn)+
-            ", auto "+to_string(pairing_data.io_cap_auto)+", pairing "+to_string(pairing_data.mode)+", state "+to_string(pairing_data.state)+
-            ", sc "+std::to_string(pairing_data.use_sc)+"]], rssi "+std::to_string(getRSSI())+
-            ", tx-power "+std::to_string(tx_power)+eir_s+
-            ", "+javaObjectToString()+"]");
+
+    std::string out = jau_format_string("Device[%s, %s, ", getRole(), addressAndType); //2
+
+    if (visibleAddressAndType != addressAndType) {
+        jau_append_string(out, "visible %s, ", visibleAddressAndType);
+    }
+    jau_append_string(out, "name['%s'], age[total %'" PRIu64 ", ldisc %'" PRIu64 ", lup %'" PRIu64 "]ms, "
+        "connected[%s/%s, handle %#x, phy[Tx %s, Rx %s], l2cap %s, sec[enc %s, lvl %s, io %s, auto %s, pairing %s, state %s, "
+        "sc %s]], rssi %d, tx-power %d, ",
+        name, (t0-ts_creation), (t0-ts_last_discovery), (t0-ts_last_update), // 4
+        allowDisconnect, isConnected, hciConnHandle, le_phy_tx, le_phy_rx, // 9
+        l2cap_att_open, pairing_data.encryption_enabled, pairing_data.sec_level_conn, pairing_data.io_cap_conn, // 13
+        pairing_data.io_cap_auto, pairing_data.mode, pairing_data.state, pairing_data.use_sc, getRSSI(), tx_power); // 19
+
+    if (BTRole::Slave == getRole()) {
+        jau_append_string(out, "%s, ", eir_->toString( includeDiscoveredServices ));
+    }
+    jau_append_string(out, "%s]", javaObjectToString());
     return out;
 }
 
 void BTDevice::clearData() noexcept {
     // already done == performed on previous notidyDisconnected() !
     if( getConnected() ) {
-        ERR_PRINT("Device still connected: %s", toString().c_str());
+        jau_ERR_PRINT("Device still connected: %s", toString());
         return;
     }
     btRole = !adapter.getRole(); // update role
@@ -186,7 +190,7 @@ bool BTDevice::updateIdentityAddress(BDAddressAndType const & identityAddress, b
         if( sendEvent ) {
             std::shared_ptr<BTDevice> sharedInstance = getSharedInstance();
             if( nullptr == sharedInstance ) {
-                ERR_PRINT("Device unknown to adapter and not tracked: %s", toString().c_str());
+                jau_ERR_PRINT("Device unknown to adapter and not tracked: %s", toString());
             } else {
                 adapter.sendDeviceUpdated("Address Resolution", sharedInstance, jau::getCurrentMilliseconds(), EIRDataType::BDADDR | EIRDataType::BDADDR_TYPE);
             }
@@ -227,13 +231,13 @@ EIRDataType BTDevice::update(EInfoReport const & data) noexcept {
     if( data.isSet(EIRDataType::BDADDR) ) {
         if( data.getAddress() != this->addressAndType.address ) {
             // NOLINTNEXTLINE(clang-analyzer-optin.cplusplus.VirtualCall)
-            WARN_PRINT("BDADDR update not supported: %s for %s", data.toString().c_str(), this->toString().c_str());
+            jau_WARN_PRINT("BDADDR update not supported: %s for %s", data.toString(), this->toString());
         }
     }
     if( data.isSet(EIRDataType::BDADDR_TYPE) ) {
         if( data.getAddressType() != this->addressAndType.type ) {
             // NOLINTNEXTLINE(clang-analyzer-optin.cplusplus.VirtualCall)
-            WARN_PRINT("BDADDR_TYPE update not supported: %s for %s", data.toString().c_str(), this->toString().c_str());
+            jau_WARN_PRINT("BDADDR_TYPE update not supported: %s for %s", data.toString(), this->toString());
         }
     }
     if( data.isSet(EIRDataType::NAME) ) {
@@ -271,12 +275,12 @@ EIRDataType BTDevice::update(GattGenericAccessSvc const &data, const uint64_t ti
     if( 0 == name.length() && data.deviceName.length() > 0 ) {
         name = data.deviceName;
         eir_new->setName( name );
-        set(res, EIRDataType::NAME);
+        res |= EIRDataType::NAME;
         mod = true;
     }
     if( eir_new->getAppearance() != data.appearance && AppearanceCat::UNKNOWN != data.appearance) {
         eir_new->setAppearance( data.appearance );
-        set(res, EIRDataType::APPEARANCE);
+        res |= EIRDataType::APPEARANCE;
         mod = true;
     }
     if( mod ) {
@@ -300,16 +304,16 @@ std::shared_ptr<ConnectionInfo> BTDevice::getConnectionInfo() noexcept {
         EIRDataType updateMask = EIRDataType::NONE;
         if( rssi != connInfo->getRSSI() ) {
             rssi = connInfo->getRSSI();
-            set(updateMask, EIRDataType::RSSI);
+            updateMask |= EIRDataType::RSSI;
         }
         if( tx_power != connInfo->getTxPower() ) {
             tx_power = connInfo->getTxPower();
-            set(updateMask, EIRDataType::TX_POWER);
+            updateMask |= EIRDataType::TX_POWER;
         }
         if( EIRDataType::NONE != updateMask ) {
             std::shared_ptr<BTDevice> sharedInstance = getSharedInstance();
             if( nullptr == sharedInstance ) {
-                ERR_PRINT("Device unknown to adapter and not tracked: %s", toString().c_str());
+                jau_ERR_PRINT("Device unknown to adapter and not tracked: %s", toString());
             } else {
                 adapter.sendDeviceUpdated("getConnectionInfo", sharedInstance, jau::getCurrentMilliseconds(), updateMask);
             }
@@ -326,7 +330,7 @@ HCIStatusCode BTDevice::connectLE(const uint16_t le_scan_interval, const uint16_
 {
     const std::lock_guard<std::recursive_mutex> lock_conn(mtx_connect); // RAII-style acquire and relinquish via destructor
     if( !adapter.isPowered() ) { // isValid() && hci.isOpen() && POWERED
-        WARN_PRINT("Adapter not powered: %s, %s", adapter.toString().c_str(), toString().c_str());
+        jau_WARN_PRINT("Adapter not powered: %s, %s", adapter.toString(), toString());
         return HCIStatusCode::NOT_POWERED;
     }
     HCILEOwnAddressType hci_own_mac_type = adapter.visibleMACType;
@@ -353,26 +357,26 @@ HCIStatusCode BTDevice::connectLE(const uint16_t le_scan_interval, const uint16_
                     hci_peer_mac_type = HCILEPeerAddressType::RANDOM;
                     break;
                 default: {
-                    ERR_PRINT("Can't connectLE to LE Random address type '%s': %s",
-                            to_string(leRandomAddressType).c_str(), toString().c_str());
+                    jau_ERR_PRINT("Can't connectLE to LE Random address type '%s': %s",
+                            to_string(leRandomAddressType), toString());
                     return HCIStatusCode::UNACCEPTABLE_CONNECTION_PARAM;
                 }
             }
         } break;
         default: {
-            ERR_PRINT("Can't connectLE to address type '%s': %s", to_string(addressAndType.type).c_str(), toString().c_str());
+            jau_ERR_PRINT("Can't connectLE to address type '%s': %s", to_string(addressAndType.type), toString());
             return HCIStatusCode::UNACCEPTABLE_CONNECTION_PARAM;
         }
     }
 
     if( isConnected ) {
-        ERR_PRINT("Already connected: %s", toString().c_str());
+        jau_ERR_PRINT("Already connected: %s", toString());
         return HCIStatusCode::CONNECTION_ALREADY_EXISTS;
     }
 
     HCIHandler &hci = adapter.getHCI();
     if( !hci.isOpen() ) {
-        ERR_PRINT("HCI closed: %s", toString().c_str());
+        jau_ERR_PRINT("HCI closed: %s", toString());
         return HCIStatusCode::INTERNAL_FAILURE;
     }
 
@@ -414,16 +418,16 @@ HCIStatusCode BTDevice::connectLE(const uint16_t le_scan_interval, const uint16_
             pairing_data.io_cap_auto = smp_auto_io_cap; // reload against clearSMPState
             pairing_data.sec_level_user = sec_level;
             pairing_data.io_cap_user = io_cap;
-            DBG_PRINT("BTDevice::connectLE: SEC AUTO.%d.1: lvl %s -> %s, io %s -> %s, %s", smp_auto_count,
-                to_string(sec_level_pre).c_str(), to_string(sec_level).c_str(),
-                to_string(io_cap_pre).c_str(), to_string(io_cap).c_str(),
-                toString().c_str());
+            jau_DBG_PRINT("BTDevice::connectLE: SEC AUTO.%d.1: lvl %s -> %s, io %s -> %s, %s", smp_auto_count,
+                to_string(sec_level_pre), to_string(sec_level),
+                to_string(io_cap_pre), to_string(io_cap),
+                toString());
         }
 
         {
             jau::sc_atomic_critical sync(sync_data);
             if( !adapter.lockConnect(*this, true /* wait */, pairing_data.io_cap_user) ) {
-                ERR_PRINT("adapter::lockConnect() failed: %s", toString().c_str());
+                jau_ERR_PRINT("adapter::lockConnect() failed: %s", toString());
                 return HCIStatusCode::INTERNAL_FAILURE;
             }
         }
@@ -434,19 +438,19 @@ HCIStatusCode BTDevice::connectLE(const uint16_t le_scan_interval, const uint16_
         supervision_timeout = 10 * conn_supervision_timeout; // [ms] = 10 * [ms/10]
         allowDisconnect = true;
         if( HCIStatusCode::COMMAND_DISALLOWED == statusConnect ) {
-            WARN_PRINT("Could not yet create connection: status 0x%2.2X (%s), errno %d, hci-atype[peer %s, own %s] %s on %s",
-                    static_cast<uint8_t>(statusConnect), to_string(statusConnect).c_str(), errno, strerror(errno),
-                    to_string(hci_peer_mac_type).c_str(),
-                    to_string(hci_own_mac_type).c_str(),
-                    toString().c_str());
+            jau_WARN_PRINT("Could not yet create connection: status 0x%2.2X (%s), errno %d, hci-atype[peer %s, own %s] %s on %s",
+                    static_cast<uint8_t>(statusConnect), to_string(statusConnect), errno, strerror(errno),
+                    to_string(hci_peer_mac_type),
+                    to_string(hci_own_mac_type),
+                    toString());
             adapter.unlockConnect(*this);
             smp_auto_done = true; // premature end of potential SMP auto-negotiation
         } else if ( HCIStatusCode::SUCCESS != statusConnect ) {
-            ERR_PRINT("Could not create connection: status 0x%2.2X (%s), errno %d %s, hci-atype[peer %s, own %s] on %s",
-                    static_cast<uint8_t>(statusConnect), to_string(statusConnect).c_str(), errno, strerror(errno),
-                    to_string(hci_peer_mac_type).c_str(),
-                    to_string(hci_own_mac_type).c_str(),
-                    toString().c_str());
+            jau_ERR_PRINT("Could not create connection: status 0x%2.2X (%s), errno %d %s, hci-atype[peer %s, own %s] on %s",
+                    static_cast<uint8_t>(statusConnect), to_string(statusConnect), errno, strerror(errno),
+                    to_string(hci_peer_mac_type),
+                    to_string(hci_own_mac_type),
+                    toString());
             adapter.unlockConnect(*this);
             smp_auto_done = true; // premature end of potential SMP auto-negotiation
         } else if( smp_auto ) { // implies HCIStatusCode::SUCCESS
@@ -457,11 +461,11 @@ HCIStatusCode BTDevice::connectLE(const uint16_t le_scan_interval, const uint16_
                 const std::chrono::steady_clock::time_point timeout_time = std::chrono::steady_clock::now() + hci.env.HCI_COMMAND_COMPLETE_REPLY_TIMEOUT.to_duration(std::chrono::milliseconds::zero());
                 while( !hasSMPPairingFinished( pairing_data.state ) ) {
                     std::cv_status s = cv_pairing_state_changed.wait_until(lock_pairing, timeout_time);
-                    DBG_PRINT("BTDevice::connectLE: SEC AUTO.%d.2c Wait for SMPPairing: state %s, %s",
-                            smp_auto_count, to_string(pairing_data.state).c_str(), toString().c_str());
+                    jau_DBG_PRINT("BTDevice::connectLE: SEC AUTO.%d.2c Wait for SMPPairing: state %s, %s",
+                            smp_auto_count, to_string(pairing_data.state), toString());
                     if( std::cv_status::timeout == s && !hasSMPPairingFinished( pairing_data.state ) ) {
                         // timeout
-                        ERR_PRINT("SEC AUTO.%d.X Timeout SMPPairing: Disconnecting %s", smp_auto_count, toString().c_str());
+                        jau_ERR_PRINT("SEC AUTO.%d.X Timeout SMPPairing: Disconnecting %s", smp_auto_count, toString());
                         smp_auto_done = true;
                         pairing_data.io_cap_auto = SMPIOCapability::UNSET;
                         pairing_timeout = true;
@@ -469,8 +473,8 @@ HCIStatusCode BTDevice::connectLE(const uint16_t le_scan_interval, const uint16_
                     }
                 }
                 pstate = pairing_data.state;
-                DBG_PRINT("BTDevice::connectLE: SEC AUTO.%d.2d Wait for SMPPairing: state %s, %s",
-                        smp_auto_count, to_string(pstate).c_str(), toString().c_str());
+                jau_DBG_PRINT("BTDevice::connectLE: SEC AUTO.%d.2d Wait for SMPPairing: state %s, %s",
+                        smp_auto_count, to_string(pstate), toString());
             }
             if( pairing_timeout ) {
                 pairing_data.io_cap_auto = SMPIOCapability::UNSET;
@@ -479,7 +483,7 @@ HCIStatusCode BTDevice::connectLE(const uint16_t le_scan_interval, const uint16_
                 adapter.unlockConnect(*this);
                 smp_auto_done = true;
             } else if( SMPPairingState::COMPLETED == pstate ) {
-                DBG_PRINT("BTDevice::connectLE: SEC AUTO.%d.X Done: %s", smp_auto_count, toString().c_str());
+                jau_DBG_PRINT("BTDevice::connectLE: SEC AUTO.%d.X Done: %s", smp_auto_count, toString());
                 smp_auto_done = true;
                 (void)smp_auto_done;
                 break;
@@ -487,7 +491,7 @@ HCIStatusCode BTDevice::connectLE(const uint16_t le_scan_interval, const uint16_
                 if( !smp_auto_done ) { // not last one
                     // disconnect for next smp_auto mode test
                     jau::fraction_i64 td_disconnect = 0_s;
-                    DBG_PRINT("BTDevice::connectLE: SEC AUTO.%d.3 Failed SMPPairing -> Disconnect: %s", smp_auto_count, toString().c_str());
+                    jau_DBG_PRINT("BTDevice::connectLE: SEC AUTO.%d.3 Failed SMPPairing -> Disconnect: %s", smp_auto_count, toString());
                     HCIStatusCode dres = disconnect(HCIStatusCode::AUTHENTICATION_FAILURE);
                     if( HCIStatusCode::SUCCESS == dres ) {
                         while( isConnected && hci.env.HCI_COMMAND_COMPLETE_REPLY_TIMEOUT > td_disconnect ) {
@@ -498,8 +502,8 @@ HCIStatusCode BTDevice::connectLE(const uint16_t le_scan_interval, const uint16_
                     }
                     if( hci.env.HCI_COMMAND_COMPLETE_REPLY_TIMEOUT <= td_disconnect ) {
                         // timeout
-                        ERR_PRINT("SEC AUTO.%d.4 Timeout Disconnect td_pairing %" PRIi64 " ms: %s",
-                                smp_auto_count, td_disconnect.to_ms(), toString().c_str());
+                        jau_ERR_PRINT("SEC AUTO.%d.4 Timeout Disconnect td_pairing %" PRIi64 " ms: %s",
+                                smp_auto_count, td_disconnect.to_ms(), toString());
                         pairing_data.io_cap_auto = SMPIOCapability::UNSET;
                         statusConnect = HCIStatusCode::INTERNAL_TIMEOUT;
                         adapter.unlockConnect(*this);
@@ -512,7 +516,7 @@ HCIStatusCode BTDevice::connectLE(const uint16_t le_scan_interval, const uint16_
     if( smp_auto ) {
         jau::sc_atomic_critical sync(sync_data);
         if( HCIStatusCode::SUCCESS == statusConnect && SMPPairingState::FAILED == pstate ) {
-            ERR_PRINT("SEC AUTO.%d.X Failed SMPPairing -> Disconnect: %s", smp_auto_count, toString().c_str());
+            jau_ERR_PRINT("SEC AUTO.%d.X Failed SMPPairing -> Disconnect: %s", smp_auto_count, toString());
             pairing_data.io_cap_auto = SMPIOCapability::UNSET;
             disconnect(HCIStatusCode::AUTHENTICATION_FAILURE);
             statusConnect = HCIStatusCode::AUTH_FAILED;
@@ -526,37 +530,37 @@ HCIStatusCode BTDevice::connectBREDR(const uint16_t pkt_type, const uint16_t clo
 {
     const std::lock_guard<std::recursive_mutex> lock_conn(mtx_connect); // RAII-style acquire and relinquish via destructor
     if( !adapter.isPowered() ) { // isValid() && hci.isOpen() && POWERED
-        WARN_PRINT("Adapter not powered: %s, %s", adapter.toString().c_str(), toString().c_str());
+        jau_WARN_PRINT("Adapter not powered: %s, %s", adapter.toString(), toString());
         return HCIStatusCode::NOT_POWERED;
     }
 
     if( isConnected ) {
-        ERR_PRINT("Already connected: %s", toString().c_str());
+        jau_ERR_PRINT("Already connected: %s", toString());
         return HCIStatusCode::CONNECTION_ALREADY_EXISTS;
     }
     if( !addressAndType.isBREDRAddress() ) {
-        ERR_PRINT("Not a BDADDR_BREDR address: %s", toString().c_str());
+        jau_ERR_PRINT("Not a BDADDR_BREDR address: %s", toString());
         return HCIStatusCode::UNACCEPTABLE_CONNECTION_PARAM;
     }
 
     HCIHandler &hci = adapter.getHCI();
     if( !hci.isOpen() ) {
-        ERR_PRINT("HCI closed: %s", toString().c_str());
+        jau_ERR_PRINT("HCI closed: %s", toString());
         return HCIStatusCode::INTERNAL_FAILURE;
     }
 
     {
         jau::sc_atomic_critical sync(sync_data);
         if( !adapter.lockConnect(*this, true /* wait */, pairing_data.io_cap_user) ) {
-            ERR_PRINT("adapter::lockConnect() failed: %s", toString().c_str());
+            jau_ERR_PRINT("adapter::lockConnect() failed: %s", toString());
             return HCIStatusCode::INTERNAL_FAILURE;
         }
     }
     HCIStatusCode status = hci.create_conn(addressAndType.address, pkt_type, clock_offset, role_switch);
     allowDisconnect = true;
     if ( HCIStatusCode::SUCCESS != status ) {
-        ERR_PRINT("Could not create connection: status 0x%2.2X (%s), errno %d %s on %s",
-                static_cast<uint8_t>(status), to_string(status).c_str(), errno, strerror(errno), toString().c_str());
+        jau_ERR_PRINT("Could not create connection: status 0x%2.2X (%s), errno %d %s on %s",
+                static_cast<uint8_t>(status), to_string(status), errno, strerror(errno), toString());
         adapter.unlockConnect(*this);
     }
     return status;
@@ -572,7 +576,7 @@ HCIStatusCode BTDevice::connectDefault() noexcept
         case BDAddressType::BDADDR_BREDR:
             return connectBREDR();
         default:
-            ERR_PRINT("Not a valid address type: %s", toString().c_str());
+            jau_ERR_PRINT("Not a valid address type: %s", toString());
             return HCIStatusCode::UNACCEPTABLE_CONNECTION_PARAM;
     }
 }
@@ -580,10 +584,10 @@ HCIStatusCode BTDevice::connectDefault() noexcept
 void BTDevice::notifyConnected(const std::shared_ptr<BTDevice>& sthis, const uint16_t handle, const SMPIOCapability io_cap_has) noexcept {
     // coming from connected callback, update states including pairing_data.ioCap_conn
     jau::sc_atomic_critical sync(sync_data);
-    DBG_PRINT("BTDevice::notifyConnected: Start: handle %s -> %s, io %s / %s -> %s, %s",
-              jau::to_hexstring(hciConnHandle).c_str(), jau::to_hexstring(handle).c_str(),
-              to_string(pairing_data.io_cap_conn).c_str(), to_string(io_cap_has).c_str(), to_string(pairing_data.io_cap_user).c_str(),
-              toString().c_str());
+    jau_DBG_PRINT("BTDevice::notifyConnected: Start: handle %s -> %s, io %s / %s -> %s, %s",
+              jau::toHexString(hciConnHandle), jau::toHexString(handle),
+              to_string(pairing_data.io_cap_conn), to_string(io_cap_has), to_string(pairing_data.io_cap_user),
+              toString());
     allowDisconnect = true;
     isConnected = true;
     hciConnHandle = handle;
@@ -591,12 +595,12 @@ void BTDevice::notifyConnected(const std::shared_ptr<BTDevice>& sthis, const uin
     if( SMPIOCapability::UNSET == pairing_data.io_cap_conn ) { // Exclusion for smp-auto mode
         pairing_data.io_cap_conn = io_cap_has;
     }
-    DBG_PRINT("BTDevice::notifyConnected: End: io_cap %s: %s / %s -> %s, %s",
-            to_string(pairing_data.io_cap_user).c_str(),
-            to_string(io_cap_pre).c_str(),
-            to_string(io_cap_has).c_str(),
-            to_string(pairing_data.io_cap_conn).c_str(),
-            toString().c_str());
+    jau_DBG_PRINT("BTDevice::notifyConnected: End: io_cap %s: %s / %s -> %s, %s",
+            to_string(pairing_data.io_cap_user),
+            to_string(io_cap_pre),
+            to_string(io_cap_has),
+            to_string(pairing_data.io_cap_conn),
+            toString());
     (void)sthis; // not used yet
 }
 
@@ -605,11 +609,11 @@ void BTDevice::notifyLEFeatures(const std::shared_ptr<BTDevice>& sthis, const LE
     bool enc_done, using_auth, is_pre_paired;
     getSMPEncStatus(enc_done, using_auth, is_pre_paired);
 
-    DBG_PRINT("BTDevice::notifyLEFeatures: start[local_server %d, enc_done %d, auth %d, pre_paired %d]: %s -> %s, %s",
+    jau_DBG_PRINT("BTDevice::notifyLEFeatures: start[local_server %d, enc_done %d, auth %d, pre_paired %d]: %s -> %s, %s",
             is_local_server, enc_done, using_auth, is_pre_paired,
-            direct_bt::to_string(le_features).c_str(),
-            direct_bt::to_string(features).c_str(),
-            toString().c_str());
+            direct_bt::to_string(le_features),
+            direct_bt::to_string(features),
+            toString());
 
     le_features = features;
     if( addressAndType.isLEAddress() && ( !l2cap_att->is_open() || is_local_server ) ) {
@@ -619,9 +623,9 @@ void BTDevice::notifyLEFeatures(const std::shared_ptr<BTDevice>& sthis, const LE
 }
 
 void BTDevice::notifyLEPhyUpdateComplete(const HCIStatusCode status, const LE_PHYs Tx, const LE_PHYs Rx) noexcept {
-    DBG_PRINT("BTDevice::notifyLEPhyUpdateComplete: %s: [Tx %s, Rx %s], %s",
-            direct_bt::to_string(status).c_str(),
-            direct_bt::to_string(Tx).c_str(), direct_bt::to_string(Rx).c_str(), toString().c_str());
+    jau_DBG_PRINT("BTDevice::notifyLEPhyUpdateComplete: %s: [Tx %s, Rx %s], %s",
+            direct_bt::to_string(status),
+            direct_bt::to_string(Tx), direct_bt::to_string(Rx), toString());
     if( HCIStatusCode::SUCCESS == status ) {
         le_phy_tx = Tx;
         le_phy_rx = Rx;
@@ -637,7 +641,7 @@ void BTDevice::processL2CAPSetup(std::shared_ptr<BTDevice> sthis) { // NOLINT(pe
     if( addressAndType.isLEAddress() && ( is_local_server || !l2cap_att->is_open() ) ) {
         std::unique_lock<std::recursive_mutex> lock_pairing(mtx_pairing); // RAII-style acquire and relinquish via destructor
 
-        DBG_PRINT("BTDevice::processL2CAPSetup: Start dev_id %u, %s", adapter.dev_id, toString().c_str());
+        jau_DBG_PRINT("BTDevice::processL2CAPSetup: Start dev_id %u, %s", adapter.dev_id, toString());
 
         BTSecurityLevel sec_level;
         SMPIOCapability io_cap;
@@ -654,14 +658,14 @@ void BTDevice::processL2CAPSetup(std::shared_ptr<BTDevice> sthis) { // NOLINT(pe
                 std::unique_ptr<L2CAPClient> l2cap_att_new = adapter.get_l2cap_connection(sthis);
                 const uint64_t td = ( jau::environment::get().debug ) ? jau::getCurrentMilliseconds() - t0 : 0;
                 if( nullptr == l2cap_att_new ) {
-                    DBG_PRINT("L2CAP-ACCEPT: New: BTDevice::processL2CAPSetup: dev_id %d, td %" PRIu64 "ms, NULL l2cap_att", adapter.dev_id, td);
+                    jau_DBG_PRINT("L2CAP-ACCEPT: New: BTDevice::processL2CAPSetup: dev_id %d, td %" PRIu64 "ms, NULL l2cap_att", adapter.dev_id, td);
                 } else {
                     l2cap_att = std::move(l2cap_att_new);
-                    DBG_PRINT("L2CAP-ACCEPT: New: BTDevice::processL2CAPSetup: dev_id %d, td %" PRIu64 "ms, l2cap_att %s", adapter.dev_id, td, l2cap_att->toString().c_str());
+                    jau_DBG_PRINT("L2CAP-ACCEPT: New: BTDevice::processL2CAPSetup: dev_id %d, td %" PRIu64 "ms, l2cap_att %s", adapter.dev_id, td, l2cap_att->toString());
                     l2cap_open = true;
                 }
             } else {
-                DBG_PRINT("L2CAP-ACCEPT: Old: BTDevice::processL2CAPSetup: dev_id %d, l2cap_att %s", adapter.dev_id, l2cap_att->toString().c_str());
+                jau_DBG_PRINT("L2CAP-ACCEPT: Old: BTDevice::processL2CAPSetup: dev_id %d, l2cap_att %s", adapter.dev_id, l2cap_att->toString());
             }
             if( l2cap_open ) {
                 if( BTSecurityLevel::UNSET < sec_level && sec_level < BTSecurityLevel::ENC_AUTH ) { // authentication must be left alone in server mode
@@ -675,8 +679,8 @@ void BTDevice::processL2CAPSetup(std::shared_ptr<BTDevice> sthis) { // NOLINT(pe
 
         const bool own_smp = SMP_SUPPORTED_BY_OS ? connectSMP(sthis, sec_level) && BTSecurityLevel::NONE < sec_level : false;
 
-        DBG_PRINT("BTDevice::processL2CAPSetup: dev_id %u, lvl %s, connect[own_smp %d, l2cap[open %d, enc %d]]",
-                adapter.dev_id, to_string(sec_level).c_str(), own_smp, l2cap_open, l2cap_enc);
+        jau_DBG_PRINT("BTDevice::processL2CAPSetup: dev_id %u, lvl %s, connect[own_smp %d, l2cap[open %d, enc %d]]",
+                adapter.dev_id, to_string(sec_level), own_smp, l2cap_open, l2cap_enc);
 
         adapter.unlockConnect(*this);
 
@@ -701,10 +705,10 @@ void BTDevice::processL2CAPSetup(std::shared_ptr<BTDevice> sthis) { // NOLINT(pe
             processDeviceReady(sthis, ts);
         }
     } else {
-        DBG_PRINT("BTDevice::processL2CAPSetup: Skipped dev_id %u, %s", adapter.dev_id, toString().c_str());
+        jau_DBG_PRINT("BTDevice::processL2CAPSetup: Skipped dev_id %u, %s", adapter.dev_id, toString());
     }
-    DBG_PRINT("BTDevice::processL2CAPSetup: End [dev_id %u, disconnect %d, deviceReady %d, smp_auto %d], %s",
-            adapter.dev_id, callDisconnect, callProcessDeviceReady, smp_auto, toString().c_str());
+    jau_DBG_PRINT("BTDevice::processL2CAPSetup: End [dev_id %u, disconnect %d, deviceReady %d, smp_auto %d], %s",
+            adapter.dev_id, callDisconnect, callProcessDeviceReady, smp_auto, toString());
 }
 
 void BTDevice::getSMPEncStatus(bool& enc_done, bool& using_auth, bool& is_pre_paired) {
@@ -727,8 +731,8 @@ void BTDevice::processDeviceReady(std::shared_ptr<BTDevice> sthis, const uint64_
     bool enc_done, using_auth, is_pre_paired;
     getSMPEncStatus(enc_done, using_auth, is_pre_paired);
 
-    DBG_PRINT("BTDevice::processDeviceReady: start[local_server %d, enc_done %d, auth %d, pre_paired %d], %s",
-            is_local_server, enc_done, using_auth, is_pre_paired, toString().c_str());
+    jau_DBG_PRINT("BTDevice::processDeviceReady: start[local_server %d, enc_done %d, auth %d, pre_paired %d], %s",
+            is_local_server, enc_done, using_auth, is_pre_paired, toString());
 
     if( BTRole::Slave == btRole ) { // -> local GattRole::Client
         /**
@@ -754,8 +758,8 @@ void BTDevice::processDeviceReady(std::shared_ptr<BTDevice> sthis, const uint64_
         // Need to repair as GATT communication failed
         unpair_res = unpair();
     }
-    DBG_PRINT("BTDevice::processDeviceReady: done[GATT %d, unpair %s], %s",
-            gatt_res, to_string(unpair_res).c_str(), toString().c_str());
+    jau_DBG_PRINT("BTDevice::processDeviceReady: done[GATT %d, unpair %s], %s",
+            gatt_res, to_string(unpair_res), toString());
 
     if( gatt_res ) {
         adapter.sendDeviceReady(sthis, timestamp);
@@ -783,39 +787,49 @@ bool BTDevice::checkPairingKeyDistributionComplete() const noexcept {
     return res;
 }
 
-std::string BTDevice::PairingData::toString(const uint16_t dev_id, const BDAddressAndType& addrAndType, const BTRole& role) const {
-    std::string res = "PairingData[dev_id "+std::to_string(dev_id)+", Remote ["+addrAndType.toString()+", role "+to_string(role)+"], \n";
-    res.append("  Status: Encrypted "+std::to_string(encryption_enabled)+
-                  ", State "+to_string(state)+", Mode "+to_string(mode)+
-                  ", Responder-Req "+std::to_string(res_requested_sec)+"\n");
-    res.append("  Setup:\n");
-    res.append("  - SC "+std::to_string(use_sc)+"\n");
-    res.append("  - Pre-Paired "+std::to_string(is_pre_paired)+"\n");
-    res.append("  - IOCap conn "+to_string(io_cap_conn)+", user "+to_string(io_cap_user)+", auto "+to_string(io_cap_auto)+"\n");
-    res.append("  - Level conn "+to_string(sec_level_conn)+", user "+to_string(sec_level_user)+"\n");
-    res.append("  Initiator (master) Set:\n");
-    res.append("  - OOB   "+to_string(oobFlag_init)+"\n");
-    res.append("  - Auth  "+to_string(authReqs_init)+"\n");
-    res.append("  - IOCap "+to_string(ioCap_init)+"\n");
-    res.append("  - EncSz "+std::to_string(maxEncsz_init)+"\n");
-    res.append("  - Keys  "+to_string(keys_init_has)+" / "+to_string(keys_init_exp)+"\n");
-    res.append("    - "+ltk_init.toString()+"\n");
-    res.append("    - "+lk_init.toString()+"\n");
-    res.append("    - "+irk_init.toString()+"\n");
-    res.append("    - "+csrk_init.toString()+"\n");
-    res.append("  - IdAdr "+id_address_init.toString()+"\n");
-    res.append("  Responder (slave) Set:\n");
-    res.append("  - OOB   "+to_string(oobFlag_resp)+"\n");
-    res.append("  - Auth  "+to_string(authReqs_resp)+"\n");
-    res.append("  - IOCap "+to_string(ioCap_resp)+"\n");
-    res.append("  - EncSz "+std::to_string(maxEncsz_resp)+"\n");
-    res.append("  - Keys  "+to_string(keys_resp_has)+" / "+to_string(keys_resp_exp)+"\n");
-    res.append("    - PassKey "+toPassKeyString(passKey_resp)+"\n");
-    res.append("    - "+ltk_resp.toString()+"\n");
-    res.append("    - "+lk_resp.toString()+"\n");
-    res.append("    - "+irk_resp.toString()+"\n");
-    res.append("    - "+csrk_resp.toString()+"\n");
-    res.append("  - IdAdr "+id_address_resp.toString()+" ]");
+std::string BTDevice::PairingData::toString(const uint16_t dev_id, const BDAddressAndType& addrAndType, const BTRole& role) const noexcept {
+    std::string res = jau_format_string("PairingData[dev_id %u, Remote [%s, role %s], \n", dev_id, addrAndType, role);
+    jau_append_string(res, "  Status: Encrypted %s, State %s, Mode %s, Responder-Req %s\n"
+        "  Setup:\n"
+        "  - SC %s\n"
+        "  - Pre-Paired %s\n"
+        "  - IOCap conn %s, user %s, auto %s\n"
+        "  - Level conn %s, user %s\n",
+        encryption_enabled, state, mode, res_requested_sec, // 4
+        use_sc, is_pre_paired, io_cap_conn, io_cap_user, io_cap_auto, sec_level_conn, sec_level_user); // 11
+
+    jau_append_string(res, "  Initiator (master) Set:\n"
+        "  - OOB   %s\n"
+        "  - Auth  %s\n"
+        "  - IOCap %s\n"
+        "  - EncSz %u\n",
+        oobFlag_init, authReqs_init, ioCap_init, maxEncsz_init);
+
+    jau_append_string(res, "  - Keys  %s / %s\n"
+        "    - %s\n"
+        "    - %s\n"
+        "    - %s\n"
+        "    - %s\n"
+        "  - IdAdr %s\n",
+        keys_init_has, keys_init_exp,
+        ltk_init, lk_init, irk_init, csrk_init, id_address_init);
+
+    jau_append_string(res, "  Responder (slave) Set:\n"
+        "  - OOB   %s\n"
+        "  - Auth  %s\n"
+        "  - IOCap %s\n"
+        "  - EncSz %u\n",
+        oobFlag_resp, authReqs_resp, ioCap_resp, maxEncsz_resp);
+
+    jau_append_string(res, "  - Keys  %s / %s\n"
+        "    - PassKey %u\n"
+        "    - %s\n"
+        "    - %s\n"
+        "    - %s\n"
+        "    - %s\n"
+        "  - IdAdr %s\n",
+        keys_resp_has, keys_resp_exp,
+        passKey_resp, ltk_resp, lk_resp, irk_resp, csrk_resp, id_address_resp);
     return res;
 }
 
@@ -824,10 +838,10 @@ bool BTDevice::updatePairingState(const std::shared_ptr<BTDevice>& sthis, const 
     const std::string timestamp = jau::to_decstring(jau::environment::getElapsedMillisecond(evt.getTimestamp()), ',', 9);
 
     if( jau::environment::get().debug ) {
-        jau::PLAIN_PRINT(false, "[%s] BTDevice::updatePairingState.0: state %s -> claimed %s, mode %s",
-            timestamp.c_str(),
-            to_string(pairing_data.state).c_str(), to_string(claimed_state).c_str(), to_string(pairing_data.mode).c_str());
-        jau::PLAIN_PRINT(false, "[%s] %s", timestamp.c_str(), evt.toString().c_str());
+        jau_PLAIN_PRINT(false, "[%s] BTDevice::updatePairingState.0: state %s -> claimed %s, mode %s",
+            timestamp,
+            to_string(pairing_data.state), to_string(claimed_state), to_string(pairing_data.mode));
+        jau_PLAIN_PRINT(false, "[%s] %s", timestamp, evt.toString());
     }
 
     const SMPIOCapability iocap = pairing_data.io_cap_conn;
@@ -860,9 +874,9 @@ bool BTDevice::updatePairingState(const std::shared_ptr<BTDevice>& sthis, const 
                 } else {
                     // BT core requesting passkey input w/o full input caps is nonsense (bug?)
                     // Reply with a default value '0' off-thread ASAP
-                    DBG_PRINT("BTDevice::updatePairingState.1a: state %s [ignored %s, sending PASSKEY 0 reply], mode %s",
-                        to_string(pairing_data.state).c_str(), to_string(claimed_state).c_str(),
-                        to_string(pairing_data.mode).c_str());
+                    jau_DBG_PRINT("BTDevice::updatePairingState.1a: state %s [ignored %s, sending PASSKEY 0 reply], mode %s",
+                        to_string(pairing_data.state), to_string(claimed_state),
+                        to_string(pairing_data.mode));
                     claimed_state = pairing_data.state; // suppress
                     std::thread dc(&BTDevice::setPairingPasskey, sthis, 0);
                     dc.detach();
@@ -874,9 +888,9 @@ bool BTDevice::updatePairingState(const std::shared_ptr<BTDevice>& sthis, const 
                 } else {
                     // BT core requesting binary input w/o input caps is nonsense (bug?)
                     // Reply with a default value 'true' off-thread ASAP
-                    DBG_PRINT("BTDevice::updatePairingState.1b: state %s [ignored %s, sending CONFIRM reply], mode %s",
-                        to_string(pairing_data.state).c_str(), to_string(claimed_state).c_str(),
-                        to_string(pairing_data.mode).c_str());
+                    jau_DBG_PRINT("BTDevice::updatePairingState.1b: state %s [ignored %s, sending CONFIRM reply], mode %s",
+                        to_string(pairing_data.state), to_string(claimed_state),
+                        to_string(pairing_data.mode));
                     claimed_state = pairing_data.state; // suppress
                     std::thread dc(&BTDevice::setPairingNumericComparison, sthis, true);
                     dc.detach();
@@ -1151,28 +1165,28 @@ bool BTDevice::updatePairingState(const std::shared_ptr<BTDevice>& sthis, const 
             {
                 claimed_state = SMPPairingState::FAILED;
                 is_device_ready = false;
-                DBG_PRINT("BTDevice:updatePairingState:Sec-Failure: Requested Sec-Level %s > Actual %s",
-                        to_string(pairing_data.sec_level_user).c_str(),
-                        to_string(pairing_data.sec_level_conn).c_str());
+                jau_DBG_PRINT("BTDevice:updatePairingState:Sec-Failure: Requested Sec-Level %s > Actual %s",
+                        to_string(pairing_data.sec_level_user),
+                        to_string(pairing_data.sec_level_conn));
             }
         }
 
         // 5b
         if( jau::environment::get().debug ) {
-            jau::PLAIN_PRINT(false, "[%s] BTDevice::updatePairingState.5b: state %s -> %s, mode %s -> %s, ready %d, checkedPState %d",
-                timestamp.c_str(),
-                to_string(pairing_data.state).c_str(), to_string(claimed_state).c_str(),
-                to_string(pairing_data.mode).c_str(), to_string(mode).c_str(), is_device_ready, check_pairing_complete);
-            jau::PLAIN_PRINT(false, "[%s] %s", timestamp.c_str(), evt.toString().c_str());
+            jau_PLAIN_PRINT(false, "[%s] BTDevice::updatePairingState.5b: state %s -> %s, mode %s -> %s, ready %d, checkedPState %d",
+                timestamp,
+                to_string(pairing_data.state), to_string(claimed_state),
+                to_string(pairing_data.mode), to_string(mode), is_device_ready, check_pairing_complete);
+            jau_PLAIN_PRINT(false, "[%s] %s", timestamp, evt.toString());
         }
         pairing_data.mode = mode;
         pairing_data.state = claimed_state;
 
         if( jau::environment::get().debug ) {
-            jau::PLAIN_PRINT(false, "[%s] ", timestamp.c_str());
-            jau::PLAIN_PRINT(false, "[%s] BTDevice::updatePairingState.5b: %s", timestamp.c_str(),
-                    pairing_data.toString(adapter.dev_id, addressAndType, btRole).c_str());
-            jau::PLAIN_PRINT(false, "[%s] ", timestamp.c_str());
+            jau_PLAIN_PRINT(false, "[%s] ", timestamp);
+            jau_PLAIN_PRINT(false, "[%s] BTDevice::updatePairingState.5b: %s", timestamp,
+                    pairing_data.toString(adapter.dev_id, addressAndType, btRole));
+            jau_PLAIN_PRINT(false, "[%s] ", timestamp);
         }
 
         adapter.sendDevicePairingState(sthis, claimed_state, mode, evt.getTimestamp());
@@ -1185,9 +1199,9 @@ bool BTDevice::updatePairingState(const std::shared_ptr<BTDevice>& sthis, const 
         }
 
         if( jau::environment::get().debug ) {
-            jau::PLAIN_PRINT(false, "[%s] BTDevice::updatePairingState.5b: End: state %s",
-                    timestamp.c_str(), to_string(pairing_data.state).c_str());
-            jau::PLAIN_PRINT(false, "[%s] %s", timestamp.c_str(), toString().c_str());
+            jau_PLAIN_PRINT(false, "[%s] BTDevice::updatePairingState.5b: End: state %s",
+                    timestamp, to_string(pairing_data.state));
+            jau_PLAIN_PRINT(false, "[%s] %s", timestamp, toString());
         }
 
         lock_pairing.unlock(); // unlock mutex before notify_all to avoid pessimistic re-block of notified wait() thread.
@@ -1197,29 +1211,29 @@ bool BTDevice::updatePairingState(const std::shared_ptr<BTDevice>& sthis, const 
     } else {
         // 5a
         if( jau::environment::get().debug ) {
-            jau::PLAIN_PRINT(false, "[%s] BTDevice::updatePairingState.5a: state %s == %s, mode %s -> %s, ready %d, checkedPState %d",
-                timestamp.c_str(),
-                to_string(pairing_data.state).c_str(), to_string(claimed_state).c_str(),
-                to_string(pairing_data.mode).c_str(), to_string(mode).c_str(), is_device_ready, check_pairing_complete);
-            jau::PLAIN_PRINT(false, "[%s] %s", timestamp.c_str(), evt.toString().c_str());
+            jau_PLAIN_PRINT(false, "[%s] BTDevice::updatePairingState.5a: state %s == %s, mode %s -> %s, ready %d, checkedPState %d",
+                timestamp,
+                to_string(pairing_data.state), to_string(claimed_state),
+                to_string(pairing_data.mode), to_string(mode), is_device_ready, check_pairing_complete);
+            jau_PLAIN_PRINT(false, "[%s] %s", timestamp, evt.toString());
         }
         pairing_data.mode = mode;
         if( jau::environment::get().debug ) {
-            jau::PLAIN_PRINT(false, "[%s] ", timestamp.c_str());
-            jau::PLAIN_PRINT(false, "[%s] BTDevice::updatePairingState.5a: %s", timestamp.c_str(),
-                    pairing_data.toString(adapter.dev_id, addressAndType, btRole).c_str());
-            jau::PLAIN_PRINT(false, "[%s] ", timestamp.c_str());
-            jau::PLAIN_PRINT(false, "[%s] BTDevice::updatePairingState.5a: End: state %s",
-                    timestamp.c_str(), to_string(pairing_data.state).c_str());
-            jau::PLAIN_PRINT(false, "[%s] %s", timestamp.c_str(), toString().c_str());
+            jau_PLAIN_PRINT(false, "[%s] ", timestamp);
+            jau_PLAIN_PRINT(false, "[%s] BTDevice::updatePairingState.5a: %s", timestamp,
+                    pairing_data.toString(adapter.dev_id, addressAndType, btRole));
+            jau_PLAIN_PRINT(false, "[%s] ", timestamp);
+            jau_PLAIN_PRINT(false, "[%s] BTDevice::updatePairingState.5a: End: state %s",
+                    timestamp, to_string(pairing_data.state));
+            jau_PLAIN_PRINT(false, "[%s] %s", timestamp, toString());
         }
     }
     return false;
 }
 
-void BTDevice::hciSMPMsgCallback(const std::shared_ptr<BTDevice>& sthis, const SMPPDUMsg& msg, const HCIACLData::l2cap_frame& source) noexcept {
+void BTDevice::hciSMPMsgCallback(const std::shared_ptr<BTDevice>& sthis, const SMPPDUMsg& msg, const L2CapFrame& source) noexcept {
     std::unique_lock<std::recursive_mutex> lock_pairing(mtx_pairing); // RAII-style acquire and relinquish via destructor
-    const bool msg_sent = HCIACLData::l2cap_frame::PBFlag::START_NON_AUTOFLUSH_HOST == source.pb_flag; // from from Host to Controller
+    const bool msg_sent = L2CapFrame::PBFlag::START_NON_AUTOFLUSH_HOST == source.pb_flag; // from from Host to Controller
     const std::string msg_sent_s = msg_sent ? "sent" : "received";
     const BTRole localRole = !btRole; // local adapter role, opposite of device role
     const bool msg_from_initiator = ( msg_sent && BTRole::Master == localRole ) || ( !msg_sent && BTRole::Slave == localRole );
@@ -1236,12 +1250,12 @@ void BTDevice::hciSMPMsgCallback(const std::shared_ptr<BTDevice>& sthis, const S
     smp_events++;
 
     if( jau::environment::get().debug ) {
-        jau::PLAIN_PRINT(false, "[%s] BTDevice:hci:SMP.0: %s: msg %s, local %s, remote %s @ address%s",
-            timestamp.c_str(), msg_sent_s.c_str(), msg_dir_s.c_str(), to_string(localRole).c_str(),
-            to_string(btRole).c_str(), addressAndType.toString().c_str());
-        jau::PLAIN_PRINT(false, "[%s] - %s", timestamp.c_str(), msg.toString().c_str());
-        jau::PLAIN_PRINT(false, "[%s] - %s", timestamp.c_str(), source.toString().c_str());
-        jau::PLAIN_PRINT(false, "[%s] - %s", timestamp.c_str(), toString().c_str());
+        jau_PLAIN_PRINT(false, "[%s] BTDevice:hci:SMP.0: %s: msg %s, local %s, remote %s @ address%s",
+            timestamp, msg_sent_s, msg_dir_s, to_string(localRole),
+            to_string(btRole), addressAndType.toString());
+        jau_PLAIN_PRINT(false, "[%s] - %s", timestamp, msg.toString());
+        jau_PLAIN_PRINT(false, "[%s] - %s", timestamp, source.toString());
+        jau_PLAIN_PRINT(false, "[%s] - %s", timestamp, toString());
     }
 
     const SMPPDUMsg::Opcode opc = msg.getOpcode();
@@ -1406,7 +1420,7 @@ void BTDevice::hciSMPMsgCallback(const std::shared_ptr<BTDevice>& sthis, const S
                 // from responder (LL slave)
                 // pairing_data.keys_resp_has |= SMPKeyType::ID_KEY;
                 if( msg_addr != responderAddress ) {
-                    DBG_PRINT("BTDevice:hci:SMP.id: Responder ID Address Mismatch: msg %s != responder %s", msg1.toString().c_str(), responderAddress.toString().c_str());
+                    jau_DBG_PRINT("BTDevice:hci:SMP.id: Responder ID Address Mismatch: msg %s != responder %s", msg1.toString(), responderAddress.toString());
                 } else {
                     pairing_data.id_address_resp = msg_addr;
                     if( is_set(pairing_data.keys_resp_has, SMPKeyType::ID_KEY) ) {
@@ -1420,7 +1434,7 @@ void BTDevice::hciSMPMsgCallback(const std::shared_ptr<BTDevice>& sthis, const S
                 // from initiator (LL master)
                 // pairing_data.keys_init_has |= SMPKeyType::ID_KEY;
                 if( msg_addr != initiatorAddress ) {
-                    DBG_PRINT("BTDevice:hci:SMP.id: Initiator ID Address Mismatch: msg %s != initiator %s", msg1.toString().c_str(), initiatorAddress.toString().c_str());
+                    jau_DBG_PRINT("BTDevice:hci:SMP.id: Initiator ID Address Mismatch: msg %s != initiator %s", msg1.toString(), initiatorAddress.toString());
                 } else {
                     pairing_data.id_address_init = msg_addr;
                     if( is_set(pairing_data.keys_init_has, SMPKeyType::ID_KEY) ) {
@@ -1478,18 +1492,18 @@ void BTDevice::hciSMPMsgCallback(const std::shared_ptr<BTDevice>& sthis, const S
 
     if( jau::environment::get().debug ) {
         if( old_pstate == pstate /* && old_pmode == pmode */ ) {
-            jau::PLAIN_PRINT(false, "[%s] BTDevice:hci:SMP.4a: Unchanged: address%s",
-                timestamp.c_str(),
-                addressAndType.toString().c_str());
+            jau_PLAIN_PRINT(false, "[%s] BTDevice:hci:SMP.4a: Unchanged: address%s",
+                timestamp,
+                addressAndType.toString());
         } else {
-            jau::PLAIN_PRINT(false, "[%s] BTDevice:hci:SMP.4b:   Updated: address%s",
-                timestamp.c_str(),
-                addressAndType.toString().c_str());
+            jau_PLAIN_PRINT(false, "[%s] BTDevice:hci:SMP.4b:   Updated: address%s",
+                timestamp,
+                addressAndType.toString());
         }
-        jau::PLAIN_PRINT(false, "[%s] - state %s -> %s, mode %s -> %s, ready %d",
-            timestamp.c_str(),
-            to_string(old_pstate).c_str(), to_string(pstate).c_str(),
-            to_string(old_pmode).c_str(), to_string(pmode).c_str(),
+        jau_PLAIN_PRINT(false, "[%s] - state %s -> %s, mode %s -> %s, ready %d",
+            timestamp,
+            to_string(old_pstate), to_string(pstate),
+            to_string(old_pmode), to_string(pmode),
             is_device_ready);
     }
 
@@ -1497,10 +1511,10 @@ void BTDevice::hciSMPMsgCallback(const std::shared_ptr<BTDevice>& sthis, const S
     if( old_pstate == pstate /* && old_pmode == pmode */ ) {
         // 5a
         if( jau::environment::get().debug ) {
-            jau::PLAIN_PRINT(false, "[%s] ", timestamp.c_str());
-            jau::PLAIN_PRINT(false, "[%s] BTDevice:hci:SMP.5a: %s", timestamp.c_str(),
-                    pairing_data.toString(adapter.dev_id, addressAndType, btRole).c_str());
-            jau::PLAIN_PRINT(false, "[%s] ", timestamp.c_str());
+            jau_PLAIN_PRINT(false, "[%s] ", timestamp);
+            jau_PLAIN_PRINT(false, "[%s] BTDevice:hci:SMP.5a: %s", timestamp,
+                    pairing_data.toString(adapter.dev_id, addressAndType, btRole));
+            jau_PLAIN_PRINT(false, "[%s] ", timestamp);
         }
         return;
     }
@@ -1517,9 +1531,9 @@ void BTDevice::hciSMPMsgCallback(const std::shared_ptr<BTDevice>& sthis, const S
         {
             pstate = SMPPairingState::FAILED;
             is_device_ready = false;
-            DBG_PRINT("BTDevice:hci:SMP:Sec-Failure: Requested Sec-Level %s > Actual %s",
-                    to_string(pairing_data.sec_level_user).c_str(),
-                    to_string(pairing_data.sec_level_conn).c_str());
+            jau_DBG_PRINT("BTDevice:hci:SMP:Sec-Failure: Requested Sec-Level %s > Actual %s",
+                    to_string(pairing_data.sec_level_user),
+                    to_string(pairing_data.sec_level_conn));
         }
     }
 
@@ -1528,10 +1542,10 @@ void BTDevice::hciSMPMsgCallback(const std::shared_ptr<BTDevice>& sthis, const S
     pairing_data.state = pstate;
 
     if( jau::environment::get().debug ) {
-        jau::PLAIN_PRINT(false, "[%s] ", timestamp.c_str());
-        jau::PLAIN_PRINT(false, "[%s] BTDevice:hci:SMP.5b: %s", timestamp.c_str(),
-                pairing_data.toString(adapter.dev_id, addressAndType, btRole).c_str());
-        jau::PLAIN_PRINT(false, "[%s] ", timestamp.c_str());
+        jau_PLAIN_PRINT(false, "[%s] ", timestamp);
+        jau_PLAIN_PRINT(false, "[%s] BTDevice:hci:SMP.5b: %s", timestamp,
+                pairing_data.toString(adapter.dev_id, addressAndType, btRole));
+        jau_PLAIN_PRINT(false, "[%s] ", timestamp);
     }
 
     adapter.sendDevicePairingState(sthis, pstate, pmode, msg.getTimestamp());
@@ -1544,8 +1558,8 @@ void BTDevice::hciSMPMsgCallback(const std::shared_ptr<BTDevice>& sthis, const S
     }
 
     if( jau::environment::get().debug ) {
-        jau::PLAIN_PRINT(false, "[%s] Debug: BTDevice:hci:SMP.5b: End", timestamp.c_str());
-        jau::PLAIN_PRINT(false, "[%s] - %s", timestamp.c_str(), toString().c_str());
+        jau_PLAIN_PRINT(false, "[%s] Debug: BTDevice:hci:SMP.5b: End", timestamp);
+        jau_PLAIN_PRINT(false, "[%s] - %s", timestamp, toString());
     }
     lock_pairing.unlock(); // unlock mutex before notify_all to avoid pessimistic re-block of notified wait() thread.
     cv_pairing_state_changed.notify_all();
@@ -1564,37 +1578,37 @@ bool BTDevice::setSMPKeyBin(const SMPKeyBin& bin) noexcept {
     const std::unique_lock<std::recursive_mutex> lock_pairing(mtx_pairing); // RAII-style acquire and relinquish via destructor
 
     if( !isValidInstance() ) {
-        ERR_PRINT("Device invalid: %p", jau::to_hexstring((void*)this).c_str());
+        jau_ERR_PRINT("Device invalid: %p", this);
         return false;
     }
 
     if( bin.getLocalAddrAndType() != getAdapter().getAddressAndType() ) {
-         DBG_PRINT("SMPKeyBin::readAndApply: Local address mismatch: Has %s, SMPKeyBin %s: %s",
-                    getAdapter().getAddressAndType().toString().c_str(),
-                    bin.getLocalAddrAndType().toString().c_str(),
-                    bin.toString().c_str());
+         jau_DBG_PRINT("SMPKeyBin::readAndApply: Local address mismatch: Has %s, SMPKeyBin %s: %s",
+                    getAdapter().getAddressAndType().toString(),
+                    bin.getLocalAddrAndType().toString(),
+                    bin.toString());
         return false;
     }
     if( bin.getRemoteAddrAndType() !=  getAddressAndType() ) {
-        DBG_PRINT("SMPKeyBin::readAndApply: Remote address mismatch: Has %s, SMPKeyBin %s: %s",
-                getAddressAndType().toString().c_str(),
-                bin.getRemoteAddrAndType().toString().c_str(),
-                bin.toString().c_str());
+        jau_DBG_PRINT("SMPKeyBin::readAndApply: Remote address mismatch: Has %s, SMPKeyBin %s: %s",
+                getAddressAndType().toString(),
+                bin.getRemoteAddrAndType().toString(),
+                bin.toString());
         return false;
     }
 
     // Must be a valid SMPKeyBin instance and at least one LTK key if using encryption.
     // Also validates IRKs' id_address, if contained
     if( !bin.isValid() || ( BTSecurityLevel::NONE != bin.getSecLevel() && !bin.hasLTKInit() && !bin.hasLTKResp() ) ) {
-         DBG_PRINT("BTDevice::setSMPKeyBin(): Apply SMPKeyBin failed, all invalid or sec level w/o LTK: %s, %s",
-                 bin.toString().c_str(), toString().c_str());
+         jau_DBG_PRINT("BTDevice::setSMPKeyBin(): Apply SMPKeyBin failed, all invalid or sec level w/o LTK: %s, %s",
+                 bin.toString(), toString());
         return false;
     }
 
     const BTRole btRoleAdapter = !btRole;
     if( btRoleAdapter != bin.getLocalRole() ) {
-        DBG_PRINT("BTDevice::setSMPKeyBin(): Apply SMPKeyBin failed, local adapter role %s mismatch: %s, %s",
-                to_string(btRoleAdapter).c_str(), bin.toString().c_str(), toString().c_str());
+        jau_DBG_PRINT("BTDevice::setSMPKeyBin(): Apply SMPKeyBin failed, local adapter role %s mismatch: %s, %s",
+                to_string(btRoleAdapter), bin.toString(), toString());
        return false;
     }
 
@@ -1603,20 +1617,20 @@ bool BTDevice::setSMPKeyBin(const SMPKeyBin& bin) noexcept {
             ( SMPPairingState::COMPLETED != pairing_data.state &&
               SMPPairingState::NONE != pairing_data.state ) )
         {
-            DBG_PRINT("BTDevice::setSMPKeyBin: Failure, pairing in progress: %s, %s",
-                    pairing_data.toString(adapter.dev_id, addressAndType, btRole).c_str(), toString().c_str());
+            jau_DBG_PRINT("BTDevice::setSMPKeyBin: Failure, pairing in progress: %s, %s",
+                    pairing_data.toString(adapter.dev_id, addressAndType, btRole), toString());
             return false;
         }
 
         if( getConnected() ) {
-            DBG_PRINT("BTDevice::setSMPKeyBin: Failure, device connected: %s", toString().c_str());
+            jau_DBG_PRINT("BTDevice::setSMPKeyBin: Failure, device connected: %s", toString());
             return false;
         }
 
         const BTSecurityLevel applySecLevel = BTSecurityLevel::NONE == bin.getSecLevel() ?
                                               BTSecurityLevel::NONE : BTSecurityLevel::ENC_ONLY;
         if( !setConnSecurity(applySecLevel, SMPIOCapability::NO_INPUT_NO_OUTPUT) ) {
-            DBG_PRINT("BTDevice::setSMPKeyBin: Setting security failed: Device Connected/ing: %s, %s", bin.toString().c_str(), toString().c_str());
+            jau_DBG_PRINT("BTDevice::setSMPKeyBin: Setting security failed: Device Connected/ing: %s, %s", bin.toString(), toString());
             return false;
         }
     }
@@ -1649,13 +1663,13 @@ bool BTDevice::setSMPKeyBin(const SMPKeyBin& bin) noexcept {
     if( bin.hasLKResp() ) {
         setLinkKey( bin.getLKResp() );
     }
-    DBG_PRINT("BTDevice::setSMPKeyBin.OK: %s", pairing_data.toString(adapter.dev_id, addressAndType, btRole).c_str());
+    jau_DBG_PRINT("BTDevice::setSMPKeyBin.OK: %s", pairing_data.toString(adapter.dev_id, addressAndType, btRole));
     return true;
 }
 
 HCIStatusCode BTDevice::uploadKeys() noexcept {
     if( isConnected ) {
-        ERR_PRINT("Already connected: %s", toString().c_str());
+        jau_ERR_PRINT("Already connected: %s", toString());
         return HCIStatusCode::CONNECTION_ALREADY_EXISTS;
     }
     const std::unique_lock<std::recursive_mutex> lock_pairing(mtx_pairing); // RAII-style acquire and relinquish via destructor
@@ -1674,7 +1688,7 @@ HCIStatusCode BTDevice::uploadKeys() noexcept {
             }
             if( ltks.size() > 0 ) {
                 res = mngr->uploadLongTermKey(!btRole, adapter.dev_id, addressAndType, ltks);
-                DBG_PRINT("BTDevice::uploadKeys.LTK[adapter %s]: %s", to_string(!btRole).c_str(), to_string(res).c_str());
+                jau_DBG_PRINT("BTDevice::uploadKeys.LTK[adapter %s]: %s", to_string(!btRole), res);
                 if( HCIStatusCode::SUCCESS != res ) {
                     return res;
                 }
@@ -1692,7 +1706,7 @@ HCIStatusCode BTDevice::uploadKeys() noexcept {
             }
             if( irks.size() > 0 ) {
                 res = mngr->uploadIdentityResolvingKey(adapter.dev_id, irks);
-                DBG_PRINT("BTDevice::uploadKeys.IRK: %s", to_string(res).c_str());
+                jau_DBG_PRINT("BTDevice::uploadKeys.IRK: %s", res);
                 if( HCIStatusCode::SUCCESS != res ) {
                     return res;
                 }
@@ -1701,7 +1715,7 @@ HCIStatusCode BTDevice::uploadKeys() noexcept {
 
         if( BDAddressType::BDADDR_BREDR != addressAndType.type ) {
             // Not supported
-            DBG_PRINT("BTDevice::uploadKeys: Upload LK for LE address not supported -> ignored: %s", toString().c_str());
+            jau_DBG_PRINT("BTDevice::uploadKeys: Upload LK for LE address not supported -> ignored: %s", toString());
             pairing_data.is_pre_paired = true;
             return HCIStatusCode::SUCCESS;
         }
@@ -1710,13 +1724,13 @@ HCIStatusCode BTDevice::uploadKeys() noexcept {
             // Remote device is slave (peripheral, responder), we are master (initiator)
             if( is_set(pairing_data.keys_init_has, SMPKeyType::LINK_KEY) ) {
                 res = mngr->uploadLinkKey(adapter.dev_id, addressAndType, pairing_data.lk_init);
-                DBG_PRINT("BTDevice::uploadKeys.LK[adapter master]: %s", to_string(res).c_str());
+                jau_DBG_PRINT("BTDevice::uploadKeys.LK[adapter master]: %s", res);
             }
         } else {
             // Remote device is master (initiator), we are slave (peripheral, responder)
             if( is_set(pairing_data.keys_resp_has, SMPKeyType::LINK_KEY) ) {
                 res = mngr->uploadLinkKey(adapter.dev_id, addressAndType, pairing_data.lk_resp);
-                DBG_PRINT("BTDevice::uploadKeys.LK[adapter slave]: %s", to_string(res).c_str());
+                jau_DBG_PRINT("BTDevice::uploadKeys.LK[adapter slave]: %s", res);
             }
         }
         if( HCIStatusCode::SUCCESS == res ) {
@@ -1833,9 +1847,9 @@ void BTDevice::validateConnectedSecParam(BTSecurityLevel& res_sec_level, SMPIOCa
     res_io_cap = io_cap_conn;
 
     if( sec_level_conn != BTSecurityLevel::UNSET ) {
-        DBG_PRINT("BTDevice::validateConnectedSecParam: dev_id %u, sec_lvl %s, io_cap %s (preset)", adapter.dev_id,
-                to_string(sec_level_conn).c_str(),
-                to_string(io_cap_conn).c_str());
+        jau_DBG_PRINT("BTDevice::validateConnectedSecParam: dev_id %u, sec_lvl %s, io_cap %s (preset)", adapter.dev_id,
+                to_string(sec_level_conn),
+                to_string(io_cap_conn));
         res_sec_level = sec_level_conn;
         return;
     }
@@ -1861,11 +1875,11 @@ void BTDevice::validateConnectedSecParam(BTSecurityLevel& res_sec_level, SMPIOCa
         res_sec_level = BTSecurityLevel::NONE;
     }
 
-    DBG_PRINT("BTDevice::validateConnectedSecParam: dev_id %u, user[sec_lvl %s, io_cap %s], conn[sec_lvl %s, io_cap %s] -> sec_lvl %s, io_cap %s",
+    jau_DBG_PRINT("BTDevice::validateConnectedSecParam: dev_id %u, user[sec_lvl %s, io_cap %s], conn[sec_lvl %s, io_cap %s] -> sec_lvl %s, io_cap %s",
             adapter.dev_id,
-            to_string(sec_level_user).c_str(), to_string(io_cap_user).c_str(),
-            to_string(sec_level_conn).c_str(), to_string(io_cap_conn).c_str(),
-            to_string(res_sec_level).c_str(), to_string(res_io_cap).c_str());
+            sec_level_user, to_string(io_cap_user),
+            to_string(sec_level_conn), to_string(io_cap_conn),
+            to_string(res_sec_level), to_string(res_io_cap));
 }
 
 void BTDevice::validateSecParam(const BTSecurityLevel sec_level, const SMPIOCapability io_cap,
@@ -1895,20 +1909,19 @@ void BTDevice::validateSecParam(const BTSecurityLevel sec_level, const SMPIOCapa
         res_sec_level = BTSecurityLevel::UNSET;
         res_io_cap = io_cap;
     }
-    DBG_PRINT("BTDevice::validateSecurityParams: lvl %s -> %s, io %s -> %s",
-        to_string(sec_level).c_str(), to_string(res_sec_level).c_str(),
-        to_string(io_cap).c_str(), to_string(res_io_cap).c_str());
+    jau_DBG_PRINT("BTDevice::validateSecurityParams: lvl %s -> %s, io %s -> %s",
+        to_string(sec_level), to_string(res_sec_level),
+        to_string(io_cap), to_string(res_io_cap));
 }
 
 bool BTDevice::setConnSecurity(const BTSecurityLevel sec_level, const SMPIOCapability io_cap) noexcept {
     if( !isValidInstance() ) {
-        ERR_PRINT("Device invalid: %p", jau::to_hexstring((void*)this).c_str());
+        jau_ERR_PRINT("Device invalid: %p", this);
         return false;
     }
     if( isConnected || allowDisconnect ) {
-        ERR_PRINT("Invalid State: Connected: dev_id %u, lvl %s, io %s failed, %s",
-                adapter.dev_id, to_string(sec_level).c_str(),
-                to_string(io_cap).c_str(), toString().c_str());
+        jau_ERR_PRINT("Invalid State: Connected: dev_id %u, lvl %s, io %s failed, %s",
+                adapter.dev_id, to_string(sec_level), to_string(io_cap), toString());
         return false;
     }
     jau::sc_atomic_critical sync(sync_data);
@@ -1918,52 +1931,46 @@ bool BTDevice::setConnSecurity(const BTSecurityLevel sec_level, const SMPIOCapab
     }
     pairing_data.io_cap_auto = SMPIOCapability::UNSET; // disable auto
 
-    DBG_PRINT("BTDevice::setConnSecurity: dev_id %u, pre-paired %d: lvl %s -> %s, io %s -> %s, %s",
+    jau_DBG_PRINT("BTDevice::setConnSecurity: dev_id %u, pre-paired %d: lvl %s -> %s, io %s -> %s, %s",
         adapter.dev_id, pairing_data.is_pre_paired,
-        to_string(sec_level).c_str(), to_string(pairing_data.sec_level_user).c_str(),
-        to_string(io_cap).c_str(), to_string(pairing_data.io_cap_user).c_str(),
-        toString().c_str());
+        to_string(sec_level), to_string(pairing_data.sec_level_user),
+        to_string(io_cap), to_string(pairing_data.io_cap_user), toString());
 
     return true;
 }
 
 bool BTDevice::setConnSecurityAuto(const SMPIOCapability iocap_auto) noexcept {
     if( !isValidInstance() ) {
-        ERR_PRINT("Device invalid: %p", jau::to_hexstring((void*)this).c_str());
+        jau_ERR_PRINT("Device invalid: %p", this);
         return false;
     }
     if( isConnected || allowDisconnect ) {
-        ERR_PRINT("Invalid State: Connected: dev_id %d, io %s failed, %s",
-                adapter.dev_id, to_string(iocap_auto).c_str(), toString().c_str());
+        jau_ERR_PRINT("Invalid State: Connected: dev_id %d, io %s failed, %s", adapter.dev_id, to_string(iocap_auto), toString());
         return false;
     }
     if( pairing_data.is_pre_paired ) {
-        DBG_PRINT("BTDevice::setConnSecurityAuto: io %s failed, is pre-paired: %s",
-                to_string(iocap_auto).c_str(),
-                toString().c_str());
+        jau_DBG_PRINT("BTDevice::setConnSecurityAuto: io %s failed, is pre-paired: %s", to_string(iocap_auto), toString());
         return false;
     }
     if( BTSecurityLevel::UNSET != pairing_data.sec_level_user ||
         SMPIOCapability::UNSET != pairing_data.io_cap_user )
     {
-        DBG_PRINT("BTDevice::setConnSecurityAuto: io %s failed, user connection sec_level %s or io %s set %s",
-                to_string(iocap_auto).c_str(),
-                to_string(pairing_data.sec_level_user).c_str(),
-                to_string(pairing_data.io_cap_user).c_str(),
-                toString().c_str());
+        jau_DBG_PRINT("BTDevice::setConnSecurityAuto: io %s failed, user connection sec_level %s or io %s set %s",
+                to_string(iocap_auto), to_string(pairing_data.sec_level_user), to_string(pairing_data.io_cap_user),
+                toString());
         return false;
     }
     if( BTRole::Master == getRole() ) {
-        DBG_PRINT("BTDevice::setConnSecurityAuto: Not allowed with remote device in master mode: %s",
-                to_string(iocap_auto).c_str(), toString().c_str());
+        jau_DBG_PRINT("BTDevice::setConnSecurityAuto: Not allowed with remote device in master mode: %s",
+                to_string(iocap_auto), toString());
         return false;
     }
 
     jau::sc_atomic_critical sync(sync_data);
     const bool res = true;
     pairing_data.io_cap_auto = iocap_auto;
-    DBG_PRINT("BTDevice::setConnSecurityAuto: result %d: io %s, %s", res,
-            to_string(iocap_auto).c_str(), toString().c_str());
+    jau_DBG_PRINT("BTDevice::setConnSecurityAuto: result %d: io %s, %s", res,
+            to_string(iocap_auto), toString());
     return res;
 }
 
@@ -1978,13 +1985,13 @@ HCIStatusCode BTDevice::setPairingPINCode(const std::string& pinCode) noexcept {
     if( !isSMPPairingAllowingInput(pairing_data.state, SMPPairingState::PASSKEY_EXPECTED) &&
         !isSMPPairingAllowingInput(pairing_data.state, SMPPairingState::KEY_DISTRIBUTION) )
     {
-        WARN_PRINT("BTDevice:mgmt:SMP: PINCODE '%s', state %s, wrong state", pinCode.c_str(), to_string(pairing_data.state).c_str());
+        jau_WARN_PRINT("BTDevice:mgmt:SMP: PINCODE '%s', state %s, wrong state", pinCode, to_string(pairing_data.state));
     }
     if constexpr ( USE_LINUX_BT_SECURITY ) {
         const BTManagerRef& mngr = adapter.getManager();
         MgmtStatus res = mngr->userPINCodeReply(adapter.dev_id, addressAndType, pinCode);
-        DBG_PRINT("BTDevice:mgmt:SMP: PINCODE '%s', state %s, result %s",
-            pinCode.c_str(), to_string(pairing_data.state).c_str(), to_string(res).c_str());
+        jau_DBG_PRINT("BTDevice:mgmt:SMP: PINCODE '%s', state %s, result %s",
+            pinCode, to_string(pairing_data.state), res);
         return HCIStatusCode::SUCCESS;
     } else if constexpr ( SMP_SUPPORTED_BY_OS ) {
         return HCIStatusCode::NOT_SUPPORTED;
@@ -1999,13 +2006,13 @@ HCIStatusCode BTDevice::setPairingPINCodeNegative() noexcept {
     if( !isSMPPairingAllowingInput(pairing_data.state, SMPPairingState::PASSKEY_EXPECTED) &&
         !isSMPPairingAllowingInput(pairing_data.state, SMPPairingState::KEY_DISTRIBUTION) )
     {
-        WARN_PRINT("BTDevice:mgmt:SMP: PINCODE_NEGATIVE, state %s, wrong state", to_string(pairing_data.state).c_str());
+        jau_WARN_PRINT("BTDevice:mgmt:SMP: PINCODE_NEGATIVE, state %s, wrong state", to_string(pairing_data.state));
     }
     if constexpr ( USE_LINUX_BT_SECURITY ) {
         const BTManagerRef& mngr = adapter.getManager();
         MgmtStatus res = mngr->userPINCodeNegativeReply(adapter.dev_id, addressAndType);
-        DBG_PRINT("BTDevice:mgmt:SMP: PINCODE NEGATIVE, state %s, result %s",
-            to_string(pairing_data.state).c_str(), to_string(res).c_str());
+        jau_DBG_PRINT("BTDevice:mgmt:SMP: PINCODE NEGATIVE, state %s, result %s",
+            to_string(pairing_data.state), res);
         return HCIStatusCode::SUCCESS;
     } else if constexpr ( SMP_SUPPORTED_BY_OS ) {
         return HCIStatusCode::NOT_SUPPORTED;
@@ -2020,13 +2027,13 @@ HCIStatusCode BTDevice::setPairingPasskey(const uint32_t passkey) noexcept {
     if( !isSMPPairingAllowingInput(pairing_data.state, SMPPairingState::PASSKEY_EXPECTED) &&
         !isSMPPairingAllowingInput(pairing_data.state, SMPPairingState::KEY_DISTRIBUTION) )
     {
-        WARN_PRINT("BTDevice:mgmt:SMP: PASSKEY '%u', state %s, wrong state", passkey, to_string(pairing_data.state).c_str());
+        jau_WARN_PRINT("BTDevice:mgmt:SMP: PASSKEY '%u', state %s, wrong state", passkey, to_string(pairing_data.state));
     }
     if constexpr ( USE_LINUX_BT_SECURITY ) {
         const BTManagerRef& mngr = adapter.getManager();
         MgmtStatus res = mngr->userPasskeyReply(adapter.dev_id, addressAndType, passkey);
-        DBG_PRINT("BTDevice:mgmt:SMP: PASSKEY '%u', state %s, result %s",
-            passkey, to_string(pairing_data.state).c_str(), to_string(res).c_str());
+        jau_DBG_PRINT("BTDevice:mgmt:SMP: PASSKEY '%u', state %s, result %s",
+            passkey, to_string(pairing_data.state), res);
         return HCIStatusCode::SUCCESS;
     } else if constexpr ( SMP_SUPPORTED_BY_OS ) {
         return HCIStatusCode::NOT_SUPPORTED;
@@ -2041,13 +2048,13 @@ HCIStatusCode BTDevice::setPairingPasskeyNegative() noexcept {
     if( !isSMPPairingAllowingInput(pairing_data.state, SMPPairingState::PASSKEY_EXPECTED) &&
         !isSMPPairingAllowingInput(pairing_data.state, SMPPairingState::KEY_DISTRIBUTION) )
     {
-        WARN_PRINT("BTDevice:mgmt:SMP: PASSKEY_NEGATIVE, state %s, wrong state", to_string(pairing_data.state).c_str());
+        jau_WARN_PRINT("BTDevice:mgmt:SMP: PASSKEY_NEGATIVE, state %s, wrong state", to_string(pairing_data.state));
     }
     if constexpr ( USE_LINUX_BT_SECURITY ) {
         const BTManagerRef& mngr = adapter.getManager();
         MgmtStatus res = mngr->userPasskeyNegativeReply(adapter.dev_id, addressAndType);
-        DBG_PRINT("BTDevice:mgmt:SMP: PASSKEY NEGATIVE, state %s, result %s",
-            to_string(pairing_data.state).c_str(), to_string(res).c_str());
+        jau_DBG_PRINT("BTDevice:mgmt:SMP: PASSKEY NEGATIVE, state %s, result %s",
+            to_string(pairing_data.state), res);
         return HCIStatusCode::SUCCESS;
     } else if constexpr ( SMP_SUPPORTED_BY_OS ) {
         return HCIStatusCode::NOT_SUPPORTED;
@@ -2062,13 +2069,13 @@ HCIStatusCode BTDevice::setPairingNumericComparison(const bool positive) noexcep
     if( !isSMPPairingAllowingInput(pairing_data.state, SMPPairingState::NUMERIC_COMPARE_EXPECTED) &&
         !isSMPPairingAllowingInput(pairing_data.state, SMPPairingState::KEY_DISTRIBUTION) )
     {
-        WARN_PRINT("BTDevice:mgmt:SMP: CONFIRM '%d', state %s, wrong state", positive, to_string(pairing_data.state).c_str());
+        jau_WARN_PRINT("BTDevice:mgmt:SMP: CONFIRM '%d', state %s, wrong state", positive, to_string(pairing_data.state));
     }
     if constexpr ( USE_LINUX_BT_SECURITY ) {
         const BTManagerRef& mngr = adapter.getManager();
         MgmtStatus res = mngr->userConfirmReply(adapter.dev_id, addressAndType, positive);
-        DBG_PRINT("BTDevice:mgmt:SMP: CONFIRM '%d', state %s, result %s",
-            positive, to_string(pairing_data.state).c_str(), to_string(res).c_str());
+        jau_DBG_PRINT("BTDevice:mgmt:SMP: CONFIRM '%d', state %s, result %s",
+            positive, to_string(pairing_data.state), res);
         return HCIStatusCode::SUCCESS;
     } else if constexpr ( SMP_SUPPORTED_BY_OS ) {
         return HCIStatusCode::NOT_SUPPORTED;
@@ -2093,7 +2100,7 @@ void BTDevice::clearSMPStates(const bool connected) noexcept {
     const std::unique_lock<std::recursive_mutex> lock_pairing(mtx_pairing); // RAII-style acquire and relinquish via destructor
 
     // NOLINTNEXTLINE(clang-analyzer-optin.cplusplus.VirtualCall)
-    DBG_PRINT("BTDevice::clearSMPStates(connected %d): %s", connected, toString().c_str());
+    jau_DBG_PRINT("BTDevice::clearSMPStates(connected %d): %s", connected, toString());
 
     if( !connected ) {
         // needs to survive connected, or will be set right @ connected
@@ -2142,13 +2149,13 @@ void BTDevice::disconnectSMP(const int caller) noexcept {
     if constexpr ( SMP_SUPPORTED_BY_OS ) {
         const std::lock_guard<std::recursive_mutex> lock_conn(mtx_smpHandler);
         if( nullptr != smpHandler ) {
-            DBG_PRINT("BTDevice::disconnectSMP: start (has smpHandler, caller %d)", caller);
+            jau_DBG_PRINT("BTDevice::disconnectSMP: start (has smpHandler, caller %d)", caller);
             smpHandler->disconnect(false /* disconnect_device */, false /* ioerr_cause */);
         } else {
-            DBG_PRINT("BTDevice::disconnectSMP: start (nil smpHandler, caller %d)", caller);
+            jau_DBG_PRINT("BTDevice::disconnectSMP: start (nil smpHandler, caller %d)", caller);
         }
         smpHandler = nullptr;
-        DBG_PRINT("BTDevice::disconnectSMP: end");
+        jau_DBG_PRINT("BTDevice::disconnectSMP: end");
     } else {
         (void)caller;
     }
@@ -2157,12 +2164,12 @@ void BTDevice::disconnectSMP(const int caller) noexcept {
 bool BTDevice::connectSMP(std::shared_ptr<BTDevice> sthis, const BTSecurityLevel sec_level) noexcept {
     if constexpr ( SMP_SUPPORTED_BY_OS ) {
         if( !isConnected || !allowDisconnect) {
-            ERR_PRINT("connectSMP(%u): Device not connected: %s", sec_level, toString().c_str());
+            jau_ERR_PRINT("connectSMP(%s): Device not connected: %s", sec_level, toString());
             return false;
         }
 
         if( !SMPHandler::IS_SUPPORTED_BY_OS ) {
-            DBG_PRINT("BTDevice::connectSMP(%u): SMP Not supported by OS (1): %s", sec_level, toString().c_str());
+            jau_DBG_PRINT("BTDevice::connectSMP(%s): SMP Not supported by OS (1): %s", sec_level, toString());
             return false;
         }
 
@@ -2180,13 +2187,13 @@ bool BTDevice::connectSMP(std::shared_ptr<BTDevice> sthis, const BTSecurityLevel
 
         smpHandler = std::make_shared<SMPHandler>(sthis);
         if( !smpHandler->isConnected() ) {
-            ERR_PRINT("Connection failed");
+            jau_ERR_PRINT("Connection failed");
             smpHandler = nullptr;
             return false;
         }
         return smpHandler->establishSecurity(sec_level);
     } else {
-        DBG_PRINT("BTDevice::connectSMP: SMP Not supported by OS (0): %s", toString().c_str());
+        jau_DBG_PRINT("BTDevice::connectSMP: SMP Not supported by OS (0): %s", toString());
         (void)sthis;
         (void)sec_level;
         return false;
@@ -2196,22 +2203,22 @@ bool BTDevice::connectSMP(std::shared_ptr<BTDevice> sthis, const BTSecurityLevel
 void BTDevice::disconnectGATT(const int caller) noexcept {
     const std::lock_guard<std::recursive_mutex> lock_conn(mtx_gattHandler);
     if( nullptr != gattHandler ) {
-        DBG_PRINT("BTDevice::disconnectGATT: start (has gattHandler, caller %d)", caller);
+        jau_DBG_PRINT("BTDevice::disconnectGATT: start (has gattHandler, caller %d)", caller);
         gattHandler->disconnect(false /* disconnect_device */, false /* ioerr_cause */);
     } else {
-        DBG_PRINT("BTDevice::disconnectGATT: start (nil gattHandler, caller %d)", caller);
+        jau_DBG_PRINT("BTDevice::disconnectGATT: start (nil gattHandler, caller %d)", caller);
     }
     gattHandler = nullptr;
-    DBG_PRINT("BTDevice::disconnectGATT: end");
+    jau_DBG_PRINT("BTDevice::disconnectGATT: end");
 }
 
 bool BTDevice::connectGATT(const std::shared_ptr<BTDevice>& sthis) noexcept {
     if( !isConnected || !allowDisconnect) {
-        ERR_PRINT("Device not connected: %s", toString().c_str());
+        jau_ERR_PRINT("Device not connected: %s", toString());
         return false;
     }
     if( !l2cap_att->is_open() ) {
-        ERR_PRINT("L2CAP not open: %s", toString().c_str());
+        jau_ERR_PRINT("L2CAP not open: %s", toString());
         return false;
     }
 
@@ -2223,18 +2230,18 @@ bool BTDevice::connectGATT(const std::shared_ptr<BTDevice>& sthis) noexcept {
         gattHandler = nullptr;
     }
 
-    DBG_PRINT("BTDevice::connectGATT: Start: %s", toString().c_str());
+    jau_DBG_PRINT("BTDevice::connectGATT: Start: %s", toString());
 
     // GATT MTU only consumes around 20ms - 100ms
     gattHandler = std::make_shared<BTGattHandler>(sthis, *l2cap_att, supervision_timeout);
     if( !gattHandler->isConnected() ) {
-        ERR_PRINT2("Connection failed");
+        jau_ERR_PRINT2("Connection failed");
         gattHandler = nullptr;
         return false;
     } else if ( BTRole::Master == btRole ) {
-        DBG_PRINT("BTDevice::connectGATT: Local GATT Server: Done: %s", toString().c_str());
+        jau_DBG_PRINT("BTDevice::connectGATT: Local GATT Server: Done: %s", toString());
     } else {
-        DBG_PRINT("BTDevice::connectGATT: Local GATT Client: Done: %s", toString().c_str());
+        jau_DBG_PRINT("BTDevice::connectGATT: Local GATT Client: Done: %s", toString());
     }
     return true;
 }
@@ -2247,18 +2254,18 @@ std::shared_ptr<BTGattHandler> BTDevice::getGattHandler() noexcept {
 BTDevice::GattServiceList_t BTDevice::getGattServices() noexcept {
     std::shared_ptr<BTGattHandler> gh = getGattHandler();
     if( nullptr == gh ) {
-        ERR_PRINT("GATTHandler nullptr: %s", toString().c_str());
+        jau_ERR_PRINT("GATTHandler nullptr: %s", toString());
         return jau::darray<std::shared_ptr<BTGattService>>();
     }
     if( BTRole::Slave != getRole() ) {
         // Remote device is not a slave (peripheral, responder) - hence no GATT services
-        ERR_PRINT("Remote device not a GATT server: ", toString().c_str());
+        jau_ERR_PRINT("Remote device not a GATT server: ", toString());
         return jau::darray<std::shared_ptr<BTGattService>>();
     }
 
     bool gatt_already_init = false;
     if( !gh->initClientGatt(gh, gatt_already_init) ) {
-        ERR_PRINT2("Client GATT Initialization failed");
+        jau_ERR_PRINT2("Client GATT Initialization failed");
         return jau::darray<BTGattServiceRef>(); // return zero size
     }
     if( gatt_already_init ) {
@@ -2267,7 +2274,7 @@ BTDevice::GattServiceList_t BTDevice::getGattServices() noexcept {
 
     GattServiceList_t result = gh->getServices(); // copy
     if( result.size() == 0 ) { // nothing discovered, actually a redundant check done @ BTGattHandler::initClientGatt() 1st
-        ERR_PRINT2("No primary services discovered");
+        jau_ERR_PRINT2("No primary services discovered");
         return jau::darray<BTGattServiceRef>(); // return zero size
     }
 
@@ -2275,18 +2282,18 @@ BTDevice::GattServiceList_t BTDevice::getGattServices() noexcept {
     std::shared_ptr<GattGenericAccessSvc> gattGenericAccess = gh->getGenericAccess();
     if( nullptr == gattGenericAccess ) {
         // no GenericAccess discovered, actually a redundant check done @ BTGattHandler::initClientGatt() 1st
-        ERR_PRINT2("No GenericAccess: %s", toString().c_str());
+        jau_ERR_PRINT2("No GenericAccess: %s", toString());
         return jau::darray<BTGattServiceRef>(); // return zero size
     }
 
     const uint64_t ts = jau::getCurrentMilliseconds();
     EIRDataType updateMask = update(*gattGenericAccess, ts);
-    DBG_PRINT("BTDevice::getGattServices: GenericAccess updated %s:\n    %s\n    -> %s",
-        to_string(updateMask).c_str(), gattGenericAccess->toString().c_str(), toString().c_str());
+    jau_DBG_PRINT("BTDevice::getGattServices: GenericAccess updated %s:\n    %s\n    -> %s",
+        to_string(updateMask), gattGenericAccess->toString(), toString());
     if( EIRDataType::NONE != updateMask ) {
         std::shared_ptr<BTDevice> sharedInstance = getSharedInstance();
         if( nullptr == sharedInstance ) {
-            ERR_PRINT("Device unknown to adapter and not tracked: %s", toString().c_str());
+            jau_ERR_PRINT("Device unknown to adapter and not tracked: %s", toString());
         } else {
             adapter.sendDeviceUpdated("getGattServices", sharedInstance, ts, updateMask);
         }
@@ -2297,7 +2304,7 @@ BTDevice::GattServiceList_t BTDevice::getGattServices() noexcept {
 std::shared_ptr<GattGenericAccessSvc> BTDevice::getGattGenericAccess() noexcept {
     std::shared_ptr<BTGattHandler> gh = getGattHandler();
     if( nullptr == gh ) {
-        ERR_PRINT("GATTHandler nullptr");
+        jau_ERR_PRINT("GATTHandler nullptr");
         return nullptr;
     }
     return gh->getGenericAccess();
@@ -2336,12 +2343,12 @@ BTGattCharRef BTDevice::findGattChar(const jau::uuid_t& char_uuid) noexcept {
 
 bool BTDevice::sendNotification(const uint16_t char_value_handle, const jau::TROOctets & value) noexcept {
     if( !isValidInstance() ) {
-        ERR_PRINT("Device invalid: %p", jau::to_hexstring((void*)this).c_str());
+        jau_ERR_PRINT("Device invalid: %p", this);
         return false;
     }
     std::shared_ptr<BTGattHandler> gh = getGattHandler();
     if( nullptr == gh || !gh->isConnected() ) {
-        WARN_PRINT("GATTHandler not connected -> disconnected on %s", toString().c_str());
+        jau_WARN_PRINT("GATTHandler not connected -> disconnected on %s", toString());
         return false;
     }
     return gh->sendNotification(char_value_handle, value);
@@ -2349,12 +2356,12 @@ bool BTDevice::sendNotification(const uint16_t char_value_handle, const jau::TRO
 
 bool BTDevice::sendIndication(const uint16_t char_value_handle, const jau::TROOctets & value) noexcept {
     if( !isValidInstance() ) {
-        ERR_PRINT("Device invalid: %p", jau::to_hexstring((void*)this).c_str());
+        jau_ERR_PRINT("Device invalid: %p", this);
         return false;
     }
     std::shared_ptr<BTGattHandler> gh = getGattHandler();
     if( nullptr == gh || !gh->isConnected() ) {
-        WARN_PRINT("GATTHandler not connected -> disconnected on %s", toString().c_str());
+        jau_WARN_PRINT("GATTHandler not connected -> disconnected on %s", toString());
         return false;
     }
     return gh->sendIndication(char_value_handle, value);
@@ -2364,7 +2371,7 @@ bool BTDevice::sendIndication(const uint16_t char_value_handle, const jau::TROOc
 bool BTDevice::pingGATT() noexcept {
     std::shared_ptr<BTGattHandler> gh = getGattHandler();
     if( nullptr == gh || !gh->isConnected() ) {
-        jau::INFO_PRINT("BTDevice::pingGATT: GATTHandler not connected -> disconnected on %s", toString().c_str());
+        jau_INFO_PRINT("BTDevice::pingGATT: GATTHandler not connected -> disconnected on %s", toString());
         disconnect(HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION);
         return false;
     }
@@ -2374,7 +2381,7 @@ bool BTDevice::pingGATT() noexcept {
 bool BTDevice::addCharListener(const BTGattCharListenerRef& l) noexcept {
     std::shared_ptr<BTGattHandler> gatt = getGattHandler();
     if( nullptr == gatt ) {
-        ERR_PRINT("Device's GATTHandle not connected: %s", toString().c_str());
+        jau_ERR_PRINT("Device's GATTHandle not connected: %s", toString());
         return false;
     }
     return gatt->addCharListener(l);
@@ -2383,7 +2390,7 @@ bool BTDevice::addCharListener(const BTGattCharListenerRef& l) noexcept {
 bool BTDevice::addCharListener(const BTGattCharListenerRef& l, const BTGattCharRef& d) noexcept {
     std::shared_ptr<BTGattHandler> gatt = getGattHandler();
     if( nullptr == gatt ) {
-        ERR_PRINT("Device's GATTHandle not connected: %s", toString().c_str());
+        jau_ERR_PRINT("Device's GATTHandle not connected: %s", toString());
         return false;
     }
     return gatt->addCharListener(l, d);
@@ -2393,7 +2400,7 @@ bool BTDevice::removeCharListener(const BTGattCharListenerRef& l) noexcept {
     std::shared_ptr<BTGattHandler> gatt = getGattHandler();
     if( nullptr == gatt ) {
         // OK to have GATTHandler being shutdown @ disable
-        DBG_PRINT("Device's GATTHandle not connected: %s", toString().c_str());
+        jau_DBG_PRINT("Device's GATTHandle not connected: %s", toString());
         return false;
     }
     return gatt->removeCharListener(l);
@@ -2403,7 +2410,7 @@ BTDevice::size_type BTDevice::removeAllAssociatedCharListener(const BTGattCharRe
     std::shared_ptr<BTGattHandler> gatt = getGattHandler();
     if( nullptr == gatt ) {
         // OK to have GATTHandler being shutdown @ disable
-        DBG_PRINT("Device's GATTHandle not connected: %s", toString().c_str());
+        jau_DBG_PRINT("Device's GATTHandle not connected: %s", toString());
         return false;
     }
     return gatt->removeAllAssociatedCharListener( associatedCharacteristic );
@@ -2413,7 +2420,7 @@ BTDevice::size_type BTDevice::removeAllAssociatedCharListener(const BTGattChar *
     std::shared_ptr<BTGattHandler> gatt = getGattHandler();
     if( nullptr == gatt ) {
         // OK to have GATTHandler being shutdown @ disable
-        DBG_PRINT("Device's GATTHandle not connected: %s", toString().c_str());
+        jau_DBG_PRINT("Device's GATTHandle not connected: %s", toString());
         return false;
     }
     return gatt->removeAllAssociatedCharListener( associatedCharacteristic );
@@ -2423,7 +2430,7 @@ BTDevice::size_type BTDevice::removeAllCharListener() noexcept {
     std::shared_ptr<BTGattHandler> gatt = getGattHandler();
     if( nullptr == gatt ) {
         // OK to have GATTHandler being shutdown @ disable
-        DBG_PRINT("Device's GATTHandle not connected: %s", toString().c_str());
+        jau_DBG_PRINT("Device's GATTHandle not connected: %s", toString());
         return 0;
     }
     return gatt->removeAllCharListener();
@@ -2474,8 +2481,8 @@ HCIStatusCode BTDevice::setConnectedLE_PHY(const LE_PHYs Tx, const LE_PHYs Rx) n
 
 void BTDevice::notifyDisconnected() noexcept {
     // coming from disconnect callback, ensure cleaning up!
-    DBG_PRINT("BTDevice::notifyDisconnected: handle %s -> zero, %s",
-              jau::to_hexstring(hciConnHandle).c_str(), toString().c_str());
+    jau_DBG_PRINT("BTDevice::notifyDisconnected: handle %s -> zero, %s",
+              jau::toHexString(hciConnHandle), toString());
     allowDisconnect = false;
     supervision_timeout = 0;
     isConnected = false;
@@ -2497,14 +2504,12 @@ HCIStatusCode BTDevice::disconnect(const HCIStatusCode reason) noexcept {
     bool expConn = true; // C++11, exp as value since C++20
     if( !allowDisconnect.compare_exchange_strong(expConn, false) ) {
         // Not connected or disconnect already in process.
-        DBG_PRINT("BTDevice::disconnect: Not connected: isConnected %d/%d, reason 0x%X (%s), gattHandler %d, hciConnHandle %s",
-                allowDisconnect.load(), isConnected.load(),
-                static_cast<uint8_t>(reason), to_string(reason).c_str(),
-                (nullptr != gattHandler), jau::to_hexstring(hciConnHandle).c_str());
+        jau_DBG_PRINT("BTDevice::disconnect: Not connected: isConnected %s/%s, reason 0x%X (%s), gattHandler %d, hciConnHandle %s",
+                allowDisconnect, isConnected, *reason, reason, (nullptr != gattHandler), jau::toHexString(hciConnHandle));
         return HCIStatusCode::CONNECTION_TERMINATED_BY_LOCAL_HOST;
     }
     if( !isConnected ) { // should not happen
-        WARN_PRINT("allowConnect true -> false, but !isConnected on %s", toString().c_str());
+        jau_WARN_PRINT("allowConnect true -> false, but !isConnected on %s", toString());
         return HCIStatusCode::SUCCESS;
     }
 
@@ -2516,10 +2521,8 @@ HCIStatusCode BTDevice::disconnect(const HCIStatusCode reason) noexcept {
     // Lock to avoid other threads connecting while disconnecting
     const std::lock_guard<std::recursive_mutex> lock_conn(mtx_connect); // RAII-style acquire and relinquish via destructor
 
-    WORDY_PRINT("BTDevice::disconnect: Start: isConnected %d/%d, reason 0x%X (%s), gattHandler %d, hciConnHandle %s",
-            allowDisconnect.load(), isConnected.load(),
-            static_cast<uint8_t>(reason), to_string(reason).c_str(),
-            (nullptr != gattHandler), jau::to_hexstring(hciConnHandle).c_str());
+    jau_WORDY_PRINT("BTDevice::disconnect: Start: isConnected %s/%s, reason 0x%X (%s), gattHandler %d, hciConnHandle %s",
+            allowDisconnect, isConnected, *reason, reason, (nullptr != gattHandler), jau::toHexString(hciConnHandle));
 
     HCIHandler &hci = adapter.getHCI();
     HCIStatusCode res = HCIStatusCode::SUCCESS;
@@ -2530,18 +2533,15 @@ HCIStatusCode BTDevice::disconnect(const HCIStatusCode reason) noexcept {
     }
 
     if( !adapter.isPowered() ) { // isValid() && hci.isOpen() && POWERED
-        WARN_PRINT("Adapter not powered: %s, %s", adapter.toString().c_str(), toString().c_str());
+        jau_WARN_PRINT("Adapter not powered: %s, %s", adapter.toString(), toString());
         res = HCIStatusCode::NOT_POWERED; // powered-off
         goto exit;
     }
 
     res = hci.disconnect(hciConnHandle, addressAndType, reason);
     if( HCIStatusCode::SUCCESS != res ) {
-        ERR_PRINT("status %s, handle 0x%X, isConnected %d/%d: errno %d %s on %s",
-                to_string(res).c_str(), hciConnHandle.load(),
-                allowDisconnect.load(), isConnected.load(),
-                errno, strerror(errno),
-                toString().c_str());
+        jau_ERR_PRINT("status %s, handle 0x%X, isConnected %s/%s: errno %d %s on %s",
+                res, hciConnHandle, allowDisconnect, isConnected, errno, strerror(errno), toString());
     }
 
 exit:
@@ -2549,8 +2549,7 @@ exit:
         // Start resolving from scratch
         HCIStatusCode res2 = hci.le_del_from_resolv_list(addressAndType);
         if( HCIStatusCode::SUCCESS != res2 ) {
-            jau::INFO_PRINT("BTDevice::disconnect: DEL FROM RESOLV LIST failed %s for %s",
-                    to_string(res2).c_str(), toString().c_str());
+            jau_INFO_PRINT("BTDevice::disconnect: DEL FROM RESOLV LIST failed %s for %s", to_string(res2), toString());
         }
     }
 
@@ -2564,10 +2563,8 @@ exit:
         bg.detach();
         // adapter.mgmtEvDeviceDisconnectedHCI( std::unique_ptr<MgmtEvent>( new MgmtEvtDeviceDisconnected(adapter.dev_id, address, addressType, reason, hciConnHandle) ) );
     }
-    WORDY_PRINT("BTDevice::disconnect: End: status %s, handle 0x%X, isConnected %d/%d on %s",
-            to_string(res).c_str(),
-            hciConnHandle.load(), allowDisconnect.load(), isConnected.load(),
-            toString().c_str());
+    jau_WORDY_PRINT("BTDevice::disconnect: End: status %s, handle 0x%X, isConnected %d/%d on %s",
+            res, hciConnHandle, allowDisconnect, isConnected, toString());
 
     return res;
 }
@@ -2581,7 +2578,7 @@ HCIStatusCode BTDevice::unpair() noexcept {
         const BTManagerRef& mngr = adapter.getManager();
         const HCIStatusCode res = mngr->unpairDevice(adapter.dev_id, addressAndType, false /* disconnect */);
         if( HCIStatusCode::SUCCESS != res && HCIStatusCode::NOT_PAIRED != res ) {
-            DBG_PRINT("BTDevice::unpair(): Unpair device failed: %s, %s", to_string(res).c_str(), toString().c_str());
+            jau_DBG_PRINT("BTDevice::unpair(): Unpair device failed: %s, %s", res, toString());
         }
         clearSMPStates(getConnected() /* connected */);
         return res;

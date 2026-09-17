@@ -27,10 +27,6 @@
 #include <string>
 #include <memory>
 #include <cstdint>
-#include <fstream>
-#include <iostream>
-
-#include <cinttypes>
 
 #include <pthread.h>
 #include <csignal>
@@ -107,7 +103,7 @@ static const jau::uuid128_t ResponseUUID    = jau::uuid128_t("d0ca6bf3-3d53-4760
 static const jau::uuid128_t PulseDataUUID   = jau::uuid128_t("d0ca6bf3-3d54-4760-98e5-fc5883e93712");
 
 // DBGattServerRef dbGattServer = std::make_shared<DBGattServer>(
-DBGattServerRef dbGattServer( new DBGattServer(
+static DBGattServerRef dbGattServer( new DBGattServer(
         /* services: */
         jau::make_darray( // DBGattService
           std::make_shared<DBGattService> ( true /* primary */,
@@ -116,7 +112,7 @@ DBGattServerRef dbGattServer( new DBGattServer(
                   std::make_shared<DBGattChar>( std::make_unique<const jau::uuid16_t>(GattCharacteristicType::DEVICE_NAME) /* value_type_ */,
                               BTGattChar::PropertyBitVal::Read,
                               jau::darray<DBGattDescRef>() /* intentionally empty */,
-                              make_gvalue(adapter_name.c_str(), 128) /* value */, true /* variable_length */ ),
+                              make_gvalue(adapter_name, 128) /* value */, true /* variable_length */ ),
                   std::make_shared<DBGattChar>( std::make_unique<const jau::uuid16_t>(GattCharacteristicType::APPEARANCE) /* value_type_ */,
                               BTGattChar::PropertyBitVal::Read,
                               jau::darray<DBGattDescRef>() /* intentionally empty */,
@@ -189,14 +185,14 @@ class MyAdapterStatusListener : public AdapterStatusListener {
                                 const AdapterSetting changedmask, const uint64_t timestamp) override {
         const bool initialSetting = AdapterSetting::NONE == oldmask;
         if( initialSetting ) {
-            fprintf_td(stderr, "****** SETTINGS_INITIAL: %s -> %s, changed %s\n", to_string(oldmask).c_str(),
-                    to_string(newmask).c_str(), to_string(changedmask).c_str());
+            jau_fprintf_td(stderr, "****** SETTINGS_INITIAL: %s -> %s, changed %s\n", oldmask,
+                    newmask, changedmask);
         } else {
-            fprintf_td(stderr, "****** SETTINGS_CHANGED: %s -> %s, changed %s\n", to_string(oldmask).c_str(),
-                    to_string(newmask).c_str(), to_string(changedmask).c_str());
+            jau_fprintf_td(stderr, "****** SETTINGS_CHANGED: %s -> %s, changed %s\n", oldmask,
+                    newmask, changedmask);
         }
-        fprintf_td(stderr, "Status BTAdapter:\n");
-        fprintf_td(stderr, "%s\n", a.toString().c_str());
+        jau_fprintf_td(stderr, "Status BTAdapter:\n");
+        jau_fprintf_td(stderr, "%s\n", a);
         (void)timestamp;
 
         if( !initialSetting &&
@@ -209,29 +205,29 @@ class MyAdapterStatusListener : public AdapterStatusListener {
     }
 
     void discoveringChanged(BTAdapter &a, const ScanType currentMeta, const ScanType changedType, const bool changedEnabled, const DiscoveryPolicy policy, const uint64_t timestamp) override {
-        fprintf_td(stderr, "****** DISCOVERING: meta %s, changed[%s, enabled %d, policy %s]: %s\n",
-                to_string(currentMeta).c_str(), to_string(changedType).c_str(), changedEnabled, to_string(policy).c_str(), a.toString().c_str());
+        jau_fprintf_td(stderr, "****** DISCOVERING: meta %s, changed[%s, enabled %d, policy %s]: %s\n",
+                currentMeta, changedType, changedEnabled, policy, a);
         (void)timestamp;
     }
 
     bool deviceFound(const BTDeviceRef& device, const uint64_t timestamp) override {
         (void)timestamp;
 
-        fprintf_td(stderr, "****** FOUND__-1: NOP %s\n", device->toString(true).c_str());
+        jau_fprintf_td(stderr, "****** FOUND__-1: NOP %s\n", device->toString(true));
         return false;
     }
 
     void deviceUpdated(const BTDeviceRef& device, const EIRDataType updateMask, const uint64_t timestamp) override {
         if( is_set(updateMask, EIRDataType::BDADDR)) {
-            fprintf_td(stderr, "****** UPDATED (ADDR-RESOLVED): %s of %s\n", to_string(updateMask).c_str(), device->toString(true).c_str());
+            jau_fprintf_td(stderr, "****** UPDATED (ADDR-RESOLVED): %s of %s\n", updateMask, device->toString(true));
         } else if( SHOW_UPDATE_EVENTS ) {
-            fprintf_td(stderr, "****** UPDATED: %s of %s\n", to_string(updateMask).c_str(), device->toString(true).c_str());
+            jau_fprintf_td(stderr, "****** UPDATED: %s of %s\n", updateMask, device->toString(true));
         }
         (void)timestamp;
     }
 
     void deviceConnected(const BTDeviceRef& device, const bool discovered, const uint64_t timestamp) override {
-        fprintf_td(stderr, "****** CONNECTED (discovered %d): %s\n", discovered, device->toString(true).c_str());
+        jau_fprintf_td(stderr, "****** CONNECTED (discovered %d): %s\n", discovered, device->toString(true));
         const bool available = nullptr == getDevice();
         if( available ) {
             setDevice(device);
@@ -241,8 +237,8 @@ class MyAdapterStatusListener : public AdapterStatusListener {
     }
 
     void devicePairingState(const BTDeviceRef& device, const SMPPairingState state, const PairingMode mode, const uint64_t timestamp) override {
-        fprintf_td(stderr, "****** PAIRING STATE: state %s, mode %s, %s\n",
-            to_string(state).c_str(), to_string(mode).c_str(), device->toString().c_str());
+        jau_fprintf_td(stderr, "****** PAIRING STATE: state %s, mode %s, %s\n",
+            state, mode, device->toString());
         (void)timestamp;
         switch( state ) {
             case SMPPairingState::NONE:
@@ -284,16 +280,16 @@ class MyAdapterStatusListener : public AdapterStatusListener {
                 // next: KEY_DISTRIBUTION or FAILED
               } break;
             case SMPPairingState::PASSKEY_NOTIFY: {
-                fprintf_td(stderr, "****** \n");
-                fprintf_td(stderr, "****** \n");
-                fprintf_td(stderr, "****** Confirm on your device %s\n", device->getName().c_str());
-                fprintf_td(stderr, "****** PassKey: %s\n", device->getResponderSMPPassKeyString().c_str());
-                fprintf_td(stderr, "****** \n");
-                fprintf_td(stderr, "****** \n");
+                jau_fprintf_td(stderr, "****** \n");
+                jau_fprintf_td(stderr, "****** \n");
+                jau_fprintf_td(stderr, "****** Confirm on your device %s\n", device->getName());
+                jau_fprintf_td(stderr, "****** PassKey: %s\n", device->getResponderSMPPassKeyString());
+                jau_fprintf_td(stderr, "****** \n");
+                jau_fprintf_td(stderr, "****** \n");
                 // next: KEY_DISTRIBUTION or FAILED
               } break;
             case SMPPairingState::OOB_EXPECTED:
-                // FIXME: ABORT
+                // FIXME: jau_ABORT
                 break;
             case SMPPairingState::KEY_DISTRIBUTION:
                 // next: COMPLETED or FAILED
@@ -308,14 +304,14 @@ class MyAdapterStatusListener : public AdapterStatusListener {
 
     void deviceReady(const BTDeviceRef& device, const uint64_t timestamp) override {
         (void)timestamp;
-        fprintf_td(stderr, "****** READY-1: NOP %s\n", device->toString(true).c_str());
+        jau_fprintf_td(stderr, "****** READY-1: NOP %s\n", device->toString(true));
     }
 
     void deviceDisconnected(const BTDeviceRef& device, const HCIStatusCode reason, const uint16_t handle, const uint64_t timestamp) override {
         servedConnections = servedConnections + 1;
-        fprintf_td(stderr, "****** DISCONNECTED (count %zu): Reason 0x%X (%s), old handle %s: %s\n",
-                servedConnections.load(), static_cast<uint8_t>(reason), to_string(reason).c_str(),
-                to_hexstring(handle).c_str(), device->toString(true).c_str());
+        jau_fprintf_td(stderr, "****** DISCONNECTED (count %zu): Reason 0x%X (%s), old handle %s: %s\n",
+                servedConnections.load(), static_cast<uint8_t>(reason), reason,
+                toHexString(handle), device->toString(true));
 
         const bool match = matches(device);
         if( match ) {
@@ -327,7 +323,7 @@ class MyAdapterStatusListener : public AdapterStatusListener {
     }
 
     std::string toString() const noexcept override {
-        return "MyAdapterStatusListener[this "+to_hexstring(this)+"]";
+        return "MyAdapterStatusListener[this "+toHexString(this)+"]";
     }
 
 };
@@ -359,7 +355,7 @@ class MyGATTServerListener : public DBGattServer::Listener {
             (void)sr;
             const BTDeviceRef connectedDevice_ = getDevice();
             const std::string connectedDeviceStr = nullptr != connectedDevice_ ? connectedDevice_->toString() : "n/a";
-            fprintf_td(stderr, "****** Server GATT::PULSE Start %s\n", connectedDeviceStr.c_str());
+            jau_fprintf_td(stderr, "****** Server GATT::PULSE Start %s\n", connectedDeviceStr);
         }
         void pulse_worker(jau::service_runner& sr) noexcept {
             BTDeviceRef connectedDevice_ = getDevice();
@@ -370,11 +366,11 @@ class MyGATTServerListener : public DBGattServer::Listener {
                     v.put_string_nc(0, data, v.size(), true /* includeEOS */);
                     if( 0 != handlePulseDataNotify ) {
                         const bool res = connectedDevice_->sendNotification(handlePulseDataNotify, v);
-                        fprintf_td(stderr, "****** GATT::sendNotification: PULSE (res %d) to %s\n", res, connectedDevice_->toString().c_str());
+                        jau_fprintf_td(stderr, "****** GATT::sendNotification: PULSE (res %d) to %s\n", res, connectedDevice_->toString());
                     }
                     if( 0 != handlePulseDataIndicate ) {
                         const bool res = connectedDevice_->sendIndication(handlePulseDataIndicate, v);
-                        fprintf_td(stderr, "****** GATT::sendIndication: PULSE (res %d) to %s\n", res, connectedDevice_->toString().c_str());
+                        jau_fprintf_td(stderr, "****** GATT::sendIndication: PULSE (res %d) to %s\n", res, connectedDevice_->toString());
                     }
                 }
             }
@@ -386,7 +382,7 @@ class MyGATTServerListener : public DBGattServer::Listener {
             (void)sr;
             const BTDeviceRef connectedDevice_ = getDevice();
             const std::string connectedDeviceStr = nullptr != connectedDevice_ ? connectedDevice_->toString() : "n/a";
-            fprintf_td(stderr, "****** Server GATT::PULSE End %s\n", connectedDeviceStr.c_str());
+            jau_fprintf_td(stderr, "****** Server GATT::PULSE End %s\n", connectedDeviceStr);
         }
 
         void sendResponse(jau::POctets data) { // NOLINT(performance-unnecessary-value-param): Pass-by-value out-of-thread
@@ -395,13 +391,13 @@ class MyGATTServerListener : public DBGattServer::Listener {
                 if( 0 != handleResponseDataNotify || 0 != handleResponseDataIndicate ) {
                     if( 0 != handleResponseDataNotify ) {
                         const bool res = connectedDevice_->sendNotification(handleResponseDataNotify, data);
-                        fprintf_td(stderr, "****** GATT::sendNotification (res %d): %s to %s\n",
-                                res, data.toString().c_str(), connectedDevice_->toString().c_str());
+                        jau_fprintf_td(stderr, "****** GATT::sendNotification (res %d): %s to %s\n",
+                                res, data, connectedDevice_->toString());
                     }
                     if( 0 != handleResponseDataIndicate ) {
                         const bool res = connectedDevice_->sendIndication(handleResponseDataIndicate, data);
-                        fprintf_td(stderr, "****** GATT::sendIndication (res %d): %s to %s\n",
-                                res, data.toString().c_str(), connectedDevice_->toString().c_str());
+                        jau_fprintf_td(stderr, "****** GATT::sendIndication (res %d): %s to %s\n",
+                                res, data, connectedDevice_->toString());
                     }
                 }
             }
@@ -429,8 +425,8 @@ class MyGATTServerListener : public DBGattServer::Listener {
         void connected(const BTDeviceRef& device, const uint16_t initialMTU) override {
             jau::sc_atomic_critical sync(sync_data);
             const bool match = matches(device);
-            fprintf_td(stderr, "****** GATT::connected(match %d): initMTU %d, %s\n",
-                    match, (int)initialMTU, device->toString().c_str());
+            jau_fprintf_td(stderr, "****** GATT::connected(match %d): initMTU %d, %s\n",
+                    match, (int)initialMTU, device->toString());
             if( match ) {
                 usedMTU = initialMTU;
             }
@@ -439,7 +435,7 @@ class MyGATTServerListener : public DBGattServer::Listener {
         void disconnected(const BTDeviceRef& device) override {
             jau::sc_atomic_critical sync(sync_data);
             const bool match = matches(device);
-            fprintf_td(stderr, "****** GATT::disconnected(match %d): %s\n", match, device->toString().c_str());
+            jau_fprintf_td(stderr, "****** GATT::disconnected(match %d): %s\n", match, device->toString());
             if( match ) {
                 clear();
             }
@@ -447,8 +443,8 @@ class MyGATTServerListener : public DBGattServer::Listener {
 
         void mtuChanged(const BTDeviceRef& device, const uint16_t mtu) override {
             const bool match = matches(device);
-            fprintf_td(stderr, "****** GATT::mtuChanged(match %d): %d -> %d, %s\n",
-                    match, match ? (int)usedMTU : 0, (int)mtu, device->toString().c_str());
+            jau_fprintf_td(stderr, "****** GATT::mtuChanged(match %d): %d -> %d, %s\n",
+                    match, match ? (int)usedMTU : 0, (int)mtu, device->toString());
             if( match ) {
                 usedMTU = mtu;
             }
@@ -456,31 +452,31 @@ class MyGATTServerListener : public DBGattServer::Listener {
 
         bool readCharValue(const BTDeviceRef& device, const DBGattServiceRef& s, const DBGattCharRef& c) override {
             const bool match = matches(device);
-            fprintf_td(stderr, "****** GATT::readCharValue(match %d): to %s, from\n  %s\n    %s\n",
-                    match, device->toString().c_str(), s->toString().c_str(), c->toString().c_str());
+            jau_fprintf_td(stderr, "****** GATT::readCharValue(match %d): to %s, from\n  %s\n    %s\n",
+                    match, device->toString(), s->toString(), c->toString());
             return match;
         }
 
         bool readDescValue(const BTDeviceRef& device, const DBGattServiceRef& s, const DBGattCharRef& c, const DBGattDescRef& d) override {
             const bool match = matches(device);
-            fprintf_td(stderr, "****** GATT::readDescValue(match %d): to %s, from\n  %s\n    %s\n      %s\n",
-                    match, device->toString().c_str(), s->toString().c_str(), c->toString().c_str(), d->toString().c_str());
+            jau_fprintf_td(stderr, "****** GATT::readDescValue(match %d): to %s, from\n  %s\n    %s\n      %s\n",
+                    match, device->toString(), s->toString(), c->toString(), d->toString());
             return match;
         }
 
         bool writeCharValue(const BTDeviceRef& device, const DBGattServiceRef& s, const DBGattCharRef& c, const jau::TROOctets & value, const uint16_t value_offset) override {
             const bool match = matches(device);
-            fprintf_td(stderr, "****** GATT::writeCharValue(match %d): %s '%s' @ %u from %s, to\n  %s\n    %s\n",
-                    match, value.toString().c_str(), jau::dfa_utf8_decode( value.get_ptr(), value.size() ).c_str(),
+            jau_fprintf_td(stderr, "****** GATT::writeCharValue(match %d): %s '%s' @ %u from %s, to\n  %s\n    %s\n",
+                    match, value, jau::dfa_utf8_decode( value.get_ptr(), value.size() ),
                     value_offset,
-                    device->toString().c_str(), s->toString().c_str(), c->toString().c_str());
+                    device->toString(), s->toString(), c->toString());
             return match;
         }
         void writeCharValueDone(const BTDeviceRef& device, const DBGattServiceRef& s, const DBGattCharRef& c) override {
             const bool match = matches(device);
             const jau::TROOctets& value = c->getValue();
-            fprintf_td(stderr, "****** GATT::writeCharValueDone(match %d): From %s, to\n  %s\n    %s\n    Char-Value: %s\n",
-                    match, device->toString().c_str(), s->toString().c_str(), c->toString().c_str(), value.toString().c_str());
+            jau_fprintf_td(stderr, "****** GATT::writeCharValueDone(match %d): From %s, to\n  %s\n    %s\n    Char-Value: %s\n",
+                    match, device->toString(), s->toString(), c->toString(), value);
 
             if( match &&
                 c->getValueType()->equivalent( CommandUUID ) &&
@@ -494,25 +490,25 @@ class MyGATTServerListener : public DBGattServer::Listener {
 
         bool writeDescValue(const BTDeviceRef& device, const DBGattServiceRef& s, const DBGattCharRef& c, const DBGattDescRef& d, const jau::TROOctets & value, const uint16_t value_offset) override {
             const bool match = matches(device);
-            fprintf_td(stderr, "****** GATT::writeDescValue(match %d): %s '%s' @ %u from %s\n  %s\n    %s\n      %s\n",
-                    match, value.toString().c_str(), jau::dfa_utf8_decode( value.get_ptr(), value.size() ).c_str(),
+            jau_fprintf_td(stderr, "****** GATT::writeDescValue(match %d): %s '%s' @ %u from %s\n  %s\n    %s\n      %s\n",
+                    match, value, jau::dfa_utf8_decode( value.get_ptr(), value.size() ),
                     value_offset,
-                    device->toString().c_str(), s->toString().c_str(), c->toString().c_str(), d->toString().c_str());
+                    device->toString(), s->toString(), c->toString(), d->toString());
             return match;
         }
         void writeDescValueDone(const BTDeviceRef& device, const DBGattServiceRef& s, const DBGattCharRef& c, const DBGattDescRef& d) override {
             const bool match = matches(device);
             const jau::TROOctets& value = d->getValue();
-            fprintf_td(stderr, "****** GATT::writeDescValueDone(match %d): From %s\n  %s\n    %s\n      %s\n    Desc-Value: %s\n",
-                    match, device->toString().c_str(), s->toString().c_str(), c->toString().c_str(), d->toString().c_str(), value.toString().c_str());
+            jau_fprintf_td(stderr, "****** GATT::writeDescValueDone(match %d): From %s\n  %s\n    %s\n      %s\n    Desc-Value: %s\n",
+                    match, device->toString(), s->toString(), c->toString(), d->toString(), value);
         }
 
         void clientCharConfigChanged(const BTDeviceRef& device, const DBGattServiceRef& s, const DBGattCharRef& c, const DBGattDescRef& d, const bool notificationEnabled, const bool indicationEnabled) override {
             const bool match = matches(device);
             const jau::TROOctets& value = d->getValue();
-            fprintf_td(stderr, "****** GATT::clientCharConfigChanged(match %d): notify %d, indicate %d from %s\n  %s\n    %s\n      %s\n    Desc-Value: %s\n",
+            jau_fprintf_td(stderr, "****** GATT::clientCharConfigChanged(match %d): notify %d, indicate %d from %s\n  %s\n    %s\n      %s\n    Desc-Value: %s\n",
                     match, notificationEnabled, indicationEnabled,
-                    device->toString().c_str(), s->toString().c_str(), c->toString().c_str(), d->toString().c_str(), value.toString().c_str());
+                    device->toString(), s->toString(), c->toString(), d->toString(), value);
 
             if( match ) {
                 jau::sc_atomic_critical sync(sync_data);
@@ -535,19 +531,18 @@ static const uint8_t filter_policy=0x00;
 
 static bool startAdvertising(BTAdapter *a, std::string msg) { // NOLINT(performance-unnecessary-value-param): Pass-by-value out-of-thread
     if( useAdapter != EUI48::ALL_DEVICE && useAdapter != a->getAddressAndType().address ) {
-        fprintf_td(stderr, "****** Start advertising (%s): Adapter not selected: %s\n", msg.c_str(), a->toString().c_str());
+        jau_fprintf_td(stderr, "****** Start advertising (%s): Adapter not selected: %s\n", msg, a->toString());
         return false;
     }
 
     {
         const LE_Features le_feats = a->getLEFeatures();
-        fprintf_td(stderr, "startAdvertising: LE_Features %s\n", to_string(le_feats).c_str());
+        jau_fprintf_td(stderr, "startAdvertising: LE_Features %s\n", le_feats);
     }
     if( a->getBTMajorVersion() > 4 ) {
         LE_PHYs Tx { LE_PHYs::LE_2M }, Rx { LE_PHYs::LE_2M };
         HCIStatusCode res = a->setDefaultLE_PHY(Tx, Rx);
-        fprintf_td(stderr, "startAdvertising: Set Default LE PHY: status %s: Tx %s, Rx %s\n",
-                to_string(res).c_str(), to_string(Tx).c_str(), to_string(Rx).c_str());
+        jau_fprintf_td(stderr, "startAdvertising: Set Default LE PHY: status %s: Tx %s, Rx %s\n", res, Tx, Rx);
     }
 
     a->setServerConnSecurity(adapter_sec_level, adapter_sec_io_cap);
@@ -572,30 +567,30 @@ static bool startAdvertising(BTAdapter *a, std::string msg) { // NOLINT(performa
         gattDevNameChar->setValue(reinterpret_cast<uint8_t*>(aname.data()), aname.size(), 0);
     }
 
-    fprintf_td(stderr, "****** Start advertising (%s): EIR %s\n", msg.c_str(), eir.toString().c_str());
-    fprintf_td(stderr, "****** Start advertising (%s): adv %s, scanrsp %s\n", msg.c_str(), to_string(adv_mask).c_str(), to_string(scanrsp_mask).c_str());
+    jau_fprintf_td(stderr, "****** Start advertising (%s): EIR %s\n", msg, eir);
+    jau_fprintf_td(stderr, "****** Start advertising (%s): adv %s, scanrsp %s\n", msg, adv_mask, scanrsp_mask);
 
     HCIStatusCode status = a->startAdvertising(dbGattServer, eir, adv_mask, scanrsp_mask,
                                                adv_interval_min, adv_interval_max,
                                                adv_type, adv_chan_map, filter_policy);
-    fprintf_td(stderr, "****** Start advertising (%s) result: %s: %s\n", msg.c_str(), to_string(status).c_str(), a->toString().c_str());
-    fprintf_td(stderr, "%s", dbGattServer->toFullString().c_str());
+    jau_fprintf_td(stderr, "****** Start advertising (%s) result: %s: %s\n", msg, status, a->toString());
+    jau_fprintf_td(stderr, "%s", dbGattServer->toFullString());
     return HCIStatusCode::SUCCESS == status;
 }
 
 static bool stopAdvertising(BTAdapter *a, std::string msg) { // NOLINT(performance-unnecessary-value-param): Pass-by-value out-of-thread
     if( useAdapter != EUI48::ALL_DEVICE && useAdapter != a->getAddressAndType().address ) {
-        fprintf_td(stderr, "****** Stop advertising (%s): Adapter not selected: %s\n", msg.c_str(), a->toString().c_str());
+        jau_fprintf_td(stderr, "****** Stop advertising (%s): Adapter not selected: %s\n", msg, a->toString());
         return false;
     }
     HCIStatusCode status = a->stopAdvertising();
-    fprintf_td(stderr, "****** Stop advertising (%s) result: %s: %s\n", msg.c_str(), to_string(status).c_str(), a->toString().c_str());
+    jau_fprintf_td(stderr, "****** Stop advertising (%s) result: %s: %s\n", msg, status, a->toString());
     return HCIStatusCode::SUCCESS == status;
 }
 
 static void processDisconnectedDevice(BTDeviceRef device) { // NOLINT(performance-unnecessary-value-param): Pass-by-value out-of-thread
-    fprintf_td(stderr, "****** Disconnected Device (count %zu): Start %s\n",
-            servedConnections.load(), device->toString().c_str());
+    jau_fprintf_td(stderr, "****** Disconnected Device (count %zu): Start %s\n",
+            servedConnections.load(), device->toString());
 
     // already unpaired
     stopAdvertising(&device->getAdapter(), "device-disconnected");
@@ -607,43 +602,43 @@ static void processDisconnectedDevice(BTDeviceRef device) { // NOLINT(performanc
         startAdvertising(&device->getAdapter(), "device-disconnected");
     }
 
-    fprintf_td(stderr, "****** Disonnected Device: End %s\n", device->toString().c_str());
+    jau_fprintf_td(stderr, "****** Disonnected Device: End %s\n", device->toString());
 }
 
 static bool initAdapter(std::shared_ptr<BTAdapter>& adapter) {
     if( useAdapter != EUI48::ALL_DEVICE && useAdapter != adapter->getAddressAndType().address ) {
-        fprintf_td(stderr, "initAdapter: Adapter not selected: %s\n", adapter->toString().c_str());
+        jau_fprintf_td(stderr, "initAdapter: Adapter not selected: %s\n", adapter->toString());
         return false;
     }
     if( !adapter->isInitialized() ) {
         // Initialize with defaults and power-on
         const HCIStatusCode status = adapter->initialize( btMode, false );
         if( HCIStatusCode::SUCCESS != status ) {
-            fprintf_td(stderr, "initAdapter: initialize failed: %s: %s\n",
-                    to_string(status).c_str(), adapter->toString().c_str());
+            jau_fprintf_td(stderr, "initAdapter: initialize failed: %s: %s\n",
+                    status, adapter->toString());
             return false;
         }
     } else if( !adapter->setPowered( false ) ) {
-        fprintf_td(stderr, "initAdapter: setPower.1 off failed: %s\n", adapter->toString().c_str());
+        jau_fprintf_td(stderr, "initAdapter: setPower.1 off failed: %s\n", adapter->toString());
         return false;
     }
     // adapter is powered-off
-    fprintf_td(stderr, "initAdapter.1: %s\n", adapter->toString().c_str());
+    jau_fprintf_td(stderr, "initAdapter.1: %s\n", adapter->toString());
 
     {
         HCIStatusCode status = adapter->setName(adapter_name, adapter_short_name);
         if( HCIStatusCode::SUCCESS == status ) {
-            fprintf_td(stderr, "initAdapter: setLocalName OK: %s\n", adapter->toString().c_str());
+            jau_fprintf_td(stderr, "initAdapter: setLocalName OK: %s\n", adapter->toString());
         } else {
-            fprintf_td(stderr, "initAdapter: setLocalName failed: %s\n", adapter->toString().c_str());
+            jau_fprintf_td(stderr, "initAdapter: setLocalName failed: %s\n", adapter->toString());
             return false;
         }
 
         status = adapter->setSecureConnections( use_SC );
         if( HCIStatusCode::SUCCESS == status ) {
-            fprintf_td(stderr, "initAdapter: setSecureConnections OK: %s\n", adapter->toString().c_str());
+            jau_fprintf_td(stderr, "initAdapter: setSecureConnections OK: %s\n", adapter->toString());
         } else {
-            fprintf_td(stderr, "initAdapter: setSecureConnections failed: %s\n", adapter->toString().c_str());
+            jau_fprintf_td(stderr, "initAdapter: setSecureConnections failed: %s\n", adapter->toString());
             return false;
         }
 
@@ -653,20 +648,20 @@ static bool initAdapter(std::shared_ptr<BTAdapter>& adapter) {
         const uint16_t supervision_timeout = 50; // 500ms
         status = adapter->setDefaultConnParam(conn_min_interval, conn_max_interval, conn_latency, supervision_timeout);
         if( HCIStatusCode::SUCCESS == status ) {
-            fprintf_td(stderr, "initAdapter: setDefaultConnParam OK: %s\n", adapter->toString().c_str());
+            jau_fprintf_td(stderr, "initAdapter: setDefaultConnParam OK: %s\n", adapter->toString());
         } else if( HCIStatusCode::UNKNOWN_COMMAND == status ) {
-            fprintf_td(stderr, "initAdapter: setDefaultConnParam UNKNOWN_COMMAND (ignored): %s\n", adapter->toString().c_str());
+            jau_fprintf_td(stderr, "initAdapter: setDefaultConnParam UNKNOWN_COMMAND (ignored): %s\n", adapter->toString());
         } else {
-            fprintf_td(stderr, "initAdapter: setDefaultConnParam failed: %s, %s\n", to_string(status).c_str(), adapter->toString().c_str());
+            jau_fprintf_td(stderr, "initAdapter: setDefaultConnParam failed: %s, %s\n", status, adapter->toString());
             return false;
         }
 
         if( !adapter->setPowered( true ) ) {
-            fprintf_td(stderr, "initAdapter: setPower.2 on failed: %s\n", adapter->toString().c_str());
+            jau_fprintf_td(stderr, "initAdapter: setPower.2 on failed: %s\n", adapter->toString());
             return false;
         }
     }
-    fprintf_td(stderr, "initAdapter.2: %s\n", adapter->toString().c_str());
+    jau_fprintf_td(stderr, "initAdapter.2: %s\n", adapter->toString());
 
     adapter->setSMPKeyPath(SERVER_KEY_PATH);
 
@@ -684,30 +679,30 @@ static void myChangedAdapterSetFunc(const bool added, std::shared_ptr<BTAdapter>
         if( nullptr == chosenAdapter ) {
             if( initAdapter( adapter ) ) {
                 chosenAdapter = adapter;
-                fprintf_td(stderr, "****** Adapter ADDED__: InitOK: %s\n", adapter->toString().c_str());
+                jau_fprintf_td(stderr, "****** Adapter ADDED__: InitOK: %s\n", adapter->toString());
             } else {
-                fprintf_td(stderr, "****** Adapter ADDED__: Ignored: %s\n", adapter->toString().c_str());
+                jau_fprintf_td(stderr, "****** Adapter ADDED__: Ignored: %s\n", adapter->toString());
             }
-            fprintf_td(stderr, "****** Adapter Features: %s\n", direct_bt::to_string(adapter->getLEFeatures()).c_str());
+            jau_fprintf_td(stderr, "****** Adapter Features: %s\n", adapter->getLEFeatures());
         } else {
-            fprintf_td(stderr, "****** Adapter ADDED__: Ignored (other): %s\n", adapter->toString().c_str());
+            jau_fprintf_td(stderr, "****** Adapter ADDED__: Ignored (other): %s\n", adapter->toString());
         }
     } else {
         if( nullptr != chosenAdapter && adapter == chosenAdapter ) {
             chosenAdapter = nullptr;
-            fprintf_td(stderr, "****** Adapter REMOVED: %s\n", adapter->toString().c_str());
+            jau_fprintf_td(stderr, "****** Adapter REMOVED: %s\n", adapter->toString());
         } else {
-            fprintf_td(stderr, "****** Adapter REMOVED (other): %s\n", adapter->toString().c_str());
+            jau_fprintf_td(stderr, "****** Adapter REMOVED (other): %s\n", adapter->toString());
         }
     }
 }
 
-void test() {
-    std::shared_ptr<BTManager> mngr = BTManager::get();
+static void test() {
+    const std::shared_ptr<BTManager>& mngr = BTManager::get();
 
     timestamp_t0 = getCurrentMilliseconds();
 
-    fprintf_td(stderr, "****** Test Start\n");
+    jau_fprintf_td(stderr, "****** Test Start\n");
 
     std::shared_ptr<MyGATTServerListener> listener = std::make_shared<MyGATTServerListener>();
     dbGattServer->addListener( listener );
@@ -718,18 +713,18 @@ void test() {
         jau::sleep_for( 2_s );
     }
 
-    fprintf_td(stderr, "****** Test Shutdown.01 (DBGattServer.remove-listener)\n");
+    jau_fprintf_td(stderr, "****** Test Shutdown.01 (DBGattServer.remove-listener)\n");
     dbGattServer->removeListener( listener );
 
-    fprintf_td(stderr, "****** Test Shutdown.02 (listener.close)\n");
+    jau_fprintf_td(stderr, "****** Test Shutdown.02 (listener.close)\n");
     listener->close();
 
-    fprintf_td(stderr, "****** Test Shutdown.03 (DBGattServer.close := nullptr)\n");
+    jau_fprintf_td(stderr, "****** Test Shutdown.03 (DBGattServer.close := nullptr)\n");
     dbGattServer = nullptr;
 
     chosenAdapter = nullptr;
 
-    fprintf_td(stderr, "****** Test End\n");
+    jau_fprintf_td(stderr, "****** Test End\n");
 }
 
 #include <cstdio>
@@ -738,7 +733,7 @@ int main(int argc, char *argv[])
 {
     bool waitForEnter=false;
 
-    fprintf_td(stderr, "Direct-BT Native Version %s (API %s)\n", DIRECT_BT_VERSION.toString().c_str(), DIRECT_BT_VERSION_API);
+    jau_fprintf_td(stderr, "Direct-BT Native Version %s (API %s)\n", DIRECT_BT_VERSION, DIRECT_BT_VERSION_API);
 
     for(int i=1; i<argc; i++) {
         if( !strcmp("-dbt_debug", argv[i]) && argc > (i+1) ) {
@@ -777,9 +772,9 @@ int main(int argc, char *argv[])
             RUN_ONLY_ONCE = true;
         }
     }
-    fprintf_td(stderr, "pid %d\n", getpid());
+    jau_fprintf_td(stderr, "pid %d\n", getpid());
 
-    fprintf_td(stderr, "Run with '[-btmode LE|BREDR|DUAL] [-use_sc 0|1] "
+    jau_fprintf_td(stderr, "Run with '[-btmode LE|BREDR|DUAL] [-use_sc 0|1] "
                     "[-adapter <adapter_address>] "
                     "[-name <adapter_name>] "
                     "[-short_name <adapter_short_name>] "
@@ -795,24 +790,29 @@ int main(int argc, char *argv[])
                     "[-dbt_l2cap reader.timeout=10000,restart.count=0,...] "
                     "\n");
 
-    fprintf_td(stderr, "SHOW_UPDATE_EVENTS %d\n", SHOW_UPDATE_EVENTS);
-    fprintf_td(stderr, "adapter %s\n", useAdapter.toString().c_str());
-    fprintf_td(stderr, "adapter btmode %s\n", to_string(btMode).c_str());
-    fprintf_td(stderr, "adapter SC %s\n", to_string(use_SC).c_str());
-    fprintf_td(stderr, "adapter name %s (short %s)\n", adapter_name.c_str(), adapter_short_name.c_str());
-    fprintf_td(stderr, "adapter mtu %d\n", (int)dbGattServer->getMaxAttMTU());
-    fprintf_td(stderr, "adapter sec_level %s\n", to_string(adapter_sec_level).c_str());
-    fprintf_td(stderr, "adapter io_cap %s\n", to_string(adapter_sec_io_cap).c_str());
-    fprintf_td(stderr, "once %d\n", (int)RUN_ONLY_ONCE);
-    fprintf_td(stderr, "GattServer %s\n", dbGattServer->toString().c_str());
-    fprintf_td(stderr, "GattServer.services: %s\n", dbGattServer->getServices().get_info().c_str());
-    fprintf_td(stderr, "GattService.characteristics: %s\n", dbGattServer->getServices()[0]->getCharacteristics().get_info().c_str());
+    jau_fprintf_td(stderr, "SHOW_UPDATE_EVENTS %d\n", SHOW_UPDATE_EVENTS);
+    jau_fprintf_td(stderr, "adapter %s\n", useAdapter);
+    jau_fprintf_td(stderr, "adapter btmode %s\n", btMode);
+    jau_fprintf_td(stderr, "adapter SC %s\n", use_SC);
+    jau_fprintf_td(stderr, "adapter name %s (short %s)\n", adapter_name, adapter_short_name);
+    jau_fprintf_td(stderr, "adapter mtu %d\n", (int)dbGattServer->getMaxAttMTU());
+    jau_fprintf_td(stderr, "adapter sec_level %s\n", adapter_sec_level);
+    jau_fprintf_td(stderr, "adapter io_cap %s\n", adapter_sec_io_cap);
+    jau_fprintf_td(stderr, "once %d\n", (int)RUN_ONLY_ONCE);
+    jau_fprintf_td(stderr, "GattServer %s\n", dbGattServer->toString());
+    jau_fprintf_td(stderr, "GattServer.services: %s\n", dbGattServer->getServices().getInfo());
+    jau_fprintf_td(stderr, "GattService.characteristics: %s\n", dbGattServer->getServices()[0]->getCharacteristics().getInfo());
 
     if( waitForEnter ) {
-        fprintf_td(stderr, "Press ENTER to continue\n");
+        jau_fprintf_td(stderr, "Press ENTER to continue\n");
         getchar();
     }
-    fprintf_td(stderr, "****** TEST start\n");
-    test();
-    fprintf_td(stderr, "****** TEST end\n");
+    jau_fprintf_td(stderr, "****** TEST start\n");
+    try {
+        test();
+    } catch (...) {
+        jau::fput_exception(stderr, std::current_exception(), E_FILE_LINE);
+        jau_ERR_PRINT3("Exception caught while testing");
+    }
+    jau_fprintf_td(stderr, "****** TEST end\n");
 }

@@ -34,8 +34,8 @@
 
 using namespace direct_bt;
 
-void resetStates() {
-    std::shared_ptr<BTManager> mngr = BTManager::get();
+static void resetStates() {
+    const std::shared_ptr<BTManager>& mngr = BTManager::get();
     jau::darray<BTAdapterRef> adapters = mngr->getAdapters();
     for(const BTAdapterRef& a : adapters) {
         a->removeAllStatusListener();
@@ -60,19 +60,19 @@ TEST_CASE( "BTManager Bringup Test 00", "[test][BTManager][bringup]" ) {
     {
         // setenv("direct_bt.debug", "true", 1 /* overwrite */);
     }
-    jau::fprintf_td(stderr, "Direct-BT Native Version %s (API %s)\n", DIRECT_BT_VERSION.toString().c_str(), DIRECT_BT_VERSION_API);
-    jau::fprintf_td(stderr, "%s\n", jau::os::get_platform_info().c_str());    
+    jau_fprintf_td(stderr, "Direct-BT Native Version %s (API %s)\n", DIRECT_BT_VERSION, DIRECT_BT_VERSION_API);
+    jau_fprintf_td(stderr, "%s\n", jau::os::get_platform_info());
     resetStates();
 
-    BTManagerRef manager = BTManager::get();
+    const BTManagerRef& manager = BTManager::get();
 
     jau::darray<BTAdapterRef> adapters = manager->getAdapters();
-    jau::fprintf_td(stderr, "Adapter: Count %u\n", adapters.size());
+    jau_fprintf_td(stderr, "Adapter: Count %zu\n", adapters.size());
 
     for(jau::nsize_t i=0; i<adapters.size(); i++) {
-        jau::fprintf_td(stderr, "%u: %s\n", i, adapters[i]->toString().c_str());
+        jau_fprintf_td(stderr, "%zu: %s\n", i, adapters[i]->toString());
     }
-    jau::fprintf_td(stderr, "Adapter: Status Checks\n");
+    jau_fprintf_td(stderr, "Adapter: Status Checks\n");
     for(const BTAdapterRef& a : adapters) {
         // test runs w/o elevated permissions
         REQUIRE( false == a->isInitialized() );
@@ -81,10 +81,10 @@ TEST_CASE( "BTManager Bringup Test 00", "[test][BTManager][bringup]" ) {
         REQUIRE( 4 <= a->getBTMajorVersion() );
     }
 
-    jau::fprintf_td(stderr, "Manager: Closing\n");
+    jau_fprintf_td(stderr, "Manager: Closing\n");
     adapters.clear();
     resetStates();
     manager->close(); /* implies: adapter.close(); */
 
-    jau::fprintf_td(stderr, "Test: Done\n");
+    jau_fprintf_td(stderr, "Test: Done\n");
 }

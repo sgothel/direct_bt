@@ -1,6 +1,6 @@
 /*
  * Author: Sven Gothel <sgothel@jausoft.com>
- * Copyright (c) 2020 Gothel Software e.K.
+ * Copyright (c) 2020-2026 Gothel Software e.K.
  * Copyright (c) 2020 ZAFENA AB
  *
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -27,13 +27,16 @@
 #define ATT_PDU_TYPES_HPP_
 
 #include <cstring>
-#include <jau/int_types.hpp>
 #include <string>
 #include <memory>
 #include <cstdint>
 
 #include <jau/basic_types.hpp>
+#include <jau/enum_util.hpp>
+#include <jau/int_types.hpp>
 #include <jau/octets.hpp>
+#include <jau/string_cfmt.hpp>
+#include <jau/string_util.hpp>
 #include <jau/uuid.hpp>
 
 /**
@@ -188,6 +191,8 @@
  * - BT Core Spec v5.2: Vol 3, Part F Attribute Protocol (ATT)
  */
 namespace direct_bt {
+
+    using namespace jau::enums;
 
      /** @defgroup DBTSystemAPI Direct-BT System Level API
       *  System level Direct-BT API types and functionality, [see Direct-BT Overview](namespacedirect__bt.html#details).
@@ -384,10 +389,6 @@ namespace direct_bt {
 
                 SIGNED_WRITE_CMD            = WRITE_REQ + COMMAND_FLAG + AUTH_SIGNATURE_FLAG // = 0xD2
             };
-            static constexpr uint8_t number(const Opcode rhs) noexcept {
-                return static_cast<uint8_t>(rhs);
-            }
-            static std::string getOpcodeString(const Opcode opc) noexcept;
 
             enum class ReqRespType : bool {
                 REQUEST = true,
@@ -478,46 +479,35 @@ namespace direct_bt {
                 }
             }
 
-        private:
-            static constexpr Opcode bit_and(const Opcode lhs, const Opcode rhs) noexcept {
-                return static_cast<Opcode> ( static_cast<uint8_t>(lhs) & static_cast<uint8_t>(rhs) );
-            }
-            static constexpr bool bit_test(const Opcode lhs, const Opcode rhs) noexcept {
-                return 0 != ( static_cast<uint8_t>(lhs) & static_cast<uint8_t>(rhs) );
-            }
-
         protected:
+            static std::string to_string(const Opcode opc) noexcept;
+            static std::string_view name(const Opcode opc) noexcept;
+
             void check_range() {
-                pdu.check_range(0, getPDUMinSize(), E_FILE_LINE);            
+                pdu.check_range(0, getPDUMinSize(), E_FILE_LINE);
             }
 
             void checkOpcode(const Opcode expected) const
             {
                 const Opcode has = getOpcode();
                 if( expected != has ) {
-                    throw AttOpcodeException("Has opcode "+jau::to_hexstring(number(has))+" "+getOpcodeString(has)+
-                                     ", but expected "+jau::to_hexstring(number(expected))+" "+getOpcodeString(expected), E_FILE_LINE);
+                    throw AttOpcodeException("Has opcode "+jau::toHexString(number(has))+" "+to_string(has)+
+                                     ", but expected "+jau::toHexString(number(expected))+" "+to_string(expected), E_FILE_LINE);
                 }
             }
             void checkOpcode(const Opcode exp1, const Opcode exp2) const
             {
                 const Opcode has = getOpcode();
                 if( exp1 != has && exp2 != has ) {
-                    throw AttOpcodeException("Has opcode "+jau::to_hexstring(number(has))+" "+getOpcodeString(has)+
-                                     ", but expected either "+jau::to_hexstring(number(exp1))+" "+getOpcodeString(exp1)+
-                                     " or  "+jau::to_hexstring(number(exp1))+" "+getOpcodeString(exp1), E_FILE_LINE);
+                    throw AttOpcodeException("Has opcode "+jau::toHexString(number(has))+" "+to_string(has)+
+                                     ", but expected either "+jau::toHexString(number(exp1))+" "+to_string(exp1)+
+                                     " or  "+jau::toHexString(number(exp1))+" "+to_string(exp1), E_FILE_LINE);
                 }
             }
 
-            virtual std::string baseString() const noexcept {
-                return "opcode="+jau::to_hexstring(number(getOpcode()))+" "+getOpcodeString(getOpcode())+
-                        ", size[total="+std::to_string(pdu.size())+", param "+std::to_string(getPDUParamSize())+"]";
-            }
-            virtual std::string valueString() const noexcept {
-                return "size "+std::to_string(getPDUValueSize())+", data "
-                        +jau::bytesHexString(pdu.get_ptr(), getPDUValueOffset(), getPDUValueSize(), true /* lsbFirst */);
-            }
-            
+            virtual std::string baseString() const noexcept;
+            virtual std::string valueString() const noexcept;
+
         public:
             /** actual received PDU */
             jau::TOctets& pdu;
@@ -537,34 +527,34 @@ namespace direct_bt {
             AttPDUMsg(jau::TOctets& mem, const uint8_t* source, const jau::nsize_t size)
             : pdu(mem), ts_creation(jau::getCurrentMilliseconds())
             {
-                pdu.put_bytes(0, source, size); // w/ check   
+                pdu.put_bytes(0, source, size); // w/ check
             }
-            
+
             /** Transient memory, ownership belongs to caller object. */
             AttPDUMsg(const Opcode opc, jau::TOctets& mem) noexcept
             : pdu(mem), ts_creation(jau::getCurrentMilliseconds())
             {
                 pdu.put_uint8(0, number(opc)); // with check -> abort
             }
-                        
+
             AttPDUMsg(const AttPDUMsg &o) = delete;
             AttPDUMsg(AttPDUMsg &&o) noexcept = delete;
             AttPDUMsg& operator=(const AttPDUMsg &o) noexcept = delete;
             AttPDUMsg& operator=(AttPDUMsg &&o) noexcept = delete;
 
             virtual ~AttPDUMsg() noexcept = default;
-            
+
             /** ATT PDU Format Vol 3, Part F 3.3.1 */
             constexpr Opcode getOpcode() const noexcept { return static_cast<Opcode>(pdu.get_uint8_nc(0)); }
 
             /** ATT PDU Format Vol 3, Part F 3.3.1 */
-            constexpr Opcode getOpMethod() const noexcept { return bit_and(getOpcode(), Opcode::METHOD_MASK); }
+            constexpr Opcode getOpMethod() const noexcept { return getOpcode() & Opcode::METHOD_MASK; }
 
             /** ATT PDU Format Vol 3, Part F 3.3.1 */
-            constexpr bool getOpCommandFlag() const noexcept { return bit_test(getOpcode(), Opcode::COMMAND_FLAG); }
+            constexpr bool getOpCommandFlag() const noexcept { return is_set(getOpcode(), Opcode::COMMAND_FLAG); }
 
             /** ATT PDU Format Vol 3, Part F 3.3.1 */
-            constexpr bool getOpAuthSigFlag() const noexcept { return bit_test(getOpcode(), Opcode::AUTH_SIGNATURE_FLAG); }
+            constexpr bool getOpAuthSigFlag() const noexcept { return is_set(getOpcode(), Opcode::AUTH_SIGNATURE_FLAG); }
 
             /**
              * ATT PDU Format Vol 3, Part F 3.3.1
@@ -657,24 +647,23 @@ namespace direct_bt {
                 return mtu - getAuthSigSize() - getPDUValueOffset();
             }
 
-            virtual std::string getName() const noexcept {
+            virtual std::string_view getName() const noexcept {
                 return "AttPDUMsg";
             }
 
-            virtual std::string toString() const noexcept{
-                return getName()+"["+baseString()+", value["+valueString()+"]]";
-            }
+            virtual std::string toString() const noexcept;
     };
+    JAU_MAKE_ENUM_STRING2_DECL(AttPDUMsg::Opcode);
 
     template<jau::nsize_t _Size>
     class AttPDUFixed {
         protected:
-            constexpr static const jau::nsize_t fixed_size = _Size;        
+            constexpr static const jau::nsize_t fixed_size = _Size;
             jau::AOctets<fixed_size> spdu;
 
             AttPDUFixed() noexcept
             : spdu(jau::lb_endian_t::little) {}
-                        
+
             jau::TOctets& octets() noexcept { return spdu; }
     };
 
@@ -684,10 +673,10 @@ namespace direct_bt {
 
             AttPDUHeap(const jau::nsize_t size) noexcept
             : spdu(std::max<jau::nsize_t>(1, size), jau::lb_endian_t::little) {}
-            
+
             jau::TOctets& octets() noexcept { return spdu; }
     };
-    
+
 
     template<jau::nsize_t _Size>
     class AttPDUFixedMsg : protected AttPDUFixed<_Size>, public AttPDUMsg {
@@ -695,27 +684,27 @@ namespace direct_bt {
             /** Transient memory, ownership belongs to caller object. */
             AttPDUFixedMsg(const uint8_t* source, const jau::nsize_t size)
             : AttPDUMsg(AttPDUFixed<_Size>::octets(), source, size)
-            { 
+            {
                 AttPDUFixed<_Size>::spdu.resize(size);
             }
-            
+
             /** Transient memory, ownership belongs to caller object. */
             AttPDUFixedMsg(const Opcode opc) noexcept
             : AttPDUMsg(opc, AttPDUFixed<_Size>::octets())
             { }
-            
+
             /** Transient memory, ownership belongs to caller object. */
             AttPDUFixedMsg(const Opcode opc, const jau::nsize_t size) noexcept
             : AttPDUMsg(opc, AttPDUFixed<_Size>::octets())
             {
                 AttPDUFixed<_Size>::spdu.resize(size);
             }
-            
+
             AttPDUFixedMsg(const AttPDUFixedMsg &o) = delete;
             AttPDUFixedMsg(AttPDUFixedMsg &&o) noexcept = delete;
             AttPDUFixedMsg& operator=(const AttPDUFixedMsg &o) noexcept = delete;
-            AttPDUFixedMsg& operator=(AttPDUFixedMsg &&o) noexcept = delete;            
-            
+            AttPDUFixedMsg& operator=(AttPDUFixedMsg &&o) noexcept = delete;
+
             /**
              * Sets a new size for this instance's pdu.
              * @param newSize new size, must be <= current pdu capacity()
@@ -732,17 +721,17 @@ namespace direct_bt {
             AttPDUHeapMsg(const uint8_t* source, const jau::nsize_t size)
             : AttPDUHeap(size), AttPDUMsg(octets(), source, size)
             { }
-            
+
             /** Transient memory, ownership belongs to caller object. */
             AttPDUHeapMsg(const Opcode opc, const jau::nsize_t size) noexcept
             : AttPDUHeap(size), AttPDUMsg(opc, octets())
             { }
-                        
+
             AttPDUHeapMsg(const AttPDUHeapMsg &o) = delete;
             AttPDUHeapMsg(AttPDUHeapMsg &&o) noexcept = delete;
             AttPDUHeapMsg& operator=(const AttPDUHeapMsg &o) noexcept = delete;
-            AttPDUHeapMsg& operator=(AttPDUHeapMsg &&o) noexcept = delete;            
-            
+            AttPDUHeapMsg& operator=(AttPDUHeapMsg &&o) noexcept = delete;
+
             /**
              * Sets a new size for this instance's pdu.
              * @param newSize new size, must be <= current pdu capacity()
@@ -751,9 +740,9 @@ namespace direct_bt {
             void resize(const jau::nsize_t newSize) {
                 AttPDUHeap::spdu.resize(newSize);
             }
-        
+
     };
-    
+
     /**
      * Our own pseudo opcode, indicating no ATT PDU message.
      * <p>
@@ -763,7 +752,7 @@ namespace direct_bt {
     class AttPDUUndefined final : public AttPDUFixedMsg<1>
     {
         public:
-            AttPDUUndefined(const uint8_t* source, const jau::nsize_t length) 
+            AttPDUUndefined(const uint8_t* source, const jau::nsize_t length)
             : AttPDUFixedMsg(Opcode::PDU_UNDEFINED)
             {
                 pdu.put_bytes(0, source, length); // w/ check   
@@ -773,7 +762,7 @@ namespace direct_bt {
 
             constexpr_cxx20 jau::nsize_t getPDUValueOffset() const noexcept override { return 1; }
 
-            std::string getName() const noexcept override {
+            std::string_view getName() const noexcept override {
                 return "AttPDUUndefined";
             }
     };
@@ -815,7 +804,7 @@ namespace direct_bt {
             static std::string getErrorCodeString(const ErrorCode errorCode) noexcept;
 
         public:
-            AttErrorRsp(const uint8_t* source, const jau::nsize_t length) 
+            AttErrorRsp(const uint8_t* source, const jau::nsize_t length)
             : AttPDUFixedMsg(source, length)
             {
                 checkOpcode(Opcode::ERROR_RSP);
@@ -840,18 +829,12 @@ namespace direct_bt {
 
             constexpr ErrorCode getErrorCode() const noexcept { return static_cast<ErrorCode>(pdu.get_uint8_nc(4)); }
 
-            std::string getName() const noexcept override {
+            std::string_view getName() const noexcept override {
                 return "AttErrorRsp";
             }
 
         protected:
-            std::string valueString() const noexcept override {
-                const Opcode opc = getCausingOpcode();
-                const ErrorCode ec = getErrorCode();
-                return "error "+jau::to_hexstring(number(ec)) + ": " + getErrorCodeString(ec)+
-                       ", cause(opc "+jau::to_hexstring(AttPDUMsg::number(opc))+": "+getOpcodeString(opc)+
-                       ", handle "+jau::to_hexstring(getCausingHandle())+")";
-            }
+            std::string valueString() const noexcept override;
     };
 
     /**
@@ -874,7 +857,7 @@ namespace direct_bt {
             AttExchangeMTU(const ReqRespType type, const uint16_t mtuSize) noexcept
             : AttPDUFixedMsg(is_request(type) ? Opcode::EXCHANGE_MTU_REQ : Opcode::EXCHANGE_MTU_RSP)
             {
-                pdu.put_uint16(1, mtuSize);
+                pdu.put_uint16_nc(1, mtuSize);
                 // check_range(); OK
             }
 
@@ -883,14 +866,12 @@ namespace direct_bt {
 
             constexpr uint16_t getMTUSize() const noexcept { return pdu.get_uint16_nc(1); }
 
-            std::string getName() const noexcept override {
+            std::string_view getName() const noexcept override {
                 return "AttExchangeMTU";
             }
 
         protected:
-            std::string valueString() const noexcept override {
-                return "mtu "+std::to_string(getMTUSize());
-            }
+            std::string valueString() const noexcept override;
     };
 
     /**
@@ -913,7 +894,7 @@ namespace direct_bt {
             AttReadReq(const uint16_t handle) noexcept
             : AttPDUFixedMsg(Opcode::READ_REQ)
             {
-                pdu.put_uint16(1, handle);
+                pdu.put_uint16_nc(1, handle);
                 // check_range(); OK
             }
 
@@ -922,14 +903,12 @@ namespace direct_bt {
 
             constexpr uint16_t getHandle() const noexcept { return pdu.get_uint16_nc( 1 ); }
 
-            std::string getName() const noexcept override {
+            std::string_view getName() const noexcept override {
                 return "AttReadReq";
             }
 
         protected:
-            std::string valueString() const noexcept override {
-                return "handle "+jau::to_hexstring(getHandle());
-            }
+            std::string valueString() const noexcept override;
     };
 
     /**
@@ -952,8 +931,8 @@ namespace direct_bt {
             AttReadBlobReq(const uint16_t handle, const uint16_t value_offset) noexcept
             : AttPDUFixedMsg(Opcode::READ_BLOB_REQ)
             {
-                pdu.put_uint16(1, handle);
-                pdu.put_uint16(3, value_offset);
+                pdu.put_uint16_nc(1, handle);
+                pdu.put_uint16_nc(3, value_offset);
                 // check_range(); OK
             }
 
@@ -964,14 +943,12 @@ namespace direct_bt {
 
             constexpr uint16_t getValueOffset() const noexcept { return pdu.get_uint16_nc( 1 + 2 ); }
 
-            std::string getName() const noexcept override {
+            std::string_view getName() const noexcept override {
                 return "AttReadBlobReq";
             }
 
         protected:
-            std::string valueString() const noexcept override {
-                return "handle "+jau::to_hexstring(getHandle())+", valueOffset "+jau::to_hexstring(getValueOffset());
-            }
+            std::string valueString() const noexcept override;
     };
 
     /**
@@ -1009,8 +986,9 @@ namespace direct_bt {
               view(pdu, getPDUValueOffset(), getPDUValueSize())
             {
                 if( value_offset > value.size() ) { // Blob: value_size == value_offset -> OK, ends communication
-                    throw AttValueException(getName()+": Invalid value offset "+std::to_string(value_offset)+
-                            " > value-size "+std::to_string(value.size()), E_FILE_LINE);
+                    const std::string m = jau_format_string("%s: Invalid value offset %zu > value-size %zu",
+                        getName(), value_offset, value.size());
+                    throw AttValueException(m, E_FILE_LINE);
                 }
                 pdu.put_bytes(getPDUValueOffset(), value.get_ptr()+value_offset, value.size()-value_offset);
                 check_range();
@@ -1023,14 +1001,12 @@ namespace direct_bt {
 
             constexpr jau::TOctetSlice const & getValue() const noexcept { return view; }
 
-            std::string getName() const noexcept override {
+            std::string_view getName() const noexcept override {
                 return "AttReadNRsp";
             }
 
         protected:
-            std::string valueString() const noexcept override {
-                return "size "+std::to_string(getPDUValueSize())+", data "+view.toString();
-            }
+            std::string valueString() const noexcept override;
     };
 
     /**
@@ -1077,14 +1053,12 @@ namespace direct_bt {
 
             constexpr jau::TOctetSlice const & getValue() const noexcept { return view; }
 
-            std::string getName() const noexcept override {
+            std::string_view getName() const noexcept override {
                 return "AttWriteReq";
             }
 
         protected:
-            std::string valueString() const noexcept override {
-                return "handle "+jau::to_hexstring(getHandle())+", data "+view.toString();
-            }
+            std::string valueString() const noexcept override;
     };
 
     /**
@@ -1097,7 +1071,7 @@ namespace direct_bt {
     {
         public:
             AttWriteRsp(const uint8_t* source, const jau::nsize_t length)
-            : AttPDUFixedMsg(source, length) 
+            : AttPDUFixedMsg(source, length)
             {
                 checkOpcode(Opcode::WRITE_RSP);
                 check_range();
@@ -1105,14 +1079,14 @@ namespace direct_bt {
 
             AttWriteRsp() noexcept                    // NOLINT(modernize-use-equals-default): Intended as-is
             : AttPDUFixedMsg(Opcode::WRITE_RSP)
-            { 
+            {
                 // check_range(); OK
             }
 
             /** opcode */
             constexpr_cxx20 jau::nsize_t getPDUValueOffset() const noexcept override { return 1; }
 
-            std::string getName() const noexcept override {
+            std::string_view getName() const noexcept override {
                 return "AttWriteRsp";
             }
     };
@@ -1160,14 +1134,12 @@ namespace direct_bt {
 
             constexpr jau::TOctetSlice const & getValue() const noexcept { return view; }
 
-            std::string getName() const noexcept override {
+            std::string_view getName() const noexcept override {
                 return "AttWriteCmd";
             }
 
         protected:
-            std::string valueString() const noexcept override {
-                return "handle "+jau::to_hexstring(getHandle())+", data "+view.toString();
-            }
+            std::string valueString() const noexcept override;
     };
 
     /**
@@ -1234,14 +1206,12 @@ namespace direct_bt {
 
             constexpr jau::TOctetSlice const & getValue() const noexcept { return view; }
 
-            std::string getName() const noexcept override {
+            std::string_view getName() const noexcept override {
                 return "AttPrepWrite";
             }
 
         protected:
-            std::string valueString() const noexcept override {
-                return "handle "+jau::to_hexstring(getHandle())+", offset "+std::to_string(getValueOffset())+", data "+view.toString();
-            }
+            std::string valueString() const noexcept override;
     };
 
     /**
@@ -1254,7 +1224,7 @@ namespace direct_bt {
     {
         public:
             AttExeWriteReq(const uint8_t* source, const jau::nsize_t length)
-            : AttPDUFixedMsg(source, length) 
+            : AttPDUFixedMsg(source, length)
             {
                 checkOpcode(Opcode::EXECUTE_WRITE_REQ);
                 check_range();
@@ -1263,7 +1233,7 @@ namespace direct_bt {
             AttExeWriteReq(const uint8_t flags) noexcept              // NOLINT(modernize-use-equals-default): Intended as-is
             : AttPDUFixedMsg(Opcode::EXECUTE_WRITE_REQ)
             {
-                pdu.put_uint8(1, flags);
+                pdu.put_uint8_nc(1, flags);
                 // check_range(); OK
             }
 
@@ -1272,7 +1242,7 @@ namespace direct_bt {
 
             constexpr uint8_t getFlags() const noexcept { return pdu.get_uint8_nc( 1 ); }
 
-            std::string getName() const noexcept override {
+            std::string_view getName() const noexcept override {
                 return "AttExeWriteReq";
             }
     };
@@ -1287,7 +1257,7 @@ namespace direct_bt {
     {
         public:
             AttExeWriteRsp(const uint8_t* source, const jau::nsize_t length)
-            : AttPDUFixedMsg(source, length) 
+            : AttPDUFixedMsg(source, length)
             {
                 checkOpcode(Opcode::EXECUTE_WRITE_RSP);
                 check_range();
@@ -1295,14 +1265,14 @@ namespace direct_bt {
 
             AttExeWriteRsp() noexcept                               // NOLINT(modernize-use-equals-default): Intended as-is
             : AttPDUFixedMsg(Opcode::EXECUTE_WRITE_RSP)
-            { 
+            {
                 // check_range(); OK
             }
 
             /** opcode */
             constexpr_cxx20 jau::nsize_t getPDUValueOffset() const noexcept override { return 1; }
 
-            std::string getName() const noexcept override {
+            std::string_view getName() const noexcept override {
                 return "AttExeWriteRsp";
             }
     };
@@ -1365,14 +1335,12 @@ namespace direct_bt {
                 return Opcode::HANDLE_VALUE_IND == getOpcode();
             }
 
-            std::string getName() const noexcept override {
+            std::string_view getName() const noexcept override {
                 return "AttHandleValueRcv";
             }
 
         protected:
-            std::string valueString() const noexcept override {
-                return "handle "+jau::to_hexstring(getHandle())+", size "+std::to_string(getPDUValueSize())+", data "+view.toString();
-            }
+            std::string valueString() const noexcept override;
     };
 
     /**
@@ -1397,14 +1365,14 @@ namespace direct_bt {
 
             AttHandleValueCfm() noexcept                                 // NOLINT(modernize-use-equals-default): Intended as-is
             : AttPDUFixedMsg(Opcode::HANDLE_VALUE_CFM)
-            { 
+            {
                 // check_range(); OK
             }
 
             /** opcode */
             jau::nsize_t getPDUValueOffset() const noexcept override { return 1; }
 
-            std::string getName() const noexcept override {
+            std::string_view getName() const noexcept override {
                 return "AttHandleValueCfm";
             }
     };
@@ -1426,19 +1394,9 @@ namespace direct_bt {
             AttElementList(const Opcode opc, const jau::nsize_t size)
             : AttPDUHeapMsg(opc, size) {}
 
-            virtual std::string addValueString() const { return ""; }
+            virtual std::string addValueString() const noexcept { return ""; }
             virtual std::string elementString(const jau::nsize_t idx) const { (void)idx; return "not implemented"; }
-
-            std::string valueString() const noexcept override {
-                std::string res = "size "+std::to_string(getPDUValueSize())+", "+addValueString()+"elements[count "+std::to_string(getElementCount())+", "+
-                        "size [total "+std::to_string(getElementSize())+", value "+std::to_string(getElementValueSize())+"]: ";
-                const jau::nsize_t count = getElementCount();
-                for(jau::nsize_t i=0; i<count; i++) {
-                    res += std::to_string(i)+"["+elementString(i)+"],";
-                }
-                res += "]";
-                return res;
-            }
+            std::string valueString() const noexcept override;
 
         public:
             ~AttElementList() noexcept override = default;
@@ -1473,20 +1431,7 @@ namespace direct_bt {
              * Fixate element count
              * @param count
              */
-            void setElementCount(const jau::nsize_t count) {
-                const jau::nsize_t element_length = getElementSize();
-                const jau::nsize_t new_size = getPDUValueOffset() + element_length * count;
-                if( pdu.size() < new_size ) {
-                    throw jau::IllegalArgumentError(getName()+": "+std::to_string(getPDUValueOffset())+
-                            " + element[len "+std::to_string(element_length)+
-                            " * count "+std::to_string(count)+" > pdu "+std::to_string(pdu.size()), E_FILE_LINE);
-                }
-                resize( new_size );
-                if( getPDUValueSize() % getElementSize() != 0 ) {
-                    throw AttValueException(getName()+": Invalid packet size: pdu-value-size "+std::to_string(getPDUValueSize())+
-                            " not multiple of element-size "+std::to_string(getElementSize()), E_FILE_LINE);
-                }
-            }
+            void setElementCount(const jau::nsize_t count);
 
             jau::nsize_t getElementPDUOffset(const jau::nsize_t elementIdx) const {
                 return getPDUValueOffset() + elementIdx * getElementSize();
@@ -1496,7 +1441,7 @@ namespace direct_bt {
                 return pdu.get_ptr(getElementPDUOffset(elementIdx));
             }
 
-            std::string getName() const noexcept override {
+            std::string_view getName() const noexcept override {
                 return "AttElementList";
             }
     };
@@ -1547,9 +1492,9 @@ namespace direct_bt {
                 if( uuid.getTypeSize() != jau::uuid_t::TypeSize::UUID16_SZ && uuid.getTypeSize()!= jau::uuid_t::TypeSize::UUID128_SZ ) {
                     throw jau::IllegalArgumentError("Only UUID16 and UUID128 allowed: "+uuid.toString(), E_FILE_LINE);
                 }
-                pdu.put_uint16(1, startHandle);
-                pdu.put_uint16(3, endHandle);
-                pdu.put_uuid(5, uuid);
+                pdu.put_uint16_nc(1, startHandle);
+                pdu.put_uint16_nc(3, endHandle);
+                pdu.put_uuid_nc(5, uuid);
                 check_range();
             }
 
@@ -1560,7 +1505,7 @@ namespace direct_bt {
 
             constexpr uint16_t getEndHandle() const noexcept { return pdu.get_uint16_nc( 1 + 2 /* 1 handle size */ ); }
 
-            std::string getName() const noexcept override {
+            std::string_view getName() const noexcept override {
                 return "AttReadByNTypeReq";
             }
 
@@ -1569,10 +1514,7 @@ namespace direct_bt {
             }
 
         protected:
-            std::string valueString() const noexcept override {
-                return "handle ["+jau::to_hexstring(getStartHandle())+".."+jau::to_hexstring(getEndHandle())+
-                       "], uuid "+getNType()->toString();
-            }
+            std::string valueString() const noexcept override;
     };
 
     /**
@@ -1616,8 +1558,8 @@ namespace direct_bt {
                     constexpr jau::nsize_t getValueSize() const noexcept { return view.size() - 2 /* handle size */; }
 
                     std::string toString() const {
-                        return "handle "+jau::to_hexstring(getHandle())+
-                               ", data "+jau::bytesHexString(getValuePtr(), 0, getValueSize(), true /* lsbFirst */);
+                        return "handle "+jau::toHexString(getHandle())+
+                               ", data "+jau::toHexString(getValuePtr(), getValueSize(), jau::lb_endian_t::little);
                     }
             };
 
@@ -1689,7 +1631,7 @@ namespace direct_bt {
                 return pdu.get_wptr() + getElementPDUOffset(elementIdx) + 2 /* handle size */;
             }
 
-            std::string getName() const noexcept override {
+            std::string_view getName() const noexcept override {
                 return "AttReadByTypeRsp";
             }
 
@@ -1820,16 +1762,12 @@ namespace direct_bt {
                 v.put(b + 0, jau::lb_endian_t::little);
             }
 
-            std::string getName() const noexcept override {
+            std::string_view getName() const noexcept override {
                 return "AttReadByGroupTypeRsp";
             }
 
         protected:
-            std::string elementString(const jau::nsize_t idx) const override {
-                Element e = getElement(idx);
-                return "handle ["+jau::to_hexstring(e.getStartHandle())+".."+jau::to_hexstring(e.getEndHandle())+
-                       "], data "+jau::bytesHexString(e.getValuePtr(), 0, e.getValueSize(), true /* lsbFirst */);
-            }
+            std::string elementString(const jau::nsize_t idx) const override;
     };
 
     /**
@@ -1855,8 +1793,8 @@ namespace direct_bt {
             AttFindInfoReq(const uint16_t startHandle, const uint16_t endHandle) noexcept
             : AttPDUFixedMsg(Opcode::FIND_INFORMATION_REQ)
             {
-                pdu.put_uint16(1, startHandle);
-                pdu.put_uint16(3, endHandle);
+                pdu.put_uint16_nc(1, startHandle);
+                pdu.put_uint16_nc(3, endHandle);
                 // check_range(); OK
             }
 
@@ -1867,14 +1805,12 @@ namespace direct_bt {
 
             constexpr uint16_t getEndHandle() const noexcept { return pdu.get_uint16_nc( 1 + 2 ); }
 
-            std::string getName() const noexcept override {
+            std::string_view getName() const noexcept override {
                 return "AttFindInfoReq";
             }
 
         protected:
-            std::string valueString() const noexcept override {
-                return "handle ["+jau::to_hexstring(getStartHandle())+".."+jau::to_hexstring(getEndHandle())+"]";
-            }
+            std::string valueString() const noexcept override;
     };
 
     /**
@@ -1936,7 +1872,7 @@ namespace direct_bt {
             {
                 checkOpcode(Opcode::FIND_INFORMATION_RSP);
                 check_range();
-                
+
                 if( getPDUValueSize() % getElementSize() != 0 ) {
                     throw AttValueException("AttFindInfoRsp: Invalid packet size: pdu-value-size "+std::to_string(getPDUValueSize())+
                             " not multiple of element-size "+std::to_string(getElementSize()), E_FILE_LINE);
@@ -2015,18 +1951,13 @@ namespace direct_bt {
                 v.put(b + 0, jau::lb_endian_t::little);
             }
 
-            std::string getName() const noexcept override {
+            std::string_view getName() const noexcept override {
                 return "AttFindInfoRsp";
             }
 
         protected:
-            std::string addValueString() const override { return "format "+std::to_string(pdu.get_uint8_nc(1))+", "; }
-
-            std::string elementString(const jau::nsize_t idx) const override {
-                Element e = getElement(idx);
-                return "handle "+jau::to_hexstring(e.handle)+
-                       ", uuid "+e.uuid.get()->toString();
-            }
+            std::string addValueString() const noexcept override;
+            std::string elementString(const jau::nsize_t idx) const override;
     };
 
     /**
@@ -2066,10 +1997,10 @@ namespace direct_bt {
                                   const jau::uuid16_t &att_type, const jau::uuid_t& att_value)
             : AttPDUFixedMsg(Opcode::FIND_BY_TYPE_VALUE_REQ, getPDUValueOffset()+att_value.getTypeSizeInt())
             {
-                pdu.put_uint16(1, startHandle);
-                pdu.put_uint16(1+2, endHandle);
-                pdu.put_uuid  (1+2+2, att_type);
-                pdu.put_uuid  (1+2+2+2, att_value);
+                pdu.put_uint16_nc(1, startHandle);
+                pdu.put_uint16_nc(1+2, endHandle);
+                pdu.put_uuid_nc  (1+2+2, att_type);
+                pdu.put_uuid_nc  (1+2+2+2, att_value);
                 check_range();
             }
 
@@ -2082,26 +2013,23 @@ namespace direct_bt {
 
             jau::uuid16_t getAttType() const noexcept { return pdu.get_uuid16_nc( 1 + 2 + 2 ); }
 
-            std::unique_ptr<const jau::uuid_t> getAttValue() const noexcept { 
+            std::unique_ptr<const jau::uuid_t> getAttValue() const noexcept {
                 try {
-                    return pdu.get_uuid(pdu_value_offset, getAttValueTypeSize()); 
+                    return pdu.get_uuid(pdu_value_offset, getAttValueTypeSize());
                 } catch (const jau::ExceptionBase &e) {
-                    ERR_PRINT("invalid att uuid: %s", e.brief_message().c_str());
+                    jau_ERR_PRINT("invalid att uuid: %s", e.brief_message());
                 } catch (...) {
-                    ERR_PRINT("invalid att uuid: Unknown exception");
+                    jau_ERR_PRINT("invalid att uuid: Unknown exception");
                 }
                 return std::make_unique<jau::uuid16_t>(0);
             }
 
-            std::string getName() const noexcept override {
+            std::string_view getName() const noexcept override {
                 return "AttFindByTypeValueReq";
             }
 
         protected:
-            std::string valueString() const noexcept override {
-                return "handle ["+jau::to_hexstring(getStartHandle())+".."+jau::to_hexstring(getEndHandle())+
-                       "], type "+getAttType().toString()+", value "+getAttValue()->toString();
-            }
+            std::string valueString() const noexcept override;
     };
 
     /**
@@ -2130,7 +2058,7 @@ namespace direct_bt {
             {
                 checkOpcode(Opcode::FIND_BY_TYPE_VALUE_RSP);
                 check_range();
-                
+
                 if( getPDUValueSize() % getElementSize() != 0 ) {
                     throw AttValueException("AttFindInfoRsp: Invalid packet size: pdu-value-size "+std::to_string(getPDUValueSize())+
                             " not multiple of element-size "+std::to_string(getElementSize()), E_FILE_LINE);
@@ -2167,14 +2095,16 @@ namespace direct_bt {
                 const jau::nsize_t element_length = getElementSize();
                 const jau::nsize_t new_size = getPDUValueOffset() + element_length * count;
                 if( pdu.size() < new_size ) {
-                    throw jau::IllegalArgumentError(getName()+": "+std::to_string(getPDUValueOffset())+
-                            " + element[len "+std::to_string(element_length)+
-                            " * count "+std::to_string(count)+" > pdu "+std::to_string(pdu.size()), E_FILE_LINE);
+                    const std::string m = jau_format_string("%s: %zu + element[len %zu * count %zu > pdu %zu",
+                        getName(), getPDUValueOffset(), element_length, count, pdu.size());
+                    throw jau::IllegalArgumentError(m, E_FILE_LINE);
                 }
                 resize( new_size );
                 if( getPDUValueSize() % getElementSize() != 0 ) {
-                    throw AttValueException(getName()+": Invalid packet size: pdu-value-size "+std::to_string(getPDUValueSize())+
-                            " not multiple of element-size "+std::to_string(getElementSize()), E_FILE_LINE);
+                    const std::string m = jau_format_string(
+                        "%s: Invalid packet size: pdu-value-size %zu not multiple of element-size %zu",
+                        getName(), getPDUValueSize(), getElementSize());
+                    throw AttValueException(m, E_FILE_LINE);
                 }
                 check_range();
             }
@@ -2214,27 +2144,13 @@ namespace direct_bt {
                 pdu.put_uint16( offset, handle_end );
             }
 
-            std::string getName() const noexcept override {
+            std::string_view getName() const noexcept override {
                 return "AttFindByTypeValueRsp";
             }
 
         protected:
-            std::string elementString(const jau::nsize_t idx) const {
-                return "handle["+jau::to_hexstring(getElementHandle(idx))+
-                       ".."+jau::to_hexstring(getElementHandleEnd(idx))+"]";
-            }
-
-            std::string valueString() const noexcept override {
-                std::string res = "size "+std::to_string(getPDUValueSize())+", elements[count "+std::to_string(getElementCount())+", "+
-                        "size "+std::to_string(getElementSize())+": ";
-                const jau::nsize_t count = getElementCount();
-                for(jau::nsize_t i=0; i<count; i++) {
-                    res += std::to_string(i)+"["+elementString(i)+"],";
-                }
-                res += "]";
-                return res;
-            }
-
+            std::string elementString(const jau::nsize_t idx) const;
+            std::string valueString() const noexcept override;
     };
 
     /**@}*/

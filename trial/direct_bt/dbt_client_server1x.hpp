@@ -22,7 +22,6 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include <iostream>
 #include <cassert>
 #include <cinttypes>
 #include <cstring>
@@ -102,13 +101,13 @@ class DBTClientServer1x {
         const int protocolSessionCount = std::min(server->getProtocolSessionsLeft(), client->getProtocolSessionsLeft());
         const jau::fraction_timespec t0 = jau::getMonotonicTime();
 
-        std::shared_ptr<BTManager> manager = BTManager::get();
+        const std::shared_ptr<BTManager>& manager = BTManager::get();
         {
             jau::darray<BTAdapterRef> adapters = manager->getAdapters();
-            jau::fprintf_td(stderr, "Adapter: Count %u\n", adapters.size());
+            jau_fprintf_td(stderr, "Adapter: Count %zu\n", adapters.size());
 
             for(jau::nsize_t i=0; i<adapters.size(); i++) {
-                jau::fprintf_td(stderr, "%u: %s\n", i, adapters[i]->toString().c_str());
+                jau_fprintf_td(stderr, "%zu: %s\n", i, adapters[i]->toString());
             }
             REQUIRE( adapters.size() >= 2 );
         }
@@ -158,12 +157,12 @@ class DBTClientServer1x {
                 parent.lastCompletedDevicePairingMode = device->getPairingMode();
                 parent.lastCompletedDeviceSecurityLevel = device->getConnSecurityLevel();
                 parent.lastCompletedDeviceEIR = *device->getEIR();
-                fprintf_td(stderr, "XXXXXX Client Ready: %s\n", device->toString(true).c_str());
+                jau_fprintf_td(stderr, "XXXXXX Client Ready: %s\n", device->toString(true));
                 if( parent.client_reset_at_ready ) {
                     parent.client_reset_at_ready = false;
-                    fprintf_td(stderr, "XXXXXX Client Reset.0: %s\n", device->toString(true).c_str());
+                    jau_fprintf_td(stderr, "XXXXXX Client Reset.0: %s\n", device->toString(true));
                     const HCIStatusCode rr = device->getAdapter().reset();
-                    fprintf_td(stderr, "XXXXXX Client Reset.X: %s: %s\n", direct_bt::to_string(rr).c_str(), device->toString(true).c_str());
+                    jau_fprintf_td(stderr, "XXXXXX Client Reset.X: %s: %s\n", rr, device->toString(true));
                 }
             }
 
@@ -208,17 +207,17 @@ class DBTClientServer1x {
         } while( !done && !max_connections_hit && !timeout );
         test_duration = ( jau::getMonotonicTime() - t0 ).to_fraction_i64();
 
-        fprintf_td(stderr, "\n\n");
-        fprintf_td(stderr, "****** Test Stats: duration %" PRIi64 " ms, timeout[hit %d, value %s sec], max_connections hit %d\n",
-                test_duration.to_ms(), timeout, timeout_value.to_string(true).c_str(), max_connections_hit);
-        fprintf_td(stderr, "  Server ProtocolSessions[success %d/%d total, requested %d], disconnects %d of %d max\n",
+        jau_fprintf_td(stderr, "\n\n");
+        jau_fprintf_td(stderr, "****** Test Stats: duration %" PRIi64 " ms, timeout[hit %d, value %s sec], max_connections hit %d\n",
+                test_duration.to_ms(), timeout, timeout_value.toString(true), max_connections_hit);
+        jau_fprintf_td(stderr, "  Server ProtocolSessions[success %d/%d total, requested %d], disconnects %d of %d max\n",
                 server->getProtocolSessionsDoneSuccess(), server->getProtocolSessionsDoneTotal(), protocolSessionCount,
                 server->getDisconnectCount(), ( protocolSessionCount * max_connections_per_session ));
-        fprintf_td(stderr, "  Client ProtocolSessions[success %d/%d total, requested %d], disconnects %d of %d max, power[down %d, up %d]\n",
+        jau_fprintf_td(stderr, "  Client ProtocolSessions[success %d/%d total, requested %d], disconnects %d of %d max, power[down %d, up %d]\n",
                 client->getProtocolSessionsDoneSuccess(), client->getProtocolSessionsDoneTotal(), protocolSessionCount,
                 client->getDisconnectCount(), ( protocolSessionCount * max_connections_per_session ),
                 client_power_down_count, client_power_up_count);
-        fprintf_td(stderr, "\n\n");
+        jau_fprintf_td(stderr, "\n\n");
 
         if( expSuccess ) {
             REQUIRE( false == max_connections_hit );
@@ -289,7 +288,7 @@ class DBTClientServer1x {
             //
             {
                 const std::lock_guard<std::mutex> lock(mtx_sync); // RAII-style acquire and relinquish via destructor
-                fprintf_td(stderr, "lastCompletedDevice.connectedEIR: %s\n", lastCompletedDeviceEIR.toString().c_str());
+                jau_fprintf_td(stderr, "lastCompletedDevice.connectedEIR: %s\n", lastCompletedDeviceEIR);
                 REQUIRE( EIRDataType::NONE != lastCompletedDeviceEIR.getEIRDataMask() );
                 REQUIRE( true == lastCompletedDeviceEIR.isSet(EIRDataType::FLAGS) );
                 REQUIRE( true == lastCompletedDeviceEIR.isSet(EIRDataType::SERVICE_UUID) );
@@ -298,7 +297,7 @@ class DBTClientServer1x {
                 REQUIRE( serverName == lastCompletedDeviceEIR.getName() );
                 {
                     const EInfoReport eir = *lastCompletedDevice->getEIR();
-                    fprintf_td(stderr, "lastCompletedDevice.currentEIR: %s\n", eir.toString().c_str());
+                    jau_fprintf_td(stderr, "lastCompletedDevice.currentEIR: %s\n", eir);
                     REQUIRE( EIRDataType::NONE == eir.getEIRDataMask() );
                     REQUIRE( 0 == eir.getName().length());
                 }
@@ -319,6 +318,6 @@ class DBTClientServer1x {
             }
         }
         const BTManager::size_type count = manager->removeChangedAdapterSetCallback(myChangedAdapterSetFunc);
-        fprintf_td(stderr, "****** EOL Removed ChangedAdapterSetCallback %zu\n", (size_t)count);
+        jau_fprintf_td(stderr, "****** EOL Removed ChangedAdapterSetCallback %zu\n", (size_t)count);
     }
 };

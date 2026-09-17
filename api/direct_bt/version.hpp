@@ -1,6 +1,6 @@
 /*
  * Author: Sven Gothel <sgothel@jausoft.com>
- * Copyright (c) 2020 Gothel Software e.K.
+ * Copyright (c) 2020-2026 Gothel Software e.K.
  * Copyright (c) 2020 ZAFENA AB
  *
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -33,7 +33,7 @@
  *  @{
  */
 
-extern const jau::util::VersionNumber DIRECT_BT_VERSION;
+extern const jau::util::VersionNumberString DIRECT_BT_VERSION;
 extern const char* DIRECT_BT_VERSION_SHORT;
 extern const char* DIRECT_BT_VERSION_API;
 

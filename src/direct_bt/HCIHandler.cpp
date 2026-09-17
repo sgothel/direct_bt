@@ -1,6 +1,6 @@
 /*
  * Author: Sven Gothel <sgothel@jausoft.com>
- * Copyright (c) 2020 Gothel Software e.K.
+ * Copyright (c) 2020-2026 Gothel Software e.K.
  * Copyright (c) 2020 ZAFENA AB
  *
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -43,12 +43,13 @@
 #include "HCIComm.hpp"
 #include "HCIHandler.hpp"
 #include "DBTConst.hpp"
+#include "jau/byte_util.hpp"
+#include "jau/cpp_lang_util.hpp"
 
 extern "C" {
     #include <inttypes.h>
     #include <unistd.h>
     #include <poll.h>
-    #include <signal.h>
     #ifdef __linux__
         #include <sys/ioctl.h>
     #endif
@@ -97,15 +98,13 @@ HCIHandler::HCIConnectionRef HCIHandler::addOrUpdateHCIConnection(jau::darray<HC
         HCIConnectionRef conn = *it;
         if ( conn->equals(addressAndType) ) {
             // reuse same entry
-            WORDY_PRINT("HCIHandler<%hu>::addTrackerConnection: address%s, handle %s: reuse entry %s - %s",
-               dev_id, addressAndType.toString().c_str(), jau::to_hexstring(handle).c_str(),
-               conn->toString().c_str(), toString().c_str());
+            jau_WORDY_PRINT("HCIHandler<%hu>::addTrackerConnection: address%s, handle %#x: reuse entry %s - %s",
+               dev_id, addressAndType, handle, conn->toString(), toString());
             // Overwrite tracked connection handle with given _valid_ handle only, i.e. non zero!
             if( 0 != handle ) {
                 if( 0 != conn->getHandle() && handle != conn->getHandle() ) {
-                    WARN_PRINT("address%s, handle %s: reusing entry %s, overwriting non-zero handle - %s",
-                       addressAndType.toString().c_str(), jau::to_hexstring(handle).c_str(),
-                       conn->toString().c_str(), toString().c_str());
+                    jau_WARN_PRINT("address%s, handle %#x: reusing entry %s, overwriting non-zero handle - %s",
+                       addressAndType, handle, conn->toString(), toString());
                 }
                 conn->setHandle( handle );
             }
@@ -116,9 +115,10 @@ HCIHandler::HCIConnectionRef HCIHandler::addOrUpdateHCIConnection(jau::darray<HC
         HCIConnectionRef res( std::make_shared<HCIConnection>(addressAndType, handle) );
         list.push_back( res );
         return res;
-    } catch (const std::bad_alloc &e) {
-        ABORT("Error: bad_alloc: HCIConnectionRef allocation failed");
-        return nullptr; // unreachable
+    } catch (...) {
+        jau::fput_exception(stderr, std::current_exception(), E_FILE_LINE);
+        jau_ERR_PRINT3("Exception occurred while adding or updating connection address%s, handle %#x for %s", addressAndType, handle, toString());
+        return nullptr;
     }
 }
 
@@ -188,10 +188,10 @@ void HCIHandler::dumpHCIConnections(const char *msg, jau::darray<HCIConnectionRe
     const std::lock_guard<std::recursive_mutex> lock(mtx_connectionList); // RAII-style acquire and relinquish via destructor
     auto end = list.end();
     size_t i=0;
-    jau::PLAIN_PRINT(true, "%s: %zu items", msg, list.size());
+    jau_PLAIN_PRINT(true, "%s: %zu items", msg, list.size());
     for (auto it = list.begin(); it != end; ++it) {
         HCIConnectionRef e = *it;
-        jau::PLAIN_PRINT(true, "- %02zu: %s", i++, e->toString().c_str());
+        jau_PLAIN_PRINT(true, "- %02zu: %s", i++, e->toString());
     }
 }
 
@@ -226,11 +226,11 @@ std::unique_ptr<MgmtEvent> HCIHandler::translate(HCIEvent& ev) noexcept {
                 HCIStatusCode status;
                 const hci_ev_le_conn_complete * ev_cc = getMetaReplyStruct<hci_ev_le_conn_complete>(ev, mevt, &status);
                 if( nullptr == ev_cc ) {
-                    ERR_PRINT("LE_CONN_COMPLETE: Null reply-struct: %s - %s", ev.toString().c_str(), toString().c_str());
+                    jau_ERR_PRINT("LE_CONN_COMPLETE: Null reply-struct: %s - %s", ev.toString(), toString());
                     return nullptr;
                 }
                 const HCILEPeerAddressType hciAddrType = static_cast<HCILEPeerAddressType>(ev_cc->bdaddr_type);
-                const BDAddressAndType addressAndType(jau::le_to_cpu(ev_cc->bdaddr), to_BDAddressType(hciAddrType));
+                const BDAddressAndType addressAndType(jau::io::net::le_to_cpu(ev_cc->bdaddr), to_BDAddressType(hciAddrType));
                 const uint16_t handle = jau::le_to_cpu(ev_cc->handle);
                 const HCIConnectionRef conn = addOrUpdateTrackerConnection(addressAndType, handle);
                 if( HCIStatusCode::SUCCESS == status ) {
@@ -245,7 +245,7 @@ std::unique_ptr<MgmtEvent> HCIHandler::translate(HCIEvent& ev) noexcept {
                 const HCILELTKReqEvent & ev2 = *static_cast<const HCILELTKReqEvent*>( &ev );
                 const HCIConnectionRef conn = findTrackerConnection(ev2.getHandle());
                 if( nullptr == conn ) {
-                    WARN_PRINT("dev_id %u: LE_LTK_REQUEST: Not tracked conn_handle of %s", dev_id, ev2.toString().c_str());
+                    jau_WARN_PRINT("dev_id %u: LE_LTK_REQUEST: Not tracked conn_handle of %s", dev_id, ev2.toString());
                     return nullptr;
                 }
                 return std::make_unique<MgmtEvtHCILELTKReq>(dev_id, conn->getAddressAndType(), ev2.getRand(), ev2.getEDIV());
@@ -254,11 +254,11 @@ std::unique_ptr<MgmtEvent> HCIHandler::translate(HCIEvent& ev) noexcept {
                 HCIStatusCode status;
                 const hci_ev_le_enh_conn_complete * ev_cc = getMetaReplyStruct<hci_ev_le_enh_conn_complete>(ev, mevt, &status);
                 if( nullptr == ev_cc ) {
-                    ERR_PRINT("LE_EXT_CONN_COMPLETE: Null reply-struct: %s - %s", ev.toString().c_str(), toString().c_str());
+                    jau_ERR_PRINT("LE_EXT_CONN_COMPLETE: Null reply-struct: %s - %s", ev.toString(), toString());
                     return nullptr;
                 }
                 const HCILEPeerAddressType hciAddrType = static_cast<HCILEPeerAddressType>(ev_cc->bdaddr_type);
-                const BDAddressAndType addressAndType(jau::le_to_cpu(ev_cc->bdaddr), to_BDAddressType(hciAddrType));
+                const BDAddressAndType addressAndType(jau::io::net::le_to_cpu(ev_cc->bdaddr), to_BDAddressType(hciAddrType));
                 const uint16_t handle = jau::le_to_cpu(ev_cc->handle);
                 const HCIConnectionRef conn = addOrUpdateTrackerConnection(addressAndType, handle);
                 if( HCIStatusCode::SUCCESS == status ) {
@@ -273,15 +273,15 @@ std::unique_ptr<MgmtEvent> HCIHandler::translate(HCIEvent& ev) noexcept {
                 HCIStatusCode status;
                 const hci_ev_le_remote_feat_complete * ev_cc = getMetaReplyStruct<hci_ev_le_remote_feat_complete>(ev, mevt, &status);
                 if( nullptr == ev_cc ) {
-                    ERR_PRINT("LE_REMOTE_FEAT_COMPLETE: Null reply-struct: %s - %s", ev.toString().c_str(), toString().c_str());
+                    jau_ERR_PRINT("LE_REMOTE_FEAT_COMPLETE: Null reply-struct: %s - %s", ev.toString(), toString());
                     return nullptr;
                 }
                 const uint16_t handle = jau::le_to_cpu(ev_cc->handle);
                 const LE_Features features = static_cast<LE_Features>(jau::get_uint64(ev_cc->features + 0, jau::lb_endian_t::little));
                 const HCIConnectionRef conn = findTrackerConnection(handle);
                 if( nullptr == conn ) {
-                    WARN_PRINT("dev_id %u:: LE_REMOTE_FEAT_COMPLETE: Not tracked conn_handle %s of %s",
-                            dev_id, jau::to_hexstring(handle).c_str(), ev.toString().c_str());
+                    jau_WARN_PRINT("dev_id %u:: LE_REMOTE_FEAT_COMPLETE: Not tracked conn_handle %s of %s",
+                            dev_id, jau::toHexString(handle), ev.toString());
                     return nullptr;
                 }
                 return std::make_unique<MgmtEvtHCILERemoteFeatures>(dev_id, conn->getAddressAndType(), status, features);
@@ -296,7 +296,7 @@ std::unique_ptr<MgmtEvent> HCIHandler::translate(HCIEvent& ev) noexcept {
                 } __packed;
                 const le_phy_update_complete * ev_cc = getMetaReplyStruct<le_phy_update_complete>(ev, mevt, &status);
                 if( nullptr == ev_cc ) {
-                    ERR_PRINT("LE_PHY_UPDATE_COMPLETE: Null reply-struct: %s - %s", ev.toString().c_str(), toString().c_str());
+                    jau_ERR_PRINT("LE_PHY_UPDATE_COMPLETE: Null reply-struct: %s - %s", ev.toString(), toString());
                     return nullptr;
                 }
                 const uint16_t handle = jau::le_to_cpu(ev_cc->handle);
@@ -304,8 +304,8 @@ std::unique_ptr<MgmtEvent> HCIHandler::translate(HCIEvent& ev) noexcept {
                 const LE_PHYs Rx = static_cast<LE_PHYs>(ev_cc->rx);
                 const HCIConnectionRef conn = findTrackerConnection(handle);
                 if( nullptr == conn ) {
-                    WARN_PRINT("dev_id %u:: LE_PHY_UPDATE_COMPLETE: Not tracked conn_handle %s of %s",
-                            dev_id, jau::to_hexstring(handle).c_str(), ev.toString().c_str());
+                    jau_WARN_PRINT("dev_id %u:: LE_PHY_UPDATE_COMPLETE: Not tracked conn_handle %s of %s",
+                            dev_id, jau::toHexString(handle), ev.toString());
                     return nullptr;
                 }
                 return std::make_unique<MgmtEvtHCILEPhyUpdateComplete>(dev_id, conn->getAddressAndType(), status, Tx, Rx);
@@ -319,10 +319,10 @@ std::unique_ptr<MgmtEvent> HCIHandler::translate(HCIEvent& ev) noexcept {
             HCIStatusCode status;
             const hci_ev_conn_complete * ev_cc = getReplyStruct<hci_ev_conn_complete>(ev, evt, &status);
             if( nullptr == ev_cc ) {
-                ERR_PRINT("CONN_COMPLETE: Null reply-struct: %s - %s", ev.toString().c_str(), toString().c_str());
+                jau_ERR_PRINT("CONN_COMPLETE: Null reply-struct: %s - %s", ev.toString(), toString());
                 return nullptr;
             }
-            const BDAddressAndType addressAndType(jau::le_to_cpu(ev_cc->bdaddr), BDAddressType::BDADDR_BREDR);
+            const BDAddressAndType addressAndType(jau::io::net::le_to_cpu(ev_cc->bdaddr), BDAddressType::BDADDR_BREDR);
             HCIConnectionRef conn = addOrUpdateTrackerConnection(addressAndType, ev_cc->handle);
             if( HCIStatusCode::SUCCESS == status ) {
                 advertisingEnabled = false;
@@ -342,21 +342,20 @@ std::unique_ptr<MgmtEvent> HCIHandler::translate(HCIEvent& ev) noexcept {
             HCIStatusCode status;
             const hci_ev_disconn_complete * ev_cc = getReplyStruct<hci_ev_disconn_complete>(ev, evt, &status);
             if( nullptr == ev_cc ) {
-                ERR_PRINT("DISCONN_COMPLETE: Null reply-struct: %s - %s", ev.toString().c_str(), toString().c_str());
+                jau_ERR_PRINT("DISCONN_COMPLETE: Null reply-struct: %s - %s", ev.toString(), toString());
                 return nullptr;
             }
             removeDisconnectCmd(ev_cc->handle);
             HCIConnectionRef conn = removeTrackerConnection(ev_cc->handle);
             if( nullptr == conn ) {
-                WORDY_PRINT("HCIHandler<%hu>::translate(evt): DISCONN_COMPLETE: Not tracked handle %s: %s of %s",
-                        dev_id, jau::to_hexstring(ev_cc->handle).c_str(), ev.toString().c_str(), toString().c_str());
+                jau_WORDY_PRINT("HCIHandler<%hu>::translate(evt): DISCONN_COMPLETE: Not tracked handle %s: %s of %s",
+                        dev_id, jau::toHexString(ev_cc->handle), ev.toString(), toString());
                 return nullptr;
             } else {
                 if( HCIStatusCode::SUCCESS != status ) {
                     // FIXME: Ever occuring? Still sending out essential disconnect event!
-                    ERR_PRINT("DISCONN_COMPLETE: !SUCCESS[%s, %s], %s: %s - %s",
-                            jau::to_hexstring(static_cast<uint8_t>(status)).c_str(), to_string(status).c_str(),
-                            conn->toString().c_str(), ev.toString().c_str(), toString().c_str());
+                    jau_ERR_PRINT("DISCONN_COMPLETE: !SUCCESS[%s, %s], %s: %s - %s",
+                            jau::toHexString(static_cast<uint8_t>(status)), to_string(status), conn->toString(), ev.toString(), toString());
                 }
                 const HCIStatusCode hciRootReason = static_cast<HCIStatusCode>(ev_cc->reason);
                 return std::make_unique<MgmtEvtDeviceDisconnected>(dev_id, conn->getAddressAndType(), hciRootReason, conn->getHandle());
@@ -366,14 +365,14 @@ std::unique_ptr<MgmtEvent> HCIHandler::translate(HCIEvent& ev) noexcept {
             HCIStatusCode status;
             const hci_ev_encrypt_change * ev_cc = getReplyStruct<hci_ev_encrypt_change>(ev, evt, &status);
             if( nullptr == ev_cc ) {
-                ERR_PRINT("ENCRYPT_CHANGE: Null reply-struct: %s - %s", ev.toString().c_str(), toString().c_str());
+                jau_ERR_PRINT("ENCRYPT_CHANGE: Null reply-struct: %s - %s", ev.toString(), toString());
                 return nullptr;
             }
             const uint16_t handle = jau::le_to_cpu(ev_cc->handle);
             const HCIConnectionRef conn = findTrackerConnection(handle);
             if( nullptr == conn ) {
-                WARN_PRINT("dev_id %u:: ENCRYPT_CHANGE: Not tracked conn_handle %s of %s",
-                        dev_id, jau::to_hexstring(handle).c_str(), ev.toString().c_str());
+                jau_WARN_PRINT("dev_id %u:: ENCRYPT_CHANGE: Not tracked conn_handle %s of %s",
+                        dev_id, jau::toHexString(handle), ev.toString());
                 return nullptr;
             }
             return std::make_unique<MgmtEvtHCIEncryptionChanged>(dev_id, conn->getAddressAndType(), status, ev_cc->encrypt);
@@ -382,14 +381,14 @@ std::unique_ptr<MgmtEvent> HCIHandler::translate(HCIEvent& ev) noexcept {
             HCIStatusCode status;
             const hci_ev_key_refresh_complete * ev_cc = getReplyStruct<hci_ev_key_refresh_complete>(ev, evt, &status);
             if( nullptr == ev_cc ) {
-                ERR_PRINT("ENCRYPT_KEY_REFRESH_COMPLETE: Null reply-struct: %s - %s", ev.toString().c_str(), toString().c_str());
+                jau_ERR_PRINT("ENCRYPT_KEY_REFRESH_COMPLETE: Null reply-struct: %s - %s", ev.toString(), toString());
                 return nullptr;
             }
             const uint16_t handle = jau::le_to_cpu(ev_cc->handle);
             const HCIConnectionRef conn = findTrackerConnection(handle);
             if( nullptr == conn ) {
-                WARN_PRINT("dev_id %u:: ENCRYPT_KEY_REFRESH_COMPLETE: Not tracked conn_handle %s of %s",
-                        dev_id, jau::to_hexstring(handle).c_str(), ev.toString().c_str());
+                jau_WARN_PRINT("dev_id %u:: ENCRYPT_KEY_REFRESH_COMPLETE: Not tracked conn_handle %s of %s",
+                        dev_id, jau::toHexString(handle), ev.toString());
                 return nullptr;
             }
             return std::make_unique<MgmtEvtHCIEncryptionKeyRefreshComplete>(dev_id, conn->getAddressAndType(), status);
@@ -409,7 +408,7 @@ std::unique_ptr<MgmtEvent> HCIHandler::translate(HCICommand& ev) noexcept {
             const HCILEEnableEncryptionCmd & ev2 = *static_cast<const HCILEEnableEncryptionCmd*>( &ev );
             const HCIConnectionRef conn = findTrackerConnection(ev2.getHandle());
             if( nullptr == conn ) {
-                WARN_PRINT("dev_id %u:: LE_ENABLE_ENC: Not tracked conn_handle %s", dev_id, ev2.toString().c_str());
+                jau_WARN_PRINT("dev_id %u:: LE_ENABLE_ENC: Not tracked conn_handle %s", dev_id, ev2.toString());
                 return nullptr;
             }
             return std::make_unique<MgmtEvtHCILEEnableEncryptionCmd>(dev_id, conn->getAddressAndType(),
@@ -419,7 +418,7 @@ std::unique_ptr<MgmtEvent> HCIHandler::translate(HCICommand& ev) noexcept {
             const HCILELTKReplyAckCmd & ev2 = *static_cast<const HCILELTKReplyAckCmd*>( &ev );
             const HCIConnectionRef conn = findTrackerConnection(ev2.getHandle());
             if( nullptr == conn ) {
-                WARN_PRINT("dev_id %u:: LE_LTK_REPLY_ACK: Not tracked conn_handle %s", dev_id, ev2.toString().c_str());
+                jau_WARN_PRINT("dev_id %u:: LE_LTK_REPLY_ACK: Not tracked conn_handle %s", dev_id, ev2.toString());
                 return nullptr;
             }
             return std::make_unique<MgmtEvtHCILELTKReplyAckCmd>(dev_id, conn->getAddressAndType(), ev2.getLTK());
@@ -428,7 +427,7 @@ std::unique_ptr<MgmtEvent> HCIHandler::translate(HCICommand& ev) noexcept {
             const HCILELTKReplyRejCmd & ev2 = *static_cast<const HCILELTKReplyRejCmd*>( &ev );
             const HCIConnectionRef conn = findTrackerConnection(ev2.getHandle());
             if( nullptr == conn ) {
-                WARN_PRINT("dev_id %u:: LE_LTK_REPLY_REJ: Not tracked conn_handle %s", dev_id, ev2.toString().c_str());
+                jau_WARN_PRINT("dev_id %u:: LE_LTK_REPLY_REJ: Not tracked conn_handle %s", dev_id, ev2.toString());
                 return nullptr;
             }
             return std::make_unique<MgmtEvtHCILELTKReplyRejCmd>(dev_id, conn->getAddressAndType());
@@ -438,7 +437,7 @@ std::unique_ptr<MgmtEvent> HCIHandler::translate(HCICommand& ev) noexcept {
     }
 }
 
-std::unique_ptr<const SMPPDUMsg> HCIHandler::getSMPPDUMsg(const HCIACLData::l2cap_frame & l2cap, const uint8_t * l2cap_data) const noexcept {
+std::unique_ptr<const SMPPDUMsg> HCIHandler::getSMPPDUMsg(const L2CapFrame & l2cap, const uint8_t * l2cap_data) const noexcept {
     if( nullptr != l2cap_data && 0 < l2cap.len && l2cap.isSMP() ) {
         return SMPPDUMsg::getSpecialized(l2cap_data, l2cap.len);
     }
@@ -449,7 +448,7 @@ void HCIHandler::hciReaderWork(jau::service_runner& sr) noexcept {
     jau::snsize_t len;
     if( !isOpen() ) {
         // not open
-        ERR_PRINT("Not connected %s", toString().c_str());
+        jau_ERR_PRINT("Not connected %s", toString());
         sr.set_shall_stop();
         return;
     }
@@ -465,31 +464,30 @@ void HCIHandler::hciReaderWork(jau::service_runner& sr) noexcept {
             if( nullptr == acldata ) {
                 // not valid acl-data ...
                 if( jau::environment::get().verbose ) {
-                    WARN_PRINT("dev_id %u: IO RECV Drop ACL (non-acl-data) %s - %s",
-                            dev_id, jau::bytesHexString(rbuffer.get_ptr(), 0, len2, true /* lsbFirst*/).c_str(), toString().c_str());
+                    jau_WARN_PRINT("dev_id %u: IO RECV Drop ACL (non-acl-data) %s - %s",
+                            dev_id, jau::toHexString(rbuffer.get_ptr(), len2, jau::lb_endian_t::little), toString());
                 }
                 return;
             }
             const uint8_t* l2cap_data = nullptr; // owned by acldata
-            HCIACLData::l2cap_frame l2cap = acldata->getL2CAPFrame(l2cap_data);
+            L2CapFrame l2cap = acldata->getL2CapFrame(l2cap_data);
             std::unique_ptr<const SMPPDUMsg> smpPDU = getSMPPDUMsg(l2cap, l2cap_data);
             if( nullptr != smpPDU ) {
                 HCIConnectionRef conn = findTrackerConnection(l2cap.handle);
 
                 if( nullptr != conn ) {
-                    COND_PRINT(env.DEBUG_EVENT, "HCIHandler<%hu>-IO RECV ACL (SMP) %s for %s",
-                            dev_id, smpPDU->toString().c_str(), conn->toString().c_str());
+                    jau_COND_PRINT(env.DEBUG_EVENT, "HCIHandler<%hu>-IO RECV ACL (SMP) %s for %s",
+                            dev_id, smpPDU->toString(), conn->toString());
                     jau::for_each_fidelity(hciSMPMsgCallbackList, [&](HCISMPMsgCallback &cb) {
                        cb(conn->getAddressAndType(), *smpPDU, l2cap);
                     });
                 } else {
-                    WARN_PRINT("dev_id %u: IO RECV ACL Drop (SMP): Not tracked conn_handle %s: %s, %s",
-                            dev_id, jau::to_hexstring(l2cap.handle).c_str(),
-                            l2cap.toString().c_str(), smpPDU->toString().c_str());
+                    jau_WARN_PRINT("dev_id %u: IO RECV ACL Drop (SMP): Not tracked conn_handle %s: %s, %s",
+                            dev_id, jau::toHexString(l2cap.handle), l2cap.toString(), smpPDU->toString());
                 }
             } else if( !l2cap.isGATT() ) { // ignore handled GATT packages
-                COND_PRINT(env.DEBUG_EVENT, "HCIHandler<%hu>-IO RECV ACL Drop (L2CAP): ???? %s",
-                        dev_id, acldata->toString(l2cap, l2cap_data).c_str());
+                jau_COND_PRINT(env.DEBUG_EVENT, "HCIHandler<%hu>-IO RECV ACL Drop (L2CAP): ???? %s",
+                        dev_id, acldata->toString(l2cap, l2cap_data));
             }
             return;
         }
@@ -499,23 +497,23 @@ void HCIHandler::hciReaderWork(jau::service_runner& sr) noexcept {
             std::unique_ptr<HCICommand> event = HCICommand::getSpecialized(rbuffer.get_ptr(), len2);
             if( nullptr == event ) {
                 // not a valid event ...
-                ERR_PRINT("IO RECV CMD Drop (non-command) %s - %s",
-                        jau::bytesHexString(rbuffer.get_ptr(), 0, len2, true /* lsbFirst*/).c_str(), toString().c_str());
+                jau_ERR_PRINT("IO RECV CMD Drop (non-command) %s - %s",
+                        jau::toHexString(rbuffer.get_ptr(), len2, jau::lb_endian_t::little), toString());
                 return;
             }
             std::unique_ptr<MgmtEvent> mevent = translate(*event);
             if( nullptr != mevent ) {
-                COND_PRINT(env.DEBUG_EVENT, "HCIHandler<%hu>-IO RECV CMD (CB) %s\n    -> %s", dev_id, event->toString().c_str(), mevent->toString().c_str());
+                jau_COND_PRINT(env.DEBUG_EVENT, "HCIHandler<%hu>-IO RECV CMD (CB) %s\n    -> %s", dev_id, event->toString(), mevent->toString());
                 sendMgmtEvent( *mevent );
             } else {
-                COND_PRINT(env.DEBUG_EVENT, "HCIHandler<%hu>-IO RECV CMD Drop (no translation) %s", dev_id, event->toString().c_str());
+                jau_COND_PRINT(env.DEBUG_EVENT, "HCIHandler<%hu>-IO RECV CMD Drop (no translation) %s", dev_id, event->toString());
             }
             return;
         }
 
         if( HCIPacketType::EVENT != pc ) {
-            WARN_PRINT("dev_id %u: IO RECV EVT Drop (not event, nor command, nor acl-data) %s - %s",
-                    dev_id, jau::bytesHexString(rbuffer.get_ptr(), 0, len2, true /* lsbFirst*/).c_str(), toString().c_str());
+            jau_WARN_PRINT("dev_id %u: IO RECV EVT Drop (not event, nor command, nor acl-data) %s - %s",
+                    dev_id, jau::toHexString(rbuffer.get_ptr(), len2, jau::lb_endian_t::little), toString());
             return;
         }
 
@@ -523,29 +521,29 @@ void HCIHandler::hciReaderWork(jau::service_runner& sr) noexcept {
         std::unique_ptr<HCIEvent> event = HCIEvent::getSpecialized(rbuffer.get_ptr(), len2);
         if( nullptr == event ) {
             // not a valid event ...
-            ERR_PRINT("IO RECV EVT Drop (non-event) %s - %s",
-                    jau::bytesHexString(rbuffer.get_ptr(), 0, len2, true /* lsbFirst*/).c_str(), toString().c_str());
+            jau_ERR_PRINT("IO RECV EVT Drop (non-event) %s - %s",
+                    jau::toHexString(rbuffer.get_ptr(), len2, jau::lb_endian_t::little), toString());
             return;
         }
 
         const HCIMetaEventType mec = event->getMetaEventType();
         if( HCIMetaEventType::INVALID != mec && !filter_test_metaev(mec) ) {
             // DROP
-            COND_PRINT(env.DEBUG_EVENT, "HCIHandler<%hu>-IO RECV EVT Drop (meta filter) %s", dev_id, event->toString().c_str());
+            jau_COND_PRINT(env.DEBUG_EVENT, "HCIHandler<%hu>-IO RECV EVT Drop (meta filter) %s", dev_id, event->toString());
             return; // next packet
         }
 
         if( event->isEvent(HCIEventType::CMD_STATUS) || event->isEvent(HCIEventType::CMD_COMPLETE) )
         {
-            COND_PRINT(env.DEBUG_EVENT, "HCIHandler<%hu>-IO RECV EVT (CMD REPLY) %s", dev_id, event->toString().c_str());
+            jau_COND_PRINT(env.DEBUG_EVENT, "HCIHandler<%hu>-IO RECV EVT (CMD REPLY) %s", dev_id, event->toString());
             if( hciEventRing.isFull() ) {
                 const jau::nsize_t dropCount = hciEventRing.capacity()/4;
                 hciEventRing.drop(dropCount);
-                WARN_PRINT("dev_id %u: IO RECV Drop (%u oldest elements of %u capacity, ring full) - %s",
-                        dev_id, dropCount, hciEventRing.capacity(), toString().c_str());
+                jau_WARN_PRINT("dev_id %u: IO RECV Drop (%zu oldest elements of %zu capacity, ring full) - %s",
+                        dev_id, dropCount, hciEventRing.capacity(), toString());
             }
             if( !hciEventRing.putBlocking( std::move( event ), jau::fractions_i64::zero ) ) {
-                ERR_PRINT2("hciEventRing put: %s", hciEventRing.toString().c_str());
+                jau_ERR_PRINT2("hciEventRing put: %s", hciEventRing.toString());
                 sr.set_shall_stop();
                 return;
             }
@@ -554,8 +552,8 @@ void HCIHandler::hciReaderWork(jau::service_runner& sr) noexcept {
             jau::darray<std::unique_ptr<EInfoReport>> eirlist = EInfoReport::read_ad_reports(event->getParam(), event->getParamSize());
             for(jau::nsize_t eircount = 0; eircount < eirlist.size(); ++eircount) {
                 const MgmtEvtDeviceFound e(dev_id, std::move( eirlist[eircount] ) );
-                COND_PRINT(env.DEBUG_SCAN_AD_EIR, "HCIHandler<%hu>-IO RECV EVT (AD EIR) [%d] %s",
-                        dev_id, eircount, e.getEIR()->toString().c_str());
+                jau_COND_PRINT(env.DEBUG_SCAN_AD_EIR, "HCIHandler<%hu>-IO RECV EVT (AD EIR) [%zu] %s",
+                        dev_id, eircount, e.getEIR()->toString());
                 sendMgmtEvent( e );
             }
         } else if( event->isMetaEvent(HCIMetaEventType::LE_EXT_ADV_REPORT) ) {
@@ -563,62 +561,61 @@ void HCIHandler::hciReaderWork(jau::service_runner& sr) noexcept {
             jau::darray<std::unique_ptr<EInfoReport>> eirlist = EInfoReport::read_ext_ad_reports(event->getParam(), event->getParamSize());
             for(jau::nsize_t eircount = 0; eircount < eirlist.size(); ++eircount) {
                 const MgmtEvtDeviceFound e(dev_id, std::move( eirlist[eircount] ) );
-                COND_PRINT(env.DEBUG_SCAN_AD_EIR, "HCIHandler<%hu>-IO RECV EVT (EAD EIR (ext)) [%d] %s",
-                        dev_id, eircount, e.getEIR()->toString().c_str());
+                jau_COND_PRINT(env.DEBUG_SCAN_AD_EIR, "HCIHandler<%hu>-IO RECV EVT (EAD EIR (ext)) [%zu] %s",
+                        dev_id, eircount, e.getEIR()->toString());
                 sendMgmtEvent( e );
             }
         } else {
             // issue a callback for the translated event
             std::unique_ptr<MgmtEvent> mevent = translate(*event);
             if( nullptr != mevent ) {
-                COND_PRINT(env.DEBUG_EVENT, "HCIHandler<%hu>-IO RECV EVT (CB) %s\n    -> %s", dev_id, event->toString().c_str(), mevent->toString().c_str());
+                jau_COND_PRINT(env.DEBUG_EVENT, "HCIHandler<%hu>-IO RECV EVT (CB) %s\n    -> %s", dev_id, event->toString(), mevent->toString());
                 sendMgmtEvent( *mevent );
             } else {
-                COND_PRINT(env.DEBUG_EVENT, "HCIHandler<%hu>-IO RECV EVT Drop (no translation) %s", dev_id, event->toString().c_str());
+                jau_COND_PRINT(env.DEBUG_EVENT, "HCIHandler<%hu>-IO RECV EVT Drop (no translation) %s", dev_id, event->toString());
             }
         }
     } else if( 0 > len && ETIMEDOUT != errno && !comm.interrupted() ) { // expected exits
-        ERR_PRINT("HCIComm read: Error res %d, %s", len, toString().c_str());
+        jau_ERR_PRINT("HCIComm read: Error res %zd, %s", len, toString());
         // Keep alive - sr.set_shall_stop();
     } else if( ETIMEDOUT != errno && !comm.interrupted() ) { // expected TIMEOUT if idle
-        WORDY_PRINT("HCIHandler<%hu>::reader: HCIComm read: IRQed res %d, %s", dev_id, len, toString().c_str());
+        jau_WORDY_PRINT("HCIHandler<%hu>::reader: HCIComm read: IRQed res %zd, %s", dev_id, len, toString());
     }
 }
 
 void HCIHandler::hciReaderEndLocked(jau::service_runner& sr) noexcept {
     (void)sr;
-    WORDY_PRINT("HCIHandler<%hu>::reader: Ended. Ring has %u entries flushed - %s", dev_id, hciEventRing.size(), toString().c_str());
+    jau_WORDY_PRINT("HCIHandler<%hu>::reader: Ended. Ring has %zu entries flushed - %s", dev_id, hciEventRing.size(), toString());
     hciEventRing.clear();
 }
 
 
 void HCIHandler::sendMgmtEvent(const MgmtEvent& event) noexcept {
     MgmtEventCallbackList & mgmtEventCallbackList = mgmtEventCallbackLists[static_cast<uint16_t>(event.getOpcode())];
-    int invokeCount = 0;
+    size_t invokeCount = 0;
 
     jau::for_each_fidelity(mgmtEventCallbackList, [&](MgmtEventCallback &cb) {
         try {
             cb(event);
         } catch (std::exception &e) {
-            ERR_PRINT("CBs %d/%zd: MgmtEventCallback %s : Caught exception %s - %s",
-                    invokeCount+1, mgmtEventCallbackList.size(),
-                    cb.toString().c_str(), e.what(), toString().c_str());
+            jau_ERR_PRINT("CBs %zu/%zu: MgmtEventCallback %s : Caught exception %s - %s",
+                    invokeCount+1, mgmtEventCallbackList.size(), cb.toString(), e.what(), toString());
         }
-        invokeCount++;
+        ++invokeCount;
     });
 
-    COND_PRINT(env.DEBUG_EVENT, "HCIHandler<%hu>::sendMgmtEvent: Event %s -> %d/%zd callbacks",
-            dev_id, event.toString().c_str(), invokeCount, mgmtEventCallbackList.size());
+    jau_COND_PRINT(env.DEBUG_EVENT, "HCIHandler<%hu>::sendMgmtEvent: Event %s -> %zu/%zu callbacks",
+            dev_id, event.toString(), invokeCount, mgmtEventCallbackList.size());
     (void)invokeCount;
 }
 
 bool HCIHandler::sendCommand(HCICommand &req, const bool quiet) noexcept {
-    COND_PRINT(env.DEBUG_EVENT, "HCIHandler<%hu>-IO SENT %s", dev_id, req.toString().c_str());
+    jau_COND_PRINT(env.DEBUG_EVENT, "HCIHandler<%hu>-IO SENT %s", dev_id, req.toString());
 
     jau::TROOctets & pdu = req.getPDU();
     if ( comm.write( pdu.get_ptr(), pdu.size() ) < 0 ) {
         if( !quiet || jau::environment::get().verbose ) {
-            ERR_PRINT("HCIComm write error, req %s - %s", req.toString().c_str(), toString().c_str());
+            jau_ERR_PRINT("HCIComm write error, req %s - %s", req.toString(), toString());
         }
         return false;
     }
@@ -632,16 +629,16 @@ std::unique_ptr<HCIEvent> HCIHandler::getNextReply(HCICommand &req, int32_t & re
         std::unique_ptr<HCIEvent> ev;
         if( !hciEventRing.getBlocking(ev, replyTimeout) || nullptr == ev ) {
             errno = ETIMEDOUT;
-            ERR_PRINT("nullptr result (timeout %" PRIi64 " ms -> abort): req %s - %s", replyTimeout.to_ms(), req.toString().c_str(), toString().c_str());
+            jau_ERR_PRINT("nullptr result (timeout %" PRIi64 " ms -> abort): req %s - %s", replyTimeout.to_ms(), req.toString(), toString());
             return nullptr;
         } else if( !ev->validate(req) ) {
             // This could occur due to an earlier timeout w/ a nullptr == res (see above),
             // i.e. the pending reply processed here and naturally not-matching.
             retryCount++;
-            COND_PRINT(env.DEBUG_EVENT, "HCIHandler<%hu>-IO RECV getNextReply: res mismatch (drop, retry %d): res %s; req %s",
-                       dev_id, retryCount, ev->toString().c_str(), req.toString().c_str());
+            jau_COND_PRINT(env.DEBUG_EVENT, "HCIHandler<%hu>-IO RECV getNextReply: res mismatch (drop, retry %d): res %s; req %s",
+                       dev_id, retryCount, ev->toString(), req.toString());
         } else {
-            COND_PRINT(env.DEBUG_EVENT, "HCIHandler<%hu>-IO RECV getNextReply: res %s; req %s", dev_id, ev->toString().c_str(), req.toString().c_str());
+            jau_COND_PRINT(env.DEBUG_EVENT, "HCIHandler<%hu>-IO RECV getNextReply: res %s; req %s", dev_id, ev->toString(), req.toString());
             return ev;
         }
     }
@@ -669,21 +666,19 @@ std::unique_ptr<HCIEvent> HCIHandler::getNextCmdCompleteReply(HCICommand &req, H
             HCICommandStatusEvent * ev_cs = static_cast<HCICommandStatusEvent*>(ev.get());
             HCIStatusCode status = ev_cs->getStatus();
             if( HCIStatusCode::SUCCESS != status ) {
-                DBG_WARN_PRINT("dev_id %u: CMD_STATUS 0x%2.2X (%s), errno %d %s: res %s, req %s - %s",
-                        dev_id, number(status), to_string(status).c_str(), errno, strerror(errno),
-                        ev_cs->toString().c_str(), req.toString().c_str(), toString().c_str());
+                jau_DBG_WARN_PRINT("dev_id %hu: CMD_STATUS 0x%2.2X (%s), errno %d %s: res %s, req %s - %s",
+                        dev_id, number(status), to_string(status), errno, strerror(errno), ev_cs->toString(), req.toString(), toString());
                 break; // error status, leave loop
             } else {
-                DBG_PRINT("HCIHandler<%hu>::getNextCmdCompleteReply: CMD_STATUS 0x%2.2X (%s, retryCount %d), errno %d %s: res %s, req %s - %s",
-                        dev_id, number(status), to_string(status).c_str(), retryCount, errno, strerror(errno),
-                        ev_cs->toString().c_str(), req.toString().c_str(), toString().c_str());
+                jau_DBG_PRINT("HCIHandler<%hu>::getNextCmdCompleteReply: CMD_STATUS 0x%2.2X (%s, retryCount %d), errno %d %s: res %s, req %s - %s",
+                        dev_id, number(status), to_string(status), retryCount, errno, strerror(errno), ev_cs->toString(), req.toString(), toString());
             }
             retryCount++;
             continue; // next packet
         } else {
             retryCount++;
-            DBG_PRINT("HCIHandler<%hu>::getNextCmdCompleteReply: !(CMD_COMPLETE, CMD_STATUS) (drop, retry %d): res %s; req %s - %s",
-                       dev_id, retryCount, ev->toString().c_str(), req.toString().c_str(), toString().c_str());
+            jau_DBG_PRINT("HCIHandler<%hu>::getNextCmdCompleteReply: !(CMD_COMPLETE, CMD_STATUS) (drop, retry %d): res %s; req %s - %s",
+                       dev_id, retryCount, ev->toString(), req.toString(), toString());
             continue; // next packet
         }
     }
@@ -709,27 +704,27 @@ HCIHandler::HCIHandler(const uint16_t dev_id_, const BTMode btMode_) noexcept
 {
     zeroSupCommands();
 
-    WORDY_PRINT("HCIHandler<%hu>.ctor: Start %s", dev_id, toString().c_str());
+    jau_WORDY_PRINT("HCIHandler<%hu>.ctor: Start %s", dev_id, toString());
     if( !allowClose ) {
-        ERR_PRINT("Could not open hci control channel %s", toString().c_str());
+        jau_ERR_PRINT("Could not open hci control channel %s", toString());
         return;
     }
 
     comm.set_interrupted_query( jau::bind_member(&hci_reader_service, &jau::service_runner::shall_stop2) );
     hci_reader_service.start();
 
-    PERF_TS_T0();
+    jau_PERF_TS_T0();
 
 #if 0
     {
         int opt = 1;
         if (setsockopt(comm.socket(), SOL_SOCKET, SO_TIMESTAMP, &opt, sizeof(opt)) < 0) {
-            ERR_PRINT("setsockopt SO_TIMESTAMP %s", toString().c_str());
+            jau_ERR_PRINT("setsockopt SO_TIMESTAMP %s", toString());
             goto fail;
         }
 
         if (setsockopt(comm.socket(), SOL_SOCKET, SO_PASSCRED, &opt, sizeof(opt)) < 0) {
-            ERR_PRINT("setsockopt SO_PASSCRED %s", toString().c_str());
+            jau_ERR_PRINT("setsockopt SO_PASSCRED %s", toString());
             goto fail;
         }
     }
@@ -746,7 +741,7 @@ HCIHandler::HCIHandler(const uint16_t dev_id_, const BTMode btMode_) noexcept
 
         olen = sizeof(of);
         if (getsockopt(comm.socket(), SOL_HCI, HCI_FILTER, &of, &olen) < 0) {
-            ERR_PRINT("getsockopt %s", toString().c_str());
+            jau_ERR_PRINT("getsockopt %s", toString());
             goto fail;
         }
 #endif
@@ -780,13 +775,13 @@ HCIHandler::HCIHandler(const uint16_t dev_id_, const BTMode btMode_) noexcept
         HCIComm::filter_set_opcode(0, &filter_mask); // all opcode
 
         if (setsockopt(comm.socket(), SOL_HCI, HCI_FILTER, &filter_mask, sizeof(filter_mask)) < 0) {
-            ERR_PRINT("setsockopt HCI_FILTER %s", toString().c_str());
+            jau_ERR_PRINT("setsockopt HCI_FILTER %s", toString());
             goto fail;
         }
     }
     // Mandatory own LE_META filter
     {
-        uint32_t mask = 0;
+        uint64_t mask = 0;
 #if FILTER_ALL_EVENTS
         filter_all_metaevs(mask);
 #else
@@ -841,15 +836,14 @@ HCIHandler::HCIHandler(const uint16_t dev_id_, const BTMode btMode_) noexcept
     }
     zeroSupCommands();
 
-    PERF_TS_TD("HCIHandler::ctor.ok");
-    WORDY_PRINT("HCIHandler.ctor: End OK - %s", toString().c_str());
+    jau_PERF_TS_TD("HCIHandler::ctor.ok");
+    jau_WORDY_PRINT("HCIHandler.ctor: End OK - %s", toString());
     return;
 
 fail:
     close();
-    PERF_TS_TD("HCIHandler::ctor.fail");
-    WORDY_PRINT("HCIHandler.ctor: End failure - %s", toString().c_str());
-    return;
+    jau_PERF_TS_TD("HCIHandler::ctor.fail");
+    jau_WORDY_PRINT("HCIHandler.ctor: End failure - %s", toString());
 }
 
 void HCIHandler::zeroSupCommands() noexcept {
@@ -866,31 +860,38 @@ bool HCIHandler::initSupCommands() noexcept {
     HCIStatusCode status;
 
     le_ll_feats = LE_Features::NONE;
-    {
-        HCICommand req0(HCIOpcode::LE_READ_LOCAL_FEATURES, 0);
-        const hci_rp_le_read_local_features * ev_lf;
-        std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_lf, &status, true /* quiet */);
-        if( nullptr == ev || nullptr == ev_lf || HCIStatusCode::SUCCESS != status ) {
-            DBG_PRINT("HCIHandler<%hu>::initSupCommands: LE_READ_LOCAL_FEATURES: 0x%x (%s) - %s",
-                    number(status), to_string(status).c_str(), toString().c_str());
-            zeroSupCommands();
-            return false;
+    try {
+        {
+            HCICommand req0(HCIOpcode::LE_READ_LOCAL_FEATURES, 0);
+            const hci_rp_le_read_local_features *ev_lf;
+            std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_lf, &status, true /* quiet */);
+            if (nullptr == ev || nullptr == ev_lf || HCIStatusCode::SUCCESS != status) {
+                jau_DBG_PRINT("HCIHandler<%hu>::initSupCommands: LE_READ_LOCAL_FEATURES: %#x (%s) - %s",
+                              dev_id, number(status), to_string(status), toString());
+                zeroSupCommands();
+                return false;
+            }
+            le_ll_feats = static_cast<LE_Features>(jau::get_uint64(ev_lf->features + 0, jau::lb_endian_t::little));
         }
-        le_ll_feats = static_cast<LE_Features>( jau::get_uint64(ev_lf->features + 0, jau::lb_endian_t::little) );
-    }
-
-    HCICommand req0(HCIOpcode::READ_LOCAL_COMMANDS, 0);
-    const hci_rp_read_local_commands * ev_cmds;
-    std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_cmds, &status, true /* quiet */);
-    if( nullptr == ev || nullptr == ev_cmds || HCIStatusCode::SUCCESS != status ) {
-        DBG_PRINT("HCIHandler<%hu>::initSupCommands: READ_LOCAL_COMMANDS: 0x%x (%s) - %s",
-                dev_id, number(status), to_string(status).c_str(), toString().c_str());
-        zeroSupCommands();
+        {
+            HCICommand req0(HCIOpcode::READ_LOCAL_COMMANDS, 0);
+            const hci_rp_read_local_commands *ev_cmds;
+            std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_cmds, &status, true /* quiet */);
+            if (nullptr == ev || nullptr == ev_cmds || HCIStatusCode::SUCCESS != status) {
+                jau_DBG_PRINT("HCIHandler<%hu>::initSupCommands: READ_LOCAL_COMMANDS: %#x (%s) - %s",
+                              dev_id, number(status), to_string(status), toString());
+                zeroSupCommands();
+                return false;
+            } else {
+                memcpy(sup_commands, ev_cmds->commands, sizeof(sup_commands));
+                sup_commands_set = true;
+                return true;
+            }
+        }
+    } catch (...) {
+        jau::fput_exception(stderr, std::current_exception(), E_FILE_LINE);
+        jau_ERR_PRINT3("Exception caught while reading features or commands for %s", toString());
         return false;
-    } else {
-        memcpy(sup_commands, ev_cmds->commands, sizeof(sup_commands));
-        sup_commands_set = true;
-        return true;
     }
 }
 
@@ -898,12 +899,12 @@ HCIStatusCode HCIHandler::check_open_connection(const std::string& caller,
                                                 const uint16_t conn_handle, const BDAddressAndType& peerAddressAndType,
                                                 const bool addUntrackedConn) {
     if( !isOpen() ) {
-        ERR_PRINT("%s: Not connected %s", caller.c_str(), toString().c_str());
+        jau_ERR_PRINT("%s: Not connected %s", caller, toString());
         return HCIStatusCode::DISCONNECTED;
     }
     if( 0 == conn_handle ) {
-        ERR_PRINT("%s: Null conn_handle given address%s (drop) - %s",
-                caller.c_str(), peerAddressAndType.toString().c_str(), toString().c_str());
+        jau_ERR_PRINT("%s: Null conn_handle given address%s (drop) - %s",
+                caller, peerAddressAndType.toString(), toString());
         return HCIStatusCode::INVALID_HCI_COMMAND_PARAMETERS;
     }
     const std::lock_guard<std::recursive_mutex> lock(mtx_connectionList); // RAII-style acquire and relinquish via destructor
@@ -913,25 +914,20 @@ HCIStatusCode HCIHandler::check_open_connection(const std::string& caller,
         if( addUntrackedConn ) {
             // add unknown connection to tracker
             conn = addOrUpdateTrackerConnection(peerAddressAndType, conn_handle);
-            WORDY_PRINT("HCIHandler::%s: Not tracked address%s, added %s - %s",
-                       caller.c_str(), peerAddressAndType.toString().c_str(),
-                       conn->toString().c_str(), toString().c_str());
+            jau_WORDY_PRINT("HCIHandler::%s: Not tracked address%s, added %s - %s",
+                       caller, peerAddressAndType.toString(), conn->toString(), toString());
         } else {
-            ERR_PRINT("%s: Not tracked handle %s (address%s) (drop) - %s",
-                       caller.c_str(), jau::to_hexstring(conn_handle).c_str(),
-                       peerAddressAndType.toString().c_str(), toString().c_str());
+            jau_ERR_PRINT("%s: Not tracked handle %s (address%s) (drop) - %s",
+                       caller, jau::toHexString(conn_handle),peerAddressAndType.toString(), toString());
             return HCIStatusCode::INVALID_HCI_COMMAND_PARAMETERS;
         }
     } else if( !conn->equals(peerAddressAndType) ) {
-        ERR_PRINT("%s: Mismatch given address%s and tracked %s (drop) - %s",
-                   caller.c_str(), peerAddressAndType.toString().c_str(),
-                   conn->toString().c_str(), toString().c_str());
+        jau_ERR_PRINT("%s: Mismatch given address%s and tracked %s (drop) - %s",
+                   caller, peerAddressAndType.toString(), conn->toString(), toString());
         return HCIStatusCode::INVALID_HCI_COMMAND_PARAMETERS;
     }
-    DBG_PRINT("HCIHandler<%hu>::%s: address%s, handle %s, %s - %s",
-               dev_id, caller.c_str(), peerAddressAndType.toString().c_str(),
-               jau::to_hexstring(conn_handle).c_str(),
-               conn->toString().c_str(), toString().c_str());
+    jau_DBG_PRINT("HCIHandler<%hu>::%s: address%s, handle %s, %s - %s",
+               dev_id, caller, peerAddressAndType.toString(), jau::toHexString(conn_handle), conn->toString(), toString());
 
     return HCIStatusCode::SUCCESS;
 }
@@ -941,16 +937,21 @@ HCIStatusCode HCIHandler::le_read_remote_features(const uint16_t conn_handle, co
     if( HCIStatusCode::SUCCESS != status ) {
         return status;
     }
-    HCIStructCommand<hci_cp_le_read_remote_features> req0(HCIOpcode::LE_READ_REMOTE_FEATURES);
-    hci_cp_le_read_remote_features * cp = req0.getWStruct();
-    cp->handle = jau::cpu_to_le(conn_handle);
-    std::unique_ptr<HCIEvent> ev = processCommandStatus(req0, &status);
+    try {
+        HCIStructCommand<hci_cp_le_read_remote_features> req0(HCIOpcode::LE_READ_REMOTE_FEATURES);
+        hci_cp_le_read_remote_features * cp = req0.getWStruct();
+        cp->handle = jau::cpu_to_le(conn_handle);
+        std::unique_ptr<HCIEvent> ev = processCommandStatus(req0, &status);
 
-    if( nullptr == ev || HCIStatusCode::SUCCESS != status ) {
-        ERR_PRINT("le_read_remote_features: LE_READ_PHY: 0x%x (%s) - %s",
-                number(status), to_string(status).c_str(), toString().c_str());
+        if( nullptr == ev || HCIStatusCode::SUCCESS != status ) {
+            jau_ERR_PRINT("le_read_remote_features: LE_READ_PHY: %#x (%s) - %s", number(status), to_string(status), toString());
+        }
+        return status;
+    } catch (...) {
+        jau::fput_exception(stderr, std::current_exception(), E_FILE_LINE);
+        jau_ERR_PRINT3("Exception caught while reading features for %s", toString());
+        return HCIStatusCode::INTERNAL_FAILURE;
     }
-    return status;
 }
 
 void HCIHandler::close() noexcept {
@@ -960,24 +961,24 @@ void HCIHandler::close() noexcept {
         // not open
         const bool hci_service_stopped = hci_reader_service.join(); // [data] race: wait until disconnecting thread has stopped service
         comm.close();
-        DBG_PRINT("HCIHandler<%hu>::close: Not open: stopped %d, %s", dev_id, hci_service_stopped, toString().c_str());
+        jau_DBG_PRINT("HCIHandler<%hu>::close: Not open: stopped %d, %s", dev_id, hci_service_stopped, toString());
         clearAllCallbacks();
         resetAllStates(false);
         comm.close();
         return;
     }
-    PERF_TS_T0();
+    jau_PERF_TS_T0();
     const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
-    DBG_PRINT("HCIHandler<%hu>::close: Start %s", dev_id, toString().c_str());
+    jau_DBG_PRINT("HCIHandler<%hu>::close: Start %s", dev_id, toString());
     clearAllCallbacks();
     resetAllStates(false);
 
-    PERF_TS_TD("HCIHandler::close.1");
+    jau_PERF_TS_TD("HCIHandler::close.1");
     hci_reader_service.stop();
     comm.close();
-    PERF_TS_TD("HCIHandler::close.X");
+    jau_PERF_TS_TD("HCIHandler::close.X");
 
-    DBG_PRINT("HCIHandler<%hu>::close: End %s", dev_id, toString().c_str());
+    jau_DBG_PRINT("HCIHandler<%hu>::close: End %s", dev_id, toString());
 }
 
 std::string HCIHandler::toString() const noexcept {
@@ -989,19 +990,19 @@ std::string HCIHandler::toString() const noexcept {
 
 HCIStatusCode HCIHandler::startAdapter() {
     if( !isOpen() ) {
-        ERR_PRINT("Not connected %s", toString().c_str());
+        jau_ERR_PRINT("Not connected %s", toString());
         return HCIStatusCode::DISCONNECTED;
     }
     HCIStatusCode res = HCIStatusCode::INTERNAL_FAILURE;
 
     const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
-    DBG_PRINT("HCIHandler<%hu>::startAdapter.0: %s", dev_id, toString().c_str());
+    jau_DBG_PRINT("HCIHandler<%hu>::startAdapter.0: %s", dev_id, toString());
 
     #if defined(__linux__)
         int res_ioctl;
         if( ( res_ioctl = ioctl(comm.socket(), HCIDEVUP, dev_id) ) < 0 ) {
             if (errno != EALREADY) {
-                ERR_PRINT("FAILED: %d - %s", res_ioctl, toString().c_str());
+                jau_ERR_PRINT("FAILED: %d - %s", res_ioctl, toString());
             } else {
                 res = HCIStatusCode::SUCCESS;
             }
@@ -1010,52 +1011,56 @@ HCIStatusCode HCIHandler::startAdapter() {
         }
     #elif defined(__FreeBSD__)
         // #warning add implementation
-        ABORT("add implementation for FreeBSD");
+        jau_ABORT("add implementation for FreeBSD");
+        return res; // unreachable
     #else
         #warning add implementation
-        ABORT("add implementation");
+        jau_ABORT("add implementation");
+        return res; // unreachable
     #endif
     if( HCIStatusCode::SUCCESS == res ) {
         res = resetAllStates(true) ? HCIStatusCode::SUCCESS : HCIStatusCode::FAILED;
     }
-    DBG_PRINT("HCIHandler<%hu>::startAdapter.X: %s - %s", dev_id, to_string(res).c_str(), toString().c_str());
+    jau_DBG_PRINT("HCIHandler<%hu>::startAdapter.X: %s - %s", dev_id, to_string(res), toString());
     return res;
 }
 
 HCIStatusCode HCIHandler::stopAdapter() {
     if( !isOpen() ) {
-        ERR_PRINT("Not connected %s", toString().c_str());
+        jau_ERR_PRINT("Not connected %s", toString());
         return HCIStatusCode::DISCONNECTED;
     }
     HCIStatusCode res = HCIStatusCode::INTERNAL_FAILURE;
 
     const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
-    DBG_PRINT("HCIHandler<%hu>::stopAdapter.0: %s", dev_id, toString().c_str());
+    jau_DBG_PRINT("HCIHandler<%hu>::stopAdapter.0: %s", dev_id, toString());
 
     #if defined(__linux__)
         int res_ioctl;
         if( ( res_ioctl = ioctl(comm.socket(), HCIDEVDOWN, dev_id) ) < 0) {
-            ERR_PRINT("FAILED: %d - %s", res_ioctl, toString().c_str());
+            jau_ERR_PRINT("FAILED: %d - %s", res_ioctl, toString());
         } else {
             res = HCIStatusCode::SUCCESS;
         }
     #elif defined(__FreeBSD__)
         // #warning add implementation
-        ABORT("add implementation for FreeBSD");
+        jau_ABORT("add implementation for FreeBSD");
+        return res; // unreachable
     #else
         #warning add implementation
-        ABORT("add implementation");
+        jau_ABORT("add implementation");
+        return res; // unreachable
     #endif
     if( HCIStatusCode::SUCCESS == res ) {
         resetAllStates(false);
     }
-    DBG_PRINT("HCIHandler<%hu>::stopAdapter.X: %s - %s", dev_id, to_string(res).c_str(), toString().c_str());
+    jau_DBG_PRINT("HCIHandler<%hu>::stopAdapter.X: %s - %s", dev_id, to_string(res), toString());
     return res;
 }
 
 HCIStatusCode HCIHandler::resetAdapter(const HCIHandler::PostShutdownFunc& user_post_shutdown) {
     if( !isOpen() ) {
-        ERR_PRINT("Not connected %s", toString().c_str());
+        jau_ERR_PRINT("Not connected %s", toString());
         return HCIStatusCode::DISCONNECTED;
     }
     HCIStatusCode res = HCIStatusCode::INTERNAL_FAILURE;
@@ -1063,7 +1068,7 @@ HCIStatusCode HCIHandler::resetAdapter(const HCIHandler::PostShutdownFunc& user_
     bool user_abort = false;
 
     const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
-    DBG_PRINT("HCIHandler<%hu>::resetAdapter.0: %s", dev_id, toString().c_str());
+    jau_DBG_PRINT("HCIHandler<%hu>::resetAdapter.0: %s", dev_id, toString());
 
     #if defined(__linux__)
         res = stopAdapter();
@@ -1080,13 +1085,15 @@ HCIStatusCode HCIHandler::resetAdapter(const HCIHandler::PostShutdownFunc& user_
     #elif defined(__FreeBSD__)
         // #warning add implementation
         (void)user_post_shutdown;
-        ABORT("add implementation for FreeBSD");
+        jau_ABORT("add implementation for FreeBSD");
+        return res; // unreachable
     #else
         #warning add implementation
         (void)user_post_shutdown;
-        ABORT("add implementation");
+        jau_ABORT("add implementation");
+        return res; // unreachable
     #endif
-    DBG_PRINT("HCIHandler<%hu>::resetAdapter.X: %s user[called %d, abort %d] - %s", dev_id, to_string(res).c_str(), user_called, user_abort, toString().c_str());
+    jau_DBG_PRINT("HCIHandler<%hu>::resetAdapter.X: %s user[called %d, abort %d] - %s", dev_id, to_string(res), user_called, user_abort, toString());
     return res;
 }
 
@@ -1105,43 +1112,54 @@ bool HCIHandler::resetAllStates(const bool powered_on) noexcept {
 }
 
 HCIStatusCode HCIHandler::resetHCI() noexcept {
-    HCIStatusCode res = HCIStatusCode::INTERNAL_FAILURE;
+    try {
+        HCIStatusCode res = HCIStatusCode::INTERNAL_FAILURE;
 
-    const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
-    DBG_PRINT("HCIHandler<%hu>::Reset HCI.0: %s", dev_id, toString().c_str());
+        const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
+        jau_DBG_PRINT("HCIHandler<%hu>::Reset HCI.0: %s", dev_id, toString());
 
-    HCICommand req0(HCIOpcode::RESET, 0);
+        HCICommand req0(HCIOpcode::RESET, 0);
 
-    const hci_rp_status * ev_status;
-    std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_status, &res);
-    if( nullptr == ev ) {
-        res = HCIStatusCode::INTERNAL_TIMEOUT; // timeout
+        const hci_rp_status * ev_status;
+        std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_status, &res);
+        if( nullptr == ev ) {
+            res = HCIStatusCode::INTERNAL_TIMEOUT; // timeout
+        }
+        jau_DBG_PRINT("HCIHandler<%hu>::Reset HCI.X: %s - %s", dev_id, to_string(res), toString());
+        return res;
+    } catch (...) {
+        jau::fput_exception(stderr, std::current_exception(), E_FILE_LINE);
+        jau_ERR_PRINT3("Exception caught while HCI reset for %s", toString());
+        return HCIStatusCode::INTERNAL_FAILURE;
     }
-    DBG_PRINT("HCIHandler<%hu>::Reset HCI.X: %s - %s", dev_id, to_string(res).c_str(), toString().c_str());
-    return res;
 }
 
 HCIStatusCode HCIHandler::getLocalVersion(HCILocalVersion &version) noexcept {
     if( !isOpen() ) {
-        ERR_PRINT("Not connected %s", toString().c_str());
+        jau_ERR_PRINT("Not connected %s", toString());
         return HCIStatusCode::DISCONNECTED;
     }
-    HCICommand req0(HCIOpcode::READ_LOCAL_VERSION, 0);
-    const hci_rp_read_local_version * ev_lv;
-    HCIStatusCode status;
-    std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_lv, &status);
-    if( nullptr == ev || nullptr == ev_lv || HCIStatusCode::SUCCESS != status ) {
-        ERR_PRINT("%s: 0x%x (%s) - %s",
-                to_string(req0.getOpcode()).c_str(), number(status), to_string(status).c_str(), toString().c_str());
-        jau::zero_bytes_sec(&version, sizeof(version));
-    } else {
-        version.hci_ver = ev_lv->hci_ver;
-        version.hci_rev = jau::le_to_cpu(ev_lv->hci_rev);
-        version.manufacturer = jau::le_to_cpu(ev_lv->manufacturer);
-        version.lmp_ver = ev_lv->lmp_ver;
-        version.lmp_subver = jau::le_to_cpu(ev_lv->lmp_subver);
+    try {
+        HCICommand req0(HCIOpcode::READ_LOCAL_VERSION, 0);
+        const hci_rp_read_local_version * ev_lv;
+        HCIStatusCode status;
+        std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_lv, &status);
+        if( nullptr == ev || nullptr == ev_lv || HCIStatusCode::SUCCESS != status ) {
+            jau_ERR_PRINT("%s: %#x (%s) - %s", to_string(req0.getOpcode()), number(status), to_string(status), toString());
+            jau::zero_bytes_sec(&version, sizeof(version));
+        } else {
+            version.hci_ver = ev_lv->hci_ver;
+            version.hci_rev = jau::le_to_cpu(ev_lv->hci_rev);
+            version.manufacturer = jau::le_to_cpu(ev_lv->manufacturer);
+            version.lmp_ver = ev_lv->lmp_ver;
+            version.lmp_subver = jau::le_to_cpu(ev_lv->lmp_subver);
+        }
+        return status;
+    } catch (...) {
+        jau::fput_exception(stderr, std::current_exception(), E_FILE_LINE);
+        jau_ERR_PRINT3("Exception caught while reading local version for %s", toString());
+        return HCIStatusCode::INTERNAL_FAILURE;
     }
-    return status;
 }
 
 HCIStatusCode HCIHandler::le_set_scan_param(const bool le_scan_active,
@@ -1149,102 +1167,113 @@ HCIStatusCode HCIHandler::le_set_scan_param(const bool le_scan_active,
                                             const uint16_t le_scan_interval, const uint16_t le_scan_window,
                                             const uint8_t filter_policy) noexcept {
     if( !isOpen() ) {
-        ERR_PRINT("Not connected %s", toString().c_str());
+        jau_ERR_PRINT("Not connected %s", toString());
         return HCIStatusCode::DISCONNECTED;
     }
     if( is_set(currentScanType, ScanType::LE) ) {
-        WARN_PRINT("Not allowed: LE Scan Enabled: %s - tried scan [interval %.3f ms, window %.3f ms]",
-                toString().c_str(), 0.625f * (float)le_scan_interval, 0.625f * (float)le_scan_window);
+        jau_WARN_PRINT("Not allowed: LE Scan Enabled: %s - tried scan [interval %.3f ms, window %.3f ms]",
+                toString(), 0.625f * (float)le_scan_interval, 0.625f * (float)le_scan_window);
         return HCIStatusCode::COMMAND_DISALLOWED;
     }
-    DBG_PRINT("HCIHandler<%hu>::le_set_scan_param: scan [active %d, interval %.3f ms, window %.3f ms, filter %d] - %s",
-            dev_id, le_scan_active,
-            0.625f * (float)le_scan_interval, 0.625f * (float)le_scan_window,
-            filter_policy, toString().c_str());
+    jau_DBG_PRINT("HCIHandler<%hu>::le_set_scan_param: scan [active %d, interval %.3f ms, window %.3f ms, filter %d] - %s",
+            dev_id, le_scan_active, 0.625f * (float)le_scan_interval, 0.625f * (float)le_scan_window, filter_policy, toString());
 
-    HCIStatusCode status;
-    if( use_ext_scan() ) {
-        struct le_set_ext_scan_params {
-            __u8    own_address_type;
-            __u8    filter_policy;
-            __u8    scanning_phys;
-            hci_cp_le_scan_phy_params p1;
-            // hci_cp_le_scan_phy_params p2;
-        } __packed;
-        HCIStructCommand<le_set_ext_scan_params> req0(HCIOpcode::LE_SET_EXT_SCAN_PARAMS);
-        le_set_ext_scan_params * cp = req0.getWStruct();
-        cp->own_address_type = static_cast<uint8_t>(own_mac_type);
-        cp->filter_policy = filter_policy;
-        cp->scanning_phys = direct_bt::number(LE_PHYs::LE_1M); // Only scan on LE_1M for compatibility
+    try {
+        HCIStatusCode status;
+        if( use_ext_scan() ) {
+            struct le_set_ext_scan_params {
+                __u8    own_address_type;
+                __u8    filter_policy;
+                __u8    scanning_phys;
+                hci_cp_le_scan_phy_params p1;
+                // hci_cp_le_scan_phy_params p2;
+            } __packed;
+            HCIStructCommand<le_set_ext_scan_params> req0(HCIOpcode::LE_SET_EXT_SCAN_PARAMS);
+            le_set_ext_scan_params * cp = req0.getWStruct();
+            cp->own_address_type = static_cast<uint8_t>(own_mac_type);
+            cp->filter_policy = filter_policy;
+            cp->scanning_phys = direct_bt::number(LE_PHYs::LE_1M); // Only scan on LE_1M for compatibility
 
-        cp->p1.type = le_scan_active ? LE_SCAN_ACTIVE : LE_SCAN_PASSIVE;
-        cp->p1.interval = jau::cpu_to_le(le_scan_interval);
-        cp->p1.window = jau::cpu_to_le(le_scan_window);
-        // TODO: Support LE_1M + LE_CODED combo?
+            cp->p1.type = le_scan_active ? LE_SCAN_ACTIVE : LE_SCAN_PASSIVE;
+            cp->p1.interval = jau::cpu_to_le(le_scan_interval);
+            cp->p1.window = jau::cpu_to_le(le_scan_window);
+            // TODO: Support LE_1M + LE_CODED combo?
 
-        const hci_rp_status * ev_status;
-        std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_status, &status);
-    } else {
-        HCIStructCommand<hci_cp_le_set_scan_param> req0(HCIOpcode::LE_SET_SCAN_PARAM);
-        hci_cp_le_set_scan_param * cp = req0.getWStruct();
-        cp->type = le_scan_active ? LE_SCAN_ACTIVE : LE_SCAN_PASSIVE;
-        cp->interval = jau::cpu_to_le(le_scan_interval);
-        cp->window = jau::cpu_to_le(le_scan_window);
-        cp->own_address_type = static_cast<uint8_t>(own_mac_type);
-        cp->filter_policy = filter_policy;
+            const hci_rp_status * ev_status;
+            std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_status, &status);
+        } else {
+            HCIStructCommand<hci_cp_le_set_scan_param> req0(HCIOpcode::LE_SET_SCAN_PARAM);
+            hci_cp_le_set_scan_param * cp = req0.getWStruct();
+            cp->type = le_scan_active ? LE_SCAN_ACTIVE : LE_SCAN_PASSIVE;
+            cp->interval = jau::cpu_to_le(le_scan_interval);
+            cp->window = jau::cpu_to_le(le_scan_window);
+            cp->own_address_type = static_cast<uint8_t>(own_mac_type);
+            cp->filter_policy = filter_policy;
 
-        const hci_rp_status * ev_status;
-        std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_status, &status);
+            const hci_rp_status * ev_status;
+            std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_status, &status);
+        }
+        return status;
+    } catch (...) {
+        jau::fput_exception(stderr, std::current_exception(), E_FILE_LINE);
+        jau_ERR_PRINT3("Exception caught while setting up scan for %hu [active %d, interval %.3f ms, window %.3f ms, filter %d] - %s",
+                dev_id, le_scan_active, 0.625f * (float)le_scan_interval, 0.625f * (float)le_scan_window, filter_policy, toString());
+        return HCIStatusCode::INTERNAL_FAILURE;
     }
-    return status;
 }
 
 HCIStatusCode HCIHandler::le_enable_scan(const bool enable, const bool filter_dup) noexcept {
     if( !isOpen() ) {
-        ERR_PRINT("Not connected %s", toString().c_str());
+        jau_ERR_PRINT("Not connected %s", toString());
         return HCIStatusCode::DISCONNECTED;
     }
     const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
 
     if( enable && advertisingEnabled ) {
-        WARN_PRINT("dev_id %u: Not allowed: Advertising is enabled %s", dev_id, toString().c_str());
+        jau_WARN_PRINT("dev_id %u: Not allowed: Advertising is enabled %s", dev_id, toString());
         return HCIStatusCode::COMMAND_DISALLOWED;
     }
     ScanType nextScanType = changeScanType(currentScanType, ScanType::LE, enable);
-    DBG_PRINT("HCIHandler<%hu>::le_enable_scan: enable %s -> %s, filter_dup %d - %s",
-            dev_id, to_string(currentScanType).c_str(), to_string(nextScanType).c_str(), filter_dup, toString().c_str());
+    jau_DBG_PRINT("HCIHandler<%hu>::le_enable_scan: enable %s -> %s, filter_dup %d - %s",
+            dev_id, to_string(currentScanType), to_string(nextScanType), filter_dup, toString());
 
-    HCIStatusCode status;
-    if( currentScanType != nextScanType ) {
-        if( use_ext_scan() ) {
-            HCIStructCommand<hci_cp_le_set_ext_scan_enable> req0(HCIOpcode::LE_SET_EXT_SCAN_ENABLE);
-            hci_cp_le_set_ext_scan_enable * cp = req0.getWStruct();
-            cp->enable = enable ? LE_SCAN_ENABLE : LE_SCAN_DISABLE;
-            cp->filter_dup = filter_dup ? LE_SCAN_FILTER_DUP_ENABLE : LE_SCAN_FILTER_DUP_DISABLE;
-            // cp->duration = 0; // until disabled
-            // cp->period = 0; // until disabled
-            const hci_rp_status * ev_status;
-            std::unique_ptr<HCIEvent> evComplete = processCommandComplete(req0, &ev_status, &status);
+    try {
+        HCIStatusCode status;
+        if( currentScanType != nextScanType ) {
+            if( use_ext_scan() ) {
+                HCIStructCommand<hci_cp_le_set_ext_scan_enable> req0(HCIOpcode::LE_SET_EXT_SCAN_ENABLE);
+                hci_cp_le_set_ext_scan_enable * cp = req0.getWStruct();
+                cp->enable = enable ? LE_SCAN_ENABLE : LE_SCAN_DISABLE;
+                cp->filter_dup = filter_dup ? LE_SCAN_FILTER_DUP_ENABLE : LE_SCAN_FILTER_DUP_DISABLE;
+                // cp->duration = 0; // until disabled
+                // cp->period = 0; // until disabled
+                const hci_rp_status * ev_status;
+                std::unique_ptr<HCIEvent> evComplete = processCommandComplete(req0, &ev_status, &status);
+            } else {
+                HCIStructCommand<hci_cp_le_set_scan_enable> req0(HCIOpcode::LE_SET_SCAN_ENABLE);
+                hci_cp_le_set_scan_enable * cp = req0.getWStruct();
+                cp->enable = enable ? LE_SCAN_ENABLE : LE_SCAN_DISABLE;
+                cp->filter_dup = filter_dup ? LE_SCAN_FILTER_DUP_ENABLE : LE_SCAN_FILTER_DUP_DISABLE;
+                const hci_rp_status * ev_status;
+                std::unique_ptr<HCIEvent> evComplete = processCommandComplete(req0, &ev_status, &status);
+            }
         } else {
-            HCIStructCommand<hci_cp_le_set_scan_enable> req0(HCIOpcode::LE_SET_SCAN_ENABLE);
-            hci_cp_le_set_scan_enable * cp = req0.getWStruct();
-            cp->enable = enable ? LE_SCAN_ENABLE : LE_SCAN_DISABLE;
-            cp->filter_dup = filter_dup ? LE_SCAN_FILTER_DUP_ENABLE : LE_SCAN_FILTER_DUP_DISABLE;
-            const hci_rp_status * ev_status;
-            std::unique_ptr<HCIEvent> evComplete = processCommandComplete(req0, &ev_status, &status);
+            status = HCIStatusCode::SUCCESS;
+            jau_WARN_PRINT("dev_id %u: current %s == next %s, OK, skip command - %s",
+                    dev_id, to_string(currentScanType), to_string(nextScanType), toString());
         }
-    } else {
-        status = HCIStatusCode::SUCCESS;
-        WARN_PRINT("dev_id %u: current %s == next %s, OK, skip command - %s",
-                dev_id, to_string(currentScanType).c_str(), to_string(nextScanType).c_str(), toString().c_str());
-    }
 
-    if( HCIStatusCode::SUCCESS == status ) {
-        currentScanType = nextScanType;
-        const MgmtEvtDiscovering e(dev_id, ScanType::LE, enable);
-        sendMgmtEvent( e );
+        if( HCIStatusCode::SUCCESS == status ) {
+            currentScanType = nextScanType;
+            const MgmtEvtDiscovering e(dev_id, ScanType::LE, enable);
+            sendMgmtEvent( e );
+        }
+        return status;
+    } catch (...) {
+        jau::fput_exception(stderr, std::current_exception(), E_FILE_LINE);
+        jau_ERR_PRINT3("Exception caught while toggling scan enble %s, filter-dup %s, for %s", enable, filter_dup, toString());
+        return HCIStatusCode::INTERNAL_FAILURE;
     }
-    return status;
 }
 
 HCIStatusCode HCIHandler::le_start_scan(const bool filter_dup,
@@ -1253,29 +1282,27 @@ HCIStatusCode HCIHandler::le_start_scan(const bool filter_dup,
                                         const uint16_t le_scan_interval, const uint16_t le_scan_window,
                                         const uint8_t filter_policy) noexcept {
     if( !isOpen() ) {
-        ERR_PRINT("Not connected %s", toString().c_str());
+        jau_ERR_PRINT("Not connected %s", toString());
         return HCIStatusCode::DISCONNECTED;
     }
     const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
 
     if( advertisingEnabled ) {
-        WARN_PRINT("dev_id %u: Not allowed: Advertising is enabled %s", dev_id, toString().c_str());
+        jau_WARN_PRINT("dev_id %u: Not allowed: Advertising is enabled %s", dev_id, toString());
         return HCIStatusCode::COMMAND_DISALLOWED;
     }
     if( is_set(currentScanType, ScanType::LE) ) {
-        WARN_PRINT("dev_id %u: Not allowed: LE Scan Enabled: %s", dev_id, toString().c_str());
+        jau_WARN_PRINT("dev_id %u: Not allowed: LE Scan Enabled: %s", dev_id, toString());
         return HCIStatusCode::COMMAND_DISALLOWED;
     }
     HCIStatusCode status = le_set_scan_param(le_scan_active, own_mac_type, le_scan_interval, le_scan_window, filter_policy);
     if( HCIStatusCode::SUCCESS != status ) {
-        WARN_PRINT("dev_id %u: le_set_scan_param failed: %s - %s",
-                dev_id, to_string(status).c_str(), toString().c_str());
+        jau_WARN_PRINT("dev_id %u: le_set_scan_param failed: %s - %s", dev_id, to_string(status), toString());
         return status;
     }
     status = le_enable_scan(true /* enable */, filter_dup);
     if( HCIStatusCode::SUCCESS != status ) {
-        WARN_PRINT("dev_id %u: le_enable_scan failed: %s - %s",
-                dev_id, to_string(status).c_str(), toString().c_str());
+        jau_WARN_PRINT("dev_id %u: le_enable_scan failed: %s - %s", dev_id, to_string(status), toString());
     }
     return status;
 }
@@ -1294,11 +1321,11 @@ HCIStatusCode HCIHandler::le_create_conn(const EUI48 &peer_bdaddr,
     const std::lock_guard<std::mutex> lock(mtx_connect_cmd); // RAII-style acquire and relinquish via destructor
 
     if( !isOpen() ) {
-        ERR_PRINT("Not connected %s", toString().c_str());
+        jau_ERR_PRINT("Not connected %s", toString());
         return HCIStatusCode::DISCONNECTED;
     }
     if( advertisingEnabled ) {
-        WARN_PRINT("Not allowed: Advertising is enabled %s", toString().c_str());
+        jau_WARN_PRINT("Not allowed: Advertising is enabled %s", toString());
         return HCIStatusCode::COMMAND_DISALLOWED;
     }
 
@@ -1306,15 +1333,15 @@ HCIStatusCode HCIHandler::le_create_conn(const EUI48 &peer_bdaddr,
     const uint16_t max_ce_length = 0x0000;
     const uint8_t initiator_filter = 0x00; // whitelist not used but peer_bdaddr*
 
-    DBG_PRINT("HCIHandler<%hu>::le_create_conn: scan [interval %.3f ms, window %.3f ms]", 0.625f *
-            dev_id, (float)le_scan_interval, 0.625f * (float)le_scan_window);
-    DBG_PRINT("HCIHandler<%hu>::le_create_conn: conn [interval [%.3f ms - %.3f ms], latency %d, sup_timeout %d ms] - %s",
+    jau_DBG_PRINT("HCIHandler<%hu>::le_create_conn: scan [interval %.3f ms, window %.3f ms]",
+            dev_id, 0.625f * (float)le_scan_interval, 0.625f * (float)le_scan_window);
+    jau_DBG_PRINT("HCIHandler<%hu>::le_create_conn: conn [interval [%.3f ms - %.3f ms], latency %d, sup_timeout %d ms] - %s",
             dev_id, 1.25f * (float)conn_interval_min, 1.25f * (float)conn_interval_max,
-            conn_latency, supervision_timeout*10, toString().c_str());
+            conn_latency, supervision_timeout*10, toString());
 
     size_type pendingConnections = countPendingTrackerConnections();
     if( 0 < pendingConnections ) {
-        DBG_PRINT("HCIHandler<%hu>::le_create_conn: %zu connections pending - %s", dev_id, (size_t)pendingConnections, toString().c_str());
+        jau_DBG_PRINT("HCIHandler<%hu>::le_create_conn: %zu connections pending - %s", dev_id, (size_t)pendingConnections, toString());
         jau::fraction_i64 td = 0_s;
         while( env.HCI_COMMAND_COMPLETE_REPLY_TIMEOUT > td && 0 < pendingConnections ) {
             sleep_for(env.HCI_COMMAND_POLL_PERIOD);
@@ -1322,16 +1349,15 @@ HCIStatusCode HCIHandler::le_create_conn(const EUI48 &peer_bdaddr,
             pendingConnections = countPendingTrackerConnections();
         }
         if( 0 < pendingConnections ) {
-            WARN_PRINT("%zu connections pending after %" PRIi64 " ms - %s", (size_t)pendingConnections, td.to_ms(), toString().c_str());
+            jau_WARN_PRINT("%zu connections pending after %" PRIi64 " ms - %s", (size_t)pendingConnections, td.to_ms(), toString());
         } else {
-            DBG_PRINT("HCIHandler<%hu>::le_create_conn: pending connections resolved after %" PRIi64 " ms - %s", dev_id, td.to_ms(), toString().c_str());
+            jau_DBG_PRINT("HCIHandler<%hu>::le_create_conn: pending connections resolved after %" PRIi64 " ms - %s", dev_id, td.to_ms(), toString());
         }
     }
     const BDAddressAndType addressAndType(peer_bdaddr, to_BDAddressType(peer_mac_type));
     HCIConnectionRef disconn = findDisconnectCmd(addressAndType);
     if( nullptr != disconn ) {
-        DBG_PRINT("HCIHandler<%hu>::le_create_conn: disconnect pending %s - %s",
-                dev_id, disconn->toString().c_str(), toString().c_str());
+        jau_DBG_PRINT("HCIHandler<%hu>::le_create_conn: disconnect pending %s - %s", dev_id, disconn->toString(), toString());
         jau::fraction_i64 td = 0_s;
         while( env.HCI_COMMAND_COMPLETE_REPLY_TIMEOUT > td && nullptr != disconn ) {
             sleep_for(env.HCI_COMMAND_POLL_PERIOD);
@@ -1339,75 +1365,80 @@ HCIStatusCode HCIHandler::le_create_conn(const EUI48 &peer_bdaddr,
             disconn = findDisconnectCmd(addressAndType);
         }
         if( nullptr != disconn ) {
-            WARN_PRINT("disconnect persisting after %" PRIi64 " ms: %s - %s",
-                    td.to_ms(), disconn->toString().c_str(), toString().c_str());
+            jau_WARN_PRINT("disconnect persisting after %" PRIi64 " ms: %s - %s", td.to_ms(), disconn->toString(), toString());
         } else {
-            DBG_PRINT("HCIHandler<%hu>::le_create_conn: disconnect resolved after %" PRIi64 " ms - %s", dev_id, td.to_ms(), toString().c_str());
+            jau_DBG_PRINT("HCIHandler<%hu>::le_create_conn: disconnect resolved after %" PRIi64 " ms - %s", dev_id, td.to_ms(), toString());
         }
     }
     HCIConnectionRef conn = addOrUpdateTrackerConnection(addressAndType, 0);
     HCIStatusCode status;
 
-    if( use_ext_conn() ) {
-        struct le_ext_create_conn {
-            __u8      filter_policy;
-            __u8      own_address_type;
-            __u8      peer_addr_type;
-            bdaddr_t  peer_addr;
-            __u8      phys;
-            hci_cp_le_ext_conn_param p1;
-            // hci_cp_le_ext_conn_param p2;
-            // hci_cp_le_ext_conn_param p3;
-        } __packed;
-        HCIStructCommand<le_ext_create_conn> req0(HCIOpcode::LE_EXT_CREATE_CONN);
-        le_ext_create_conn * cp = req0.getWStruct();
-        cp->filter_policy = initiator_filter;
-        cp->own_address_type = static_cast<uint8_t>(own_mac_type);
-        cp->peer_addr_type = static_cast<uint8_t>(peer_mac_type);
-        cp->peer_addr = jau::cpu_to_le(peer_bdaddr);
-        cp->phys = direct_bt::number(LE_PHYs::LE_1M); // Only scan on LE_1M for compatibility
+    try {
+        if( use_ext_conn() ) {
+            struct le_ext_create_conn {
+                __u8      filter_policy;
+                __u8      own_address_type;
+                __u8      peer_addr_type;
+                bdaddr_t  peer_addr;
+                __u8      phys;
+                hci_cp_le_ext_conn_param p1;
+                // hci_cp_le_ext_conn_param p2;
+                // hci_cp_le_ext_conn_param p3;
+            } __packed;
+            HCIStructCommand<le_ext_create_conn> req0(HCIOpcode::LE_EXT_CREATE_CONN);
+            le_ext_create_conn * cp = req0.getWStruct();
+            cp->filter_policy = initiator_filter;
+            cp->own_address_type = static_cast<uint8_t>(own_mac_type);
+            cp->peer_addr_type = static_cast<uint8_t>(peer_mac_type);
+            cp->peer_addr = jau::io::net::cpu_to_le(peer_bdaddr);
+            cp->phys = direct_bt::number(LE_PHYs::LE_1M); // Only scan on LE_1M for compatibility
 
-        cp->p1.scan_interval = jau::cpu_to_le(le_scan_interval);
-        cp->p1.scan_window = jau::cpu_to_le(le_scan_window);
-        cp->p1.conn_interval_min = jau::cpu_to_le(conn_interval_min);
-        cp->p1.conn_interval_max = jau::cpu_to_le(conn_interval_max);
-        cp->p1.conn_latency = jau::cpu_to_le(conn_latency);
-        cp->p1.supervision_timeout = jau::cpu_to_le(supervision_timeout);
-        cp->p1.min_ce_len = jau::cpu_to_le(min_ce_length);
-        cp->p1.max_ce_len = jau::cpu_to_le(max_ce_length);
-        // TODO: Support some PHYs combo settings?
+            cp->p1.scan_interval = jau::cpu_to_le(le_scan_interval);
+            cp->p1.scan_window = jau::cpu_to_le(le_scan_window);
+            cp->p1.conn_interval_min = jau::cpu_to_le(conn_interval_min);
+            cp->p1.conn_interval_max = jau::cpu_to_le(conn_interval_max);
+            cp->p1.conn_latency = jau::cpu_to_le(conn_latency);
+            cp->p1.supervision_timeout = jau::cpu_to_le(supervision_timeout);
+            cp->p1.min_ce_len = jau::cpu_to_le(min_ce_length);
+            cp->p1.max_ce_len = jau::cpu_to_le(max_ce_length);
+            // TODO: Support some PHYs combo settings?
 
-        std::unique_ptr<HCIEvent> ev = processCommandStatus(req0, &status);
-        // Events on successful connection:
-        // - HCI_LE_Enhanced_Connection_Complete
-        // - HCI_LE_Channel_Selection_Algorithm
-    } else {
-        HCIStructCommand<hci_cp_le_create_conn> req0(HCIOpcode::LE_CREATE_CONN);
-        hci_cp_le_create_conn * cp = req0.getWStruct();
-        cp->scan_interval = jau::cpu_to_le(le_scan_interval);
-        cp->scan_window = jau::cpu_to_le(le_scan_window);
-        cp->filter_policy = initiator_filter;
-        cp->peer_addr_type = static_cast<uint8_t>(peer_mac_type);
-        cp->peer_addr = jau::cpu_to_le(peer_bdaddr);
-        cp->own_address_type = static_cast<uint8_t>(own_mac_type);
-        cp->conn_interval_min = jau::cpu_to_le(conn_interval_min);
-        cp->conn_interval_max = jau::cpu_to_le(conn_interval_max);
-        cp->conn_latency = jau::cpu_to_le(conn_latency);
-        cp->supervision_timeout = jau::cpu_to_le(supervision_timeout);
-        cp->min_ce_len = jau::cpu_to_le(min_ce_length);
-        cp->max_ce_len = jau::cpu_to_le(max_ce_length);
+            std::unique_ptr<HCIEvent> ev = processCommandStatus(req0, &status);
+            // Events on successful connection:
+            // - HCI_LE_Enhanced_Connection_Complete
+            // - HCI_LE_Channel_Selection_Algorithm
+        } else {
+            HCIStructCommand<hci_cp_le_create_conn> req0(HCIOpcode::LE_CREATE_CONN);
+            hci_cp_le_create_conn * cp = req0.getWStruct();
+            cp->scan_interval = jau::cpu_to_le(le_scan_interval);
+            cp->scan_window = jau::cpu_to_le(le_scan_window);
+            cp->filter_policy = initiator_filter;
+            cp->peer_addr_type = static_cast<uint8_t>(peer_mac_type);
+            cp->peer_addr = jau::io::net::cpu_to_le(peer_bdaddr);
+            cp->own_address_type = static_cast<uint8_t>(own_mac_type);
+            cp->conn_interval_min = jau::cpu_to_le(conn_interval_min);
+            cp->conn_interval_max = jau::cpu_to_le(conn_interval_max);
+            cp->conn_latency = jau::cpu_to_le(conn_latency);
+            cp->supervision_timeout = jau::cpu_to_le(supervision_timeout);
+            cp->min_ce_len = jau::cpu_to_le(min_ce_length);
+            cp->max_ce_len = jau::cpu_to_le(max_ce_length);
 
-        std::unique_ptr<HCIEvent> ev = processCommandStatus(req0, &status);
-        // Events on successful connection:
-        // - HCI_LE_Connection_Complete
+            std::unique_ptr<HCIEvent> ev = processCommandStatus(req0, &status);
+            // Events on successful connection:
+            // - HCI_LE_Connection_Complete
+        }
+    } catch (...) {
+        jau::fput_exception(stderr, std::current_exception(), E_FILE_LINE);
+        jau_ERR_PRINT3("Exception caught while creating a connection address%s for %s", addressAndType, toString());
+        status = HCIStatusCode::INTERNAL_FAILURE;
     }
+
     if( HCIStatusCode::SUCCESS != status ) {
         removeTrackerConnection(conn);
 
         if( HCIStatusCode::CONNECTION_ALREADY_EXISTS == status ) {
             const std::string s0 = nullptr != disconn ? disconn->toString() : "null";
-            WARN_PRINT("%s: disconnect pending: %s - %s",
-                    to_string(status).c_str(), s0.c_str(), toString().c_str());
+            jau_WARN_PRINT("%s: disconnect pending: %s - %s", to_string(status), s0, toString());
         }
     }
     return status;
@@ -1424,66 +1455,72 @@ HCIStatusCode HCIHandler::create_conn(const EUI48 &bdaddr,
     const std::lock_guard<std::mutex> lock(mtx_connect_cmd); // RAII-style acquire and relinquish via destructor
 
     if( !isOpen() ) {
-        ERR_PRINT("Not connected %s", toString().c_str());
+        jau_ERR_PRINT("Not connected %s", toString());
         return HCIStatusCode::DISCONNECTED;
     }
     if( advertisingEnabled ) {
-        WARN_PRINT("Not allowed: Advertising is enabled %s", toString().c_str());
+        jau_WARN_PRINT("Not allowed: Advertising is enabled %s", toString());
         return HCIStatusCode::COMMAND_DISALLOWED;
     }
 
-    HCIStructCommand<hci_cp_create_conn> req0(HCIOpcode::CREATE_CONN);
-    hci_cp_create_conn * cp = req0.getWStruct();
-    cp->bdaddr = jau::cpu_to_le(bdaddr);
-    cp->pkt_type = jau::cpu_to_le((uint16_t)(pkt_type & (uint16_t)ACL_PTYPE_MASK)); /* TODO OK excluding SCO_PTYPE_MASK   (HCI_HV1 | HCI_HV2 | HCI_HV3) ? */
-    cp->pscan_rep_mode = 0x02; /* TODO magic? */
-    cp->pscan_mode = 0x00; /* TODO magic? */
-    cp->clock_offset = jau::cpu_to_le(clock_offset);
-    cp->role_switch = role_switch;
-
-    size_type pendingConnections = countPendingTrackerConnections();
-    if( 0 < pendingConnections ) {
-        DBG_PRINT("HCIHandler<%hu>::create_conn: %zu connections pending - %s", dev_id, (size_t)pendingConnections, toString().c_str());
-        jau::fraction_i64 td = 0_s;
-        while( env.HCI_COMMAND_COMPLETE_REPLY_TIMEOUT > td && 0 < pendingConnections ) {
-            sleep_for(env.HCI_COMMAND_POLL_PERIOD);
-            td += env.HCI_COMMAND_POLL_PERIOD;
-            pendingConnections = countPendingTrackerConnections();
-        }
-        if( 0 < pendingConnections ) {
-            WARN_PRINT("%zu connections pending after %" PRIi64 " ms - %s", (size_t)pendingConnections, td.to_ms(), toString().c_str());
-        } else {
-            DBG_PRINT("HCIHandler<%hu>::create_conn: pending connections resolved after %" PRIi64 " ms - %s", dev_id, td.to_ms(), toString().c_str());
-        }
-    }
     const BDAddressAndType addressAndType(bdaddr, BDAddressType::BDADDR_BREDR);
-    HCIConnectionRef disconn = findDisconnectCmd(addressAndType);
-    if( nullptr != disconn ) {
-        DBG_PRINT("HCIHandler<%hu>::create_conn: disconnect pending %s - %s",
-                dev_id, disconn->toString().c_str(), toString().c_str());
-        jau::fraction_i64 td = 0_s;
-        while( env.HCI_COMMAND_COMPLETE_REPLY_TIMEOUT > td && nullptr != disconn ) {
-            sleep_for(env.HCI_COMMAND_POLL_PERIOD);
-            td += env.HCI_COMMAND_POLL_PERIOD;
-            disconn = findDisconnectCmd(addressAndType);
-        }
-        if( nullptr != disconn ) {
-            WARN_PRINT("disconnect persisting after %" PRIi64 " ms: %s - %s",
-                    td.to_ms(), disconn->toString().c_str(), toString().c_str());
-        } else {
-            DBG_PRINT("HCIHandler<%hu>::create_conn: disconnect resolved after %" PRIi64 " ms - %s", dev_id, td.to_ms(), toString().c_str());
-        }
-    }
-    HCIConnectionRef conn = addOrUpdateTrackerConnection(addressAndType, 0);
+    HCIConnectionRef disconn, conn;
     HCIStatusCode status;
-    std::unique_ptr<HCIEvent> ev = processCommandStatus(req0, &status);
-    if( HCIStatusCode::SUCCESS != status ) {
-        removeTrackerConnection(conn);
 
+    try {
+        HCIStructCommand<hci_cp_create_conn> req0(HCIOpcode::CREATE_CONN);
+        hci_cp_create_conn * cp = req0.getWStruct();
+        cp->bdaddr = jau::io::net::cpu_to_le(bdaddr);
+        cp->pkt_type = jau::cpu_to_le((uint16_t)(pkt_type & (uint16_t)ACL_PTYPE_MASK)); /* TODO OK excluding SCO_PTYPE_MASK   (HCI_HV1 | HCI_HV2 | HCI_HV3) ? */
+        cp->pscan_rep_mode = 0x02; /* TODO magic? */
+        cp->pscan_mode = 0x00; /* TODO magic? */
+        cp->clock_offset = jau::cpu_to_le(clock_offset);
+        cp->role_switch = role_switch;
+
+        size_type pendingConnections = countPendingTrackerConnections();
+        if( 0 < pendingConnections ) {
+            jau_DBG_PRINT("HCIHandler<%hu>::create_conn: %zu connections pending - %s", dev_id, (size_t)pendingConnections, toString());
+            jau::fraction_i64 td = 0_s;
+            while( env.HCI_COMMAND_COMPLETE_REPLY_TIMEOUT > td && 0 < pendingConnections ) {
+                sleep_for(env.HCI_COMMAND_POLL_PERIOD);
+                td += env.HCI_COMMAND_POLL_PERIOD;
+                pendingConnections = countPendingTrackerConnections();
+            }
+            if( 0 < pendingConnections ) {
+                jau_WARN_PRINT("%zu connections pending after %" PRIi64 " ms - %s", (size_t)pendingConnections, td.to_ms(), toString());
+            } else {
+                jau_DBG_PRINT("HCIHandler<%hu>::create_conn: pending connections resolved after %" PRIi64 " ms - %s", dev_id, td.to_ms(), toString());
+            }
+        }
+        disconn = findDisconnectCmd(addressAndType);
+        if( nullptr != disconn ) {
+            jau_DBG_PRINT("HCIHandler<%hu>::create_conn: disconnect pending %s - %s", dev_id, disconn->toString(), toString());
+            jau::fraction_i64 td = 0_s;
+            while( env.HCI_COMMAND_COMPLETE_REPLY_TIMEOUT > td && nullptr != disconn ) {
+                sleep_for(env.HCI_COMMAND_POLL_PERIOD);
+                td += env.HCI_COMMAND_POLL_PERIOD;
+                disconn = findDisconnectCmd(addressAndType);
+            }
+            if( nullptr != disconn ) {
+                jau_WARN_PRINT("disconnect persisting after %" PRIi64 " ms: %s - %s", td.to_ms(), disconn->toString(), toString());
+            } else {
+                jau_DBG_PRINT("HCIHandler<%hu>::create_conn: disconnect resolved after %" PRIi64 " ms - %s", dev_id, td.to_ms(), toString());
+            }
+        }
+        conn = addOrUpdateTrackerConnection(addressAndType, 0);
+        /* std::unique_ptr<HCIEvent> ev = */ processCommandStatus(req0, &status);
+    } catch (...) {
+        jau::fput_exception(stderr, std::current_exception(), E_FILE_LINE);
+        jau_ERR_PRINT3("Exception caught while creating a connection address%s for %s", addressAndType, toString());
+        status = HCIStatusCode::INTERNAL_FAILURE;
+    }
+    if( HCIStatusCode::SUCCESS != status ) {
+        if (conn) {
+            removeTrackerConnection(conn);
+        }
         if( HCIStatusCode::CONNECTION_ALREADY_EXISTS == status ) {
             const std::string s0 = nullptr != disconn ? disconn->toString() : "null";
-            WARN_PRINT("%s: disconnect pending: %s - %s",
-                    to_string(status).c_str(), s0.c_str(), toString().c_str());
+            jau_WARN_PRINT("%s: disconnect pending: %s - %s", to_string(status), s0, toString());
         }
     }
     return status;
@@ -1494,21 +1531,25 @@ HCIStatusCode HCIHandler::disconnect(const uint16_t conn_handle, const BDAddress
 {
     HCIStatusCode status = check_open_connection("disconnect", conn_handle, peerAddressAndType, true /* addUntrackedConn */);
     if( HCIStatusCode::SUCCESS != status ) {
-        WARN_PRINT("Failed check_open_connection: conn_handle 0x%hx, address %s, reason %s",
-            conn_handle, peerAddressAndType.toString().c_str(), to_string(reason).c_str());
+        jau_WARN_PRINT("Failed check_open_connection: conn_handle 0x%hx, address %s, reason %s",
+            conn_handle, peerAddressAndType.toString(), to_string(reason));
         return status;
     }
 
     // Always issue DISCONNECT command, even in case of an ioError (lost-connection),
     // see Issue #124 fast re-connect on CSR adapter.
     // This will always notify the adapter of a disconnected device.
-    {
+    try {
         HCIStructCommand<hci_cp_disconnect> req0(HCIOpcode::DISCONNECT);
         hci_cp_disconnect * cp = req0.getWStruct();
         cp->handle = jau::cpu_to_le(conn_handle);
         cp->reason = number(reason);
 
-        std::unique_ptr<HCIEvent> ev = processCommandStatus(req0, &status);
+        /* std::unique_ptr<HCIEvent> ev = */ processCommandStatus(req0, &status);
+    } catch (...) {
+        jau::fput_exception(stderr, std::current_exception(), E_FILE_LINE);
+        jau_ERR_PRINT3("Exception caught while disconnecting from handle %#x, address %s for %s", conn_handle, peerAddressAndType, toString());
+        return HCIStatusCode::INTERNAL_FAILURE;
     }
     if( HCIStatusCode::SUCCESS == status ) {
         addOrUpdateDisconnectCmd(peerAddressAndType, conn_handle);
@@ -1521,11 +1562,11 @@ HCIStatusCode HCIHandler::disconnect(const uint16_t conn_handle, const BDAddress
             c = removeTrackerConnection(conn_handle);
         }
         if( c ) {
-            jau::INFO_PRINT("HCIHandler::disconnect (%s) failed: handle 0x%hx, address %s (connection removed)",
-                to_string(reason).c_str(), conn_handle, peerAddressAndType.toString().c_str());
+            jau_INFO_PRINT("HCIHandler::disconnect (%s) failed: handle 0x%hx, address %s (connection removed)",
+                to_string(reason), conn_handle, peerAddressAndType.toString());
         } else {
-            WARN_PRINT("disconnect (%s) failed: handle 0x%hx, address %s (connection persists)",
-                to_string(reason).c_str(), conn_handle, peerAddressAndType.toString().c_str());
+            jau_WARN_PRINT("disconnect (%s) failed: handle 0x%hx, address %s (connection persists)",
+                to_string(reason), conn_handle, peerAddressAndType.toString());
         }
     }
     return status;
@@ -1534,113 +1575,155 @@ HCIStatusCode HCIHandler::disconnect(const uint16_t conn_handle, const BDAddress
 HCIStatusCode HCIHandler::le_add_to_resolv_list(const BDAddressAndType& peerIdentityAddressAndType,
                                     jau::uint128dp_t& peer_irk, jau::uint128dp_t& local_irk) noexcept {
     if( !use_resolv_add() ) { return HCIStatusCode::UNKNOWN_COMMAND; }
-    HCIStatusCode status;
-    HCIStructCommand<hci_cp_le_add_to_resolv_list> req0(HCIOpcode::LE_ADD_TO_RESOLV_LIST);
-    hci_cp_le_add_to_resolv_list * cp = req0.getWStruct();
-    cp->bdaddr_type = static_cast<uint8_t>(peerIdentityAddressAndType.type);
-    cp->bdaddr      = jau::cpu_to_le(peerIdentityAddressAndType.address);
-    jau::put_uint128(cp->peer_irk + 0, peer_irk, jau::lb_endian_t::little);
-    jau::put_uint128(cp->local_irk + 0, local_irk, jau::lb_endian_t::little);
-    const hci_rp_status * ev_res;
-    std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_res, &status, true /* quiet */);
-    if( nullptr == ev || nullptr == ev_res || HCIStatusCode::SUCCESS != status ) {
-        DBG_PRINT("%s: 0x%x (%s) - %s", to_string(req0.getOpcode()).c_str(), number(status), to_string(status).c_str(), toString().c_str());
+    try {
+        HCIStatusCode status;
+        HCIStructCommand<hci_cp_le_add_to_resolv_list> req0(HCIOpcode::LE_ADD_TO_RESOLV_LIST);
+        hci_cp_le_add_to_resolv_list * cp = req0.getWStruct();
+        cp->bdaddr_type = static_cast<uint8_t>(peerIdentityAddressAndType.type);
+        cp->bdaddr      = jau::io::net::cpu_to_le(peerIdentityAddressAndType.address);
+        jau::put_uint128(cp->peer_irk + 0, peer_irk, jau::lb_endian_t::little);
+        jau::put_uint128(cp->local_irk + 0, local_irk, jau::lb_endian_t::little);
+        const hci_rp_status * ev_res;
+        std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_res, &status, true /* quiet */);
+        if( nullptr == ev || nullptr == ev_res || HCIStatusCode::SUCCESS != status ) {
+            jau_DBG_PRINT("%s: %#x (%s) - %s", to_string(req0.getOpcode()), number(status), to_string(status), toString());
+        }
+        return status;
+    } catch (...) {
+        jau::fput_exception(stderr, std::current_exception(), E_FILE_LINE);
+        jau_ERR_PRINT3("Exception occurred while adding addr-resolve addr %s, for %s", peerIdentityAddressAndType, toString());
+        return HCIStatusCode::INTERNAL_FAILURE;
     }
-    return status;
 }
 
 HCIStatusCode HCIHandler::le_del_from_resolv_list(const BDAddressAndType& peerIdentityAddressAndType) noexcept {
     if( !use_resolv_del() ) { return HCIStatusCode::UNKNOWN_COMMAND; }
-    HCIStatusCode status;
-    HCIStructCommand<hci_cp_le_del_from_resolv_list> req0(HCIOpcode::LE_DEL_FROM_RESOLV_LIST);
-    hci_cp_le_del_from_resolv_list * cp = req0.getWStruct();
-    cp->bdaddr_type = static_cast<uint8_t>(peerIdentityAddressAndType.type);
-    cp->bdaddr      = jau::cpu_to_le(peerIdentityAddressAndType.address);
-    const hci_rp_status * ev_res;
-    std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_res, &status, true /* quiet */);
-    if( nullptr == ev || nullptr == ev_res || HCIStatusCode::SUCCESS != status ) {
-        DBG_PRINT("%s: 0x%x (%s) - %s", to_string(req0.getOpcode()).c_str(), number(status), to_string(status).c_str(), toString().c_str());
+    try {
+        HCIStatusCode status;
+        HCIStructCommand<hci_cp_le_del_from_resolv_list> req0(HCIOpcode::LE_DEL_FROM_RESOLV_LIST);
+        hci_cp_le_del_from_resolv_list * cp = req0.getWStruct();
+        cp->bdaddr_type = static_cast<uint8_t>(peerIdentityAddressAndType.type);
+        cp->bdaddr      = jau::io::net::cpu_to_le(peerIdentityAddressAndType.address);
+        const hci_rp_status * ev_res;
+        std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_res, &status, true /* quiet */);
+        if( nullptr == ev || nullptr == ev_res || HCIStatusCode::SUCCESS != status ) {
+            jau_DBG_PRINT("%s: %#x (%s) - %s", to_string(req0.getOpcode()), number(status), to_string(status), toString());
+        }
+        return status;
+    } catch (...) {
+        jau::fput_exception(stderr, std::current_exception(), E_FILE_LINE);
+        jau_ERR_PRINT3("Exception occurred while deleting addr-resolve addr %s, for %s", peerIdentityAddressAndType, toString());
+        return HCIStatusCode::INTERNAL_FAILURE;
     }
-    return status;
 }
 
 HCIStatusCode HCIHandler::le_clear_resolv_list() noexcept {
     if( !use_resolv_clear() ) { return HCIStatusCode::UNKNOWN_COMMAND; }
-    HCIStatusCode status;
-    HCICommand req0(HCIOpcode::LE_CLEAR_RESOLV_LIST, 0);
-    const hci_rp_status * ev_res;
-    std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_res, &status, true /* quiet */);
-    if( nullptr == ev || nullptr == ev_res || HCIStatusCode::SUCCESS != status ) {
-        DBG_PRINT("%s: 0x%x (%s) - %s", to_string(req0.getOpcode()).c_str(), number(status), to_string(status).c_str(), toString().c_str());
+    try {
+        HCIStatusCode status;
+        HCICommand req0(HCIOpcode::LE_CLEAR_RESOLV_LIST, 0);
+        const hci_rp_status * ev_res;
+        std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_res, &status, true /* quiet */);
+        if( nullptr == ev || nullptr == ev_res || HCIStatusCode::SUCCESS != status ) {
+            jau_DBG_PRINT("%s: %#x (%s) - %s", to_string(req0.getOpcode()), number(status), to_string(status), toString());
+        }
+        return status;
+    } catch (...) {
+        jau::fput_exception(stderr, std::current_exception(), E_FILE_LINE);
+        jau_ERR_PRINT3("Exception occurred while clearing addr-resolve for %s", toString());
+        return HCIStatusCode::INTERNAL_FAILURE;
     }
-    return status;
 }
 
 HCIStatusCode HCIHandler::le_read_resolv_list_size(uint32_t& size_res) noexcept {
     if( !use_resolv_size() ) { return HCIStatusCode::UNKNOWN_COMMAND; }
     size_res = 0;
-    HCIStatusCode status;
-    HCICommand req0(HCIOpcode::LE_READ_RESOLV_LIST_SIZE, 0);
-    const hci_rp_le_read_resolv_list_size * ev_res;
-    std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_res, &status, true /* quiet */);
-    if( nullptr == ev || nullptr == ev_res || HCIStatusCode::SUCCESS != status ) {
-        DBG_PRINT("%s: 0x%x (%s) - %s", to_string(req0.getOpcode()).c_str(), number(status), to_string(status).c_str(), toString().c_str());
-    } else if( nullptr != ev_res && HCIStatusCode::SUCCESS != status ) {
-        size_res = ev_res->size;
+    try {
+        HCIStatusCode status;
+        HCICommand req0(HCIOpcode::LE_READ_RESOLV_LIST_SIZE, 0);
+        const hci_rp_le_read_resolv_list_size * ev_res;
+        std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_res, &status, true /* quiet */);
+        if( nullptr == ev || nullptr == ev_res || HCIStatusCode::SUCCESS != status ) {
+            jau_DBG_PRINT("%s: %#x (%s) - %s", to_string(req0.getOpcode()), number(status), to_string(status), toString());
+        } else if( nullptr != ev_res && HCIStatusCode::SUCCESS != status ) {
+            size_res = ev_res->size;
+        }
+        return status;
+    } catch (...) {
+        jau::fput_exception(stderr, std::current_exception(), E_FILE_LINE);
+        jau_ERR_PRINT3("Exception occurred while reading addr-resolve size, for %s", toString());
+        return HCIStatusCode::INTERNAL_FAILURE;
     }
-    return status;
 }
 
 HCIStatusCode HCIHandler::le_read_peer_resolv_addr(const BDAddressAndType& peerIdentityAddressAndType,
-                                                   jau::EUI48& peerResolvableAddress) noexcept {
+                                                   jau::io::net::EUI48& peerResolvableAddress) noexcept {
     if( !use_resolv_readPeerRA() ) { return HCIStatusCode::UNKNOWN_COMMAND; }
     peerResolvableAddress.clear();
-    HCIStatusCode status;
-    HCIStructCommand<hci_cp_le_read_peer_resolv_addr> req0(HCIOpcode::LE_READ_PEER_RESOLV_ADDR);
-    hci_cp_le_read_peer_resolv_addr * cp = req0.getWStruct();
-    cp->peer_id_addr_type = static_cast<uint8_t>(peerIdentityAddressAndType.type);
-    cp->peer_id_addr = jau::cpu_to_le(peerIdentityAddressAndType.address);
-    const hci_rp_le_read_peer_resolv_addr * ev_res;
-    std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_res, &status, true /* quiet */);
-    if( nullptr == ev || nullptr == ev_res || HCIStatusCode::SUCCESS != status ) {
-        DBG_PRINT("%s: 0x%x (%s) - %s", to_string(req0.getOpcode()).c_str(), number(status), to_string(status).c_str(), toString().c_str());
-    } else if( nullptr != ev_res && HCIStatusCode::SUCCESS != status ) {
-        peerResolvableAddress = jau::le_to_cpu(ev_res->peer_resolv_addr);
+    try {
+        HCIStatusCode status;
+        HCIStructCommand<hci_cp_le_read_peer_resolv_addr> req0(HCIOpcode::LE_READ_PEER_RESOLV_ADDR);
+        hci_cp_le_read_peer_resolv_addr * cp = req0.getWStruct();
+        cp->peer_id_addr_type = static_cast<uint8_t>(peerIdentityAddressAndType.type);
+        cp->peer_id_addr = jau::io::net::cpu_to_le(peerIdentityAddressAndType.address);
+        const hci_rp_le_read_peer_resolv_addr * ev_res;
+        std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_res, &status, true /* quiet */);
+        if( nullptr == ev || nullptr == ev_res || HCIStatusCode::SUCCESS != status ) {
+            jau_DBG_PRINT("%s: %#x (%s) - %s", to_string(req0.getOpcode()), number(status), to_string(status), toString());
+        } else if( nullptr != ev_res && HCIStatusCode::SUCCESS != status ) {
+            peerResolvableAddress = jau::io::net::le_to_cpu(ev_res->peer_resolv_addr);
+        }
+        return status;
+    } catch (...) {
+        jau::fput_exception(stderr, std::current_exception(), E_FILE_LINE);
+        jau_ERR_PRINT3("Exception occurred while reading peer addr-resolve addr %s, for %s", peerIdentityAddressAndType, toString());
+        return HCIStatusCode::INTERNAL_FAILURE;
     }
-    return status;
 }
 
 HCIStatusCode HCIHandler::le_read_local_resolv_addr(const BDAddressAndType& peerIdentityAddressAndType,
-                                                    jau::EUI48& localResolvableAddress) noexcept {
+                                                    jau::io::net::EUI48& localResolvableAddress) noexcept {
     if( !use_resolv_readLocalRA() ) { return HCIStatusCode::UNKNOWN_COMMAND; }
     localResolvableAddress.clear();
-    HCIStatusCode status;
-    HCIStructCommand<hci_cp_le_read_local_resolv_addr> req0(HCIOpcode::LE_READ_LOCAL_RESOLV_ADDR);
-    hci_cp_le_read_local_resolv_addr * cp = req0.getWStruct();
-    cp->peer_id_addr_type = static_cast<uint8_t>(peerIdentityAddressAndType.type);
-    cp->peer_id_addr = jau::cpu_to_le(peerIdentityAddressAndType.address);
-    const hci_rp_le_read_local_resolv_addr * ev_res;
-    std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_res, &status, true /* quiet */);
-    if( nullptr == ev || nullptr == ev_res || HCIStatusCode::SUCCESS != status ) {
-        DBG_PRINT("%s: 0x%x (%s) - %s", to_string(req0.getOpcode()).c_str(), number(status), to_string(status).c_str(), toString().c_str());
-    } else if( nullptr != ev_res && HCIStatusCode::SUCCESS != status ) {
-        localResolvableAddress = jau::le_to_cpu(ev_res->local_resolv_addr);
+    try {
+        HCIStatusCode status;
+        HCIStructCommand<hci_cp_le_read_local_resolv_addr> req0(HCIOpcode::LE_READ_LOCAL_RESOLV_ADDR);
+        hci_cp_le_read_local_resolv_addr * cp = req0.getWStruct();
+        cp->peer_id_addr_type = static_cast<uint8_t>(peerIdentityAddressAndType.type);
+        cp->peer_id_addr = jau::io::net::cpu_to_le(peerIdentityAddressAndType.address);
+        const hci_rp_le_read_local_resolv_addr * ev_res;
+        std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_res, &status, true /* quiet */);
+        if( nullptr == ev || nullptr == ev_res || HCIStatusCode::SUCCESS != status ) {
+            jau_DBG_PRINT("%s: %#x (%s) - %s", to_string(req0.getOpcode()), number(status), to_string(status), toString());
+        } else if( nullptr != ev_res && HCIStatusCode::SUCCESS != status ) {
+            localResolvableAddress = jau::io::net::le_to_cpu(ev_res->local_resolv_addr);
+        }
+        return status;
+    } catch (...) {
+        jau::fput_exception(stderr, std::current_exception(), E_FILE_LINE);
+        jau_ERR_PRINT3("Exception occurred while reading local addr-resolve addr %s, for %s", peerIdentityAddressAndType, toString());
+        return HCIStatusCode::INTERNAL_FAILURE;
     }
-    return status;
 }
 
 HCIStatusCode HCIHandler::le_set_addr_resolv_enable(const bool enable) noexcept {
     if( !use_resolv_enable() ) { return HCIStatusCode::UNKNOWN_COMMAND; }
-    HCIStatusCode status;
-    HCIStructCommand<hci_cp_le_set_addr_resolv_enable> req0(HCIOpcode::LE_SET_ADDR_RESOLV_ENABLE);
-    hci_cp_le_set_addr_resolv_enable * cp = req0.getWStruct();
-    cp->enable = enable ? 0x01 : 0x00;
-    const hci_rp_status * ev_res;
-    std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_res, &status, true /* quiet */);
-    if( nullptr == ev || nullptr == ev_res || HCIStatusCode::SUCCESS != status ) {
-        DBG_PRINT("%s: 0x%x (%s) - %s", to_string(req0.getOpcode()).c_str(), number(status), to_string(status).c_str(), toString().c_str());
+    try {
+        HCIStatusCode status;
+        HCIStructCommand<hci_cp_le_set_addr_resolv_enable> req0(HCIOpcode::LE_SET_ADDR_RESOLV_ENABLE);
+        hci_cp_le_set_addr_resolv_enable * cp = req0.getWStruct();
+        cp->enable = enable ? 0x01 : 0x00;
+        const hci_rp_status * ev_res;
+        std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_res, &status, true /* quiet */);
+        if( nullptr == ev || nullptr == ev_res || HCIStatusCode::SUCCESS != status ) {
+            jau_DBG_PRINT("%s: %#x (%s) - %s", to_string(req0.getOpcode()), number(status), to_string(status), toString());
+        }
+        return status;
+    } catch (...) {
+        jau::fput_exception(stderr, std::current_exception(), E_FILE_LINE);
+        jau_ERR_PRINT3("Exception occurred while toggling addr-resolve enable %s for %s", enable, toString());
+        return HCIStatusCode::INTERNAL_FAILURE;
     }
-    return status;
 }
 
 HCIStatusCode HCIHandler::le_read_phy(const uint16_t conn_handle, const BDAddressAndType& peerAddressAndType,
@@ -1668,80 +1751,90 @@ HCIStatusCode HCIHandler::le_read_phy(const uint16_t conn_handle, const BDAddres
         __u8    rx_phys;
     } __packed;
 
-    HCIStructCommand<hci_cp_le_read_phy> req0(HCIOpcode::LE_READ_PHY);
-    hci_cp_le_read_phy * cp = req0.getWStruct();
-    cp->handle = jau::cpu_to_le(conn_handle);
-    const hci_rp_le_read_phy * ev_phy;
-    std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_phy, &status);
+    try {
+        HCIStructCommand<hci_cp_le_read_phy> req0(HCIOpcode::LE_READ_PHY);
+        hci_cp_le_read_phy * cp = req0.getWStruct();
+        cp->handle = jau::cpu_to_le(conn_handle);
+        const hci_rp_le_read_phy * ev_phy;
+        std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_phy, &status);
 
-    if( nullptr == ev || nullptr == ev_phy || HCIStatusCode::SUCCESS != status ) {
-        ERR_PRINT("%s: 0x%x (%s) - %s", to_string(req0.getOpcode()).c_str(),
-                number(status), to_string(status).c_str(), toString().c_str());
-    } else {
-        const uint16_t conn_handle_rcvd = jau::le_to_cpu(ev_phy->handle);
-        if( conn_handle != conn_handle_rcvd ) {
-            ERR_PRINT("Mismatch given address%s conn_handle (req) %s != %s (res) (drop) - %s",
-                       peerAddressAndType.toString().c_str(),
-                       jau::to_hexstring(conn_handle).c_str(), jau::to_hexstring(conn_handle_rcvd).c_str(), toString().c_str());
-            return HCIStatusCode::INTERNAL_FAILURE;
+        if( nullptr == ev || nullptr == ev_phy || HCIStatusCode::SUCCESS != status ) {
+            jau_ERR_PRINT("%s: %#x (%s) - %s", to_string(req0.getOpcode()), number(status), to_string(status), toString());
+        } else {
+            const uint16_t conn_handle_rcvd = jau::le_to_cpu(ev_phy->handle);
+            if( conn_handle != conn_handle_rcvd ) {
+                jau_ERR_PRINT("Mismatch given address%s conn_handle (req) %s != %s (res) (drop) - %s",
+                           peerAddressAndType.toString(), jau::toHexString(conn_handle), jau::toHexString(conn_handle_rcvd), toString());
+                return HCIStatusCode::INTERNAL_FAILURE;
+            }
+            switch( ev_phy->tx_phys ) { // NOLINT(bugprone-switch-missing-default-case): Handled
+                case 0x01: resTx = LE_PHYs::LE_1M; break;
+                case 0x02: resTx = LE_PHYs::LE_2M; break;
+                case 0x03: resTx = LE_PHYs::LE_CODED; break;
+            }
+            switch( ev_phy->rx_phys ) { // NOLINT(bugprone-switch-missing-default-case): Handled
+                case 0x01: resRx = LE_PHYs::LE_1M; break;
+                case 0x02: resRx = LE_PHYs::LE_2M; break;
+                case 0x03: resRx = LE_PHYs::LE_CODED; break;
+            }
         }
-        switch( ev_phy->tx_phys ) { // NOLINT(bugprone-switch-missing-default-case): Handled
-            case 0x01: resTx = LE_PHYs::LE_1M; break;
-            case 0x02: resTx = LE_PHYs::LE_2M; break;
-            case 0x03: resTx = LE_PHYs::LE_CODED; break;
-        }
-        switch( ev_phy->rx_phys ) { // NOLINT(bugprone-switch-missing-default-case): Handled
-            case 0x01: resRx = LE_PHYs::LE_1M; break;
-            case 0x02: resRx = LE_PHYs::LE_2M; break;
-            case 0x03: resRx = LE_PHYs::LE_CODED; break;
-        }
+        return status;
+    } catch (...) {
+        jau::fput_exception(stderr, std::current_exception(), E_FILE_LINE);
+        jau_ERR_PRINT3("Exception occurred while reading phy, for %s", toString());
+        return HCIStatusCode::INTERNAL_FAILURE;
     }
-    return status;
 }
 
 HCIStatusCode HCIHandler::le_set_default_phy(const LE_PHYs Tx, const LE_PHYs Rx) noexcept {
     if( !is_set(le_ll_feats, LE_Features::LE_2M_PHY) ) {
         if( is_set(Tx, LE_PHYs::LE_2M) ) {
-            WARN_PRINT("dev_id %u: LE_2M_PHY no supported, requested Tx %s", dev_id, to_string(Tx).c_str());
+            jau_WARN_PRINT("dev_id %u: LE_2M_PHY no supported, requested Tx %s", dev_id, to_string(Tx));
             return HCIStatusCode::INVALID_PARAMS;
         }
         if( is_set(Rx, LE_PHYs::LE_2M) ) {
-            WARN_PRINT("dev_id %u: LE_2M_PHY no supported, requested Rx %s", dev_id, to_string(Rx).c_str());
+            jau_WARN_PRINT("dev_id %u: LE_2M_PHY no supported, requested Rx %s", dev_id, to_string(Rx));
             return HCIStatusCode::INVALID_PARAMS;
         }
     }
 
     if( !isOpen() ) {
-        ERR_PRINT("Not connected %s", toString().c_str());
+        jau_ERR_PRINT("Not connected %s", toString());
         return HCIStatusCode::DISCONNECTED;
     }
 
-    HCIStatusCode status;
-    HCIStructCommand<hci_cp_le_set_default_phy> req0(HCIOpcode::LE_SET_DEFAULT_PHY);
-    hci_cp_le_set_default_phy * cp = req0.getWStruct();
-    cp->all_phys = ( Tx != LE_PHYs::NONE ? 0b000 : 0b001 ) |
-                   ( Rx != LE_PHYs::NONE ? 0b000 : 0b010 );
-    cp->tx_phys = number( Tx );
-    cp->rx_phys = number( Rx );
+    try {
+        HCIStatusCode status;
+        HCIStructCommand<hci_cp_le_set_default_phy> req0(HCIOpcode::LE_SET_DEFAULT_PHY);
+        hci_cp_le_set_default_phy * cp = req0.getWStruct();
+        cp->all_phys = ( Tx != LE_PHYs::NONE ? 0b000 : 0b001 ) |
+                       ( Rx != LE_PHYs::NONE ? 0b000 : 0b010 );
+        cp->tx_phys = number( Tx );
+        cp->rx_phys = number( Rx );
 
-    const hci_rp_status * ev_status;
-    std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_status, &status);
+        const hci_rp_status * ev_status;
+        std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_status, &status);
 
-    if( nullptr == ev || nullptr == ev || HCIStatusCode::SUCCESS != status ) {
-        ERR_PRINT("%s: 0x%x (%s) - %s", to_string(req0.getOpcode()).c_str(), number(status), to_string(status).c_str(), toString().c_str());
+        if( nullptr == ev || nullptr == ev || HCIStatusCode::SUCCESS != status ) {
+            jau_ERR_PRINT("%s: %#x (%s) - %s", to_string(req0.getOpcode()), number(status), to_string(status), toString());
+        }
+        return status;
+    } catch (...) {
+        jau::fput_exception(stderr, std::current_exception(), E_FILE_LINE);
+        jau_ERR_PRINT3("Exception occurred while setting default phy, for %s", toString());
+        return HCIStatusCode::INTERNAL_FAILURE;
     }
-    return status;
 }
 
 HCIStatusCode HCIHandler::le_set_phy(const uint16_t conn_handle, const BDAddressAndType& peerAddressAndType,
                                      const LE_PHYs Tx, const LE_PHYs Rx) noexcept {
     if( !is_set(le_ll_feats, LE_Features::LE_2M_PHY) ) {
         if( is_set(Tx, LE_PHYs::LE_2M) ) {
-            WARN_PRINT("dev_id %u: LE_2M_PHY no supported, requested Tx %s", dev_id, to_string(Tx).c_str());
+            jau_WARN_PRINT("dev_id %u: LE_2M_PHY no supported, requested Tx %s", dev_id, to_string(Tx));
             return HCIStatusCode::INVALID_PARAMS;
         }
         if( is_set(Rx, LE_PHYs::LE_2M) ) {
-            WARN_PRINT("dev_id %u: LE_2M_PHY no supported, requested Rx %s", dev_id, to_string(Rx).c_str());
+            jau_WARN_PRINT("dev_id %u: LE_2M_PHY no supported, requested Rx %s", dev_id, to_string(Rx));
             return HCIStatusCode::INVALID_PARAMS;
         }
     }
@@ -1759,21 +1852,27 @@ HCIStatusCode HCIHandler::le_set_phy(const uint16_t conn_handle, const BDAddress
         uint16_t phy_options;
     } __packed;
 
-    HCIStructCommand<hci_cp_le_set_phy> req0(HCIOpcode::LE_SET_PHY);
-    hci_cp_le_set_phy * cp = req0.getWStruct();
-    cp->handle = jau::cpu_to_le(conn_handle);
-    cp->all_phys = ( Tx != LE_PHYs::NONE ? 0b000 : 0b001 ) |
-                   ( Rx != LE_PHYs::NONE ? 0b000 : 0b010 );
-    cp->tx_phys = number( Tx );
-    cp->rx_phys = number( Rx );
-    cp->phy_options = 0;
+    try {
+        HCIStructCommand<hci_cp_le_set_phy> req0(HCIOpcode::LE_SET_PHY);
+        hci_cp_le_set_phy * cp = req0.getWStruct();
+        cp->handle = jau::cpu_to_le(conn_handle);
+        cp->all_phys = ( Tx != LE_PHYs::NONE ? 0b000 : 0b001 ) |
+                       ( Rx != LE_PHYs::NONE ? 0b000 : 0b010 );
+        cp->tx_phys = number( Tx );
+        cp->rx_phys = number( Rx );
+        cp->phy_options = 0;
 
-    std::unique_ptr<HCIEvent> ev = processCommandStatus(req0, &status);
+        std::unique_ptr<HCIEvent> ev = processCommandStatus(req0, &status);
 
-    if( nullptr == ev || nullptr == ev || HCIStatusCode::SUCCESS != status ) {
-        ERR_PRINT("%s: 0x%x (%s) - %s", to_string(req0.getOpcode()).c_str(), number(status), to_string(status).c_str(), toString().c_str());
+        if( nullptr == ev || nullptr == ev || HCIStatusCode::SUCCESS != status ) {
+            jau_ERR_PRINT("%s: %#x (%s) - %s", to_string(req0.getOpcode()), number(status), to_string(status), toString());
+        }
+        return status;
+    } catch (...) {
+        jau::fput_exception(stderr, std::current_exception(), E_FILE_LINE);
+        jau_ERR_PRINT3("Exception occurred while setting phy handle %#x, addr %s, for %s", conn_handle, peerAddressAndType, toString());
+        return HCIStatusCode::INTERNAL_FAILURE;
     }
-    return status;
 }
 
 HCIStatusCode HCIHandler::le_set_adv_param(const EUI48 &peer_bdaddr,
@@ -1783,213 +1882,235 @@ HCIStatusCode HCIHandler::le_set_adv_param(const EUI48 &peer_bdaddr,
                                            const AD_PDU_Type adv_type,
                                            const uint8_t adv_chan_map,
                                            const uint8_t filter_policy) noexcept {
-    DBG_PRINT("HCIHandler<%hu>::le_set_adv_param: adv-interval[%.3f ms .. %.3f ms], filter %d - %s",
-            dev_id, 0.625f * (float)adv_interval_min, 0.625f * (float)adv_interval_max,
-            filter_policy, toString().c_str());
+    jau_DBG_PRINT("HCIHandler<%hu>::le_set_adv_param: adv-interval[%.3f ms .. %.3f ms], filter %d - %s",
+            dev_id, 0.625f * (float)adv_interval_min, 0.625f * (float)adv_interval_max, filter_policy, toString());
 
-    HCIStatusCode status;
-    if( use_ext_adv() ) {
-        HCIStructCommand<hci_cp_le_set_ext_adv_params> req0(HCIOpcode::LE_SET_EXT_ADV_PARAMS);
-        hci_cp_le_set_ext_adv_params * cp = req0.getWStruct();
-        cp->handle = 0x00; // TODO: Support more than one advertising sets?
-        AD_PDU_Type adv_type2;
-        switch( adv_type ) {
-            // Connectable
-            case AD_PDU_Type::ADV_IND:
-                [[fallthrough]];
-            case AD_PDU_Type::ADV_SCAN_IND:
-                [[fallthrough]];
-            case AD_PDU_Type::ADV_IND2:
-                adv_type2 = AD_PDU_Type::ADV_IND2;
-                break;
+    try {
+        HCIStatusCode status;
+        if( use_ext_adv() ) {
+            HCIStructCommand<hci_cp_le_set_ext_adv_params> req0(HCIOpcode::LE_SET_EXT_ADV_PARAMS);
+            hci_cp_le_set_ext_adv_params * cp = req0.getWStruct();
+            cp->handle = 0x00; // TODO: Support more than one advertising sets?
+            AD_PDU_Type adv_type2;
+            switch( adv_type ) {
+                // Connectable
+                case AD_PDU_Type::ADV_IND:
+                    [[fallthrough]];
+                case AD_PDU_Type::ADV_SCAN_IND:
+                    [[fallthrough]];
+                case AD_PDU_Type::ADV_IND2:
+                    adv_type2 = AD_PDU_Type::ADV_IND2;
+                    break;
 
-            // Non Connectable
-            case AD_PDU_Type::SCAN_IND2:
-                adv_type2 = AD_PDU_Type::SCAN_IND2;
-                break;
+                // Non Connectable
+                case AD_PDU_Type::SCAN_IND2:
+                    adv_type2 = AD_PDU_Type::SCAN_IND2;
+                    break;
 
-            case AD_PDU_Type::ADV_NONCONN_IND:
-                [[fallthrough]];
-            case AD_PDU_Type::NONCONN_IND2:
-                adv_type2 = AD_PDU_Type::NONCONN_IND2;
-                break;
+                case AD_PDU_Type::ADV_NONCONN_IND:
+                    [[fallthrough]];
+                case AD_PDU_Type::NONCONN_IND2:
+                    adv_type2 = AD_PDU_Type::NONCONN_IND2;
+                    break;
 
-            default:
-                WARN_PRINT("dev_id %u: Invalid AD_PDU_Type %x (%s)", dev_id, adv_type, to_string(adv_type).c_str());
-                return HCIStatusCode::INVALID_PARAMS;
+                default:
+                    jau_WARN_PRINT("dev_id %hu: Invalid AD_PDU_Type %#x (%s)", dev_id, *adv_type, to_string(adv_type));
+                    return HCIStatusCode::INVALID_PARAMS;
+            }
+            cp->evt_properties = number(adv_type2);
+            // Actually .. but struct uses uint8_t[3] duh ..
+            // cp->min_interval = jau::cpu_to_le(adv_interval_min);
+            // cp->max_interval = jau::cpu_to_le(adv_interval_max);
+            jau::put_uint16(cp->min_interval + 0, adv_interval_min, jau::lb_endian_t::little);
+            jau::put_uint16(cp->max_interval + 0, adv_interval_max, jau::lb_endian_t::little);
+            cp->channel_map = adv_chan_map;
+            cp->own_addr_type = static_cast<uint8_t>(own_mac_type);
+            cp->peer_addr_type = static_cast<uint8_t>(peer_mac_type);
+            cp->peer_addr = jau::io::net::cpu_to_le(peer_bdaddr);
+            cp->filter_policy = filter_policy;
+            cp->tx_power = 0x7f; // Host has no preference (default); -128 to +20 [dBm]
+            cp->primary_phy = direct_bt::number(LE_PHYs::LE_1M);
+            // TODO: Support LE_1M + LE_CODED combo? Then must not use legacy PDU adv_type!
+            // cp->secondary_max_skip;
+            cp->secondary_phy = direct_bt::number(LE_PHYs::LE_1M);
+            cp->sid = 0x00; // TODO: Support more than one advertising SID subfield?
+            cp->notif_enable = 0x01;
+            const hci_rp_le_set_ext_adv_params * ev_reply;
+            std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_reply, &status);
+            // Not using `ev_reply->tx_power` yet.
+        } else {
+            HCIStructCommand<hci_cp_le_set_adv_param> req0(HCIOpcode::LE_SET_ADV_PARAM);
+            hci_cp_le_set_adv_param * cp = req0.getWStruct();
+            cp->min_interval = jau::cpu_to_le(adv_interval_min);
+            cp->max_interval = jau::cpu_to_le(adv_interval_max);
+            cp->type = number(adv_type);
+            cp->own_address_type = static_cast<uint8_t>(own_mac_type);
+            cp->direct_addr_type = static_cast<uint8_t>(peer_mac_type);
+            cp->direct_addr = jau::io::net::cpu_to_le(peer_bdaddr);
+            cp->channel_map = adv_chan_map;
+            cp->filter_policy = filter_policy;
+            const hci_rp_status * ev_status;
+            std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_status, &status);
         }
-        cp->evt_properties = number(adv_type2);
-        // Actually .. but struct uses uint8_t[3] duh ..
-        // cp->min_interval = jau::cpu_to_le(adv_interval_min);
-        // cp->max_interval = jau::cpu_to_le(adv_interval_max);
-        jau::put_uint16(cp->min_interval + 0, adv_interval_min, jau::lb_endian_t::little);
-        jau::put_uint16(cp->max_interval + 0, adv_interval_max, jau::lb_endian_t::little);
-        cp->channel_map = adv_chan_map;
-        cp->own_addr_type = static_cast<uint8_t>(own_mac_type);
-        cp->peer_addr_type = static_cast<uint8_t>(peer_mac_type);
-        cp->peer_addr = jau::cpu_to_le(peer_bdaddr);
-        cp->filter_policy = filter_policy;
-        cp->tx_power = 0x7f; // Host has no preference (default); -128 to +20 [dBm]
-        cp->primary_phy = direct_bt::number(LE_PHYs::LE_1M);
-        // TODO: Support LE_1M + LE_CODED combo? Then must not use legacy PDU adv_type!
-        // cp->secondary_max_skip;
-        cp->secondary_phy = direct_bt::number(LE_PHYs::LE_1M);
-        cp->sid = 0x00; // TODO: Support more than one advertising SID subfield?
-        cp->notif_enable = 0x01;
-        const hci_rp_le_set_ext_adv_params * ev_reply;
-        std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_reply, &status);
-        // Not using `ev_reply->tx_power` yet.
-    } else {
-        HCIStructCommand<hci_cp_le_set_adv_param> req0(HCIOpcode::LE_SET_ADV_PARAM);
-        hci_cp_le_set_adv_param * cp = req0.getWStruct();
-        cp->min_interval = jau::cpu_to_le(adv_interval_min);
-        cp->max_interval = jau::cpu_to_le(adv_interval_max);
-        cp->type = number(adv_type);
-        cp->own_address_type = static_cast<uint8_t>(own_mac_type);
-        cp->direct_addr_type = static_cast<uint8_t>(peer_mac_type);
-        cp->direct_addr = jau::cpu_to_le(peer_bdaddr);
-        cp->channel_map = adv_chan_map;
-        cp->filter_policy = filter_policy;
-        const hci_rp_status * ev_status;
-        std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_status, &status);
+        return status;
+    } catch (...) {
+        jau::fput_exception(stderr, std::current_exception(), E_FILE_LINE);
+        jau_ERR_PRINT3("Exception occurred while setting adv params addr %s, for %s", peer_bdaddr, toString());
+        return HCIStatusCode::INTERNAL_FAILURE;
     }
-    return status;
 }
 
 
 HCIStatusCode HCIHandler::le_set_adv_data(const EInfoReport &eir, const EIRDataType mask) noexcept {
-    DBG_PRINT("HCIHandler<%hu>::le_set_adv_data: eir %s, mask %s",
-        dev_id, eir.toString(true).c_str(), to_string(mask).c_str());
+    jau_DBG_PRINT("HCIHandler<%hu>::le_set_adv_data: eir %s, mask %s", dev_id, eir.toString(true), to_string(mask));
 
-    HCIStatusCode status;
-    if( use_ext_adv() ) {
+    try {
+        HCIStatusCode status;
+        if( use_ext_adv() ) {
 
-        HCIStructCommand<hci_cp_le_set_ext_adv_data> req0(HCIOpcode::LE_SET_EXT_ADV_DATA);
-        hci_cp_le_set_ext_adv_data * cp = req0.getWStruct();
-        const jau::nsize_t max_data_len = HCI_MAX_AD_LENGTH; // not sizeof(cp->data), as we use legacy PDU
-        cp->handle = 0x00; // TODO: Support more than one advertising sets?
-        cp->operation = LE_SET_ADV_DATA_OP_COMPLETE;
-        cp->frag_pref = LE_SET_ADV_DATA_NO_FRAG;
-        cp->length = eir.write_data(mask, cp->data, max_data_len);
-        req0.trimParamSize( req0.getParamSize() + cp->length - sizeof(cp->data) );
+            HCIStructCommand<hci_cp_le_set_ext_adv_data> req0(HCIOpcode::LE_SET_EXT_ADV_DATA);
+            hci_cp_le_set_ext_adv_data * cp = req0.getWStruct();
+            const jau::nsize_t max_data_len = HCI_MAX_AD_LENGTH; // not sizeof(cp->data), as we use legacy PDU
+            cp->handle = 0x00; // TODO: Support more than one advertising sets?
+            cp->operation = LE_SET_ADV_DATA_OP_COMPLETE;
+            cp->frag_pref = LE_SET_ADV_DATA_NO_FRAG;
+            cp->length = eir.write_data(mask, cp->data, max_data_len);
+            req0.trimParamSize( req0.getParamSize() + cp->length - sizeof(cp->data) );
 
-        const hci_rp_status * ev_status;
-        std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_status, &status);
+            const hci_rp_status * ev_status;
+            std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_status, &status);
 
-    } else {
+        } else {
 
-        HCIStructCommand<hci_cp_le_set_adv_data> req0(HCIOpcode::LE_SET_ADV_DATA);
-        hci_cp_le_set_adv_data * cp = req0.getWStruct();
-        cp->length = eir.write_data(mask, cp->data, sizeof(cp->data));
-        // No param-size trimming for BT4, fixed 31 bytes
+            HCIStructCommand<hci_cp_le_set_adv_data> req0(HCIOpcode::LE_SET_ADV_DATA);
+            hci_cp_le_set_adv_data * cp = req0.getWStruct();
+            cp->length = eir.write_data(mask, cp->data, sizeof(cp->data));
+            // No param-size trimming for BT4, fixed 31 bytes
 
-        const hci_rp_status * ev_status;
-        std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_status, &status);
+            const hci_rp_status * ev_status;
+            std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_status, &status);
 
+        }
+        return status;
+    } catch (...) {
+        jau::fput_exception(stderr, std::current_exception(), E_FILE_LINE);
+        jau_ERR_PRINT3("Exception occurred while setting adv data for %s", toString());
+        return HCIStatusCode::INTERNAL_FAILURE;
     }
-    return status;
 }
 
 HCIStatusCode HCIHandler::le_set_scanrsp_data(const EInfoReport &eir, const EIRDataType mask) noexcept {
-    DBG_PRINT("HCIHandler<%hu>::le_set_scanrsp_data: %s", dev_id, eir.toString(true).c_str());
+    jau_DBG_PRINT("HCIHandler<%hu>::le_set_scanrsp_data: %s", dev_id, eir.toString(true));
 
-    HCIStatusCode status;
-    if( use_ext_adv() ) {
+    try {
+        HCIStatusCode status;
+        if( use_ext_adv() ) {
 
-        HCIStructCommand<hci_cp_le_set_ext_scan_rsp_data> req0(HCIOpcode::LE_SET_EXT_SCAN_RSP_DATA);
-        hci_cp_le_set_ext_scan_rsp_data * cp = req0.getWStruct();
-        const jau::nsize_t max_data_len = HCI_MAX_AD_LENGTH; // not sizeof(cp->data), as we use legacy PDU
-        cp->handle = 0x00; // TODO: Support more than one advertising sets?
-        cp->operation = LE_SET_ADV_DATA_OP_COMPLETE;
-        cp->frag_pref = LE_SET_ADV_DATA_NO_FRAG;
-        cp->length = eir.write_data(mask, cp->data, max_data_len);
-        req0.trimParamSize( req0.getParamSize() + cp->length - sizeof(cp->data) );
+            HCIStructCommand<hci_cp_le_set_ext_scan_rsp_data> req0(HCIOpcode::LE_SET_EXT_SCAN_RSP_DATA);
+            hci_cp_le_set_ext_scan_rsp_data * cp = req0.getWStruct();
+            const jau::nsize_t max_data_len = HCI_MAX_AD_LENGTH; // not sizeof(cp->data), as we use legacy PDU
+            cp->handle = 0x00; // TODO: Support more than one advertising sets?
+            cp->operation = LE_SET_ADV_DATA_OP_COMPLETE;
+            cp->frag_pref = LE_SET_ADV_DATA_NO_FRAG;
+            cp->length = eir.write_data(mask, cp->data, max_data_len);
+            req0.trimParamSize( req0.getParamSize() + cp->length - sizeof(cp->data) );
 
-        const hci_rp_status * ev_status;
-        std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_status, &status);
+            const hci_rp_status * ev_status;
+            std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_status, &status);
 
-    } else {
+        } else {
 
-        HCIStructCommand<hci_cp_le_set_scan_rsp_data> req0(HCIOpcode::LE_SET_SCAN_RSP_DATA);
-        hci_cp_le_set_scan_rsp_data * cp = req0.getWStruct();
-        cp->length = eir.write_data(mask, cp->data, sizeof(cp->data));
-        // No param-size trimming for BT4, fixed 31 bytes
+            HCIStructCommand<hci_cp_le_set_scan_rsp_data> req0(HCIOpcode::LE_SET_SCAN_RSP_DATA);
+            hci_cp_le_set_scan_rsp_data * cp = req0.getWStruct();
+            cp->length = eir.write_data(mask, cp->data, sizeof(cp->data));
+            // No param-size trimming for BT4, fixed 31 bytes
 
-        const hci_rp_status * ev_status;
-        std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_status, &status);
+            const hci_rp_status * ev_status;
+            std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_status, &status);
 
+        }
+        return status;
+    } catch (...) {
+        jau::fput_exception(stderr, std::current_exception(), E_FILE_LINE);
+        jau_ERR_PRINT3("Exception occurred while setting scanrsp data for %s", toString());
+        return HCIStatusCode::INTERNAL_FAILURE;
     }
-    return status;
 }
 
 HCIStatusCode HCIHandler::le_enable_adv(const bool enable) noexcept {
     if( !isOpen() ) {
-        ERR_PRINT("Not connected %s", toString().c_str());
+        jau_ERR_PRINT("Not connected %s", toString());
         return HCIStatusCode::DISCONNECTED;
     }
     const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
 
     if( enable ) {
         if( ScanType::NONE != currentScanType ) {
-            WARN_PRINT("Not allowed (scan enabled): %s", toString().c_str());
+            jau_WARN_PRINT("Not allowed (scan enabled): %s", toString());
             return HCIStatusCode::COMMAND_DISALLOWED;
         }
         const size_type connCount = getTrackerConnectionCount();
         if( 0 < connCount ) {
-            WARN_PRINT("Not allowed (%zu connections open/pending): %s", (size_t)connCount, toString().c_str());
+            jau_WARN_PRINT("Not allowed (%zu connections open/pending): %s", (size_t)connCount, toString());
             return HCIStatusCode::COMMAND_DISALLOWED;
         }
     }
-    DBG_PRINT("HCIHandler<%hu>::le_enable_adv: enable %d - %s", dev_id, enable, toString().c_str());
+    jau_DBG_PRINT("HCIHandler<%hu>::le_enable_adv: enable %d - %s", dev_id, enable, toString());
 
-    HCIStatusCode status = HCIStatusCode::SUCCESS;
+    try {
+        HCIStatusCode status = HCIStatusCode::SUCCESS;
 
-    if( use_ext_adv() ) {
-        const hci_rp_status * ev_status;
-        if( enable ) {
-            struct hci_cp_le_set_ext_adv_enable_1 {
-                __u8  enable;
-                __u8  num_of_sets;
-                hci_cp_ext_adv_set sets[1];
-            } __packed;
+        if( use_ext_adv() ) {
+            const hci_rp_status * ev_status;
+            if( enable ) {
+                struct hci_cp_le_set_ext_adv_enable_1 {
+                    __u8  enable;
+                    __u8  num_of_sets;
+                    hci_cp_ext_adv_set sets[1];
+                } __packed;
 
-            HCIStructCommand<hci_cp_le_set_ext_adv_enable_1> req0(HCIOpcode::LE_SET_EXT_ADV_ENABLE);
-            hci_cp_le_set_ext_adv_enable_1 * cp = req0.getWStruct();
-            cp->enable = 0x01;
-            cp->num_of_sets = 1;
-            cp->sets[0].handle = 0x00;
-            cp->sets[0].duration = 0; // continue adv until host disables
-            cp->sets[0].max_events = 0; // no maximum number of adv events
-            std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_status, &status);
+                HCIStructCommand<hci_cp_le_set_ext_adv_enable_1> req0(HCIOpcode::LE_SET_EXT_ADV_ENABLE);
+                hci_cp_le_set_ext_adv_enable_1 * cp = req0.getWStruct();
+                cp->enable = 0x01;
+                cp->num_of_sets = 1;
+                cp->sets[0].handle = 0x00;
+                cp->sets[0].duration = 0; // continue adv until host disables
+                cp->sets[0].max_events = 0; // no maximum number of adv events
+                std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_status, &status);
+            } else {
+                HCIStructCommand<hci_cp_le_set_ext_adv_enable> req0(HCIOpcode::LE_SET_EXT_ADV_ENABLE);
+                hci_cp_le_set_ext_adv_enable * cp = req0.getWStruct();
+                cp->enable = 0x00;
+                cp->num_of_sets = 0; // disable all advertising sets
+                std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_status, &status);
+            }
         } else {
-            HCIStructCommand<hci_cp_le_set_ext_adv_enable> req0(HCIOpcode::LE_SET_EXT_ADV_ENABLE);
-            hci_cp_le_set_ext_adv_enable * cp = req0.getWStruct();
-            cp->enable = 0x00;
-            cp->num_of_sets = 0; // disable all advertising sets
+            struct hci_cp_le_set_adv_enable {
+                uint8_t enable;
+            } __packed;
+            HCIStructCommand<hci_cp_le_set_adv_enable> req0(HCIOpcode::LE_SET_ADV_ENABLE);
+            hci_cp_le_set_adv_enable * cp = req0.getWStruct();
+            cp->enable = enable ? 0x01 : 0x00;
+            const hci_rp_status * ev_status;
             std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_status, &status);
         }
-    } else {
-        struct hci_cp_le_set_adv_enable {
-            uint8_t enable;
-        } __packed;
-        HCIStructCommand<hci_cp_le_set_adv_enable> req0(HCIOpcode::LE_SET_ADV_ENABLE);
-        hci_cp_le_set_adv_enable * cp = req0.getWStruct();
-        cp->enable = enable ? 0x01 : 0x00;
-        const hci_rp_status * ev_status;
-        std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_status, &status);
+        if( HCIStatusCode::SUCCESS == status ) {
+            advertisingEnabled = enable;
+        } else if( advertisingEnabled == enable ) {
+            // Override erroneous HCI failure when
+            // - disabling advertising when already disabled, or
+            // - enabling advertising when already enabled
+            // as stated in spec 'BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 7.8.9 LE Set Advertising Enable command'
+            jau_WARN_PRINT("enable-arg %d == enabled-state %d: Unchanged request, overriding failure: %s -> %s - %s",
+                    enable, advertisingEnabled.load(), to_string(status), to_string(HCIStatusCode::SUCCESS), toString());
+            status = HCIStatusCode::SUCCESS;
+        }
+        return status;
+    } catch (...) {
+        jau::fput_exception(stderr, std::current_exception(), E_FILE_LINE);
+        jau_ERR_PRINT3("Exception occurred while toggling adv, enable %s, for %s", enable, toString());
+        return HCIStatusCode::INTERNAL_FAILURE;
     }
-    if( HCIStatusCode::SUCCESS == status ) {
-        advertisingEnabled = enable;
-    } else if( advertisingEnabled == enable ) {
-        // Override erroneous HCI failure when
-        // - disabling advertising when already disabled, or
-        // - enabling advertising when already enabled
-        // as stated in spec 'BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 7.8.9 LE Set Advertising Enable command'
-        WARN_PRINT("enable-arg %d == enabled-state %d: Unchanged request, overriding failure: %s -> %s - %s",
-                enable, advertisingEnabled.load(), to_string(status).c_str(), to_string(HCIStatusCode::SUCCESS).c_str(), toString().c_str());
-        status = HCIStatusCode::SUCCESS;
-    }
-    return status;
 }
 
 HCIStatusCode HCIHandler::le_start_adv(const EInfoReport &eir,
@@ -2003,53 +2124,55 @@ HCIStatusCode HCIHandler::le_start_adv(const EInfoReport &eir,
                                        const uint8_t filter_policy) noexcept
 {
     if( !isOpen() ) {
-        ERR_PRINT("Not connected %s", toString().c_str());
+        jau_ERR_PRINT("Not connected %s", toString());
         return HCIStatusCode::DISCONNECTED;
     }
     const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
 
     if( ScanType::NONE != currentScanType ) {
-        WARN_PRINT("Not allowed (scan enabled): %s", toString().c_str());
+        jau_WARN_PRINT("Not allowed (scan enabled): %s", toString());
         return HCIStatusCode::COMMAND_DISALLOWED;
     }
     const size_type connCount = getTrackerConnectionCount();
     if( 0 < connCount ) {
-        WARN_PRINT("Not allowed (%zu connections open/pending): %s", (size_t)connCount, toString().c_str());
+        jau_WARN_PRINT("Not allowed (%zu connections open/pending): %s", (size_t)connCount, toString());
         dumpHCIConnections("le_start_adv: connections", connectionList);
         dumpHCIConnections("le_start_adv: disconnects", disconnectCmdList);
         return HCIStatusCode::COMMAND_DISALLOWED;
     }
 
-    HCIStatusCode status = le_set_adv_param(peer_bdaddr, own_mac_type, peer_mac_type,
-                                            adv_interval_min, adv_interval_max,
-                                            adv_type, adv_chan_map, filter_policy);
-    if( HCIStatusCode::SUCCESS != status ) {
-        WARN_PRINT("le_set_adv_param: %s - %s",
-                to_string(status).c_str(), toString().c_str());
+    try {
+        HCIStatusCode status = le_set_adv_param(peer_bdaddr, own_mac_type, peer_mac_type,
+                                                adv_interval_min, adv_interval_max,
+                                                adv_type, adv_chan_map, filter_policy);
+        if( HCIStatusCode::SUCCESS != status ) {
+            jau_WARN_PRINT("le_set_adv_param: %s - %s", to_string(status), toString());
+            return status;
+        }
+
+        status = le_set_adv_data(eir, adv_mask);
+        if( HCIStatusCode::SUCCESS != status ) {
+            jau_WARN_PRINT("le_set_adv_data: %s - %s", to_string(status), toString());
+            return status;
+        }
+
+        status = le_set_scanrsp_data(eir, scanrsp_mask);
+        if( HCIStatusCode::SUCCESS != status ) {
+            jau_WARN_PRINT("le_set_scanrsp_data: %s - %s", to_string(status), toString());
+            return status;
+        }
+
+        status = le_enable_adv(true);
+        if( HCIStatusCode::SUCCESS != status ) {
+            jau_WARN_PRINT("le_enable_adv failed: %s - %s", to_string(status), toString());
+        }
+
         return status;
+    } catch (...) {
+        jau::fput_exception(stderr, std::current_exception(), E_FILE_LINE);
+        jau_ERR_PRINT3("Exception occurred while starting adv for %s", toString());
+        return HCIStatusCode::INTERNAL_FAILURE;
     }
-
-    status = le_set_adv_data(eir, adv_mask);
-    if( HCIStatusCode::SUCCESS != status ) {
-        WARN_PRINT("le_set_adv_data: %s - %s",
-                to_string(status).c_str(), toString().c_str());
-        return status;
-    }
-
-    status = le_set_scanrsp_data(eir, scanrsp_mask);
-    if( HCIStatusCode::SUCCESS != status ) {
-        WARN_PRINT("le_set_scanrsp_data: %s - %s",
-                to_string(status).c_str(), toString().c_str());
-        return status;
-    }
-
-    status = le_enable_adv(true);
-    if( HCIStatusCode::SUCCESS != status ) {
-        WARN_PRINT("le_enable_adv failed: %s - %s",
-                to_string(status).c_str(), toString().c_str());
-    }
-
-    return status;
 }
 
 std::unique_ptr<HCIEvent> HCIHandler::processCommandStatus(HCICommand &req, HCIStatusCode *status, const bool quiet) noexcept
@@ -2073,25 +2196,21 @@ std::unique_ptr<HCIEvent> HCIHandler::processCommandStatus(HCICommand &req, HCIS
         } else if( ev->isEvent(HCIEventType::CMD_STATUS) ) {
             HCICommandStatusEvent * ev_cs = static_cast<HCICommandStatusEvent*>(ev.get());
             *status = ev_cs->getStatus();
-            DBG_PRINT("HCIHandler<%hu>::processCommandStatus %s -> Status 0x%2.2X (%s), errno %d %s: res %s, req %s - %s",
-                    dev_id, to_string(req.getOpcode()).c_str(),
-                    number(*status), to_string(*status).c_str(), errno, strerror(errno),
-                    ev_cs->toString().c_str(), req.toString().c_str(), toString().c_str());
+            jau_DBG_PRINT("HCIHandler<%hu>::processCommandStatus %s -> Status 0x%2.2X (%s), errno %d %s: res %s, req %s - %s",
+                    dev_id, to_string(req.getOpcode()), number(*status), to_string(*status), errno, strerror(errno), ev_cs->toString(), req.toString(), toString());
             break; // gotcha, leave loop - pending completion result handled via callback
         } else {
             retryCount++;
-            DBG_PRINT("HCIHandler<%hu>::processCommandStatus: !CMD_STATUS (drop, retry %d): res %s; req %s - %s",
-                       dev_id, retryCount, ev->toString().c_str(), req.toString().c_str(), toString().c_str());
+            jau_DBG_PRINT("HCIHandler<%hu>::processCommandStatus: !CMD_STATUS (drop, retry %d): res %s; req %s - %s",
+                       dev_id, retryCount, ev->toString(), req.toString(), toString());
             continue; // next packet
         }
     }
     if( nullptr == ev ) {
         // timeout exit
         if( !quiet || jau::environment::get().verbose ) {
-            WARN_PRINT("%s -> Status 0x%2.2X (%s), errno %d %s: res nullptr, req %s - %s",
-                    to_string(req.getOpcode()).c_str(),
-                    number(*status), to_string(*status).c_str(), errno, strerror(errno),
-                    req.toString().c_str(), toString().c_str());
+            jau_WARN_PRINT("%s -> Status 0x%2.2X (%s), errno %d %s: res nullptr, req %s - %s",
+                    to_string(req.getOpcode()), number(*status), to_string(*status), errno, strerror(errno), req.toString(), toString());
         }
     }
 
@@ -2111,9 +2230,8 @@ std::unique_ptr<HCIEvent> HCIHandler::processCommandComplete(HCICommand &req,
 
     if( !sendCommand(req, quiet) ) {
         if( !quiet || jau::environment::get().verbose ) {
-            WARN_PRINT("Send failed: Status 0x%2.2X (%s), errno %d %s: res nullptr, req %s - %s",
-                    number(*status), to_string(*status).c_str(), errno, strerror(errno),
-                    req.toString().c_str(), toString().c_str());
+            jau_WARN_PRINT("Send failed: Status 0x%2.2X (%s), errno %d %s: res nullptr, req %s - %s",
+                    number(*status), to_string(*status), errno, strerror(errno), req.toString(), toString());
         }
         return nullptr; // timeout
     }
@@ -2135,10 +2253,9 @@ std::unique_ptr<HCIEvent> HCIHandler::receiveCommandComplete(HCICommand &req,
     if( nullptr == ev ) {
         *status = HCIStatusCode::INTERNAL_TIMEOUT;
         if( !quiet || jau::environment::get().verbose ) {
-            WARN_PRINT("%s -> %s: Status 0x%2.2X (%s), errno %d %s: res nullptr, req %s - %s",
-                    to_string(req.getOpcode()).c_str(), to_string(evc).c_str(),
-                    number(*status), to_string(*status).c_str(), errno, strerror(errno),
-                    req.toString().c_str(), toString().c_str());
+            jau_WARN_PRINT("%s -> %s: Status 0x%2.2X (%s), errno %d %s: res nullptr, req %s - %s",
+                    to_string(req.getOpcode()), to_string(evc), number(*status), to_string(*status), errno, strerror(errno),
+                    req.toString(), toString());
         }
         return nullptr; // timeout
     } else if( nullptr == ev_cc ) {
@@ -2147,30 +2264,33 @@ std::unique_ptr<HCIEvent> HCIHandler::receiveCommandComplete(HCICommand &req,
             *status = ev_cs->getStatus();
         }
         if( !quiet || jau::environment::get().verbose ) {
-            WARN_PRINT("%s -> %s: Status 0x%2.2X (%s), errno %d %s: res %s, req %s - %s",
-                    to_string(req.getOpcode()).c_str(), to_string(evc).c_str(),
-                    number(*status), to_string(*status).c_str(), errno, strerror(errno),
-                    ev->toString().c_str(), req.toString().c_str(), toString().c_str());
+            jau_WARN_PRINT("%s -> %s: Status 0x%2.2X (%s), errno %d %s: res %s, req %s - %s",
+                    to_string(req.getOpcode()), to_string(evc), number(*status), to_string(*status), errno, strerror(errno),
+                    ev->toString(), req.toString(), toString());
         }
         return ev;
     }
     const uint8_t returnParamSize = ev_cc->getReturnParamSize();
     if( returnParamSize < sizeof(hci_cmd_event_struct) ) {
         if( !quiet || jau::environment::get().verbose ) {
-            WARN_PRINT("%s -> %s: Status 0x%2.2X (%s), errno %d %s: res %s, req %s - %s",
-                    to_string(req.getOpcode()).c_str(), to_string(evc).c_str(),
-                    number(*status), to_string(*status).c_str(), errno, strerror(errno),
-                    ev_cc->toString().c_str(), req.toString().c_str(), toString().c_str());
+            jau_WARN_PRINT("%s -> %s: Status 0x%2.2X (%s), errno %d %s: res %s, req %s - %s",
+                    to_string(req.getOpcode()), to_string(evc), number(*status), to_string(*status), errno, strerror(errno),
+                    ev_cc->toString(), req.toString(), toString());
         }
         return ev;
     }
-    *res = (const hci_cmd_event_struct*)(ev_cc->getReturnParam());
-    *status = static_cast<HCIStatusCode>((*res)->status);
-    DBG_PRINT("HCIHandler<%hu>::receiveCommandComplete %s -> %s: Status 0x%2.2X (%s): res %s, req %s - %s",
-            dev_id, to_string(req.getOpcode()).c_str(), to_string(evc).c_str(),
-            number(*status), to_string(*status).c_str(),
-            ev_cc->toString().c_str(), req.toString().c_str(), toString().c_str());
-    return ev;
+    try {
+        *res = (const hci_cmd_event_struct*)(ev_cc->getReturnParam());
+        *status = static_cast<HCIStatusCode>((*res)->status);
+        jau_DBG_PRINT("HCIHandler<%hu>::receiveCommandComplete %s -> %s: Status 0x%2.2X (%s): res %s, req %s - %s",
+                dev_id, to_string(req.getOpcode()), to_string(evc), number(*status), to_string(*status),
+                ev_cc->toString(), req.toString(), toString());
+        return ev;
+    } catch (...) {
+        jau::fput_exception(stderr, std::current_exception(), E_FILE_LINE);
+        jau_ERR_PRINT3("Exception occurred while receiving cmd-complete, req %s for %s", req, toString());
+        return nullptr;
+    }
 }
 
 template<typename hci_cmd_event_struct>
@@ -2185,10 +2305,8 @@ const hci_cmd_event_struct* HCIHandler::getReplyStruct(HCIEvent& event, HCIEvent
         *status = ev_cc.getStatus();
         res = ev_cc.getStruct();
     } else {
-        WARN_PRINT("%s: Type or size mismatch: Status 0x%2.2X (%s), errno %d %s: res %s - %s",
-                to_string(evc).c_str(),
-                number(*status), to_string(*status).c_str(), errno, strerror(errno),
-                ev_cc.toString().c_str(), toString().c_str());
+        jau_WARN_PRINT("%s: Type or size mismatch: Status 0x%2.2X (%s), errno %d %s: res %s - %s",
+                to_string(evc), number(*status), to_string(*status), errno, strerror(errno), ev_cc.toString(), toString());
     }
     return res;
 }
@@ -2205,10 +2323,8 @@ const hci_cmd_event_struct* HCIHandler::getMetaReplyStruct(HCIEvent& event, HCIM
         *status = ev_cc.getStatus();
         res = ev_cc.getStruct();
     } else {
-        WARN_PRINT("%s: Type or size mismatch: Status 0x%2.2X (%s), errno %d %s: res %s - %s",
-                  to_string(mec).c_str(),
-                  number(*status), to_string(*status).c_str(), errno, strerror(errno),
-                  ev_cc.toString().c_str(), toString().c_str());
+        jau_WARN_PRINT("%s: Type or size mismatch: Status 0x%2.2X (%s), errno %d %s: res %s - %s",
+                  to_string(mec), number(*status), to_string(*status), errno, strerror(errno), ev_cc.toString(), toString());
     }
     return res;
 }
@@ -2224,24 +2340,36 @@ static MgmtEventCallbackList::equal_comparator _mgmtEventCallbackEqComparator =
 
 bool HCIHandler::addMgmtEventCallback(const MgmtEvent::Opcode opc, const MgmtEventCallback &cb) noexcept {
     if( !isValidMgmtEventCallbackListsIndex(opc) ) {
-        ERR_PRINT("Opcode %s >= %d - %s", MgmtEvent::getOpcodeString(opc).c_str(), mgmtEventCallbackLists.size(), toString().c_str());
+        jau_ERR_PRINT("Opcode %s >= %zu - %s", opc, mgmtEventCallbackLists.size(), toString());
         return false;
     }
     MgmtEventCallbackList &l = mgmtEventCallbackLists[static_cast<uint16_t>(opc)];
-    /* const bool added = */ l.push_back_unique(cb, _mgmtEventCallbackEqComparator);
-    return true;
+    try {
+        /* const bool added = */ l.push_back_unique(cb, _mgmtEventCallbackEqComparator);
+        return true;
+    } catch (...) {
+        jau::fput_exception(stderr, std::current_exception(), E_FILE_LINE);
+        jau_ERR_PRINT3("Exception occurred while adding evt-listener for opc %s for %s", opc, toString());
+        return false;
+    }
 }
 HCIHandler::size_type HCIHandler::removeMgmtEventCallback(const MgmtEvent::Opcode opc, const MgmtEventCallback &cb) noexcept {
     if( !isValidMgmtEventCallbackListsIndex(opc) ) {
-        ERR_PRINT("Opcode %s >= %d - %s", MgmtEvent::getOpcodeString(opc).c_str(), mgmtEventCallbackLists.size(), toString().c_str());
+        jau_ERR_PRINT("Opcode %s >= %zu - %s", opc, mgmtEventCallbackLists.size(), toString());
         return 0;
     }
     MgmtEventCallbackList &l = mgmtEventCallbackLists[static_cast<uint16_t>(opc)];
-    return l.erase_matching(cb, true /* all_matching */, _mgmtEventCallbackEqComparator);
+    try {
+        return l.erase_matching(cb, true /* all_matching */, _mgmtEventCallbackEqComparator);
+    } catch (...) {
+        jau::fput_exception(stderr, std::current_exception(), E_FILE_LINE);
+        jau_ERR_PRINT3("Exception occurred while removing evt-listener for opc %s for %s", opc, toString());
+        return 0;
+    }
 }
 void HCIHandler::clearMgmtEventCallbacks(const MgmtEvent::Opcode opc) noexcept {
     if( !isValidMgmtEventCallbackListsIndex(opc) ) {
-        ERR_PRINT("Opcode %s >= %d - %s", MgmtEvent::getOpcodeString(opc).c_str(), mgmtEventCallbackLists.size(), toString().c_str());
+        jau_ERR_PRINT("Opcode %s >= %zu - %s", opc, mgmtEventCallbackLists.size(), toString());
         return;
     }
     mgmtEventCallbackLists[static_cast<uint16_t>(opc)].clear();
@@ -2261,11 +2389,24 @@ static HCISMPMsgCallbackList::equal_comparator _changedHCISMPMsgCallbackEqComp =
         [](const HCISMPMsgCallback& a, const HCISMPMsgCallback& b) noexcept -> bool { return a == b; };
 
 
-void HCIHandler::addSMPMsgCallback(const HCISMPMsgCallback & l) {
-    hciSMPMsgCallbackList.push_back(l);
+bool HCIHandler::addSMPMsgCallback(const HCISMPMsgCallback & l) noexcept {
+    try {
+        hciSMPMsgCallbackList.push_back(l);
+        return true;
+    } catch (...) {
+        jau::fput_exception(stderr, std::current_exception(), E_FILE_LINE);
+        jau_ERR_PRINT3("Exception occurred while adding smp-listener for %s", toString());
+        return false;
+    }
 }
-HCIHandler::size_type HCIHandler::removeSMPMsgCallback(const HCISMPMsgCallback & l) {
-    return hciSMPMsgCallbackList.erase_matching(l, true /* all_matching */, _changedHCISMPMsgCallbackEqComp);
+HCIHandler::size_type HCIHandler::removeSMPMsgCallback(const HCISMPMsgCallback & l) noexcept {
+    try {
+        return hciSMPMsgCallbackList.erase_matching(l, true /* all_matching */, _changedHCISMPMsgCallbackEqComp);
+    } catch (...) {
+        jau::fput_exception(stderr, std::current_exception(), E_FILE_LINE);
+        jau_ERR_PRINT3("Exception occurred while removing evt-listener for %s", toString());
+        return 0;
+    }
 }
 
 

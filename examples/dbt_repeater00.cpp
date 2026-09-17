@@ -1,6 +1,6 @@
 /*
  * Author: Sven Gothel <sgothel@jausoft.com>
- * Copyright (c) 2022 Gothel Software e.K.
+ * Copyright (c) 2022-2026 Gothel Software e.K.
  *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
@@ -26,8 +26,6 @@
 #include <string>
 #include <memory>
 #include <cstdint>
-#include <fstream>
-#include <iostream>
 
 #include <cinttypes>
 
@@ -124,14 +122,14 @@ class AdapterToServerStatusListener : public AdapterStatusListener {
                                 const AdapterSetting changedmask, const uint64_t timestamp) override {
         const bool initialSetting = AdapterSetting::NONE == oldmask;
         if( initialSetting ) {
-            fprintf_td(stderr, "****** To Server: SETTINGS_INITIAL: %s -> %s, changed %s\n", to_string(oldmask).c_str(),
-                    to_string(newmask).c_str(), to_string(changedmask).c_str());
+            jau_fprintf_td(stderr, "****** To Server: SETTINGS_INITIAL: %s -> %s, changed %s\n", oldmask,
+                    newmask, changedmask);
         } else {
-            fprintf_td(stderr, "****** To Server: SETTINGS_CHANGED: %s -> %s, changed %s\n", to_string(oldmask).c_str(),
-                    to_string(newmask).c_str(), to_string(changedmask).c_str());
+            jau_fprintf_td(stderr, "****** To Server: SETTINGS_CHANGED: %s -> %s, changed %s\n", oldmask,
+                    newmask, changedmask);
         }
-        fprintf_td(stderr, "To Server: Status BTAdapter:\n");
-        fprintf_td(stderr, "%s\n", a.toString().c_str());
+        jau_fprintf_td(stderr, "To Server: Status BTAdapter:\n");
+        jau_fprintf_td(stderr, "%s\n", a);
         (void)timestamp;
 
         if( !initialSetting &&
@@ -144,8 +142,8 @@ class AdapterToServerStatusListener : public AdapterStatusListener {
     }
 
     void discoveringChanged(BTAdapter &a, const ScanType currentMeta, const ScanType changedType, const bool changedEnabled, const DiscoveryPolicy policy, const uint64_t timestamp) override {
-        fprintf_td(stderr, "****** To Server: DISCOVERING: meta %s, changed[%s, enabled %d, policy %s]: %s\n",
-                to_string(currentMeta).c_str(), to_string(changedType).c_str(), changedEnabled, to_string(policy).c_str(), a.toString().c_str());
+        jau_fprintf_td(stderr, "****** To Server: DISCOVERING: meta %s, changed[%s, enabled %d, policy %s]: %s\n",
+                currentMeta, changedType, changedEnabled, policy, a);
         (void)timestamp;
     }
 
@@ -156,31 +154,31 @@ class AdapterToServerStatusListener : public AdapterStatusListener {
             BTDeviceRegistry::isWaitingForDevice(device->getAddressAndType().address, device->getName())
           )
         {
-            fprintf_td(stderr, "****** To Server: FOUND__-0: Connecting %s\n", device->toString(true).c_str());
+            jau_fprintf_td(stderr, "****** To Server: FOUND__-0: Connecting %s\n", device->toString(true));
             {
                 const uint64_t td = getCurrentMilliseconds() - timestamp_t0; // adapter-init -> now
-                fprintf_td(stderr, "PERF: adapter-init -> FOUND__-0  %" PRIu64 " ms\n", td);
+                jau_fprintf_td(stderr, "PERF: adapter-init -> FOUND__-0  %" PRIu64 " ms\n", td);
             }
             std::thread dc(::connectToDiscoveredServer, device); // @suppress("Invalid arguments")
             dc.detach();
             return true;
         } else {
             if( !QUIET ) {
-                fprintf_td(stderr, "****** To Server: FOUND__-1: NOP %s\n", device->toString(true).c_str());
+                jau_fprintf_td(stderr, "****** To Server: FOUND__-1: NOP %s\n", device->toString(true));
             }
             return false;
         }
     }
 
     void deviceConnected(const BTDeviceRef& device, const bool discovered, const uint64_t timestamp) override {
-        fprintf_td(stderr, "****** To Server: CONNECTED (discovered %d): %s\n", discovered, device->toString(true).c_str());
+        jau_fprintf_td(stderr, "****** To Server: CONNECTED (discovered %d): %s\n", discovered, device->toString(true));
         (void)discovered;
         (void)timestamp;
     }
 
     void devicePairingState(const BTDeviceRef& device, const SMPPairingState state, const PairingMode mode, const uint64_t timestamp) override {
-        fprintf_td(stderr, "****** To Server: PAIRING STATE: state %s, mode %s, %s\n",
-            to_string(state).c_str(), to_string(mode).c_str(), device->toString().c_str());
+        jau_fprintf_td(stderr, "****** To Server: PAIRING STATE: state %s, mode %s, %s\n",
+            state, mode, device->toString());
         (void)timestamp;
         switch( state ) {
             case SMPPairingState::NONE:
@@ -188,8 +186,8 @@ class AdapterToServerStatusListener : public AdapterStatusListener {
                 break;
             case SMPPairingState::FAILED: {
                 const bool res  = SMPKeyBin::remove(CLIENT_KEY_PATH, *device);
-                fprintf_td(stderr, "****** To Server: PAIRING_STATE: state %s; Remove key file %s, res %d\n",
-                        to_string(state).c_str(), SMPKeyBin::getFilename(CLIENT_KEY_PATH, *device).c_str(), res);
+                jau_fprintf_td(stderr, "****** To Server: PAIRING_STATE: state %s; Remove key file %s, res %d\n",
+                        state, SMPKeyBin::getFilename(CLIENT_KEY_PATH, *device), res);
                 // next: deviceReady() or deviceDisconnected(..)
             } break;
             case SMPPairingState::REQUESTED_BY_RESPONDER:
@@ -225,7 +223,7 @@ class AdapterToServerStatusListener : public AdapterStatusListener {
                 // next: KEY_DISTRIBUTION or FAILED
               } break;
             case SMPPairingState::OOB_EXPECTED:
-                // FIXME: ABORT
+                // FIXME: jau_ABORT
                 break;
             case SMPPairingState::KEY_DISTRIBUTION:
                 // next: COMPLETED or FAILED
@@ -245,17 +243,17 @@ class AdapterToServerStatusListener : public AdapterStatusListener {
           )
         {
             serverDeviceReadyCount++;
-            fprintf_td(stderr, "****** To Server: READY-0: Processing[%d] %s\n", serverDeviceReadyCount.load(), device->toString(true).c_str());
+            jau_fprintf_td(stderr, "****** To Server: READY-0: Processing[%d] %s\n", serverDeviceReadyCount.load(), device->toString(true));
             processReadyToServer(device); // AdapterStatusListener::deviceReady() explicitly allows prolonged and complex code execution!
         } else {
-            fprintf_td(stderr, "****** To Server: READY-1: NOP %s\n", device->toString(true).c_str());
+            jau_fprintf_td(stderr, "****** To Server: READY-1: NOP %s\n", device->toString(true));
         }
     }
 
     void deviceDisconnected(const BTDeviceRef& device, const HCIStatusCode reason, const uint16_t handle, const uint64_t timestamp) override {
-        fprintf_td(stderr, "****** To Server: DISCONNECTED: Reason 0x%X (%s), old handle %s: %s\n",
-                static_cast<uint8_t>(reason), to_string(reason).c_str(),
-                to_hexstring(handle).c_str(), device->toString(true).c_str());
+        jau_fprintf_td(stderr, "****** To Server: DISCONNECTED: Reason 0x%X (%s), old handle %s: %s\n",
+                static_cast<uint8_t>(reason), reason,
+                toHexString(handle), device->toString(true));
         (void)timestamp;
         {
             jau::sc_atomic_critical sync(sync_data);
@@ -266,7 +264,7 @@ class AdapterToServerStatusListener : public AdapterStatusListener {
     }
 
     std::string toString() const noexcept override {
-        return "MyAdapterClientStatusListener[this "+to_hexstring(this)+"]";
+        return "MyAdapterClientStatusListener[this "+toHexString(this)+"]";
     }
 
 };
@@ -289,11 +287,11 @@ class NativeGattToServerCharListener : public BTGattHandler::NativeGattCharListe
         std::string devToClientS = nullptr != devToClient ? devToClient->getAddressAndType().address.toString() : "nil";
         std::string devFromServerS = source->getAddressAndType().address.toString();
 
-        fprintf_td(stderr, "%s*  -> %s : Notify: handle %s\n",
-                devFromServerS.c_str(), devToClientS.c_str(), jau::to_hexstring(char_handle).c_str());
-        fprintf_td(stderr, "    raw : %s\n", char_value.toString().c_str());
-        fprintf_td(stderr, "    utf8: %s\n", jau::dfa_utf8_decode(char_value.get_ptr(), char_value.size()).c_str());
-        fprintf_td(stderr, "\n");
+        jau_fprintf_td(stderr, "%s*  -> %s : Notify: handle %s\n",
+                devFromServerS, devToClientS, jau::toHexString(char_handle));
+        jau_fprintf_td(stderr, "    raw : %s\n", char_value);
+        jau_fprintf_td(stderr, "    utf8: %s\n", jau::dfa_utf8_decode(char_value.get_ptr(), char_value.size()));
+        jau_fprintf_td(stderr, "\n");
         std::shared_ptr<BTGattHandler> gh = nullptr != devToClient ? devToClient->getGattHandler() : nullptr;
         if( nullptr != gh ) {
             gh->sendNotification(char_handle, char_value);
@@ -309,11 +307,11 @@ class NativeGattToServerCharListener : public BTGattHandler::NativeGattCharListe
         std::string devToClientS = nullptr != devToClient ? devToClient->getAddressAndType().address.toString() : "nil";
         std::string devFromServerS = source->getAddressAndType().address.toString();
 
-        fprintf_td(stderr, "%s*  -> %s : Indication: handle %s, confirmed %d\n",
-                devFromServerS.c_str(), devToClientS.c_str(), jau::to_hexstring(char_handle).c_str(), confirmationSent);
-        fprintf_td(stderr, "    raw : %s\n", char_value.toString().c_str());
-        fprintf_td(stderr, "    utf8: %s\n", jau::dfa_utf8_decode(char_value.get_ptr(), char_value.size()).c_str());
-        fprintf_td(stderr, "\n");
+        jau_fprintf_td(stderr, "%s*  -> %s : Indication: handle %s, confirmed %d\n",
+                devFromServerS, devToClientS, jau::toHexString(char_handle), confirmationSent);
+        jau_fprintf_td(stderr, "    raw : %s\n", char_value);
+        jau_fprintf_td(stderr, "    utf8: %s\n", jau::dfa_utf8_decode(char_value.get_ptr(), char_value.size()));
+        jau_fprintf_td(stderr, "\n");
         std::shared_ptr<BTGattHandler> gh = nullptr != devToClient ? devToClient->getGattHandler() : nullptr;
         if( nullptr != gh ) {
             gh->sendIndication(char_handle, char_value);
@@ -330,13 +328,13 @@ class NativeGattToServerCharListener : public BTGattHandler::NativeGattCharListe
         std::string serverReplierS = serverReplier->getAddressAndType().address.toString();
         std::string clientRequesterS = nullptr != clientRequester ? clientRequester->getAddressAndType().address.toString() : "nil";
 
-        fprintf_td(stderr, "%s  <-> %s*: MTU: client %u -> %s, server %u -> used %u\n",
-                clientRequesterS.c_str(), serverReplierS.c_str(),
-                clientMTU, AttErrorRsp::getErrorCodeString(error_reply).c_str(), serverMTU, usedMTU);
+        jau_fprintf_td(stderr, "%s  <-> %s*: MTU: client %u -> %s, server %u -> used %u\n",
+                clientRequesterS, serverReplierS,
+                clientMTU, AttErrorRsp::getErrorCodeString(error_reply), serverMTU, usedMTU);
         if( AttErrorRsp::ErrorCode::NO_ERROR != error_reply ) {
-            fprintf_td(stderr, "    pdu : %s\n", pduReply.toString().c_str());
+            jau_fprintf_td(stderr, "    pdu : %s\n", pduReply);
         }
-        fprintf_td(stderr, "\n");
+        jau_fprintf_td(stderr, "\n");
     }
 
     void writeRequest(const uint16_t handle,
@@ -348,16 +346,16 @@ class NativeGattToServerCharListener : public BTGattHandler::NativeGattCharListe
         std::string serverDestS = serverDest->getAddressAndType().address.toString();
         std::string clientSourceS = nullptr != clientSource ? clientSource->getAddressAndType().address.toString() : "nil";
 
-        fprintf_td(stderr, "%s   -> %s*: Write-Req: handle %s, with_response %d\n",
-                clientSourceS.c_str(), serverDestS.c_str(), jau::to_hexstring(handle).c_str(), with_response);
-        fprintf_td(stderr, "    raw : %s\n", data.toString().c_str());
-        fprintf_td(stderr, "    utf8: %s\n", jau::dfa_utf8_decode(data.get_ptr(), data.size()).c_str());
-        fprintf_td(stderr, "    sections: ");
+        jau_fprintf_td(stderr, "%s   -> %s*: Write-Req: handle %s, with_response %d\n",
+                clientSourceS, serverDestS, jau::toHexString(handle), with_response);
+        jau_fprintf_td(stderr, "    raw : %s\n", data);
+        jau_fprintf_td(stderr, "    utf8: %s\n", jau::dfa_utf8_decode(data.get_ptr(), data.size()));
+        jau_fprintf_td(stderr, "    sections: ");
         for(Section s : sections) {
-            fprintf(stderr, "%s, ", s.toString().c_str());
+            jau_fprintf(stderr, "%s, ", s.toString());
         }
-        fprintf(stderr, "\n");
-        fprintf_td(stderr, "\n");
+        jau_fprintf(stderr, "\n");
+        jau_fprintf_td(stderr, "\n");
     }
 
     void writeResponse(const AttPDUMsg& pduReply,
@@ -367,10 +365,10 @@ class NativeGattToServerCharListener : public BTGattHandler::NativeGattCharListe
         std::string serverSourceS = serverSource->getAddressAndType().address.toString();
         std::string clientDestS = nullptr != clientDest ? clientDest->getAddressAndType().address.toString() : "nil";
 
-        fprintf_td(stderr, "%s*  -> %s : Write-Rsp: %s\n",
-                serverSourceS.c_str(), clientDestS.c_str(), AttErrorRsp::getErrorCodeString(error_code).c_str());
-        fprintf_td(stderr, "    pdu : %s\n", pduReply.toString().c_str());
-        fprintf_td(stderr, "\n");
+        jau_fprintf_td(stderr, "%s*  -> %s : Write-Rsp: %s\n",
+                serverSourceS, clientDestS, AttErrorRsp::getErrorCodeString(error_code));
+        jau_fprintf_td(stderr, "    pdu : %s\n", pduReply);
+        jau_fprintf_td(stderr, "\n");
     }
 
 
@@ -384,53 +382,53 @@ class NativeGattToServerCharListener : public BTGattHandler::NativeGattCharListe
         std::string serverReplierS = serverReplier->getAddressAndType().address.toString();
         std::string clientRequesterS = nullptr != clientRequester ? clientRequester->getAddressAndType().address.toString() : "nil";
 
-        fprintf_td(stderr, "%s  <-> %s*: Read: handle %s, value_offset %d -> %s\n",
-                clientRequesterS.c_str(), serverReplierS.c_str(),
-                jau::to_hexstring(handle).c_str(), value_offset, AttErrorRsp::getErrorCodeString(error_reply).c_str());
+        jau_fprintf_td(stderr, "%s  <-> %s*: Read: handle %s, value_offset %d -> %s\n",
+                clientRequesterS, serverReplierS,
+                jau::toHexString(handle), value_offset, AttErrorRsp::getErrorCodeString(error_reply));
         if( 0 < data_reply.size() ) {
-            fprintf_td(stderr, "    raw : %s\n", data_reply.toString().c_str());
-            fprintf_td(stderr, "    utf8: %s\n", jau::dfa_utf8_decode(data_reply.get_ptr(), data_reply.size()).c_str());
+            jau_fprintf_td(stderr, "    raw : %s\n", data_reply);
+            jau_fprintf_td(stderr, "    utf8: %s\n", jau::dfa_utf8_decode(data_reply.get_ptr(), data_reply.size()));
         } else {
-            fprintf_td(stderr, "    pdu : %s\n", pduReply.toString().c_str());
+            jau_fprintf_td(stderr, "    pdu : %s\n", pduReply);
         }
-        fprintf_td(stderr, "\n");
+        jau_fprintf_td(stderr, "\n");
     }
 
 };
 
 static void connectToDiscoveredServer(BTDeviceRef device) { // NOLINT(performance-unnecessary-value-param): Pass-by-value out-of-thread
-    fprintf_td(stderr, "****** To Server: Connecting Device: Start %s\n", device->toString().c_str());
+    jau_fprintf_td(stderr, "****** To Server: Connecting Device: Start %s\n", device->toString());
 
     const BTSecurityRegistry::Entry* sec = BTSecurityRegistry::getStartOf(device->getAddressAndType().address, device->getName());
     if( nullptr != sec ) {
-        fprintf_td(stderr, "****** To Server: Connecting Device: Found SecurityDetail %s for %s\n", sec->toString().c_str(), device->toString().c_str());
+        jau_fprintf_td(stderr, "****** To Server: Connecting Device: Found SecurityDetail %s for %s\n", sec->toString(), device->toString());
     } else {
-        fprintf_td(stderr, "****** To Server: Connecting Device: No SecurityDetail for %s\n", device->toString().c_str());
+        jau_fprintf_td(stderr, "****** To Server: Connecting Device: No SecurityDetail for %s\n", device->toString());
     }
     const BTSecurityLevel req_sec_level = nullptr != sec ? sec->getSecLevel() : BTSecurityLevel::UNSET;
     HCIStatusCode res = device->uploadKeys(CLIENT_KEY_PATH, req_sec_level, true /* verbose_ */);
-    fprintf_td(stderr, "****** Connecting Device: BTDevice::uploadKeys(...) result %s\n", to_string(res).c_str());
+    jau_fprintf_td(stderr, "****** Connecting Device: BTDevice::uploadKeys(...) result %s\n", res);
     if( HCIStatusCode::SUCCESS != res ) {
         if( nullptr != sec ) {
             if( sec->isSecurityAutoEnabled() ) {
                 bool r = device->setConnSecurityAuto( sec->getSecurityAutoIOCap() );
-                fprintf_td(stderr, "****** To Server: Connecting Device: Using SecurityDetail.SEC AUTO %s, set OK %d\n", sec->toString().c_str(), r);
+                jau_fprintf_td(stderr, "****** To Server: Connecting Device: Using SecurityDetail.SEC AUTO %s, set OK %d\n", sec->toString(), r);
             } else if( sec->isSecLevelOrIOCapSet() ) {
                 bool r = device->setConnSecurity( sec->getSecLevel(), sec->getIOCap() );
-                fprintf_td(stderr, "****** To Server: Connecting Device: Using SecurityDetail.Level+IOCap %s, set OK %d\n", sec->toString().c_str(), r);
+                jau_fprintf_td(stderr, "****** To Server: Connecting Device: Using SecurityDetail.Level+IOCap %s, set OK %d\n", sec->toString(), r);
             } else {
                 bool r = device->setConnSecurityAuto( SMPIOCapability::KEYBOARD_ONLY );
-                fprintf_td(stderr, "****** To Server: Connecting Device: Setting SEC AUTO security detail w/ KEYBOARD_ONLY (%s) -> set OK %d\n", sec->toString().c_str(), r);
+                jau_fprintf_td(stderr, "****** To Server: Connecting Device: Setting SEC AUTO security detail w/ KEYBOARD_ONLY (%s) -> set OK %d\n", sec->toString(), r);
             }
         } else {
             bool r = device->setConnSecurityAuto( SMPIOCapability::KEYBOARD_ONLY );
-            fprintf_td(stderr, "****** To Server: Connecting Device: Setting SEC AUTO security detail w/ KEYBOARD_ONLY -> set OK %d\n", r);
+            jau_fprintf_td(stderr, "****** To Server: Connecting Device: Setting SEC AUTO security detail w/ KEYBOARD_ONLY -> set OK %d\n", r);
         }
     }
     std::shared_ptr<const EInfoReport> eir = device->getEIR();
-    fprintf_td(stderr, "To Server: EIR-1 %s\n", device->getEIRInd()->toString().c_str());
-    fprintf_td(stderr, "To Server: EIR-2 %s\n", device->getEIRScanRsp()->toString().c_str());
-    fprintf_td(stderr, "To Server: EIR-+ %s\n", eir->toString().c_str());
+    jau_fprintf_td(stderr, "To Server: EIR-1 %s\n", device->getEIRInd()->toString());
+    jau_fprintf_td(stderr, "To Server: EIR-2 %s\n", device->getEIRScanRsp()->toString());
+    jau_fprintf_td(stderr, "To Server: EIR-+ %s\n", eir->toString());
 
     uint16_t conn_interval_min  = (uint16_t)12;
     uint16_t conn_interval_max  = (uint16_t)12;
@@ -438,13 +436,13 @@ static void connectToDiscoveredServer(BTDeviceRef device) { // NOLINT(performanc
     if( eir->isSet(EIRDataType::CONN_IVAL) ) {
         eir->getConnInterval(conn_interval_min, conn_interval_max);
     }
-    const uint16_t supervision_timeout = (uint16_t) getHCIConnSupervisorTimeout(conn_latency, (int) ( conn_interval_max * 1.25 ) /* ms */);
+    const uint16_t supervision_timeout = getHCIConnSupervisorTimeout(conn_latency, (int) ( conn_interval_max * 1.25 ) /* ms */);
     res = device->connectLE(le_scan_interval, le_scan_window, conn_interval_min, conn_interval_max, conn_latency, supervision_timeout);
-    fprintf_td(stderr, "****** To Server: Connecting Device: End result %s of %s\n", to_string(res).c_str(), device->toString().c_str());
+    jau_fprintf_td(stderr, "****** To Server: Connecting Device: End result %s of %s\n", res, device->toString());
 }
 
 static void processReadyToServer(const BTDeviceRef& device) {
-    fprintf_td(stderr, "****** To Server: Processing Ready Device: Start %s\n", device->toString().c_str());
+    jau_fprintf_td(stderr, "****** To Server: Processing Ready Device: Start %s\n", device->toString());
 
     SMPKeyBin::createAndWrite(*device, CLIENT_KEY_PATH, true /* verbose */);
 
@@ -453,20 +451,18 @@ static void processReadyToServer(const BTDeviceRef& device) {
     if( device->getAdapter().getBTMajorVersion() > 4 ) {
         LE_PHYs Tx { LE_PHYs::LE_2M }, Rx { LE_PHYs::LE_2M };
         HCIStatusCode res = device->setConnectedLE_PHY(Tx, Rx);
-        fprintf_td(stderr, "****** To Server: Set Connected LE PHY: status %s: Tx %s, Rx %s\n",
-                to_string(res).c_str(), to_string(Tx).c_str(), to_string(Rx).c_str());
+        jau_fprintf_td(stderr, "****** To Server: Set Connected LE PHY: status %s: Tx %s, Rx %s\n", res, Tx, Rx);
     }
     {
         LE_PHYs resTx, resRx;
         HCIStatusCode res = device->getConnectedLE_PHY(resTx, resRx);
-        fprintf_td(stderr, "****** To Server: Got Connected LE PHY: status %s: Tx %s, Rx %s\n",
-                to_string(res).c_str(), to_string(resTx).c_str(), to_string(resRx).c_str());
+        jau_fprintf_td(stderr, "****** To Server: Got Connected LE PHY: status %s: Tx %s, Rx %s\n", res, resTx, resRx);
     }
 
     //
     // GATT Service Processing
     //
-    fprintf_td(stderr, "****** To Server: Processing Ready Device: GATT start: %s\n", device->getAddressAndType().toString().c_str());
+    jau_fprintf_td(stderr, "****** To Server: Processing Ready Device: GATT start: %s\n", device->getAddressAndType());
     try {
         std::shared_ptr<BTGattHandler> gh = device->getGattHandler();
         gh->addCharListener( std::make_shared<NativeGattToServerCharListener>() );
@@ -481,10 +477,10 @@ static void processReadyToServer(const BTDeviceRef& device) {
             }
         }
     } catch ( std::exception & e ) {
-        fprintf_td(stderr, "****** To Server: Processing Ready Device: Exception caught for %s: %s\n", device->toString().c_str(), e.what());
+        jau_fprintf_td(stderr, "****** To Server: Processing Ready Device: Exception caught for %s: %s\n", device->toString(), e.what());
     }
 
-    fprintf_td(stderr, "****** To Server: Processing Ready Device: End-1: Success %d on %s\n", success, device->toString().c_str());
+    jau_fprintf_td(stderr, "****** To Server: Processing Ready Device: End-1: Success %d on %s\n", success, device->toString());
 
     if( success ) {
         BTDeviceRegistry::addToProcessedDevices(device->getAddressAndType(), device->getName());
@@ -493,7 +489,7 @@ static void processReadyToServer(const BTDeviceRef& device) {
 }
 
 static void removeDeviceToServer(BTDeviceRef device) { // NOLINT(performance-unnecessary-value-param): Pass-by-value out-of-thread
-    fprintf_td(stderr, "****** To Server: Remove Device: %s\n", device->getAddressAndType().toString().c_str());
+    jau_fprintf_td(stderr, "****** To Server: Remove Device: %s\n", device->getAddressAndType());
 
     {
         stopAdvertisingToClient(adapterToClient, "removeDeviceToServer");
@@ -506,13 +502,13 @@ static void removeDeviceToServer(BTDeviceRef device) { // NOLINT(performance-unn
 }
 
 static void resetConnectionToServer(BTDeviceRef device) { // NOLINT(performance-unnecessary-value-param): Pass-by-value out-of-thread
-    fprintf_td(stderr, "****** To Server: Disconnected: %s\n", device->toString().c_str());
+    jau_fprintf_td(stderr, "****** To Server: Disconnected: %s\n", device->toString());
     device->disconnect(HCIStatusCode::DISCONNECTED);
 
     BTAdapter& a = device->getAdapter();
-    fprintf_td(stderr, "****** To Server: Power off: %s\n", a.toString().c_str());
+    jau_fprintf_td(stderr, "****** To Server: Power off: %s\n", a);
     if( a.setPowered(false) ) {
-        fprintf_td(stderr, "****** To Server: Power on: %s\n", a.toString().c_str());
+        jau_fprintf_td(stderr, "****** To Server: Power on: %s\n", a);
         if( a.setPowered(true) ) {
             startDiscoveryToServer(&a, "resetConnectionToServer");
         }
@@ -521,42 +517,41 @@ static void resetConnectionToServer(BTDeviceRef device) { // NOLINT(performance-
 
 static bool startDiscoveryToServer(BTAdapter *a, std::string msg) { // NOLINT(performance-unnecessary-value-param): Pass-by-value out-of-thread
     if( adapterToServerAddr != EUI48::ALL_DEVICE && adapterToServerAddr != a->getAddressAndType().address ) {
-        fprintf_td(stderr, "****** To Server: Start discovery (%s): Adapter not selected: %s\n", msg.c_str(), a->toString().c_str());
+        jau_fprintf_td(stderr, "****** To Server: Start discovery (%s): Adapter not selected: %s\n", msg, a->toString());
         return false;
     }
     HCIStatusCode status = a->startDiscovery( nullptr, discoveryPolicy, le_scan_active, le_scan_interval, le_scan_window, filter_policy );
-    fprintf_td(stderr, "****** To Server: Start discovery (%s) result: %s: %s\n", msg.c_str(), to_string(status).c_str(), a->toString().c_str());
+    jau_fprintf_td(stderr, "****** To Server: Start discovery (%s) result: %s: %s\n", msg, status, a->toString());
     return HCIStatusCode::SUCCESS == status;
 }
 
 static bool initAdapterToServer(std::shared_ptr<BTAdapter>& adapter) {
     if( adapterToServerAddr != EUI48::ALL_DEVICE && adapterToServerAddr != adapter->getAddressAndType().address ) {
-        fprintf_td(stderr, "initAdapterToServer: Adapter not selected: %s\n", adapter->toString().c_str());
+        jau_fprintf_td(stderr, "initAdapterToServer: Adapter not selected: %s\n", adapter->toString());
         return false;
     }
     // Initialize with defaults and power-on
     if( !adapter->isInitialized() ) {
         HCIStatusCode status = adapter->initialize( btMode, true );
         if( HCIStatusCode::SUCCESS != status ) {
-            fprintf_td(stderr, "initAdapterToServer: Adapter initialization failed: %s: %s\n",
-                    to_string(status).c_str(), adapter->toString().c_str());
+            jau_fprintf_td(stderr, "initAdapterToServer: Adapter initialization failed: %s: %s\n",
+                    status, adapter->toString());
             return false;
         }
     } else if( !adapter->setPowered( true ) ) {
-        fprintf_td(stderr, "initAdapterToServer: Already initialized adapter power-on failed:: %s\n", adapter->toString().c_str());
+        jau_fprintf_td(stderr, "initAdapterToServer: Already initialized adapter power-on failed:: %s\n", adapter->toString());
         return false;
     }
     // adapter is powered-on
-    fprintf_td(stderr, "initAdapterToServer: %s\n", adapter->toString().c_str());
+    jau_fprintf_td(stderr, "initAdapterToServer: %s\n", adapter->toString());
     {
         const LE_Features le_feats = adapter->getLEFeatures();
-        fprintf_td(stderr, "initAdapterToServer: LE_Features %s\n", to_string(le_feats).c_str());
+        jau_fprintf_td(stderr, "initAdapterToServer: LE_Features %s\n", le_feats);
     }
     if( adapter->getBTMajorVersion() > 4 ) {
         LE_PHYs Tx { LE_PHYs::LE_2M }, Rx { LE_PHYs::LE_2M };
         HCIStatusCode res = adapter->setDefaultLE_PHY(Tx, Rx);
-        fprintf_td(stderr, "initAdapterToServer: Set Default LE PHY: status %s: Tx %s, Rx %s\n",
-                to_string(res).c_str(), to_string(Tx).c_str(), to_string(Rx).c_str());
+        jau_fprintf_td(stderr, "initAdapterToServer: Set Default LE PHY: status %s: Tx %s, Rx %s\n", res, Tx, Rx);
     }
     std::shared_ptr<AdapterStatusListener> asl(new AdapterToServerStatusListener());
     adapter->addStatusListener( asl );
@@ -578,39 +573,39 @@ class AdapterToClientStatusListener : public AdapterStatusListener {
                                 const AdapterSetting changedmask, const uint64_t timestamp) override {
         const bool initialSetting = AdapterSetting::NONE == oldmask;
         if( initialSetting ) {
-            fprintf_td(stderr, "****** To Client: SETTINGS_INITIAL: %s -> %s, changed %s\n", to_string(oldmask).c_str(),
-                    to_string(newmask).c_str(), to_string(changedmask).c_str());
+            jau_fprintf_td(stderr, "****** To Client: SETTINGS_INITIAL: %s -> %s, changed %s\n", oldmask,
+                    newmask, changedmask);
         } else {
-            fprintf_td(stderr, "****** To Client: SETTINGS_CHANGED: %s -> %s, changed %s\n", to_string(oldmask).c_str(),
-                    to_string(newmask).c_str(), to_string(changedmask).c_str());
+            jau_fprintf_td(stderr, "****** To Client: SETTINGS_CHANGED: %s -> %s, changed %s\n", oldmask,
+                    newmask, changedmask);
         }
-        fprintf_td(stderr, "To Client: Status BTAdapter:\n");
-        fprintf_td(stderr, "%s\n", a.toString().c_str());
+        jau_fprintf_td(stderr, "To Client: Status BTAdapter:\n");
+        jau_fprintf_td(stderr, "%s\n", a);
         (void)timestamp;
     }
 
     void discoveringChanged(BTAdapter &a, const ScanType currentMeta, const ScanType changedType, const bool changedEnabled, const DiscoveryPolicy policy, const uint64_t timestamp) override {
-        fprintf_td(stderr, "****** To Client: DISCOVERING: meta %s, changed[%s, enabled %d, policy %s]: %s\n",
-                to_string(currentMeta).c_str(), to_string(changedType).c_str(), changedEnabled, to_string(policy).c_str(), a.toString().c_str());
+        jau_fprintf_td(stderr, "****** To Client: DISCOVERING: meta %s, changed[%s, enabled %d, policy %s]: %s\n",
+                currentMeta, changedType, changedEnabled, policy, a);
         (void)timestamp;
     }
 
     bool deviceFound(const BTDeviceRef& device, const uint64_t timestamp) override {
         (void)timestamp;
 
-        fprintf_td(stderr, "****** To Client: FOUND__-1: NOP %s\n", device->toString(true).c_str());
+        jau_fprintf_td(stderr, "****** To Client: FOUND__-1: NOP %s\n", device->toString(true));
         return false;
     }
 
     void deviceConnected(const BTDeviceRef& device, const bool discovered, const uint64_t timestamp) override {
-        fprintf_td(stderr, "****** To Client: CONNECTED (discovered %d): %s\n", discovered, device->toString(true).c_str());
+        jau_fprintf_td(stderr, "****** To Client: CONNECTED (discovered %d): %s\n", discovered, device->toString(true));
         (void)discovered;
         (void)timestamp;
     }
 
     void devicePairingState(const BTDeviceRef& device, const SMPPairingState state, const PairingMode mode, const uint64_t timestamp) override {
-        fprintf_td(stderr, "****** To Client: PAIRING STATE: state %s, mode %s, %s\n",
-            to_string(state).c_str(), to_string(mode).c_str(), device->toString().c_str());
+        jau_fprintf_td(stderr, "****** To Client: PAIRING STATE: state %s, mode %s, %s\n",
+            state, mode, device->toString());
         (void)timestamp;
         switch( state ) {
             case SMPPairingState::NONE:
@@ -652,7 +647,7 @@ class AdapterToClientStatusListener : public AdapterStatusListener {
                 // next: KEY_DISTRIBUTION or FAILED
               } break;
             case SMPPairingState::OOB_EXPECTED:
-                // FIXME: ABORT
+                // FIXME: jau_ABORT
                 break;
             case SMPPairingState::KEY_DISTRIBUTION:
                 // next: COMPLETED or FAILED
@@ -671,14 +666,14 @@ class AdapterToClientStatusListener : public AdapterStatusListener {
             jau::sc_atomic_critical sync(sync_data);
             connectedDeviceToClient = device;
         }
-        fprintf_td(stderr, "****** To Client: READY-0: Processing %s\n", device->toString(true).c_str());
+        jau_fprintf_td(stderr, "****** To Client: READY-0: Processing %s\n", device->toString(true));
     }
 
     void deviceDisconnected(const BTDeviceRef& device, const HCIStatusCode reason, const uint16_t handle, const uint64_t timestamp) override {
         servedClientConnections = servedClientConnections + 1;
-        fprintf_td(stderr, "****** DISCONNECTED (count %zu): Reason 0x%X (%s), old handle %s: %s\n",
-                servedClientConnections.load(), static_cast<uint8_t>(reason), to_string(reason).c_str(),
-                to_hexstring(handle).c_str(), device->toString(true).c_str());
+        jau_fprintf_td(stderr, "****** DISCONNECTED (count %zu): Reason 0x%X (%s), old handle %s: %s\n",
+                servedClientConnections.load(), static_cast<uint8_t>(reason), reason,
+                toHexString(handle), device->toString(true));
 
         {
             jau::sc_atomic_critical sync(sync_data);
@@ -690,14 +685,14 @@ class AdapterToClientStatusListener : public AdapterStatusListener {
     }
 
     std::string toString() const noexcept override {
-        return "MyAdapterServerStatusListener[this "+to_hexstring(this)+"]";
+        return "MyAdapterServerStatusListener[this "+toHexString(this)+"]";
     }
 
 };
 
 static void processDisconnectedDeviceToClient(BTDeviceRef device) { // NOLINT(performance-unnecessary-value-param): Pass-by-value out-of-thread
-    fprintf_td(stderr, "****** To Client: Disconnected Device (count %zu): Start %s\n",
-            servedClientConnections.load(), device->toString().c_str());
+    jau_fprintf_td(stderr, "****** To Client: Disconnected Device (count %zu): Start %s\n",
+            servedClientConnections.load(), device->toString());
 
     // already unpaired
     stopAdvertisingToClient(adapterToClient, "processDisconnectedDeviceToClient");
@@ -716,7 +711,7 @@ static void processDisconnectedDeviceToClient(BTDeviceRef device) { // NOLINT(pe
         startAdvertisingToClient(adapterToClient, "processDisconnectedDeviceToClient");
     }
 
-    fprintf_td(stderr, "****** To Client: Disonnected Device: End %s\n", device->toString().c_str());
+    jau_fprintf_td(stderr, "****** To Client: Disonnected Device: End %s\n", device->toString());
 }
 
 static bool startAdvertisingToClient(const BTAdapterRef& a, const std::string& msg) {
@@ -726,7 +721,7 @@ static bool startAdvertisingToClient(const BTAdapterRef& a, const std::string& m
         devToServer = connectedDeviceToServer;
     }
     if( nullptr == devToServer ) {
-        fprintf_td(stderr, "To Client: Start advertising: Skipped, not connected to server\n");
+        jau_fprintf_td(stderr, "To Client: Start advertising: Skipped, not connected to server\n");
         return false;
     }
 
@@ -735,7 +730,7 @@ static bool startAdvertisingToClient(const BTAdapterRef& a, const std::string& m
     const EIRDataType scanrsp_mask = EIR_DATA_TYPE_MASK & devToServer->getEIRScanRsp()->getEIRDataMask();
 
     DBGattServerRef dbGattServer( new DBGattServer( devToServer ) );
-    fprintf_td(stderr, "To Client: Start advertising: GattServer %s\n", dbGattServer->toString().c_str());
+    jau_fprintf_td(stderr, "To Client: Start advertising: GattServer %s\n", dbGattServer->toString());
 
     DBGattCharRef gattDevNameChar = dbGattServer->findGattChar( jau::uuid16_t(GattServiceType::GENERIC_ACCESS),
                                                                 jau::uuid16_t(GattCharacteristicType::DEVICE_NAME) );
@@ -744,57 +739,57 @@ static bool startAdvertisingToClient(const BTAdapterRef& a, const std::string& m
         gattDevNameChar->setValue(reinterpret_cast<uint8_t*>(aname.data()), aname.size(), 0);
     }
 
-    fprintf_td(stderr, "****** To Client: Start advertising (%s): EIR %s\n", msg.c_str(), eir.toString().c_str());
-    fprintf_td(stderr, "****** To Client: Start advertising (%s): adv %s, scanrsp %s\n", msg.c_str(), to_string(ind_mask).c_str(), to_string(scanrsp_mask).c_str());
+    jau_fprintf_td(stderr, "****** To Client: Start advertising (%s): EIR %s\n", msg, eir);
+    jau_fprintf_td(stderr, "****** To Client: Start advertising (%s): adv %s, scanrsp %s\n", msg, ind_mask, scanrsp_mask);
 
     HCIStatusCode status = a->startAdvertising(dbGattServer, eir, ind_mask, scanrsp_mask,
                                                adv_interval_min, adv_interval_max,
                                                adv_type, adv_chan_map, filter_policy);
-    fprintf_td(stderr, "****** To Client: Start advertising (%s) result: %s: %s\n", msg.c_str(), to_string(status).c_str(), a->toString().c_str());
-    fprintf_td(stderr, "%s", dbGattServer->toFullString().c_str());
+    jau_fprintf_td(stderr, "****** To Client: Start advertising (%s) result: %s: %s\n", msg, status, a->toString());
+    jau_fprintf_td(stderr, "%s", dbGattServer->toFullString());
     return HCIStatusCode::SUCCESS == status;
 }
 
 static bool stopAdvertisingToClient(const BTAdapterRef& a, const std::string& msg) {
     HCIStatusCode status = a->stopAdvertising();
-    fprintf_td(stderr, "****** To Client: Stop advertising (%s) result: %s: %s\n", msg.c_str(), to_string(status).c_str(), a->toString().c_str());
+    jau_fprintf_td(stderr, "****** To Client: Stop advertising (%s) result: %s: %s\n", msg, status, a->toString());
     return HCIStatusCode::SUCCESS == status;
 }
 
 static bool initAdapterToClient(std::shared_ptr<BTAdapter>& adapter) {
     if( adapterToClientAddr != EUI48::ALL_DEVICE && adapterToClientAddr != adapter->getAddressAndType().address ) {
-        fprintf_td(stderr, "initAdapterToClient: Adapter not selected: %s\n", adapter->toString().c_str());
+        jau_fprintf_td(stderr, "initAdapterToClient: Adapter not selected: %s\n", adapter->toString());
         return false;
     }
     if( !adapter->isInitialized() ) {
         // Initialize with defaults and power-on
         const HCIStatusCode status = adapter->initialize( btMode, false );
         if( HCIStatusCode::SUCCESS != status ) {
-            fprintf_td(stderr, "initAdapterToClient: initialize failed: %s: %s\n",
-                    to_string(status).c_str(), adapter->toString().c_str());
+            jau_fprintf_td(stderr, "initAdapterToClient: initialize failed: %s: %s\n",
+                    status, adapter->toString());
             return false;
         }
     } else if( !adapter->setPowered( false ) ) {
-        fprintf_td(stderr, "initAdapterToClient: setPower.1 off failed: %s\n", adapter->toString().c_str());
+        jau_fprintf_td(stderr, "initAdapterToClient: setPower.1 off failed: %s\n", adapter->toString());
         return false;
     }
     // adapter is powered-off
-    fprintf_td(stderr, "initAdapterToClient.1: %s\n", adapter->toString().c_str());
+    jau_fprintf_td(stderr, "initAdapterToClient.1: %s\n", adapter->toString());
 
     {
         HCIStatusCode status = adapter->setName(adapterToClientName, adapterToClientShortName);
         if( HCIStatusCode::SUCCESS == status ) {
-            fprintf_td(stderr, "initAdapterToClient: setLocalName OK: %s\n", adapter->toString().c_str());
+            jau_fprintf_td(stderr, "initAdapterToClient: setLocalName OK: %s\n", adapter->toString());
         } else {
-            fprintf_td(stderr, "initAdapterToClient: setLocalName failed: %s\n", adapter->toString().c_str());
+            jau_fprintf_td(stderr, "initAdapterToClient: setLocalName failed: %s\n", adapter->toString());
             return false;
         }
 
         status = adapter->setSecureConnections( adapterToClientUseSC );
         if( HCIStatusCode::SUCCESS == status ) {
-            fprintf_td(stderr, "initAdapterToClient: setSecureConnections OK: %s\n", adapter->toString().c_str());
+            jau_fprintf_td(stderr, "initAdapterToClient: setSecureConnections OK: %s\n", adapter->toString());
         } else {
-            fprintf_td(stderr, "initAdapterToClient: setSecureConnections failed: %s\n", adapter->toString().c_str());
+            jau_fprintf_td(stderr, "initAdapterToClient: setSecureConnections failed: %s\n", adapter->toString());
             return false;
         }
 
@@ -804,30 +799,29 @@ static bool initAdapterToClient(std::shared_ptr<BTAdapter>& adapter) {
         const uint16_t supervision_timeout = 50; // 500ms
         status = adapter->setDefaultConnParam(conn_min_interval, conn_max_interval, conn_latency, supervision_timeout);
         if( HCIStatusCode::SUCCESS == status ) {
-            fprintf_td(stderr, "initAdapterToClient: setDefaultConnParam OK: %s\n", adapter->toString().c_str());
+            jau_fprintf_td(stderr, "initAdapterToClient: setDefaultConnParam OK: %s\n", adapter->toString());
         } else if( HCIStatusCode::UNKNOWN_COMMAND == status ) {
-            fprintf_td(stderr, "initAdapterToClient: setDefaultConnParam UNKNOWN_COMMAND (ignored): %s\n", adapter->toString().c_str());
+            jau_fprintf_td(stderr, "initAdapterToClient: setDefaultConnParam UNKNOWN_COMMAND (ignored): %s\n", adapter->toString());
         } else {
-            fprintf_td(stderr, "initAdapterToClient: setDefaultConnParam failed: %s, %s\n", to_string(status).c_str(), adapter->toString().c_str());
+            jau_fprintf_td(stderr, "initAdapterToClient: setDefaultConnParam failed: %s, %s\n", status, adapter->toString());
             return false;
         }
 
         if( !adapter->setPowered( true ) ) {
-            fprintf_td(stderr, "initAdapterToClient: setPower.2 on failed: %s\n", adapter->toString().c_str());
+            jau_fprintf_td(stderr, "initAdapterToClient: setPower.2 on failed: %s\n", adapter->toString());
             return false;
         }
     }
-    fprintf_td(stderr, "initAdapterToClient.2: %s\n", adapter->toString().c_str());
+    jau_fprintf_td(stderr, "initAdapterToClient.2: %s\n", adapter->toString());
 
     {
         const LE_Features le_feats = adapter->getLEFeatures();
-        fprintf_td(stderr, "initAdapterToClient: LE_Features %s\n", to_string(le_feats).c_str());
+        jau_fprintf_td(stderr, "initAdapterToClient: LE_Features %s\n", le_feats);
     }
     if( adapter->getBTMajorVersion() > 4 ) {
         LE_PHYs Tx { LE_PHYs::LE_2M }, Rx { LE_PHYs::LE_2M };
         HCIStatusCode res = adapter->setDefaultLE_PHY(Tx, Rx);
-        fprintf_td(stderr, "initAdapterToClient: Set Default LE PHY: status %s: Tx %s, Rx %s\n",
-                to_string(res).c_str(), to_string(Tx).c_str(), to_string(Rx).c_str());
+        jau_fprintf_td(stderr, "initAdapterToClient: Set Default LE PHY: status %s: Tx %s, Rx %s\n", res, Tx, Rx);
     }
     adapter->setSMPKeyPath(SERVER_KEY_PATH);
 
@@ -848,37 +842,37 @@ static void myChangedAdapterSetFunc(const bool added, std::shared_ptr<BTAdapter>
         if( nullptr == adapterToServer ) {
             if( initAdapterToServer( adapter ) ) {
                 adapterToServer = adapter;
-                fprintf_td(stderr, "****** AdapterToServer ADDED__: InitOK: %s\n", adapter->toString().c_str());
+                jau_fprintf_td(stderr, "****** AdapterToServer ADDED__: InitOK: %s\n", adapter->toString());
                 return;
             }
         }
         if( nullptr == adapterToClient ) {
             if( initAdapterToClient( adapter ) ) {
                 adapterToClient = adapter;
-                fprintf_td(stderr, "****** AdapterToClient ADDED__: InitOK: %s\n", adapter->toString().c_str());
+                jau_fprintf_td(stderr, "****** AdapterToClient ADDED__: InitOK: %s\n", adapter->toString());
                 return;
             }
         }
-        fprintf_td(stderr, "****** Adapter ADDED__: Ignored: %s\n", adapter->toString().c_str());
+        jau_fprintf_td(stderr, "****** Adapter ADDED__: Ignored: %s\n", adapter->toString());
     } else {
         if( nullptr != adapterToServer && adapter == adapterToServer ) {
             adapterToServer = nullptr;
-            fprintf_td(stderr, "****** AdapterToServer REMOVED: %s\n", adapter->toString().c_str());
+            jau_fprintf_td(stderr, "****** AdapterToServer REMOVED: %s\n", adapter->toString());
             return;
         }
         if( nullptr != adapterToClient && adapter == adapterToClient ) {
             adapterToClient = nullptr;
-            fprintf_td(stderr, "****** AdapterToClient REMOVED: %s\n", adapter->toString().c_str());
+            jau_fprintf_td(stderr, "****** AdapterToClient REMOVED: %s\n", adapter->toString());
             return;
         }
-        fprintf_td(stderr, "****** Adapter REMOVED: Ignored %s\n", adapter->toString().c_str());
+        jau_fprintf_td(stderr, "****** Adapter REMOVED: Ignored %s\n", adapter->toString());
     }
 }
 
-void test() {
+static void test() {
     timestamp_t0 = getCurrentMilliseconds();
 
-    std::shared_ptr<BTManager> mngr = BTManager::get();
+    const std::shared_ptr<BTManager>& mngr = BTManager::get();
     mngr->addChangedAdapterSetCallback(myChangedAdapterSetFunc);
 
     while( 0 == MAX_SERVED_CONNECTIONS || MAX_SERVED_CONNECTIONS > servedClientConnections ) {
@@ -893,17 +887,17 @@ void test() {
     jau::darray<std::shared_ptr<BTAdapter>> adapterList = mngr->getAdapters();
 
     jau::for_each_const(adapterList, [](const std::shared_ptr<BTAdapter>& adapter) {
-        fprintf_td(stderr, "****** EOL Adapter's Devices - pre close: %s\n", adapter->toString().c_str());
+        jau_fprintf_td(stderr, "****** EOL Adapter's Devices - pre close: %s\n", adapter->toString());
         adapter->printDeviceLists();
     });
     {
         BTManager::size_type count = mngr->removeChangedAdapterSetCallback(myChangedAdapterSetFunc);
-        fprintf_td(stderr, "****** EOL Removed ChangedAdapterSetCallback %zu\n", (size_t)count);
+        jau_fprintf_td(stderr, "****** EOL Removed ChangedAdapterSetCallback %zu\n", (size_t)count);
 
         mngr->close();
     }
     jau::for_each_const(adapterList, [](const std::shared_ptr<BTAdapter>& adapter) {
-        fprintf_td(stderr, "****** EOL Adapter's Devices - post close: %s\n", adapter->toString().c_str());
+        jau_fprintf_td(stderr, "****** EOL Adapter's Devices - post close: %s\n", adapter->toString());
         adapter->printDeviceLists();
     });
 }
@@ -914,7 +908,7 @@ int main(int argc, char *argv[])
 {
     bool waitForEnter=false;
 
-    fprintf_td(stderr, "Direct-BT Native Version %s (API %s)\n", DIRECT_BT_VERSION.toString().c_str(), DIRECT_BT_VERSION_API);
+    jau_fprintf_td(stderr, "Direct-BT Native Version %s (API %s)\n", DIRECT_BT_VERSION, DIRECT_BT_VERSION_API);
 
     for(int i=1; i<argc; i++) {
         fprintf(stderr, "arg[%d/%d]: '%s'\n", i, argc, argv[i]);
@@ -949,7 +943,7 @@ int main(int argc, char *argv[])
             max_att_mtu_to_client = atoi(argv[++i]);
         } else if( !strcmp("-seclevelToClient", argv[i]) && argc > (i+1) ) {
             adapterToClientSecLevel = to_BTSecurityLevel(atoi(argv[++i]));
-            fprintf(stderr, "Set sec_level 2 client %s\n", to_string(adapterToClientSecLevel).c_str());
+            jau_fprintf(stderr, "Set sec_level 2 client %s\n", adapterToClientSecLevel);
         } else if( !strcmp("-adapterToServer", argv[i]) && argc > (i+1) ) {
             adapterToServerAddr = EUI48( std::string(argv[++i]) );
         } else if( !strcmp("-server", argv[i]) && argc > (i+1) ) {
@@ -959,29 +953,29 @@ int main(int argc, char *argv[])
             const std::string addrOrNameSub(argv[++i]);
             BTSecurityRegistry::Entry* sec = BTSecurityRegistry::getOrCreate(addrOrNameSub);
             sec->passkey = atoi(argv[++i]);
-            fprintf(stderr, "Set passkey to server in %s\n", sec->toString().c_str());
+            jau_fprintf(stderr, "Set passkey to server in %s\n", sec->toString());
         } else if( !strcmp("-seclevelToServer", argv[i]) && argc > (i+2) ) {
             const std::string addrOrNameSub(argv[++i]);
             BTSecurityRegistry::Entry* sec = BTSecurityRegistry::getOrCreate(addrOrNameSub);
             sec->sec_level = to_BTSecurityLevel(atoi(argv[++i]));
-            fprintf(stderr, "Set sec_level to server in %s\n", sec->toString().c_str());
+            jau_fprintf(stderr, "Set sec_level to server in %s\n", sec->toString());
         } else if( !strcmp("-iocapToServer", argv[i]) && argc > (i+2) ) {
             const std::string addrOrNameSub(argv[++i]);
             BTSecurityRegistry::Entry* sec = BTSecurityRegistry::getOrCreate(addrOrNameSub);
             sec->io_cap = to_SMPIOCapability(atoi(argv[++i]));
-            fprintf(stderr, "Set io_cap to server in %s\n", sec->toString().c_str());
+            jau_fprintf(stderr, "Set io_cap to server in %s\n", sec->toString());
         } else if( !strcmp("-secautoToServer", argv[i]) && argc > (i+2) ) {
             const std::string addrOrNameSub(argv[++i]);
             BTSecurityRegistry::Entry* sec = BTSecurityRegistry::getOrCreate(addrOrNameSub);
             sec->io_cap_auto = to_SMPIOCapability(atoi(argv[++i]));
-            fprintf(stderr, "Set SEC AUTO security io_cap to server in %s\n", sec->toString().c_str());
+            jau_fprintf(stderr, "Set SEC AUTO security io_cap to server in %s\n", sec->toString());
         } else if( !strcmp("-count", argv[i]) && argc > (i+1) ) {
             MAX_SERVED_CONNECTIONS = atoi(argv[++i]);
         }
     }
-    fprintf_td(stderr, "pid %d\n", getpid());
+    jau_fprintf_td(stderr, "pid %d\n", getpid());
 
-    fprintf_td(stderr, "Run with '[-btmode LE|BREDR|DUAL] [-use_sc 0|1] [-count <connection_number>] [-quiet] "
+    jau_fprintf_td(stderr, "Run with '[-btmode LE|BREDR|DUAL] [-use_sc 0|1] [-count <connection_number>] [-quiet] "
                     "[-discoveryPolicy <0-4>] "
                     "[-adapterToClient <adapter_address>] "
                     "[-nameToClient <adapter_name>] "
@@ -1001,34 +995,39 @@ int main(int argc, char *argv[])
                     "[-dbt_l2cap reader.timeout=10000,restart.count=0,...] "
                     "\n");
 
-    fprintf_td(stderr, "btmode %s\n", to_string(btMode).c_str());
-    fprintf_td(stderr, "MAX_SERVED_CONNECTIONS %d\n", MAX_SERVED_CONNECTIONS);
-    fprintf_td(stderr, "To Client Settings (acting as server):\n");
-    fprintf_td(stderr, "- adapter %s\n", adapterToClientAddr.toString().c_str());
-    fprintf_td(stderr, "- SC %s\n", to_string(adapterToClientUseSC).c_str());
-    fprintf_td(stderr, "- name %s (short %s)\n", adapterToClientName.c_str(), adapterToClientShortName.c_str());
-    fprintf_td(stderr, "- mtu %d\n", (int)max_att_mtu_to_client);
-    fprintf_td(stderr, "- sec_level %s\n", to_string(adapterToClientSecLevel).c_str());
-    fprintf_td(stderr, "To Server Settings (acting as client):\n");
-    fprintf_td(stderr, "- adapter %s\n", adapterToServerAddr.toString().c_str());
-    fprintf_td(stderr, "- discoveryPolicy %s\n", to_string(discoveryPolicy).c_str());
-    fprintf_td(stderr, "- security-details client: %s\n", BTSecurityRegistry::allToString().c_str());
-    fprintf_td(stderr, "- server to connect to: %s\n", BTDeviceRegistry::getWaitForDevicesString().c_str());
+    jau_fprintf_td(stderr, "btmode %s\n", btMode);
+    jau_fprintf_td(stderr, "MAX_SERVED_CONNECTIONS %zu\n", MAX_SERVED_CONNECTIONS);
+    jau_fprintf_td(stderr, "To Client Settings (acting as server):\n");
+    jau_fprintf_td(stderr, "- adapter %s\n", adapterToClientAddr);
+    jau_fprintf_td(stderr, "- SC %s\n", adapterToClientUseSC);
+    jau_fprintf_td(stderr, "- name %s (short %s)\n", adapterToClientName, adapterToClientShortName);
+    jau_fprintf_td(stderr, "- mtu %d\n", (int)max_att_mtu_to_client);
+    jau_fprintf_td(stderr, "- sec_level %s\n", adapterToClientSecLevel);
+    jau_fprintf_td(stderr, "To Server Settings (acting as client):\n");
+    jau_fprintf_td(stderr, "- adapter %s\n", adapterToServerAddr);
+    jau_fprintf_td(stderr, "- discoveryPolicy %s\n", discoveryPolicy);
+    jau_fprintf_td(stderr, "- security-details client: %s\n", BTSecurityRegistry::allToString());
+    jau_fprintf_td(stderr, "- server to connect to: %s\n", BTDeviceRegistry::getWaitForDevicesString());
 
 
     if( waitForEnter ) {
-        fprintf_td(stderr, "Press ENTER to continue\n");
+        jau_fprintf_td(stderr, "Press ENTER to continue\n");
         getchar();
     }
-    fprintf_td(stderr, "****** TEST start\n");
-    test();
-    fprintf_td(stderr, "****** TEST end\n");
+    jau_fprintf_td(stderr, "****** TEST start\n");
+    try {
+        test();
+    } catch (...) {
+        jau::fput_exception(stderr, std::current_exception(), E_FILE_LINE);
+        jau_ERR_PRINT3("Exception caught while testing");
+    }
+    jau_fprintf_td(stderr, "****** TEST end\n");
     if( true ) {
         // Just for testing purpose, i.e. triggering BTManager::close() within the test controlled app,
         // instead of program shutdown.
-        fprintf_td(stderr, "****** Manager close start\n");
-        std::shared_ptr<BTManager> mngr = BTManager::get(); // already existing
+        jau_fprintf_td(stderr, "****** Manager close start\n");
+        const std::shared_ptr<BTManager>& mngr = BTManager::get(); // already existing
         mngr->close();
-        fprintf_td(stderr, "****** Manager close end\n");
+        jau_fprintf_td(stderr, "****** Manager close end\n");
     }
 }

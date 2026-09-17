@@ -83,14 +83,14 @@ bool SMPHandler::validateConnected() noexcept {
 
     if( has_ioerror || l2capHasIOError ) {
         has_ioerror = true; // propagate l2capHasIOError -> has_ioerror
-        ERR_PRINT("ioerr state: GattHandler %s, l2cap %s: %s",
-                getStateString().c_str(), l2cap.getStateString().c_str(), deviceString.c_str());
+        jau_ERR_PRINT("ioerr state: GattHandler %s, l2cap %s: %s",
+                getStateString(), l2cap.getStateString(), deviceString);
         return false;
     }
 
     if( !is_connected || !l2capIsConnected ) {
-        ERR_PRINT("Disconnected state: GattHandler %s, l2cap %s: %s",
-                getStateString().c_str(), l2cap.getStateString().c_str(), deviceString.c_str());
+        jau_ERR_PRINT("Disconnected state: GattHandler %s, l2cap %s: %s",
+                getStateString(), l2cap.getStateString(), deviceString);
         return false;
     }
     return true;
@@ -99,7 +99,7 @@ bool SMPHandler::validateConnected() noexcept {
 void SMPHandler::smpReaderWork(jau::service_runner& sr) noexcept {
     jau::snsize_t len;
     if( !validateConnected() ) {
-        ERR_PRINT("SMPHandler::reader: Invalid IO state -> Stop");
+        jau_ERR_PRINT("SMPHandler::reader: Invalid IO state -> Stop");
         sr.set_shall_stop();
         return;
     }
@@ -110,26 +110,26 @@ void SMPHandler::smpReaderWork(jau::service_runner& sr) noexcept {
         const SMPPDUMsg::Opcode opc = smpPDU->getOpcode();
 
         if( SMPPDUMsg::Opcode::SECURITY_REQUEST == opc ) {
-            COND_PRINT(env.DEBUG_DATA, "SMPHandler-IO RECV (SEC_REQ) %s", smpPDU->toString().c_str());
+            jau_COND_PRINT(env.DEBUG_DATA, "SMPHandler-IO RECV (SEC_REQ) %s", smpPDU->toString());
             jau::for_each_fidelity(smpSecurityReqCallbackList, [&](SMPSecurityReqCallback &cb) {
                cb(*smpPDU);
             });
         } else {
-            COND_PRINT(env.DEBUG_DATA, "SMPHandler-IO RECV (MSG) %s", smpPDU->toString().c_str());
+            jau_COND_PRINT(env.DEBUG_DATA, "SMPHandler-IO RECV (MSG) %s", smpPDU->toString());
             if( smpPDURing.isFull() ) {
                 const jau::nsize_t dropCount = smpPDURing.capacity()/4;
                 smpPDURing.drop(dropCount);
-                WARN_PRINT("SMPHandler-IO RECV Drop (%u oldest elements of %u capacity, ring full)", dropCount, smpPDURing.capacity());
+                jau_WARN_PRINT("SMPHandler-IO RECV Drop (%zu oldest elements of %zu capacity, ring full)", dropCount, smpPDURing.capacity());
             }
             if( !smpPDURing.putBlocking( std::move(smpPDU), 0_s ) ) {
-                ERR_PRINT2("smpPDURing put: %s", smpPDURing.toString().c_str());
+                jau_ERR_PRINT2("smpPDURing put: %s", smpPDURing.toString());
                 sr.set_shall_stop();
                 return;
             }
         }
     } else if( len == L2CAPClient::number(L2CAPClient::RWExitCode::INTERRUPTED) ) {
-        WORDY_PRINT("SMPHandler::reader: l2cap read: IRQed res %d (%s); %s",
-                len, L2CAPClient::getRWExitCodeString(len).c_str(), getStateString().c_str());
+        jau_WORDY_PRINT("SMPHandler::reader: l2cap read: IRQed res %zd (%s); %s",
+                len, L2CAPClient::getRWExitCodeString(len), getStateString());
         if( !sr.shall_stop() ) {
             // need to stop service_runner if interrupted externally
             sr.set_shall_stop();
@@ -137,20 +137,20 @@ void SMPHandler::smpReaderWork(jau::service_runner& sr) noexcept {
     } else if( len != L2CAPClient::number(L2CAPClient::RWExitCode::POLL_TIMEOUT) &&
                len != L2CAPClient::number(L2CAPClient::RWExitCode::READ_TIMEOUT) ) { // expected TIMEOUT if idle
         if( 0 > len ) { // actual error case
-            IRQ_PRINT("SMPHandler::reader: l2cap read: Error res %d (%s); %s",
-                    len, L2CAPClient::getRWExitCodeString(len).c_str(), getStateString().c_str());
+            jau_IRQ_PRINT("SMPHandler::reader: l2cap read: Error res %zd (%s); %s",
+                    len, L2CAPClient::getRWExitCodeString(len), getStateString());
             sr.set_shall_stop();
             has_ioerror = true;
         } else { // zero size
-            WORDY_PRINT("SMPHandler::reader: l2cap read: Zero res %d (%s); %s",
-                    len, L2CAPClient::getRWExitCodeString(len).c_str(), getStateString().c_str());
+            jau_WORDY_PRINT("SMPHandler::reader: l2cap read: Zero res %zd (%s); %s",
+                    len, L2CAPClient::getRWExitCodeString(len), getStateString());
         }
     }
 }
 
 void SMPHandler::smpReaderEndLocked(jau::service_runner& sr) noexcept {
     (void)sr;
-    WORDY_PRINT("SMPHandler::reader: Ended. Ring has %u entries flushed", smpPDURing.size());
+    jau_WORDY_PRINT("SMPHandler::reader: Ended. Ring has %zu entries flushed", smpPDURing.size());
     smpPDURing.clear();
 #if 0
     // Disabled: BT host is sending out disconnect -> simplify tear down
@@ -179,7 +179,7 @@ SMPHandler::SMPHandler(const std::shared_ptr<BTDevice> &device) noexcept
   mtu(number(Defaults::MIN_SMP_MTU))
 {
     if( !validateConnected() ) {
-        ERR_PRINT("SMPHandler.ctor: L2CAP could not connect");
+        jau_ERR_PRINT("SMPHandler.ctor: L2CAP could not connect");
         is_connected = false;
         return;
     }
@@ -187,8 +187,8 @@ SMPHandler::SMPHandler(const std::shared_ptr<BTDevice> &device) noexcept
     l2cap.set_interrupted_query( jau::bind_member(&smp_reader_service, &jau::service_runner::shall_stop2) );
     smp_reader_service.start();
 
-    DBG_PRINT("SMPHandler::ctor: Started: SMPHandler[%s], l2cap[%s]: %s",
-                getStateString().c_str(), l2cap.getStateString().c_str(), deviceString.c_str());
+    jau_DBG_PRINT("SMPHandler::ctor: Started: SMPHandler[%s], l2cap[%s]: %s",
+                getStateString(), l2cap.getStateString(), deviceString);
 
     // FIXME: Determine proper MTU usage: Defaults::MIN_SMP_MTU or Defaults::LE_SECURE_SMP_MTU (if enabled)
     uint16_t mtu_ = number(Defaults::MIN_SMP_MTU);
@@ -208,7 +208,7 @@ bool SMPHandler::establishSecurity(const BTSecurityLevel sec_level) {
 }
 
 bool SMPHandler::disconnect(const bool disconnectDevice, const bool ioErrorCause) noexcept {
-    PERF3_TS_T0();
+    jau_PERF3_TS_T0();
 
     // Avoid disconnect re-entry -> potential deadlock
     bool expConn = true; // C++11, exp as value since C++20
@@ -216,25 +216,25 @@ bool SMPHandler::disconnect(const bool disconnectDevice, const bool ioErrorCause
         // not connected
         const bool smp_service_stopped = smp_reader_service.join(); // [data] race: wait until disconnecting thread has stopped service
         l2cap.close();
-        DBG_PRINT("SMPHandler::disconnect: Not connected: disconnectDevice %d, ioErrorCause %d: GattHandler[%s], l2cap[%s], stopped %d: %s",
-                  disconnectDevice, ioErrorCause, getStateString().c_str(), l2cap.getStateString().c_str(),
-                  smp_service_stopped, deviceString.c_str());
+        jau_DBG_PRINT("SMPHandler::disconnect: Not connected: disconnectDevice %d, ioErrorCause %d: GattHandler[%s], l2cap[%s], stopped %d: %s",
+                  disconnectDevice, ioErrorCause, getStateString(), l2cap.getStateString(),
+                  smp_service_stopped, deviceString);
         clearAllCallbacks();
         return false;
     }
 
-    PERF3_TS_TD("SMPHandler::disconnect.1");
+    jau_PERF3_TS_TD("SMPHandler::disconnect.1");
     const bool smp_service_stop_res = smp_reader_service.stop();
     l2cap.close();
-    PERF3_TS_TD("SMPHandler::disconnect.2");
+    jau_PERF3_TS_TD("SMPHandler::disconnect.2");
 
     // Lock to avoid other threads using instance while disconnecting
     const std::lock_guard<std::recursive_mutex> lock(mtx_command); // RAII-style acquire and relinquish via destructor
-    DBG_PRINT("SMPHandler::disconnect: Start: disconnectDevice %d, ioErrorCause %d: GattHandler[%s], l2cap[%s]: %s",
-              disconnectDevice, ioErrorCause, getStateString().c_str(), l2cap.getStateString().c_str(), deviceString.c_str());
+    jau_DBG_PRINT("SMPHandler::disconnect: Start: disconnectDevice %d, ioErrorCause %d: GattHandler[%s], l2cap[%s]: %s",
+              disconnectDevice, ioErrorCause, getStateString(), l2cap.getStateString(), deviceString);
     clearAllCallbacks();
 
-    DBG_PRINT("SMPHandler::disconnect: End: stopped %d, %s", smp_service_stop_res, deviceString.c_str());
+    jau_DBG_PRINT("SMPHandler::disconnect: End: stopped %d, %s", smp_service_stop_res, deviceString);
 
     if( disconnectDevice ) {
         std::shared_ptr<BTDevice> device = getDeviceUnchecked();
@@ -263,24 +263,24 @@ void SMPHandler::send(const SMPPDUMsg & msg) {
     const jau::snsize_t len = l2cap.write(msg.pdu.get_ptr(), msg.pdu.size());
     if( len != L2CAPClient::number(L2CAPClient::RWExitCode::INTERRUPTED) ) { // expected exits
         if( 0 > len ) {
-            ERR_PRINT("l2cap write: Error res %d (%s); %s; %s -> disconnect: %s",
-                    len, L2CAPClient::getRWExitCodeString(len).c_str(), getStateString().c_str(),
-                    msg.toString().c_str(), deviceString.c_str());
+            jau_ERR_PRINT("l2cap write: Error res %zd (%s); %s; %s -> disconnect: %s",
+                    len, L2CAPClient::getRWExitCodeString(len), getStateString(),
+                    msg.toString(), deviceString);
             has_ioerror = true;
             disconnect(true /* disconnect_device */, true /* ioerr_cause */); // state -> Disconnected
             throw BTException("SMPHandler::send: l2cap write: Error: req "+msg.toString()+" -> disconnect: "+deviceString, E_FILE_LINE);
         }
         if( static_cast<size_t>(len) != msg.pdu.size() ) {
-            ERR_PRINT("l2cap write: Error: Message size has %d != exp %zu: %s -> disconnect: %s",
-                    len, msg.pdu.size(), msg.toString().c_str(), deviceString.c_str());
+            jau_ERR_PRINT("l2cap write: Error: Message size has %zd != exp %zu: %s -> disconnect: %s",
+                    len, msg.pdu.size(), msg.toString(), deviceString);
             has_ioerror = true;
             disconnect(true /* disconnect_device */, true /* ioerr_cause */); // state -> Disconnected
             throw BTException("SMPHandler::send: l2cap write: Error: Message size has "+std::to_string(len)+" != exp "+std::to_string(msg.pdu.size())
                                      +": "+msg.toString()+" -> disconnect: "+deviceString, E_FILE_LINE);
         }
     } else {
-        WORDY_PRINT("SMPHandler::reader: l2cap read: IRQed res %d (%s); %s",
-                len, L2CAPClient::getRWExitCodeString(len).c_str(), getStateString().c_str());
+        jau_WORDY_PRINT("SMPHandler::reader: l2cap read: IRQed res %zd (%s); %s",
+                len, L2CAPClient::getRWExitCodeString(len), getStateString());
     }
 }
 
@@ -291,10 +291,10 @@ std::unique_ptr<const SMPPDUMsg> SMPHandler::sendWithReply(const SMPPDUMsg & msg
     std::unique_ptr<const SMPPDUMsg> res;
     if( !smpPDURing.getBlocking(res, timeout) || nullptr == res ) {
         errno = ETIMEDOUT;
-        IRQ_PRINT("SMPHandler::sendWithReply: nullptr result (timeout %d): req %s to %s", timeout, msg.toString().c_str(), deviceString.c_str());
+        jau_IRQ_PRINT("SMPHandler::sendWithReply: nullptr result (timeout %s): req %s to %s", timeout, msg.toString(), deviceString);
         has_ioerror = true;
         disconnect(true /* disconnectDevice */, true /* ioErrorCause */);
-        throw BTException("SMPHandler::sendWithReply: nullptr result (timeout "+timeout.to_string()+"): req "+msg.toString()+" to "+deviceString, E_FILE_LINE);
+        throw BTException("SMPHandler::sendWithReply: nullptr result (timeout "+timeout.toString()+"): req "+msg.toString()+" to "+deviceString, E_FILE_LINE);
     }
     return res;
 }

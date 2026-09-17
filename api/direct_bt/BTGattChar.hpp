@@ -1,6 +1,6 @@
 /*
  * Author: Sven Gothel <sgothel@jausoft.com>
- * Copyright (c) 2020 Gothel Software e.K.
+ * Copyright (c) 2020-2026 Gothel Software e.K.
  * Copyright (c) 2020 ZAFENA AB
  *
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -31,21 +31,14 @@
 #include <memory>
 #include <cstdint>
 
-#include <mutex>
-#include <atomic>
-
 #include <jau/java_uplink.hpp>
+#include <jau/enum_util.hpp>
 #include <jau/octets.hpp>
 #include <jau/uuid.hpp>
 
-#include "BTTypes0.hpp"
-#include "ATTPDUTypes.hpp"
-
-#include "BTTypes1.hpp"
-
 #include "BTGattDesc.hpp"
-#include "jau/int_types.hpp"
-
+#include "BTTypes0.hpp"
+#include "BTTypes1.hpp"
 
 /**
  * - - - - - - - - - - - - - - -
@@ -56,6 +49,8 @@
  * - BT Core Spec v5.2: Vol 3, Part G GATT: 2.6 GATT Profile Hierarchy
  */
 namespace direct_bt {
+
+    using namespace jau::enums;
 
     class BTGattHandler; // forward
     typedef std::shared_ptr<BTGattHandler> BTGattHandlerRef;
@@ -202,10 +197,10 @@ namespace direct_bt {
              * retrieving the GATT database from the server.
              */
             BTGattDescRef getUserDescription() const noexcept {
-                if( 0 > userDescriptionIndex ) {
+                if (0 > userDescriptionIndex || size_t(userDescriptionIndex) >= descriptorList.size()) {
                     return nullptr;
                 }
-                return descriptorList.at(static_cast<size_t>(userDescriptionIndex)); // abort if out of bounds
+                return descriptorList[static_cast<size_t>(userDescriptionIndex)];
             }
 
             /**
@@ -415,22 +410,7 @@ namespace direct_bt {
     inline bool operator!=(const BTGattChar& lhs, const BTGattChar& rhs) noexcept
     { return !(lhs == rhs); }
 
-    constexpr uint8_t number(const BTGattChar::PropertyBitVal rhs) noexcept {
-        return static_cast<uint8_t>(rhs);
-    }
-    constexpr BTGattChar::PropertyBitVal operator |(const BTGattChar::PropertyBitVal lhs, const BTGattChar::PropertyBitVal rhs) noexcept {
-        return static_cast<BTGattChar::PropertyBitVal> ( number(lhs) | number(rhs) );
-    }
-    constexpr BTGattChar::PropertyBitVal operator &(const BTGattChar::PropertyBitVal lhs, const BTGattChar::PropertyBitVal rhs) noexcept {
-        return static_cast<BTGattChar::PropertyBitVal> ( number(lhs) & number(rhs) );
-    }
-    constexpr bool operator ==(const BTGattChar::PropertyBitVal lhs, const BTGattChar::PropertyBitVal rhs) noexcept {
-        return number(lhs) == number(rhs);
-    }
-    constexpr bool operator !=(const BTGattChar::PropertyBitVal lhs, const BTGattChar::PropertyBitVal rhs) noexcept {
-        return !( lhs == rhs );
-    }
-    std::string to_string(const BTGattChar::PropertyBitVal mask) noexcept;
+    JAU_MAKE_BITFIELD_ENUM_STRING2_DECL(BTGattChar::PropertyBitVal);
 
     /**
      * {@link BTGattChar} event listener for notification and indication events.
@@ -449,13 +429,10 @@ namespace direct_bt {
      */
     class BTGattCharListener : public jau::jni::JavaUplink {
         public:
-            /**
-             * Returns a unique string denominating the type of this instance.
-             *
-             * Simple access and provision of a typename string representation
-             * at compile time like RTTI via jau::type_name_cue.
-             */
-            virtual const char * type_name() const noexcept;
+            /** Returns type signature of implementing class. */
+            virtual const jau::type_info& typeInfo() const noexcept {
+                return jau::static_ctti<BTGattCharListener>();
+            }
 
             /**
              * Called from native BLE stack, initiated by a received notification associated
@@ -483,7 +460,7 @@ namespace direct_bt {
 
             /** Return a simple description about this instance. */
             std::string toString() const noexcept override {
-                return std::string(type_name())+"["+jau::to_string(this)+"]";
+                return jau_format_string("%s[%p]", typeInfo().name(), this);
             }
 
             std::string get_java_class() const noexcept override {

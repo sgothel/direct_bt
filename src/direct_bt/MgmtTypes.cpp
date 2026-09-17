@@ -1,6 +1,6 @@
 /*
  * Author: Sven Gothel <sgothel@jausoft.com>
- * Copyright (c) 2020 Gothel Software e.K.
+ * Copyright (c) 2020-2026 Gothel Software e.K.
  * Copyright (c) 2020 ZAFENA AB
  *
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -30,20 +30,14 @@
 #include <vector>
 #include <cstdio>
 
-#include <algorithm>
-
 // #define PERF_PRINT_ON 1
 #include <jau/debug.hpp>
 
-#include "BTIoctl.hpp"
-
 #include "MgmtTypes.hpp"
-#include "HCIIoctl.hpp"
-#include "HCIComm.hpp"
 #include "BTTypes1.hpp"
+#include "jau/string_util.hpp"
 
 extern "C" {
-    #include <inttypes.h>
     #include <unistd.h>
 }
 
@@ -53,81 +47,435 @@ using namespace direct_bt;
 // *************************************************
 // *************************************************
 
-#define CASE_TO_STRING(V) case V: return #V;
-#define CASE2_TO_STRING(U,V) case U::V: return #V;
+namespace direct_bt {
+    JAU_MAKE_ENUM_STRING_CODE(MgmtStatus,
+        SUCCESS, UNKNOWN_COMMAND, NOT_CONNECTED, FAILED, CONNECT_FAILED, AUTH_FAILED, NOT_PAIRED, NO_RESOURCES, TIMEOUT,
+        ALREADY_CONNECTED, BUSY, REJECTED, NOT_SUPPORTED, INVALID_PARAMS, DISCONNECTED, NOT_POWERED, CANCELLED,
+        INVALID_INDEX, RFKILLED, ALREADY_PAIRED, PERMISSION_DENIED);
 
-#define MGMT_STATUS_ENUM(X) \
-    X(SUCCESS) \
-    X(UNKNOWN_COMMAND) \
-    X(NOT_CONNECTED) \
-    X(FAILED) \
-    X(CONNECT_FAILED) \
-    X(AUTH_FAILED) \
-    X(NOT_PAIRED) \
-    X(NO_RESOURCES) \
-    X(TIMEOUT) \
-    X(ALREADY_CONNECTED) \
-    X(BUSY) \
-    X(REJECTED) \
-    X(NOT_SUPPORTED) \
-    X(INVALID_PARAMS) \
-    X(DISCONNECTED) \
-    X(NOT_POWERED) \
-    X(CANCELLED) \
-    X(INVALID_INDEX) \
-    X(RFKILLED) \
-    X(ALREADY_PAIRED) \
-    X(PERMISSION_DENIED)
+    JAU_MAKE_ENUM_STRING_CODE(MgmtLinkKeyType,
+        COMBI, LOCAL_UNIT, REMOTE_UNIT, DBG_COMBI, UNAUTH_COMBI_P192, AUTH_COMBI_P192, CHANGED_COMBI, UNAUTH_COMBI_P256, AUTH_COMBI_P256, NONE);
 
-#define MGMT_STATUS_CASE_TO_STRING(V) case MgmtStatus::V: return #V;
+    JAU_MAKE_ENUM_STRING_CODE(MgmtLTKType,
+        UNAUTHENTICATED, AUTHENTICATED, UNAUTHENTICATED_P256, AUTHENTICATED_P256, DEBUG_P256, NONE);
 
-std::string direct_bt::to_string(const MgmtStatus opc) noexcept {
-    switch(opc) {
-        MGMT_STATUS_ENUM(MGMT_STATUS_CASE_TO_STRING)
-        default: ; // fall through intended
-    }
-    return "Unknown Status";
+    JAU_MAKE_ENUM_STRING_CODE(MgmtCSRKType,
+        UNAUTHENTICATED_LOCAL, UNAUTHENTICATED_REMOTE, AUTHENTICATED_LOCAL, AUTHENTICATED_REMOTE, NONE);
+
+    JAU_MAKE_ENUM_STRING2_CODE(MgmtCommand::Opcode, Opcode,
+        READ_VERSION, READ_COMMANDS, READ_INDEX_LIST, READ_INFO, SET_POWERED, SET_DISCOVERABLE, SET_CONNECTABLE, SET_FAST_CONNECTABLE,
+        SET_BONDABLE, SET_LINK_SECURITY, SET_SSP, SET_HS, SET_LE, SET_DEV_CLASS, SET_LOCAL_NAME, ADD_UUID, REMOVE_UUID, LOAD_LINK_KEYS,
+        LOAD_LONG_TERM_KEYS, DISCONNECT, GET_CONNECTIONS, PIN_CODE_REPLY, PIN_CODE_NEG_REPLY, SET_IO_CAPABILITY, PAIR_DEVICE, CANCEL_PAIR_DEVICE,
+        UNPAIR_DEVICE, USER_CONFIRM_REPLY, USER_CONFIRM_NEG_REPLY, USER_PASSKEY_REPLY, USER_PASSKEY_NEG_REPLY, READ_LOCAL_OOB_DATA,
+        ADD_REMOTE_OOB_DATA, REMOVE_REMOTE_OOB_DATA, START_DISCOVERY, STOP_DISCOVERY, CONFIRM_NAME, BLOCK_DEVICE, UNBLOCK_DEVICE, SET_DEVICE_ID,
+        SET_ADVERTISING, SET_BREDR, SET_STATIC_ADDRESS, SET_SCAN_PARAMS, SET_SECURE_CONN, SET_DEBUG_KEYS, SET_PRIVACY, LOAD_IRKS, GET_CONN_INFO,
+        GET_CLOCK_INFO, ADD_DEVICE_WHITELIST, REMOVE_DEVICE_WHITELIST, LOAD_CONN_PARAM, READ_UNCONF_INDEX_LIST, READ_CONFIG_INFO,
+        SET_EXTERNAL_CONFIG, SET_PUBLIC_ADDRESS, START_SERVICE_DISCOVERY, READ_LOCAL_OOB_EXT_DATA, READ_EXT_INDEX_LIST, READ_ADV_FEATURES,
+        ADD_ADVERTISING, REMOVE_ADVERTISING, GET_ADV_SIZE_INFO, START_LIMITED_DISCOVERY, READ_EXT_INFO, SET_APPEARANCE, GET_PHY_CONFIGURATION,
+        SET_PHY_CONFIGURATION, SET_BLOCKED_KEYS, SET_WIDEBAND_SPEECH, READ_SECURITY_INFO, READ_EXP_FEATURES_INFO, SET_EXP_FEATURE,
+        READ_DEF_SYSTEM_CONFIG, SET_DEF_SYSTEM_CONFIG, READ_DEF_RUNTIME_CONFIG, SET_DEF_RUNTIME_CONFIG, GET_DEVICE_FLAGS, SET_DEVICE_FLAGS,
+        READ_ADV_MONITOR_FEATURES, ADD_ADV_PATTERNS_MONITOR, REMOVE_ADV_MONITOR);
+
+    JAU_MAKE_ENUM_STRING2_CODE(MgmtDefaultParam::Type, Type,
+        BREDR_PAGE_SCAN_TYPE, BREDR_PAGE_SCAN_INTERVAL, BREDR_PAGE_SCAN_WINDOW, BREDR_INQUIRY_TYPE, BREDR_INQUIRY_INTERVAL, BREDR_INQUIRY_WINDOW,
+        BREDR_LINK_SUPERVISOR_TIMEOUT, BREDR_PAGE_TIMEOUT, BREDR_MIN_SNIFF_INTERVAL, BREDR_MAX_SNIFF_INTERVAL, LE_ADV_MIN_INTERVAL,
+        LE_ADV_MAX_INTERVAL, LE_MULTI_ADV_ROT_INTERVAL, LE_SCAN_INTERVAL_AUTOCONN, LE_SCAN_WINDOW_AUTOCONN, LE_SCAN_INTERVAL_WAKESCENARIO,
+        LE_SCAN_WINDOW_WAKESCENARIO, LE_SCAN_INTERVAL_DISCOVERY, LE_SCAN_WINDOW_DISCOVERY, LE_SCAN_INTERVAL_ADVMON, LE_SCAN_WINDOW_ADVMON,
+        LE_SCAN_INTERVAL_CONNECT, LE_SCAN_WINDOW_CONNECT, LE_MIN_CONN_INTERVAL, LE_MAX_CONN_INTERVAL, LE_CONN_LATENCY,
+        LE_CONN_SUPERVISOR_TIMEOUT, LE_AUTOCONN_TIMEOUT, NONE);
+
+    JAU_MAKE_ENUM_STRING2_CODE(MgmtEvent::Opcode, Opcode,
+        INVALID, CMD_COMPLETE, CMD_STATUS, CONTROLLER_ERROR, INDEX_ADDED, INDEX_REMOVED, NEW_SETTINGS, CLASS_OF_DEV_CHANGED,
+        LOCAL_NAME_CHANGED, NEW_LINK_KEY, NEW_LONG_TERM_KEY, DEVICE_CONNECTED, DEVICE_DISCONNECTED, CONNECT_FAILED,
+        PIN_CODE_REQUEST, USER_CONFIRM_REQUEST, USER_PASSKEY_REQUEST, AUTH_FAILED, DEVICE_FOUND, DISCOVERING,
+        DEVICE_BLOCKED, DEVICE_UNBLOCKED, DEVICE_UNPAIRED, PASSKEY_NOTIFY, NEW_IRK, NEW_CSRK, DEVICE_WHITELIST_ADDED,
+        DEVICE_WHITELIST_REMOVED, NEW_CONN_PARAM, UNCONF_INDEX_ADDED, UNCONF_INDEX_REMOVED, NEW_CONFIG_OPTIONS,
+        EXT_INDEX_ADDED, EXT_INDEX_REMOVED, LOCAL_OOB_DATA_UPDATED, ADVERTISING_ADDED, ADVERTISING_REMOVED,
+        EXT_INFO_CHANGED, PHY_CONFIGURATION_CHANGED, EXP_FEATURE_CHANGED, DEVICE_FLAGS_CHANGED, ADV_MONITOR_ADDED,
+        ADV_MONITOR_REMOVED, PAIR_DEVICE_COMPLETE, HCI_ENC_CHANGED, HCI_ENC_KEY_REFRESH_COMPLETE, HCI_LE_REMOTE_FEATURES,
+        HCI_LE_PHY_UPDATE_COMPLETE, HCI_LE_LTK_REQUEST, HCI_LE_LTK_REPLY_ACK, HCI_LE_LTK_REPLY_REJ, HCI_LE_ENABLE_ENC
+    );
+
+    JAU_MAKE_ENUM_STRING2_CODE(MgmtEvtDeviceDisconnected::DisconnectReason, DisconnectReason,
+        UNKNOWN, TIMEOUT, LOCAL_HOST, REMOTE, AUTH_FAILURE);
 }
 
-#define MGMT_LINKKEYTYPE_ENUM(X) \
-    X(COMBI) \
-    X(LOCAL_UNIT) \
-    X(REMOTE_UNIT) \
-    X(DBG_COMBI) \
-    X(UNAUTH_COMBI_P192) \
-    X(AUTH_COMBI_P192) \
-    X(CHANGED_COMBI) \
-    X(UNAUTH_COMBI_P256) \
-    X(AUTH_COMBI_P256) \
-    X(NONE)
+// *************************************************
+// *************************************************
+// *************************************************
 
-#define MGMT_LINKKEYTYPE_TO_STRING(V) case MgmtLinkKeyType::V: return #V;
-
-std::string direct_bt::to_string(const MgmtLinkKeyType type) noexcept {
-    switch(type) {
-        MGMT_LINKKEYTYPE_ENUM(MGMT_LINKKEYTYPE_TO_STRING)
-        default: ; // fall through intended
-    }
-    return "Unknown MgmtLinkKeyType";
+std::string MgmtLongTermKey::toString() const noexcept { // hex-fmt aligned with btmon
+    return jau_format_string("LTK[address[%s, %s%s], type %s, role %#x, enc_size %u, ediv %s, rand %s, ltk %s]",
+        address, address_type, BDAddressAndType::getBLERandomAddressTypeString(address, address_type, ", "),
+        key_type, role, enc_size,
+        jau::toHexString(reinterpret_cast<const uint8_t *>(&ediv), sizeof(ediv), jau::lb_endian_t::little),
+        jau::toHexString(reinterpret_cast<const uint8_t *>(&rand), sizeof(rand), jau::lb_endian_t::little),
+        jau::toHexString(ltk.data, sizeof(ltk), jau::lb_endian_t::little));
 }
 
-#define MGMT_LTKTYPE_ENUM(X) \
-    X(UNAUTHENTICATED) \
-    X(AUTHENTICATED) \
-    X(UNAUTHENTICATED_P256) \
-    X(AUTHENTICATED_P256) \
-    X(DEBUG_P256) \
-    X(NONE)
-
-#define MGMT_LTKTYPE_TO_STRING(V) case MgmtLTKType::V: return #V;
-
-std::string direct_bt::to_string(const MgmtLTKType type) noexcept {
-    switch(type) {
-        MGMT_LTKTYPE_ENUM(MGMT_LTKTYPE_TO_STRING)
-        default: ; // fall through intended
-    }
-    return "Unknown MgmtLTKType";
+std::string MgmtIdentityResolvingKey::toString() const noexcept {
+    return jau_format_string("IRK[address[%s, %s%s], irk %s]",
+        address, address_type, BDAddressAndType::getBLERandomAddressTypeString(address, address_type, ", "),
+        jau::toHexString(irk.data, sizeof(irk), jau::lb_endian_t::little));
 }
+
+std::string MgmtSignatureResolvingKey::toString() const noexcept {
+    return jau_format_string("CSRK[address[%s, %s%s], csrk %s]",
+        address, address_type, BDAddressAndType::getBLERandomAddressTypeString(address, address_type, ", "),
+        jau::toHexString(csrk.data, sizeof(csrk), jau::lb_endian_t::little));
+}
+
+std::string MgmtLinkKeyInfo::toString() const noexcept {
+    return jau_format_string("LK[address[%s, %s%s], type %s, key %s, plen %u]",
+        address, address_type, BDAddressAndType::getBLERandomAddressTypeString(address, address_type, ", "),
+        key_type,
+        jau::toHexString(key.data, sizeof(key), jau::lb_endian_t::little),
+        pin_length);
+}
+
+std::string MgmtMsg::baseString() const noexcept {
+    return jau_format_string("opcode %#x, dev_id %u", getIntOpcode(), getDevID());
+}
+
+std::string MgmtCommand::baseString() const noexcept {
+    return jau_format_string("opcode %s, dev_id %u", getOpcode(), getDevID());
+}
+
+std::string MgmtCommand::valueString() const noexcept {
+    const jau::nsize_t psz = getParamSize();
+    return jau_format_string("param[size %zu, data '%s'], tsz %zu", psz,
+        (psz > 0 ? jau::toHexString(getParam(), psz, jau::lb_endian_t::little) : ""),
+        getTotalSize());
+}
+
+std::string MgmtCommand::toString() const noexcept {
+    return jau_format_string("MgmtCmd[%s, %s]", baseString(), valueString());
+}
+
+std::string MgmtSetDiscoverableCmd::valueString() const noexcept {
+    return jau_format_string("param[size %zu, data[state %#x, timeout %zus]], tsz %zu",
+        getParamSize(), getDiscoverable(), getTimeout(), getTotalSize());
+}
+
+std::string MgmtSetLocalNameCmd::valueString() const noexcept {
+    return jau_format_string("param[size %zu, data[name '%s', shortName '%s']], tsz %zu",
+        getParamSize(), getName(), getShortName(), getTotalSize());
+}
+
+std::string MgmtLoadLinkKeyCmd::valueString() const noexcept {
+    const jau::nsize_t keyCount = getKeyCount();
+    std::string res = jau_format_string("param[size %zu, data[count %zu: ", getParamSize(), keyCount);
+    for(jau::nsize_t i=0; i<keyCount; i++) {
+        if( 0 < i ) {
+            jau::append_string(res, ", ");
+        }
+        jau::append_string(res, getLinkKey(i).toString());
+    }
+    jau_append_string(res, "]], tsz %zu", getTotalSize());
+    return res;
+}
+
+std::string MgmtLoadLongTermKeyCmd::valueString() const noexcept {
+    const jau::nsize_t keyCount = getKeyCount();
+    std::string res = jau_format_string("param[size %zu, data[count %zu: ", getParamSize(), keyCount);
+    for(jau::nsize_t i=0; i<keyCount; i++) {
+        if( 0 < i ) {
+            jau::append_string(res, ", ");
+        }
+        jau::append_string(res, getLongTermKey(i).toString());
+    }
+    jau_append_string(res, "]], tsz %zu", getTotalSize());
+    return res;
+}
+
+std::string MgmtIdentityResolveKeyCmd::valueString() const noexcept {
+    const jau::nsize_t keyCount = getKeyCount();
+    std::string res = jau_format_string("param[size %zu, data[count %zu: ", getParamSize(), keyCount);
+    for(jau::nsize_t i=0; i<keyCount; i++) {
+        if( 0 < i ) {
+            jau::append_string(res, ", ");
+        }
+        jau::append_string(res, getLongTermKey(i).toString());
+    }
+    jau_append_string(res, "]], tsz %zu", getTotalSize());
+    return res;
+}
+
+std::string MgmtCmdAdressInfoMeta::valueString() const noexcept {
+    return jau_format_string("param[size %zu, data[address[%s, type %s]]], tsz %zu",
+        getParamSize(), getAddress(), getAddressType(), getTotalSize());
+}
+
+std::string MgmtLoadIdentityResolvingKeyCmd::valueString() const noexcept {
+    const jau::nsize_t keyCount = getKeyCount();
+    std::string res = jau_format_string("param[size %zu, data[count %zu: ", getParamSize(), keyCount);
+    for(jau::nsize_t i=0; i<keyCount; i++) {
+        if( 0 < i ) {
+            jau::append_string(res, ", ");
+        }
+        jau::append_string(res, getIdentityResolvingKey(i).toString());
+    }
+    jau_append_string(res, "]], tsz %zu", getTotalSize());
+    return res;
+}
+
+std::string MgmtPinCodeReplyCmd::valueString() const noexcept {
+    return jau_format_string("param[size %zu, data[address[%s, type %s], pin '%s']], tsz %zu",
+        getParamSize(), getAddress(), getAddressType(), getPinCode(), getTotalSize());
+}
+
+std::string MgmtPairDeviceCmd::valueString() const noexcept {
+    return jau_format_string("param[size %zu, data[address[%s, type %s], io %s]], tsz %zu",
+        getParamSize(), getAddress(), getAddressType(), getIOCapability(), getTotalSize());
+}
+
+std::string MgmtUnpairDeviceCmd::valueString() const noexcept {
+    return jau_format_string("param[size %zu, data[address[%s, type %s], disconnect %s]], tsz %zu",
+        getParamSize(), getAddress(), getAddressType(), getDisconnect(), getTotalSize());
+}
+
+std::string MgmtUserPasskeyReplyCmd::valueString() const noexcept {
+    return jau_format_string("param[size %zu, data[address[%s, type %s], passkey %u]], tsz %zu",
+        getParamSize(), getAddress(), getAddressType(), getPasskey(), getTotalSize());
+}
+
+std::string MgmtAddDeviceToWhitelistCmd::valueString() const noexcept {
+    return jau_format_string("param[size %zu, data[address[%s, type %s], connectionType %u]], tsz %zu",
+        getParamSize(), getAddress(), getAddressType(), *getConnectionType(), getTotalSize());
+}
+
+std::string MgmtConnParam::toString() const noexcept {
+    return jau_format_string("ConnParam[[address %s, type %s], interval[%u..%u], latency %u, timeout %u",
+        address, address_type, min_interval, max_interval, latency, supervision_timeout);
+}
+
+std::string MgmtLoadConnParamCmd::valueString() const noexcept {
+    const jau::nsize_t count = getParamCount();
+    std::string res = jau_format_string("param[size %zu, data[count %zu: ", getParamSize(), count);
+    for(jau::nsize_t i=0; i<count; i++) {
+        if( 0 < i ) {
+            jau::append_string(res, ", ");
+        }
+        jau::append_string(res, getConnParam(i).toString());
+    }
+    jau_append_string(res, "]], tsz %zu", getTotalSize());
+    return res;
+}
+
+std::string MgmtDefaultParam::toString() const noexcept {
+    std::string res = jau_format_string("%s (sz %zu): ", type, value.size());
+    switch( value.size() ) {
+        case 2: jau_append_string(res, "%u", value.get_uint16_nc(0) ); break;
+        default: jau::append_string(res, value.toString());
+    }
+    return res;
+}
+
+std::string MgmtSetDefaultConnParamCmd::valueString() const noexcept {
+    const jau::nsize_t count = 4;
+    std::string res = jau_format_string("param[size %zu, data[count %zu: ", getParamSize(), count);
+    for(jau::nsize_t i=0; i<count; i++) {
+        if( 0 < i ) {
+            jau::append_string(res, ", ");
+        }
+        jau::append_string(res, getDefaultParam(i).toString());
+    }
+    jau_append_string(res, "]], tsz %zu", getTotalSize());
+    return res;
+}
+
+std::string MgmtEvent::baseString() const noexcept {
+    return jau_format_string("opcode %s, dev_id %u", getOpcode(), getDevID());
+}
+
+std::string MgmtEvent::valueString() const noexcept {
+    const jau::nsize_t d_sz = getDataSize();
+    return jau_format_string("data[size %zu, data %s], tsz %zu", d_sz,
+        (d_sz > 0 ? jau::toHexString(getData(), d_sz, jau::lb_endian_t::little) : ""),
+        getTotalSize());
+}
+
+std::string MgmtEvent::toString() const noexcept {
+    return jau_format_string("MgmtEvt[%s, %s]", baseString(), valueString());
+}
+
+std::string MgmtEvtAdressInfoMeta::baseString() const noexcept {
+    return jau_format_string("%s, address[%s, type %s]",
+        MgmtEvent::baseString(), getAddress(), getAddressType());
+}
+
+std::string MgmtEvtCmdComplete::baseString() const noexcept {
+    return jau_format_string("%s, cmd %s, status %#x %s",
+        MgmtEvent::baseString(), getCmdOpcode(), *getStatus(), getStatus());
+}
+
+std::string MgmtEvtCmdStatus::baseString() const noexcept {
+    return jau_format_string("%s, cmd %s, status %#x %s",
+        MgmtEvent::baseString(), getCmdOpcode(), *getStatus(), getStatus());
+}
+
+std::string MgmtEvtControllerError::baseString() const noexcept {
+    return jau_format_string("%s, error-code %#x", MgmtEvent::baseString(), getErrorCode());
+}
+
+std::string MgmtEvtNewSettings::baseString() const noexcept {
+    return jau_format_string("%s, settings=%s", MgmtEvent::baseString(), getSettings());
+}
+
+std::string MgmtEvtLocalNameChanged::valueString() const noexcept {
+    return jau_format_string("name '%s', shortName '%s'", getName(), getShortName());
+}
+
+std::string MgmtEvtNewLinkKey::baseString() const noexcept {
+    return jau_format_string("%s, store %#x, %s", MgmtEvent::baseString(), getStoreHint(), getLinkKey());
+}
+
+std::string MgmtEvtNewLongTermKey::baseString() const noexcept {
+    return jau_format_string("%s, store %#x, %s", MgmtEvent::baseString(), getStoreHint(), getLongTermKey());
+}
+
+std::string MgmtEvtDeviceConnected::baseString() const noexcept {
+    return jau_format_string("%s, address[%s, type %s], flags %#x, eir-sz %zu, hci_handle %#x",
+        MgmtEvent::baseString(), getAddress(), getAddressType(),
+        getFlags(), getEIRSize(), getHCIHandle());
+}
+
+std::string MgmtEvtDeviceDisconnected::baseString() const noexcept {
+    const DisconnectReason v1 = getReason();
+    const HCIStatusCode v2 = getHCIReason();
+    return jau_format_string("%s, address[%s, type %s], reason[mgmt[%#x (%s)], hci[%#x (%s)]], hci_handle %#x",
+        MgmtEvent::baseString(), getAddress(), getAddressType(),
+        *v1, v1, *v2, v2, getHCIHandle());
+}
+
+std::string MgmtEvtDeviceConnectFailed::baseString() const noexcept {
+    const MgmtStatus v1 = getStatus();
+    const HCIStatusCode v2 = getHCIStatus();
+    return jau_format_string("%s, address[%s, type %s], status[mgmt[%#x (%s)], hci[%#x (%s)]]",
+        MgmtEvent::baseString(), getAddress(), getAddressType(),
+        *v1, v1, *v2, v2);
+}
+
+std::string MgmtEvtPinCodeRequest::baseString() const noexcept {
+    return jau_format_string("%s, address[%s, type %s], secure %u",
+        MgmtEvent::baseString(), getAddress(), getAddressType(), getSecure());
+}
+
+std::string MgmtEvtUserConfirmRequest::baseString() const noexcept {
+    return jau_format_string("%s, address[%s, type %s], confirm_hint %u, value %u",
+        MgmtEvent::baseString(), getAddress(), getAddressType(), getConfirmHint(), getValue());
+}
+
+std::string MgmtEvtPasskeyNotify::baseString() const noexcept {
+    return jau_format_string("%s, address[%s, type %s], passkey %u, entered %u",
+        MgmtEvent::baseString(), getAddress(), getAddressType(), getPasskey(), getEntered());
+}
+
+std::string MgmtEvtAuthFailed::baseString() const noexcept {
+    return jau_format_string("%s, address[%s, type %s], status %s",
+        MgmtEvent::baseString(), getAddress(), getAddressType(), getStatus());
+}
+
+std::string MgmtEvtDeviceFound::baseString() const noexcept {
+    if( nullptr != eireport ) {
+        return jau_format_string("%s, %s", MgmtEvent::baseString(), eireport->toString(false /* includeServices */));
+    } else {
+        return jau_format_string("%s, address[%s, type %s], rssi %d, flags %#x, eir-sz %zu",
+            MgmtEvent::baseString(), getAddress(), getAddressType(), getRSSI(), getFlags(), getEIRSize());
+    }
+}
+
+std::string MgmtEvtDiscovering::baseString() const noexcept {
+    return jau_format_string("%s, scan-type %s, enabled %s",
+        MgmtEvent::baseString(), getScanType(), getEnabled());
+}
+
+std::string MgmtEvtNewIdentityResolvingKey::baseString() const noexcept {
+    return jau_format_string("%s, store %#x, rnd_address %s, %s",
+        MgmtEvent::baseString(), getStoreHint(), getRandomAddress(), getIdentityResolvingKey());
+}
+
+std::string MgmtEvtNewSignatureResolvingKey::baseString() const noexcept {
+    return jau_format_string("%s, store %#x, %s",
+        MgmtEvent::baseString(), getStoreHint(), getSignatureResolvingKey());
+}
+
+std::string MgmtEvtDeviceWhitelistAdded::baseString() const noexcept {
+    return jau_format_string("%s, address[%s, type %s], action %u",
+        MgmtEvent::baseString(), getAddress(), getAddressType(), getAction());
+}
+
+std::string MgmtEvtNewConnectionParam::baseString() const noexcept {
+    return jau_format_string("%s, store %#x, %s",
+        MgmtEvent::baseString(), getStoreHint(), getConnParam());
+}
+
+std::string MgmtEvtPairDeviceComplete::baseString() const noexcept {
+    return jau_format_string("%s, address[%s, type %s], status %s",
+        MgmtEvent::baseString(), getAddress(), getAddressType(), getStatus());
+}
+
+std::string MgmtEvtHCILERemoteFeatures::baseString() const noexcept {
+    return jau_format_string("%s, address[%s, type %s], status %s, features=%# " PRIx64,
+        MgmtEvent::baseString(), getAddress(), getAddressType(), getHCIStatus(), *getFeatures());
+}
+
+std::string MgmtEvtHCILEPhyUpdateComplete::baseString() const noexcept {
+    return jau_format_string("%s, address[%s, type %s], status %s, Tx=%s, Rx=%s",
+        MgmtEvent::baseString(), getAddress(), getAddressType(), getHCIStatus(), getTx(), getRx());
+}
+
+std::string MgmtEvtHCILELTKReq::baseString() const noexcept {
+    return jau_format_string("%s, address[%s, type %s], rand %s, ediv %s",
+        MgmtEvent::baseString(), getAddress(), getAddressType(),
+        jau::toHexString(pdu.get_ptr_nc(MGMT_HEADER_SIZE + 6+1),   8, jau::lb_endian_t::big),
+        jau::toHexString(pdu.get_ptr_nc(MGMT_HEADER_SIZE + 6+1+8), 2, jau::lb_endian_t::big));
+
+}
+
+std::string MgmtEvtHCILELTKReplyAckCmd::baseString() const noexcept {
+    return jau_format_string("%s, address[%s, type %s], ltk %s",
+        MgmtEvent::baseString(), getAddress(), getAddressType(),
+        jau::toHexString(pdu.get_ptr_nc(MGMT_HEADER_SIZE + 6+1), 16, jau::lb_endian_t::little));
+}
+
+std::string MgmtEvtHCILELTKReplyRejCmd::baseString() const noexcept {
+    return jau_format_string("%s, address[%s, type %s]",
+        MgmtEvent::baseString(), getAddress(), getAddressType());
+}
+
+std::string MgmtEvtHCILEEnableEncryptionCmd::baseString() const noexcept {
+    return jau_format_string("%s, address[%s, type %s], rand %s, ediv %s, ltk %s",
+        MgmtEvent::baseString(), getAddress(), getAddressType(),
+        jau::toHexString(pdu.get_ptr_nc(MGMT_HEADER_SIZE + 6+1),      8, jau::lb_endian_t::big),
+        jau::toHexString(pdu.get_ptr_nc(MGMT_HEADER_SIZE + 6+1+8),    2, jau::lb_endian_t::big),
+        jau::toHexString(pdu.get_ptr_nc(MGMT_HEADER_SIZE  + 6+1+8+2), 16, jau::lb_endian_t::little));
+}
+
+std::string MgmtEvtHCIEncryptionChanged::baseString() const noexcept {
+    return jau_format_string("%s, address[%s, type %s], status %s, enabled %#x",
+        MgmtEvent::baseString(), getAddress(), getAddressType(), getHCIStatus(), getEncEnabled());
+}
+
+std::string MgmtEvtHCIEncryptionKeyRefreshComplete::baseString() const noexcept {
+    return jau_format_string("%s, address[%s, type %s], status %s",
+        MgmtEvent::baseString(), getAddress(), getAddressType(), getHCIStatus());
+}
+
+std::string MgmtEvtAdapterInfo::valueString() const noexcept {
+    return jau_format_string("%s, version %u, manuf %u, settings[sup %s, cur %s], name '%s', shortName '%s'",
+        getAddress(), getVersion(), getManufacturer(),
+        getSupportedSetting(), getCurrentSetting(), getName(), getShortName());
+}
+
+
+std::string MgmtAdapterEventCallback::toString() const {
+    return jau_format_string("MgmtAdapterEventCallback[dev_id %d, %s, %s]", dev_id, opc, callback);
+}
+
+// *************************************************
+// *************************************************
+// *************************************************
 
 MgmtLTKType direct_bt::to_MgmtLTKType(const SMPLongTermKey::Property mask) noexcept {
     if( ( SMPLongTermKey::Property::AUTH & mask ) != SMPLongTermKey::Property::NONE ) {
@@ -139,167 +487,9 @@ MgmtLTKType direct_bt::to_MgmtLTKType(const SMPLongTermKey::Property mask) noexc
     }
 }
 
-#define MGMT_CSRKTYPE_ENUM(X) \
-    X(UNAUTHENTICATED_LOCAL) \
-    X(UNAUTHENTICATED_REMOTE) \
-    X(AUTHENTICATED_LOCAL) \
-    X(AUTHENTICATED_REMOTE) \
-    X(NONE)
-
-#define MGMT_CSRKTYPE_TO_STRING(V) case MgmtCSRKType::V: return #V;
-
-std::string direct_bt::to_string(const MgmtCSRKType type) noexcept {
-    switch(type) {
-        MGMT_CSRKTYPE_ENUM(MGMT_CSRKTYPE_TO_STRING)
-        default: ; // fall through intended
-    }
-    return "Unknown MgmtCSRKType";
-}
-
-
 // *************************************************
 // *************************************************
 // *************************************************
-
-#define MGMT_OPCODE_ENUM(X) \
-    X(READ_VERSION) \
-    X(READ_COMMANDS) \
-    X(READ_INDEX_LIST) \
-    X(READ_INFO) \
-    X(SET_POWERED) \
-    X(SET_DISCOVERABLE) \
-    X(SET_CONNECTABLE) \
-    X(SET_FAST_CONNECTABLE) \
-    X(SET_BONDABLE) \
-    X(SET_LINK_SECURITY) \
-    X(SET_SSP) \
-    X(SET_HS) \
-    X(SET_LE) \
-    X(SET_DEV_CLASS) \
-    X(SET_LOCAL_NAME) \
-    X(ADD_UUID) \
-    X(REMOVE_UUID) \
-    X(LOAD_LINK_KEYS) \
-    X(LOAD_LONG_TERM_KEYS) \
-    X(DISCONNECT) \
-    X(GET_CONNECTIONS) \
-    X(PIN_CODE_REPLY) \
-    X(PIN_CODE_NEG_REPLY) \
-    X(SET_IO_CAPABILITY) \
-    X(PAIR_DEVICE) \
-    X(CANCEL_PAIR_DEVICE) \
-    X(UNPAIR_DEVICE) \
-    X(USER_CONFIRM_REPLY) \
-    X(USER_CONFIRM_NEG_REPLY) \
-    X(USER_PASSKEY_REPLY) \
-    X(USER_PASSKEY_NEG_REPLY) \
-    X(READ_LOCAL_OOB_DATA) \
-    X(ADD_REMOTE_OOB_DATA) \
-    X(REMOVE_REMOTE_OOB_DATA) \
-    X(START_DISCOVERY) \
-    X(STOP_DISCOVERY) \
-    X(CONFIRM_NAME) \
-    X(BLOCK_DEVICE) \
-    X(UNBLOCK_DEVICE) \
-    X(SET_DEVICE_ID) \
-    X(SET_ADVERTISING) \
-    X(SET_BREDR) \
-    X(SET_STATIC_ADDRESS) \
-    X(SET_SCAN_PARAMS) \
-    X(SET_SECURE_CONN) \
-    X(SET_DEBUG_KEYS) \
-    X(SET_PRIVACY) \
-    X(LOAD_IRKS) \
-    X(GET_CONN_INFO) \
-    X(GET_CLOCK_INFO) \
-    X(ADD_DEVICE_WHITELIST) \
-    X(REMOVE_DEVICE_WHITELIST) \
-    X(LOAD_CONN_PARAM) \
-    X(READ_UNCONF_INDEX_LIST) \
-    X(READ_CONFIG_INFO) \
-    X(SET_EXTERNAL_CONFIG) \
-    X(SET_PUBLIC_ADDRESS) \
-    X(START_SERVICE_DISCOVERY) \
-    X(READ_LOCAL_OOB_EXT_DATA) \
-    X(READ_EXT_INDEX_LIST) \
-    X(READ_ADV_FEATURES) \
-    X(ADD_ADVERTISING) \
-    X(REMOVE_ADVERTISING) \
-    X(GET_ADV_SIZE_INFO) \
-    X(START_LIMITED_DISCOVERY) \
-    X(READ_EXT_INFO) \
-    X(SET_APPEARANCE) \
-    X(GET_PHY_CONFIGURATION) \
-    X(SET_PHY_CONFIGURATION) \
-    X(SET_BLOCKED_KEYS) \
-    X(SET_WIDEBAND_SPEECH) \
-    X(READ_SECURITY_INFO) \
-    X(READ_EXP_FEATURES_INFO) \
-    X(SET_EXP_FEATURE) \
-    X(READ_DEF_SYSTEM_CONFIG) \
-    X(SET_DEF_SYSTEM_CONFIG) \
-    X(READ_DEF_RUNTIME_CONFIG) \
-    X(SET_DEF_RUNTIME_CONFIG) \
-    X(GET_DEVICE_FLAGS) \
-    X(SET_DEVICE_FLAGS) \
-    X(READ_ADV_MONITOR_FEATURES) \
-    X(ADD_ADV_PATTERNS_MONITOR) \
-    X(REMOVE_ADV_MONITOR)
-
-#define MGMT_OPCODE_CASE_TO_STRING(V) case MgmtCommand::Opcode::V: return #V;
-
-std::string MgmtCommand::getOpcodeString(const Opcode op) noexcept {
-    switch(op) {
-        MGMT_OPCODE_ENUM(MGMT_OPCODE_CASE_TO_STRING)
-        default: ; // fall through intended
-    }
-    return "Unknown Operation";
-}
-
-// *************************************************
-// *************************************************
-// *************************************************
-
-#define MGMT_DEFPARAMTYPE_ENUM(X) \
-    X(BREDR_PAGE_SCAN_TYPE) \
-    X(BREDR_PAGE_SCAN_INTERVAL) \
-    X(BREDR_PAGE_SCAN_WINDOW) \
-    X(BREDR_INQUIRY_TYPE) \
-    X(BREDR_INQUIRY_INTERVAL) \
-    X(BREDR_INQUIRY_WINDOW) \
-    X(BREDR_LINK_SUPERVISOR_TIMEOUT) \
-    X(BREDR_PAGE_TIMEOUT) \
-    X(BREDR_MIN_SNIFF_INTERVAL) \
-    X(BREDR_MAX_SNIFF_INTERVAL) \
-    X(LE_ADV_MIN_INTERVAL) \
-    X(LE_ADV_MAX_INTERVAL) \
-    X(LE_MULTI_ADV_ROT_INTERVAL) \
-    X(LE_SCAN_INTERVAL_AUTOCONN) \
-    X(LE_SCAN_WINDOW_AUTOCONN) \
-    X(LE_SCAN_INTERVAL_WAKESCENARIO) \
-    X(LE_SCAN_WINDOW_WAKESCENARIO) \
-    X(LE_SCAN_INTERVAL_DISCOVERY) \
-    X(LE_SCAN_WINDOW_DISCOVERY) \
-    X(LE_SCAN_INTERVAL_ADVMON) \
-    X(LE_SCAN_WINDOW_ADVMON) \
-    X(LE_SCAN_INTERVAL_CONNECT) \
-    X(LE_SCAN_WINDOW_CONNECT) \
-    X(LE_MIN_CONN_INTERVAL) \
-    X(LE_MAX_CONN_INTERVAL) \
-    X(LE_CONN_LATENCY) \
-    X(LE_CONN_SUPERVISOR_TIMEOUT) \
-    X(LE_AUTOCONN_TIMEOUT) \
-    X(NONE)
-
-#define MGMT_DEFPARAMTYPE_CASE_TO_STRING(V) case MgmtDefaultParam::Type::V: return #V;
-
-std::string MgmtDefaultParam::getTypeString(const Type op) noexcept {
-    switch(op) {
-        MGMT_DEFPARAMTYPE_ENUM(MGMT_DEFPARAMTYPE_CASE_TO_STRING)
-        default: ; // fall through intended
-    }
-    return "Unknown Type";
-}
 
 MgmtDefaultParam MgmtDefaultParam::read(const uint8_t* data, const jau::nsize_t length) noexcept {
     if( length < 2U ) {
@@ -341,70 +531,6 @@ std::vector<MgmtDefaultParam> MgmtReadDefaultSysParamCmd::getParams(const uint8_
 // *************************************************
 // *************************************************
 // *************************************************
-
-#define MGMT_EV_OPCODE_ENUM(X) \
-    X(INVALID) \
-    X(CMD_COMPLETE) \
-    X(CMD_STATUS) \
-    X(CONTROLLER_ERROR) \
-    X(INDEX_ADDED) \
-    X(INDEX_REMOVED) \
-    X(NEW_SETTINGS) \
-    X(CLASS_OF_DEV_CHANGED) \
-    X(LOCAL_NAME_CHANGED) \
-    X(NEW_LINK_KEY) \
-    X(NEW_LONG_TERM_KEY) \
-    X(DEVICE_CONNECTED) \
-    X(DEVICE_DISCONNECTED) \
-    X(CONNECT_FAILED) \
-    X(PIN_CODE_REQUEST) \
-    X(USER_CONFIRM_REQUEST) \
-    X(USER_PASSKEY_REQUEST) \
-    X(AUTH_FAILED) \
-    X(DEVICE_FOUND) \
-    X(DISCOVERING) \
-    X(DEVICE_BLOCKED) \
-    X(DEVICE_UNBLOCKED) \
-    X(DEVICE_UNPAIRED) \
-    X(PASSKEY_NOTIFY) \
-    X(NEW_IRK) \
-    X(NEW_CSRK) \
-    X(DEVICE_WHITELIST_ADDED) \
-    X(DEVICE_WHITELIST_REMOVED) \
-    X(NEW_CONN_PARAM) \
-    X(UNCONF_INDEX_ADDED) \
-    X(UNCONF_INDEX_REMOVED) \
-    X(NEW_CONFIG_OPTIONS) \
-    X(EXT_INDEX_ADDED) \
-    X(EXT_INDEX_REMOVED) \
-    X(LOCAL_OOB_DATA_UPDATED) \
-    X(ADVERTISING_ADDED) \
-    X(ADVERTISING_REMOVED) \
-    X(EXT_INFO_CHANGED) \
-    X(PHY_CONFIGURATION_CHANGED) \
-    X(EXP_FEATURE_CHANGED) \
-    X(DEVICE_FLAGS_CHANGED) \
-    X(ADV_MONITOR_ADDED) \
-    X(ADV_MONITOR_REMOVED) \
-    X(PAIR_DEVICE_COMPLETE) \
-    X(HCI_ENC_CHANGED) \
-    X(HCI_ENC_KEY_REFRESH_COMPLETE) \
-    X(HCI_LE_REMOTE_FEATURES) \
-    X(HCI_LE_PHY_UPDATE_COMPLETE) \
-    X(HCI_LE_LTK_REQUEST) \
-    X(HCI_LE_LTK_REPLY_ACK) \
-    X(HCI_LE_LTK_REPLY_REJ) \
-    X(HCI_LE_ENABLE_ENC)
-
-#define MGMT_EV_OPCODE_CASE_TO_STRING(V) case MgmtEvent::Opcode::V: return #V;
-
-std::string MgmtEvent::getOpcodeString(const Opcode opc) noexcept {
-    switch(opc) {
-        MGMT_EV_OPCODE_ENUM(MGMT_EV_OPCODE_CASE_TO_STRING)
-        default: ; // fall through intended
-    }
-    return "Unknown Opcode";
-}
 
 std::unique_ptr<MgmtEvent> MgmtEvent::getSpecialized(const uint8_t * buffer, jau::nsize_t const buffer_size) noexcept {
     const MgmtEvent::Opcode opc = MgmtEvent::getOpcode(buffer);
@@ -523,23 +649,23 @@ bool MgmtEvtCmdComplete::getCurrentSettings(AdapterSetting& current_settings) co
 
 std::shared_ptr<ConnectionInfo> MgmtEvtCmdComplete::toConnectionInfo() const noexcept {
     if( MgmtCommand::Opcode::GET_CONN_INFO != getCmdOpcode() ) {
-        ERR_PRINT("Not a GET_CONN_INFO reply: %s", toString().c_str());
+        jau_ERR_PRINT("Not a GET_CONN_INFO reply: %s", toString());
         return nullptr;
     }
     if( MgmtStatus::SUCCESS != getStatus() ) {
-        ERR_PRINT("No Success: %s", toString().c_str());
+        jau_ERR_PRINT("No Success: %s", toString());
         return nullptr;
     }
     const jau::nsize_t min_size = ConnectionInfo::minimumDataSize();
     if( getDataSize() <  min_size ) {
-        ERR_PRINT("Data size < %d: %s", min_size, toString().c_str());
+        jau_ERR_PRINT("Data size < %zu: %s", min_size, toString());
         return nullptr;
     }
 
     const uint8_t *data = getData();
     if( nullptr == data ) {
         // Prelim checking to avoid g++ [8 - 10] giving a warning: '-Wnull-dereference' (impossible here!)
-        ERR_PRINT("Data nullptr: %s", toString().c_str());
+        jau_ERR_PRINT("Data nullptr: %s", toString());
         return nullptr;
     }
     EUI48 address = EUI48( data, jau::lb_endian_t::native );
@@ -552,16 +678,16 @@ std::shared_ptr<ConnectionInfo> MgmtEvtCmdComplete::toConnectionInfo() const noe
 
 std::shared_ptr<NameAndShortName> MgmtEvtCmdComplete::toNameAndShortName() const noexcept {
     if( MgmtCommand::Opcode::SET_LOCAL_NAME != getCmdOpcode() ) {
-        ERR_PRINT("Not a SET_LOCAL_NAME reply: %s", toString().c_str());
+        jau_ERR_PRINT("Not a SET_LOCAL_NAME reply: %s", toString());
         return nullptr;
     }
     if( MgmtStatus::SUCCESS != getStatus() ) {
-        ERR_PRINT("No Success: %s", toString().c_str());
+        jau_ERR_PRINT("No Success: %s", toString());
         return nullptr;
     }
     const jau::nsize_t min_size = MgmtEvtLocalNameChanged::namesDataSize();
     if( getDataSize() <  min_size ) {
-        ERR_PRINT("Data size < %d: %s", min_size, toString().c_str());
+        jau_ERR_PRINT("Data size < %zu: %s", min_size, toString());
         return nullptr;
     }
 
@@ -596,20 +722,6 @@ bool MgmtEvtAdapterInfo::updateAdapterInfo(AdapterInfo& info) const noexcept {
     info.setName(getName());
     info.setShortName(getShortName());
     return true;
-}
-
-std::string MgmtEvtDeviceDisconnected::getDisconnectReasonString(DisconnectReason mgmtReason) noexcept {
-    switch(mgmtReason) {
-        case DisconnectReason::TIMEOUT: return "TIMEOUT";
-        case DisconnectReason::LOCAL_HOST: return "LOCAL_HOST";
-        case DisconnectReason::REMOTE: return "REMOTE";
-        case DisconnectReason::AUTH_FAILURE: return "AUTH_FAILURE";
-
-        case DisconnectReason::UNKNOWN:
-        default:
-            return "UNKNOWN";
-    }
-    return "Unknown DisconnectReason";
 }
 
 MgmtEvtDeviceDisconnected::DisconnectReason MgmtEvtDeviceDisconnected::getDisconnectReason(HCIStatusCode hciReason) noexcept {

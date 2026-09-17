@@ -62,16 +62,16 @@ int HCIComm::hci_open_dev(const uint16_t dev_id, const uint16_t channel) noexcep
     // OK, tested
 #elif defined(__FreeBSD__)
     // #warning add implementation
-    ABORT("add implementation for FreeBSD");
+    jau_ABORT("add implementation for FreeBSD");
 #else
     #warning add implementation
-    ABORT("add implementation");
+    jau_ABORT("add implementation");
 #endif
 
 	// Create a loose HCI socket
 	fd = ::socket(AF_BLUETOOTH, SOCK_RAW, BTPROTO_HCI);
 	if (0 > fd ) {
-        ERR_PRINT("HCIComm::hci_open_dev: socket failed");
+        jau_ERR_PRINT("HCIComm::hci_open_dev: socket failed");
 		return fd;
 	}
 
@@ -81,7 +81,7 @@ int HCIComm::hci_open_dev(const uint16_t dev_id, const uint16_t channel) noexcep
 	ptr_hci_addr->hci_dev = dev_id;
 	ptr_hci_addr->hci_channel = channel;
 	if (::bind(fd, &addr_holder, sizeof(sockaddr_hci)) < 0) {
-	    ERR_PRINT("hci_open_dev: bind failed");
+	    jau_ERR_PRINT("hci_open_dev: bind failed");
 		goto failed;
 	}
 
@@ -114,11 +114,11 @@ HCIComm::HCIComm(const uint16_t _dev_id, const uint16_t _channel) noexcept
 void HCIComm::close() noexcept {
     const std::lock_guard<std::recursive_mutex> lock(mtx_write); // RAII-style acquire and relinquish via destructor
     if( 0 > socket_descriptor ) {
-        DBG_PRINT("HCIComm::close: Not opened: dd %d", socket_descriptor.load());
+        jau_DBG_PRINT("HCIComm::close: Not opened: dd %d", socket_descriptor.load());
         return;
     }
-    DBG_PRINT("HCIComm::close: Start: dd %d", socket_descriptor.load());
-    PERF_TS_T0();
+    jau_DBG_PRINT("HCIComm::close: Start: dd %d", socket_descriptor.load());
+    jau_PERF_TS_T0();
     // interrupt ::read(..) and , avoiding prolonged hang
     interrupted_intern = true;
     {
@@ -129,7 +129,7 @@ void HCIComm::close() noexcept {
             if( tid_self != _tid_read ) {
                 int kerr;
                 if( 0 != ( kerr = ::pthread_kill(_tid_read, SIGALRM) ) ) {
-                    ERR_PRINT("HCIComm::close: pthread_kill read %p FAILED: %d", (void*)_tid_read, kerr); // NOLINT(performance-no-int-to-ptr)
+                    jau_ERR_PRINT("HCIComm::close: pthread_kill read %p FAILED: %d", (void*)_tid_read, kerr); // NOLINT(performance-no-int-to-ptr)
                 }
             }
         }
@@ -137,8 +137,8 @@ void HCIComm::close() noexcept {
     hci_close_dev(socket_descriptor);
     socket_descriptor = -1;
     interrupted_intern = false;
-    PERF_TS_TD("HCIComm::close");
-    DBG_PRINT("HCIComm::close: End: dd %d", socket_descriptor.load());
+    jau_PERF_TS_TD("HCIComm::close");
+    jau_DBG_PRINT("HCIComm::close: End: dd %d", socket_descriptor.load());
 }
 
 jau::snsize_t HCIComm::read(uint8_t* buffer, const jau::nsize_t capacity, const jau::fraction_i64& timeout) noexcept {

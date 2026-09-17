@@ -89,7 +89,7 @@ bool DBGattServer::addListener(const ListenerRef& l) {
 
 bool DBGattServer::removeListener(const ListenerRef& l) {
     if( nullptr == l ) {
-        ERR_PRINT("Listener ref is null");
+        jau_ERR_PRINT("Listener ref is null");
         return false;
     }
     const auto count = listenerList.erase_matching(l, false /* all_matching */, _listenerRefEqComparator);
@@ -98,5 +98,26 @@ bool DBGattServer::removeListener(const ListenerRef& l) {
 
 std::string DBGattServer::toString() const noexcept {
     return "DBSrv[mode "+to_string(mode)+", max mtu "+std::to_string(max_att_mtu)+", "+std::to_string(services.size())+" services, "+javaObjectToString()+"]";
+}
+
+std::string DBGattServer::toFullString() const noexcept {
+    std::string res = toString();
+    jau::append_string(res, "\n");
+    for(const DBGattServiceRef& s : services) {
+        jau::append_string(res, "  ");
+        jau::append_string(res, s->toString());
+        jau::append_string(res, "\n");
+        for(const DBGattCharRef& c : s->getCharacteristics()) {
+            jau::append_string(res, "    ");
+            jau::append_string(res, c->toString());
+            jau::append_string(res, "\n");
+            for(const DBGattDescRef& d : c->getDescriptors()) {
+                jau::append_string(res, "      ");
+                jau::append_string(res, d->toString());
+                jau::append_string(res, "\n");
+            }
+        }
+    }
+    return res;
 }
 

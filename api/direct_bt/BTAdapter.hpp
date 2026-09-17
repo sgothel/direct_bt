@@ -1,6 +1,6 @@
 /*
  * Author: Sven Gothel <sgothel@jausoft.com>
- * Copyright (c) 2020 Gothel Software e.K.
+ * Copyright (c) 2020-2026 Gothel Software e.K.
  * Copyright (c) 2020 ZAFENA AB
  *
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -37,16 +37,12 @@
 #include <jau/darray.hpp>
 #include <jau/cow_darray.hpp>
 #include <jau/simple_timer.hpp>
-#include "BTTypes1.hpp"
-
-#include "BTDevice.hpp"
-
-#include "HCIHandler.hpp"
 
 #include "DBGattServer.hpp"
-
+#include "BTDevice.hpp"
+#include "BTTypes1.hpp"
+#include "HCIHandler.hpp"
 #include "SMPKeyBin.hpp"
-#include "jau/int_types.hpp"
 
 namespace direct_bt {
 
@@ -273,7 +269,7 @@ namespace direct_bt {
 
             ~AdapterStatusListener() noexcept override = default;
 
-            std::string toString() const noexcept override { return "AdapterStatusListener["+jau::to_hexstring(this)+"]"; }
+            std::string toString() const noexcept override { return jau_format_string("AdapterStatusListener[%p]", this); }
 
             std::string get_java_class() const noexcept override {
                 return java_class();
@@ -476,7 +472,7 @@ namespace direct_bt {
             friend void BTDevice::processL2CAPSetup(BTDeviceRef sthis);
             friend bool BTDevice::updateIdentityAddress(BDAddressAndType const & identityAddress, bool sendEvent) noexcept;
             friend bool BTDevice::updatePairingState(const BTDeviceRef& sthis, const MgmtEvent& evt, const HCIStatusCode evtStatus, SMPPairingState claimed_state) noexcept;
-            friend void BTDevice::hciSMPMsgCallback(const BTDeviceRef& sthis, const SMPPDUMsg& msg, const HCIACLData::l2cap_frame& source) noexcept;
+            friend void BTDevice::hciSMPMsgCallback(const BTDeviceRef& sthis, const SMPPDUMsg& msg, const L2CapFrame& source) noexcept;
             friend void BTDevice::processDeviceReady(BTDeviceRef sthis, const uint64_t timestamp);
             friend bool BTDevice::connectGATT(const std::shared_ptr<BTDevice>& sthis) noexcept;
             friend jau::darray<BTGattServiceRef> BTDevice::getGattServices() noexcept;
@@ -565,8 +561,8 @@ namespace direct_bt {
             void mgmtEvDeviceUnpairedMgmt(const MgmtEvent& e) noexcept;
 
             void hciSMPMsgCallback(const BDAddressAndType & addressAndType,
-                                   const SMPPDUMsg& msg, const HCIACLData::l2cap_frame& source) noexcept;
-            void sendDevicePairingState(const BTDeviceRef& device, const SMPPairingState state, const PairingMode mode, uint64_t timestamp) noexcept;
+                                   const SMPPDUMsg& msg, const L2CapFrame& source) noexcept;
+            void sendDevicePairingState(const BTDeviceRef& device, const SMPPairingState state, const PairingMode mode, uint64_t timestamp);
             void notifyPairingStageDone(const BTDeviceRef& device, uint64_t timestamp) noexcept;
             void sendDeviceReady(BTDeviceRef device, uint64_t timestamp) noexcept;
 

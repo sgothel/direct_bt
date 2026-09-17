@@ -1,6 +1,6 @@
 /*
  * Author: Sven Gothel <sgothel@jausoft.com>
- * Copyright (c) 2020 Gothel Software e.K.
+ * Copyright (c) 2020-2026 Gothel Software e.K.
  * Copyright (c) 2020 ZAFENA AB
  *
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -33,12 +33,7 @@
 #include <memory>
 #include <cstdint>
 
-#include <mutex>
-#include <atomic>
-
 #include "BTTypes0.hpp"
-#include "ATTPDUTypes.hpp"
-
 #include "BTTypes1.hpp"
 
 /**

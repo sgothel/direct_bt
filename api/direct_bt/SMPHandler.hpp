@@ -1,6 +1,6 @@
 /*
  * Author: Sven Gothel <sgothel@jausoft.com>
- * Copyright (c) 2020 Gothel Software e.K.
+ * Copyright (c) 2020-2026 Gothel Software e.K.
  * Copyright (c) 2020 ZAFENA AB
  *
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -31,8 +31,6 @@
 #include <cstdint>
 
 #include <mutex>
-#include <atomic>
-#include <thread>
 
 #include <jau/environment.hpp>
 #include <jau/ringbuffer.hpp>
@@ -45,8 +43,6 @@
 #include "BTTypes0.hpp"
 #include "L2CAPComm.hpp"
 #include "SMPTypes.hpp"
-#include "DBTConst.hpp"
-#include "jau/int_types.hpp"
 
 /**
  * - - - - - - - - - - - - - - -

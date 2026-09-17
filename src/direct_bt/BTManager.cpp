@@ -1,6 +1,6 @@
 /*
  * Author: Sven Gothel <sgothel@jausoft.com>
- * Copyright (c) 2020 Gothel Software e.K.
+ * Copyright (c) 2020-2026 Gothel Software e.K.
  * Copyright (c) 2020 ZAFENA AB
  *
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -29,16 +29,12 @@
 #include <cstdint>
 #include <cstdio>
 
-#include <algorithm>
-
 // #define PERF_PRINT_ON 1
 // PERF3_PRINT_ON for close
 // #define PERF3_PRINT_ON 1
 #include <jau/debug.hpp>
 
 #include <jau/basic_algos.hpp>
-
-#include "BTIoctl.hpp"
 
 #include "HCIIoctl.hpp"
 #include "HCIComm.hpp"
@@ -50,10 +46,8 @@
 #include "DBTConst.hpp"
 
 extern "C" {
-    #include <inttypes.h>
     #include <unistd.h>
     #include <poll.h>
-    #include <signal.h>
 }
 
 using namespace direct_bt;
@@ -82,7 +76,7 @@ void BTManager::mgmtReaderWork(jau::service_runner& sr) noexcept {
     jau::snsize_t len;
     if( !comm.is_open() ) {
         // not open
-        ERR_PRINT("BTManager::reader: Not connected");
+        jau_ERR_PRINT("BTManager::reader: Not connected");
         sr.set_shall_stop();
         return;
     }
@@ -92,78 +86,78 @@ void BTManager::mgmtReaderWork(jau::service_runner& sr) noexcept {
         const jau::nsize_t len2 = static_cast<jau::nsize_t>(len);
         const jau::nsize_t paramSize = len2 >= MGMT_HEADER_SIZE ? rbuffer.get_uint16_nc(4) : 0;
         if( len2 < MGMT_HEADER_SIZE + paramSize ) {
-            WARN_PRINT("BTManager::reader: length mismatch %zu < MGMT_HEADER_SIZE(%u) + %u, %s", len2, MGMT_HEADER_SIZE, paramSize, rbuffer.toString().c_str());
+            jau_WARN_PRINT("BTManager::reader: length mismatch %zu < MGMT_HEADER_SIZE(%zu) + %zu, %s",
+                len2, jau::enums::number(MGMT_HEADER_SIZE), paramSize, rbuffer);
             return; // discard data
         }
         std::unique_ptr<MgmtEvent> event = MgmtEvent::getSpecialized(rbuffer.get_ptr(), len2);
         const MgmtEvent::Opcode opc = event->getOpcode();
         if( MgmtEvent::Opcode::CMD_COMPLETE == opc || MgmtEvent::Opcode::CMD_STATUS == opc ) {
-            COND_PRINT(env.DEBUG_EVENT, "BTManager-IO RECV (CMD) %s", event->toString().c_str());
+            jau_COND_PRINT(env.DEBUG_EVENT, "BTManager-IO RECV (CMD) %s", event->toString());
             if( mgmtEventRing.isFull() ) {
                 const jau::nsize_t dropCount = mgmtEventRing.capacity()/4;
                 mgmtEventRing.drop(dropCount);
-                WARN_PRINT("BTManager-IO RECV Drop (%u oldest elements of %u capacity, ring full)", dropCount, mgmtEventRing.capacity());
+                jau_WARN_PRINT("BTManager-IO RECV Drop (%zu oldest elements of %zu capacity, ring full)", dropCount, mgmtEventRing.capacity());
             }
             if( !mgmtEventRing.putBlocking( std::move( event ), 0_s ) ) {
-                ERR_PRINT2("mgmtEventRing put: %s", mgmtEventRing.toString().c_str());
+                jau_ERR_PRINT2("mgmtEventRing put: %s", mgmtEventRing);
                 sr.set_shall_stop();
                 return;
             }
         } else if( MgmtEvent::Opcode::INDEX_ADDED == opc ) {
-            COND_PRINT(env.DEBUG_EVENT, "BTManager-IO RECV (ADD) %s", event->toString().c_str());
+            jau_COND_PRINT(env.DEBUG_EVENT, "BTManager-IO RECV (ADD) %s", event->toString());
             std::thread adapterAddedThread(&BTManager::processAdapterAdded, this, std::move( event) ); // @suppress("Invalid arguments")
             adapterAddedThread.detach();
         } else if( MgmtEvent::Opcode::INDEX_REMOVED == opc ) {
-            COND_PRINT(env.DEBUG_EVENT, "BTManager-IO RECV (REM) %s", event->toString().c_str());
+            jau_COND_PRINT(env.DEBUG_EVENT, "BTManager-IO RECV (REM) %s", event->toString());
             std::thread adapterRemovedThread(&BTManager::processAdapterRemoved, this, std::move( event ) ); // @suppress("Invalid arguments")
             adapterRemovedThread.detach();
         } else {
             // issue a callback
-            COND_PRINT(env.DEBUG_EVENT, "BTManager-IO RECV (CB) %s", event->toString().c_str());
+            jau_COND_PRINT(env.DEBUG_EVENT, "BTManager-IO RECV (CB) %s", event->toString());
             sendMgmtEvent( *event );
         }
     } else if( 0 > len && ETIMEDOUT != errno && !comm.interrupted() ) { // expected exits
-        ERR_PRINT("BTManager::reader: HCIComm read: Error res %d, %s", len, toString().c_str());
+        jau_ERR_PRINT("BTManager::reader: HCIComm read: Error res %zd, %s", len, toString());
         // Keep alive - sr.set_shall_stop();
     } else if( ETIMEDOUT != errno && !comm.interrupted() ) { // expected TIMEOUT if idle
-        WORDY_PRINT("BTManager::reader: HCIComm read: IRQed res %d, %s", len, toString().c_str());
+        jau_WORDY_PRINT("BTManager::reader: HCIComm read: IRQed res %zd, %s", len, toString());
     }
 }
 
 void BTManager::mgmtReaderEndLocked(jau::service_runner& sr) noexcept {
     (void)sr;
-    WORDY_PRINT("BTManager::reader: Ended. Ring has %u entries flushed", mgmtEventRing.size());
+    jau_WORDY_PRINT("BTManager::reader: Ended. Ring has %zu entries flushed", mgmtEventRing.size());
     mgmtEventRing.clear();
 }
 
 void BTManager::sendMgmtEvent(const MgmtEvent& event) noexcept {
     const uint16_t dev_id = event.getDevID();
     MgmtAdapterEventCallbackList & mgmtEventCallbackList = mgmtAdapterEventCallbackLists[static_cast<uint16_t>(event.getOpcode())];
-    int invokeCount = 0;
+    size_t invokeCount = 0;
 
     jau::for_each_fidelity(mgmtEventCallbackList, [&](MgmtAdapterEventCallback &cb) {
         if( 0 > cb.getDevID() || dev_id == cb.getDevID() ) {
             try {
                 cb.getCallback()(event);
             } catch (std::exception &e) {
-                ERR_PRINT("BTManager::sendMgmtEvent-CBs %d/%zd: MgmtAdapterEventCallback %s : Caught exception %s",
-                        invokeCount+1, mgmtEventCallbackList.size(),
-                        cb.toString().c_str(), e.what());
+                jau_ERR_PRINT("BTManager::sendMgmtEvent-CBs %zu/%zu: MgmtAdapterEventCallback %s : Caught exception %s",
+                        invokeCount+1, mgmtEventCallbackList.size(), cb, e.what());
             }
             invokeCount++;
         }
     });
 
-    COND_PRINT(env.DEBUG_EVENT, "BTManager::sendMgmtEvent: Event %s -> %d/%zd callbacks", event.toString().c_str(), invokeCount, mgmtEventCallbackList.size());
+    jau_COND_PRINT(env.DEBUG_EVENT, "BTManager::sendMgmtEvent: Event %s -> %zu/%zu callbacks", event, invokeCount, mgmtEventCallbackList.size());
     (void)invokeCount;
 }
 
 bool BTManager::send(MgmtCommand &req) noexcept {
     const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
-    COND_PRINT(env.DEBUG_EVENT, "BTManager-IO SENT %s", req.toString().c_str());
+    jau_COND_PRINT(env.DEBUG_EVENT, "BTManager-IO SENT %s", req);
     jau::TROOctets & pdu = req.getPDU();
     if ( comm.write( pdu.get_ptr(), pdu.size() ) < 0 ) {
-        ERR_PRINT("BTManager::sendWithReply: HCIComm write error, req %s", req.toString().c_str());
+        jau_ERR_PRINT("BTManager::sendWithReply: HCIComm write error, req %s", req);
         return false;
     }
     return true;
@@ -182,16 +176,16 @@ std::unique_ptr<MgmtEvent> BTManager::sendWithReply(MgmtCommand &req, const jau:
         std::unique_ptr<MgmtEvent> res;
         if( !mgmtEventRing.getBlocking(res, timeout) || nullptr == res ) {
             errno = ETIMEDOUT;
-            ERR_PRINT("BTManager::sendWithReply.X: nullptr result (timeout -> abort): req %s", req.toString().c_str());
+            jau_ERR_PRINT("BTManager::sendWithReply.X: nullptr result (timeout -> abort): req %s", req);
             return nullptr;
         } else if( !res->validate(req) ) {
             // This could occur due to an earlier timeout w/ a nullptr == res (see above),
             // i.e. the pending reply processed here and naturally not-matching.
-            COND_PRINT(env.DEBUG_EVENT, "BTManager-IO RECV sendWithReply: res mismatch (drop evt, retryCount %d): res %s; req %s",
-                    retryCount, res->toString().c_str(), req.toString().c_str());
+            jau_COND_PRINT(env.DEBUG_EVENT, "BTManager-IO RECV sendWithReply: res mismatch (drop evt, retryCount %d): res %s; req %s",
+                    retryCount, res->toString(), req);
             retryCount++;
         } else {
-            COND_PRINT(env.DEBUG_EVENT, "BTManager-IO RECV sendWithReply: res %s; req %s", res->toString().c_str(), req.toString().c_str());
+            jau_COND_PRINT(env.DEBUG_EVENT, "BTManager-IO RECV sendWithReply: res %s; req %s", res->toString(), req);
             return res;
         }
     }
@@ -207,16 +201,16 @@ std::unique_ptr<AdapterInfo> BTManager::readAdapterInfo(const uint16_t dev_id) n
             goto fail;
         }
         if( MgmtEvent::Opcode::CMD_COMPLETE != res->getOpcode() || res->getTotalSize() < MgmtEvtAdapterInfo::getRequiredTotalSize()) {
-            ERR_PRINT("Insufficient data for adapter info: req %d, res %s", MgmtEvtAdapterInfo::getRequiredTotalSize(), res->toString().c_str());
+            jau_ERR_PRINT("Insufficient data for adapter info: req %zu, res %s", MgmtEvtAdapterInfo::getRequiredTotalSize(), res->toString());
             goto fail;
         }
         const MgmtEvtAdapterInfo * res1 = static_cast<MgmtEvtAdapterInfo*>(res.get());
         adapterInfo = res1->toAdapterInfo();
         if( dev_id != adapterInfo->dev_id ) {
-            ABORT("readAdapterSettings dev_id=%d != dev_id=%d: %s", adapterInfo->dev_id, dev_id, adapterInfo->toString().c_str());
+            jau_ABORT("readAdapterSettings dev_id=%d != dev_id=%d: %s", adapterInfo->dev_id, dev_id, adapterInfo->toString());
         }
     }
-    DBG_PRINT("readAdapterSettings[%d]: End: %s", dev_id, adapterInfo->toString().c_str());
+    jau_DBG_PRINT("readAdapterSettings[%d]: End: %s", dev_id, adapterInfo->toString());
 
 fail:
     return adapterInfo;
@@ -244,20 +238,20 @@ HCIStatusCode BTManager::initializeAdapter(AdapterInfo& adapterInfo, const uint1
             goto fail;
         }
         if( MgmtEvent::Opcode::CMD_COMPLETE != res->getOpcode() || res->getTotalSize() < MgmtEvtAdapterInfo::getRequiredTotalSize()) {
-            ERR_PRINT("Insufficient data for adapter info: req %d, res %s", MgmtEvtAdapterInfo::getRequiredTotalSize(), res->toString().c_str());
+            jau_ERR_PRINT("Insufficient data for adapter info: req %zu, res %s", MgmtEvtAdapterInfo::getRequiredTotalSize(), res->toString());
             goto fail;
         }
         const MgmtEvtAdapterInfo * res1 = static_cast<MgmtEvtAdapterInfo*>(res.get());
         res1->updateAdapterInfo(adapterInfo);
         if( dev_id != adapterInfo.dev_id ) {
-            ABORT("initializeAdapter dev_id=%d != dev_id=%d: %s", adapterInfo.dev_id, dev_id, adapterInfo.toString().c_str());
+            jau_ABORT("initializeAdapter dev_id=%d != dev_id=%d: %s", adapterInfo.dev_id, dev_id, adapterInfo);
         }
     }
-    DBG_PRINT("initializeAdapter[%d, BTMode %s]: Start: %s", dev_id, to_string(btMode).c_str(), adapterInfo.toString().c_str());
+    jau_DBG_PRINT("initializeAdapter[%d, BTMode %s]: Start: %s", dev_id, btMode, adapterInfo);
 
     {
         HCIStatusCode res0 = clearIdentityResolvingKeys(dev_id);
-        DBG_PRINT("initializeAdapter[%d]: clearIdentityResolvingKeys: %s", dev_id, to_string(res0).c_str());
+        jau_DBG_PRINT("initializeAdapter[%u]: clearIdentityResolvingKeys: %s", dev_id, res0);
     }
 
     current_settings = adapterInfo.getCurrentSettingMask();
@@ -302,7 +296,7 @@ HCIStatusCode BTManager::initializeAdapter(AdapterInfo& adapterInfo, const uint1
 
     if constexpr ( USE_LINUX_BT_SECURITY ) {
         setMode(dev_id, MgmtCommand::Opcode::SET_DEBUG_KEYS, debug_keys, current_settings);
-        setMode(dev_id, MgmtCommand::Opcode::SET_IO_CAPABILITY, direct_bt::number(BTManager::defaultIOCapability), current_settings);
+        setMode(dev_id, MgmtCommand::Opcode::SET_IO_CAPABILITY, *(BTManager::defaultIOCapability), current_settings);
         setMode(dev_id, MgmtCommand::Opcode::SET_BONDABLE, 1, current_settings); // required for pairing
     } else {
         setMode(dev_id, MgmtCommand::Opcode::SET_SSP, 0, current_settings);
@@ -326,17 +320,17 @@ HCIStatusCode BTManager::initializeAdapter(AdapterInfo& adapterInfo, const uint1
 
     if( jau::environment::get().debug ) {
         std::vector<MgmtDefaultParam> params = readDefaultSysParam(dev_id);
-        DBG_PRINT("BTManager::initializeAdapter[%d]: SysParam-Pre: %zd", dev_id, params.size());
+        jau_DBG_PRINT("BTManager::initializeAdapter[%u]: SysParam-Pre: %zu", dev_id, params.size());
         for(size_t i=0; i<params.size(); ++i) {
-            jau::PLAIN_PRINT(true, "[%2.2zd]: %s", i, params[i].toString().c_str());
+            jau_PLAIN_PRINT(true, "[%2.2zu]: %s", i, params[i]);
         }
     }
     setDefaultConnParam(dev_id); // using our defaults, exceeding BlueZ/Linux on the lower-end a bit
     if( jau::environment::get().debug ) {
         std::vector<MgmtDefaultParam> params = readDefaultSysParam(dev_id);
-        DBG_PRINT("BTManager::initializeAdapter[%d]: SysParam-Post: %zd", dev_id, params.size());
+        jau_DBG_PRINT("BTManager::initializeAdapter[%u]: SysParam-Post: %zu", dev_id, params.size());
         for(size_t i=0; i<params.size(); ++i) {
-            jau::PLAIN_PRINT(true, "[%2.2zd]: %s", i, params[i].toString().c_str());
+            jau_PLAIN_PRINT(true, "[%2.2zu]: %s", i, params[i]);
         }
     }
 
@@ -355,21 +349,21 @@ HCIStatusCode BTManager::initializeAdapter(AdapterInfo& adapterInfo, const uint1
             goto fail;
         }
         if( MgmtEvent::Opcode::CMD_COMPLETE != res->getOpcode() || res->getTotalSize() < MgmtEvtAdapterInfo::getRequiredTotalSize()) {
-            ERR_PRINT("Insufficient data for adapter info: req %d, res %s", MgmtEvtAdapterInfo::getRequiredTotalSize(), res->toString().c_str());
+            jau_ERR_PRINT("Insufficient data for adapter info: req %zu, res %s", MgmtEvtAdapterInfo::getRequiredTotalSize(), res->toString());
             goto fail;
         }
         const MgmtEvtAdapterInfo * res1 = static_cast<MgmtEvtAdapterInfo*>(res.get());
         res1->updateAdapterInfo(adapterInfo);
         if( dev_id != adapterInfo.dev_id ) {
-            ABORT("initializeAdapter dev_id=%d != dev_id=%d: %s", adapterInfo.dev_id, dev_id, adapterInfo.toString().c_str());
+            jau_ABORT("initializeAdapter dev_id=%u != dev_id=%u: %s", adapterInfo.dev_id, dev_id, adapterInfo);
         }
     }
     if( powerOn && !adapterInfo.isCurrentSettingBitSet(AdapterSetting::POWERED) ) {
-        ERR_PRINT("initializeAdapter[%d, BTMode %s]: Fail: Couldn't power-on: %s",
-                dev_id, to_string(btMode).c_str(), adapterInfo.toString().c_str());
+        jau_ERR_PRINT("initializeAdapter[%d, BTMode %s]: Fail: Couldn't power-on: %s",
+                dev_id, btMode, adapterInfo);
         goto fail;
     }
-    DBG_PRINT("initializeAdapter[%d, BTMode %s]: OK: %s", dev_id, to_string(btMode).c_str(), adapterInfo.toString().c_str());
+    jau_DBG_PRINT("initializeAdapter[%d, BTMode %s]: OK: %s", dev_id, btMode, adapterInfo);
     return HCIStatusCode::SUCCESS;
 
 fail:
@@ -387,11 +381,11 @@ BTManager::BTManager() noexcept
   allowClose( comm.is_open() )
 {
     if( ! jau::service_runner::singleton_sighandler() ) {
-        ERR_PRINT("BTManager::ctor: Setting sighandler");
+        jau_ERR_PRINT("BTManager::ctor: Setting sighandler");
     }
-    WORDY_PRINT("BTManager.ctor: pid %d", jau::service_runner::pid_self);
+    jau_WORDY_PRINT("BTManager.ctor: pid %d", jau::service_runner::pid_self);
     if( !allowClose ) {
-        ERR_PRINT("BTManager::open: Could not open mgmt control channel");
+        jau_ERR_PRINT("BTManager::open: Could not open mgmt control channel");
         return;
     }
 }
@@ -400,7 +394,7 @@ bool BTManager::initialize(const std::shared_ptr<BTManager>& self) noexcept {
     comm.set_interrupted_query( jau::bind_member(&mgmt_reader_service, &jau::service_runner::shall_stop2) );
     mgmt_reader_service.start();
 
-    PERF_TS_T0();
+    jau_PERF_TS_T0();
 
     // Mandatory
     {
@@ -410,15 +404,15 @@ bool BTManager::initialize(const std::shared_ptr<BTManager>& self) noexcept {
             goto fail;
         }
         if( MgmtEvent::Opcode::CMD_COMPLETE != res->getOpcode() || res->getDataSize() < 3) {
-            ERR_PRINT("Wrong version response: %s", res->toString().c_str());
+            jau_ERR_PRINT("Wrong version response: %s", res->toString());
             goto fail;
         }
         const uint8_t *data = res->getData();
         const uint8_t version = data[0];
         const uint16_t revision = jau::get_uint16(data + 1, jau::lb_endian_t::little);
-        WORDY_PRINT("Bluetooth version %d.%d", version, revision);
+        jau_WORDY_PRINT("Bluetooth version %d.%d", version, revision);
         if( version < 1 ) {
-            ERR_PRINT("Bluetooth version >= 1.0 required");
+            jau_ERR_PRINT("Bluetooth version >= 1.0 required");
             goto fail;
         }
     }
@@ -433,13 +427,13 @@ bool BTManager::initialize(const std::shared_ptr<BTManager>& self) noexcept {
             const uint8_t *data = res->getData();
             const uint16_t num_commands = jau::get_uint16(data + 0, jau::lb_endian_t::little);
             const uint16_t num_events = jau::get_uint16(data + 2, jau::lb_endian_t::little);
-            WORDY_PRINT("Bluetooth %d commands, %d events", num_commands, num_events);
+            jau_WORDY_PRINT("Bluetooth %d commands, %d events", num_commands, num_events);
 #ifdef VERBOSE_ON
             const int expDataSize = 4 + num_commands * 2 + num_events * 2;
             if( res->getDataSize() >= expDataSize ) {
                 for(int i=0; i< num_commands; i++) {
                     const MgmtCommand::Opcode op = static_cast<MgmtCommand::Opcode>( get_uint16(data, 4+i*2, jau::lb_endian::little) );
-                    DBG_PRINT("kernel op %d: %s", i, toString(op).c_str());
+                    jau_DBG_PRINT("kernel op %d: %s", i, toString(op));
                 }
             }
 #endif
@@ -455,28 +449,28 @@ next1:
             goto fail;
         }
         if( MgmtEvent::Opcode::CMD_COMPLETE != res->getOpcode() || res->getDataSize() < 2) {
-            ERR_PRINT("Insufficient data for adapter index: res %s", res->toString().c_str());
+            jau_ERR_PRINT("Insufficient data for adapter index: res %s", res->toString());
             goto fail;
         }
         const uint8_t *data = res->getData();
         const uint16_t num_adapter = jau::get_uint16(data + 0, jau::lb_endian_t::little);
-        WORDY_PRINT("Bluetooth %d adapter", num_adapter);
+        jau_WORDY_PRINT("Bluetooth %d adapter", num_adapter);
 
         const jau::nsize_t expDataSize = 2 + num_adapter * 2;
         if( res->getDataSize() < expDataSize ) {
-            ERR_PRINT("Insufficient data for %d adapter indices: res %s", num_adapter, res->toString().c_str());
+            jau_ERR_PRINT("Insufficient data for %d adapter indices: res %s", num_adapter, res->toString());
             goto fail;
         }
-        for(jau::nsize_t i=0; i < num_adapter; i++) {
+        for(size_t i=0; i < num_adapter; i++) {
             const uint16_t dev_id = jau::get_uint16(data + 2+i*2, jau::lb_endian_t::little);
             std::unique_ptr<AdapterInfo> adapterInfo = readAdapterInfo(dev_id);
             if( nullptr != adapterInfo ) {
                 std::shared_ptr<BTAdapter> adapter = BTAdapter::make_shared(self, *adapterInfo);
                 adapters.push_back( adapter );
                 adapterIOCapability.push_back(BTManager::defaultIOCapability);
-                DBG_PRINT("BTManager::adapters %d/%d: dev_id %d: %s", i, num_adapter, dev_id, adapter->toString().c_str());
+                jau_DBG_PRINT("BTManager::adapters %zu/%u: dev_id %u: %s", i, num_adapter, dev_id, adapter->toString());
             } else {
-                DBG_PRINT("BTManager::adapters %d/%d: dev_id %d: FAILED", i, num_adapter, dev_id);
+                jau_DBG_PRINT("BTManager::adapters %zu/%u: dev_id %u: FAILED", i, num_adapter, dev_id);
             }
         }
     }
@@ -510,14 +504,14 @@ next1:
         addMgmtEventCallback(-1, MgmtEvent::Opcode::LOCAL_OOB_DATA_UPDATED, jau::bind_member(this, &BTManager::mgmtEventAnyCB));
         addMgmtEventCallback(-1, MgmtEvent::Opcode::PAIR_DEVICE_COMPLETE, jau::bind_member(this, &BTManager::mgmtEventAnyCB));
     }
-    PERF_TS_TD("BTManager::ctor.ok");
-    DBG_PRINT("BTManager::ctor: OK");
+    jau_PERF_TS_TD("BTManager::ctor.ok");
+    jau_DBG_PRINT("BTManager::ctor: OK");
     return true;
 
 fail:
     close();
-    PERF_TS_TD("BTManager::ctor.fail");
-    DBG_PRINT("BTManager::ctor: FAIL");
+    jau_PERF_TS_TD("BTManager::ctor.fail");
+    jau_DBG_PRINT("BTManager::ctor: FAIL");
     return false;
 }
 
@@ -533,20 +527,20 @@ void BTManager::close() noexcept {
         // not open
         const bool mgmt_service_stopped = mgmt_reader_service.join(); // [data] race: wait until disconnecting thread has stopped service
         // NOLINTNEXTLINE(clang-analyzer-optin.cplusplus.VirtualCall)
-        DBG_PRINT("BTManager::close: Not open: stopped %d, %s", mgmt_service_stopped, toString().c_str());
+        jau_DBG_PRINT("BTManager::close: Not open: stopped %d, %s", mgmt_service_stopped, toString());
         return;
     }
-    PERF3_TS_T0();
+    jau_PERF3_TS_T0();
 
     const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
-    DBG_PRINT("BTManager::close: Start");
+    jau_DBG_PRINT("BTManager::close: Start");
     removeAllDevicesFromWhitelist();
     clearAllCallbacks();
 
     {
-        int i=0;
+        size_t i=0;
         jau::for_each_fidelity(adapters, [&](std::shared_ptr<BTAdapter> & a) {
-            DBG_PRINT("BTManager::close -> adapter::close(): %d/%d processing: %s", i, adapters.size(), a->toString().c_str());
+            jau_DBG_PRINT("BTManager::close -> adapter::close(): %zu/%zu processing: %s", i, adapters.size(), a->toString());
             a->close(); // also issues removeMgmtEventCallback(dev_id);
             ++i;
         });
@@ -555,17 +549,17 @@ void BTManager::close() noexcept {
     adapters.clear();
     adapterIOCapability.clear();
 
-    PERF3_TS_TD("BTManager::close.1");
+    jau_PERF3_TS_TD("BTManager::close.1");
     mgmt_reader_service.stop();
     comm.close();
-    PERF3_TS_TD("BTManager::close.2");
+    jau_PERF3_TS_TD("BTManager::close.2");
 
     if( ! jau::service_runner::remove_sighandler() ) {
-        ERR_PRINT("BTManager.sigaction: Resetting sighandler");
+        jau_ERR_PRINT("BTManager.sigaction: Resetting sighandler");
     }
 
-    PERF3_TS_TD("BTManager::close.X");
-    DBG_PRINT("BTManager::close: End");
+    jau_PERF3_TS_TD("BTManager::close.X");
+    jau_DBG_PRINT("BTManager::close: End");
 }
 
 std::shared_ptr<BTAdapter> BTManager::getDefaultAdapter() const noexcept {
@@ -654,7 +648,7 @@ bool BTManager::setIOCapability(const uint16_t dev_id, const SMPIOCapability io_
                     const typename adapters_t::difference_type index = it.dist_begin();
                     const SMPIOCapability o = adapterIOCapability.at(index);
                     AdapterSetting current_settings { AdapterSetting::NONE }; // throw away return value, unchanged on SET_IO_CAPABILITY
-                    if( setMode(dev_id, MgmtCommand::Opcode::SET_IO_CAPABILITY, direct_bt::number(io_cap), current_settings) ) {
+                    if( setMode(dev_id, MgmtCommand::Opcode::SET_IO_CAPABILITY, *io_cap, current_settings) ) {
                         adapterIOCapability.at(index) = io_cap;
                         pre_io_cap = o;
                         return true;
@@ -702,25 +696,22 @@ bool BTManager::setMode(const uint16_t dev_id, const MgmtCommand::Opcode opc, co
     const jau::fraction_i64& timeout = MgmtCommand::Opcode::SET_POWERED == opc ? env.MGMT_SET_POWER_COMMAND_TIMEOUT : env.MGMT_COMMAND_REPLY_TIMEOUT;
     MgmtUint8Cmd req(opc, dev_id, mode);
     MgmtStatus res = handleCurrentSettingsReply(sendWithReply(req, timeout), current_settings);
-    DBG_PRINT("BTManager::setMode[%d, %s]: %s, result %s %s", dev_id,
-            MgmtCommand::getOpcodeString(opc).c_str(), jau::to_hexstring(mode).c_str(),
-            to_string(res).c_str(), to_string(current_settings).c_str());
+    jau_DBG_PRINT("BTManager::setMode[%d, %s]: %s, result %s %s", dev_id,
+            opc, jau::toHexString(mode), res, current_settings);
     return MgmtStatus::SUCCESS == res;
 }
 
 MgmtStatus BTManager::setDiscoverable(const uint16_t dev_id, const uint8_t state, const uint16_t timeout_sec, AdapterSetting& current_settings) noexcept {
     MgmtSetDiscoverableCmd req(dev_id, state, timeout_sec);
     MgmtStatus res = handleCurrentSettingsReply(sendWithReply(req), current_settings);
-    DBG_PRINT("BTManager::setDiscoverable[%d]: %s, result %s %s", dev_id,
-            req.toString().c_str(), to_string(res).c_str(), to_string(current_settings).c_str());
+    jau_DBG_PRINT("BTManager::setDiscoverable[%d]: %s, result %s %s", dev_id, req, res, current_settings);
     return res;
 }
 
 std::vector<MgmtDefaultParam> BTManager::readDefaultSysParam(const uint16_t dev_id) noexcept {
     MgmtReadDefaultSysParamCmd req(dev_id);
     std::unique_ptr<MgmtEvent> res = sendWithReply(req);
-    DBG_PRINT("BTManager::readDefaultSysParam[%d]: %s, result %s", dev_id,
-            req.toString().c_str(), res->toString().c_str());
+    jau_DBG_PRINT("BTManager::readDefaultSysParam[%d]: %s, result %s", dev_id, req, res->toString());
     if( nullptr != res && res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
         const MgmtEvtCmdComplete &res1 = *static_cast<const MgmtEvtCmdComplete *>(res.get());
         if( MgmtStatus::SUCCESS == res1.getStatus() ) {
@@ -733,8 +724,7 @@ std::vector<MgmtDefaultParam> BTManager::readDefaultSysParam(const uint16_t dev_
 HCIStatusCode BTManager::setPrivacy(const uint16_t dev_id, const uint8_t privacy, const jau::uint128dp_t& irk, AdapterSetting& current_settings) noexcept {
     MgmtSetPrivacyCmd req(dev_id, privacy, irk);
     MgmtStatus res = handleCurrentSettingsReply(sendWithReply(req), current_settings);
-    DBG_PRINT("BTManager::setPrivacy[%d]: %s, result %s %s", dev_id,
-            req.toString().c_str(), to_string(res).c_str(), to_string(current_settings).c_str());
+    jau_DBG_PRINT("BTManager::setPrivacy[%d]: %s, result %s %s", dev_id, req, res, current_settings);
     return to_HCIStatusCode( res );
 }
 
@@ -745,8 +735,7 @@ HCIStatusCode BTManager::setDefaultConnParam(const uint16_t dev_id,
                                       conn_min_interval, conn_max_interval,
                                       conn_latency, supervision_timeout);
     std::unique_ptr<MgmtEvent> res = sendWithReply(req);
-    DBG_PRINT("BTManager::setDefaultConnParam[%d]: %s, result %s", dev_id,
-            req.toString().c_str(), res->toString().c_str());
+    jau_DBG_PRINT("BTManager::setDefaultConnParam[%d]: %s, result %s", dev_id, req, res->toString());
     if( nullptr != res ) {
         if( res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
             const MgmtEvtCmdComplete &res1 = *static_cast<const MgmtEvtCmdComplete *>(res.get());
@@ -813,11 +802,9 @@ HCIStatusCode BTManager::uploadLongTermKey(const uint16_t dev_id, const jau::dar
             res = HCIStatusCode::TIMEOUT;
         }
         if( HCIStatusCode::SUCCESS != res ) {
-            WARN_PRINT("(dev_id %d): %s, result %s", dev_id,
-                    req.toString().c_str(), to_string(res).c_str());
+            jau_WARN_PRINT("(dev_id %d): %s, result %s", dev_id, req, res);
         } else {
-            DBG_PRINT("BTManager::uploadLongTermKeyInfo(dev_id %d): %s, result %s", dev_id,
-                    req.toString().c_str(), to_string(res).c_str());
+            jau_DBG_PRINT("BTManager::uploadLongTermKeyInfo(dev_id %d): %s, result %s", dev_id, req, res);
         }
         return res;
     } else {
@@ -860,11 +847,9 @@ HCIStatusCode BTManager::uploadIdentityResolvingKey(const uint16_t dev_id, const
             res = HCIStatusCode::TIMEOUT;
         }
         if( HCIStatusCode::SUCCESS != res ) {
-            WARN_PRINT("(dev_id %d): %s, result %s", dev_id,
-                    req.toString().c_str(), to_string(res).c_str());
+            jau_WARN_PRINT("(dev_id %d): %s, result %s", dev_id, req, res);
         } else {
-            DBG_PRINT("BTManager::uploadIdentityResolvingKeyInfo(dev_id %d): %s, result %s", dev_id,
-                    req.toString().c_str(), to_string(res).c_str());
+            jau_DBG_PRINT("BTManager::uploadIdentityResolvingKeyInfo(dev_id %d): %s, result %s", dev_id, req, res);
         }
         return res;
     } else {
@@ -888,7 +873,7 @@ HCIStatusCode BTManager::uploadIdentityResolvingKey(const uint16_t dev_id, const
 HCIStatusCode BTManager::clearIdentityResolvingKeys(const uint16_t dev_id) noexcept {
     if constexpr ( USE_LINUX_BT_SECURITY ) {
         jau::darray<MgmtIdentityResolvingKey> mgmt_keys; // intentionally empty
-        // BDAddressAndType addressAndType(jau::EUI48(), BDAddressType::BDADDR_LE_PUBLIC);
+        // BDAddressAndType addressAndType(jau::io::net::EUI48(), BDAddressType::BDADDR_LE_PUBLIC);
         // mgmt_keys.push_back( { addressAndType.address, addressAndType.type, jau::uint128_t() } );
         return uploadIdentityResolvingKey(dev_id, mgmt_keys); // MgmtLoadIdentityResolvingKeyCmd -> hci_smp_irks_clear
     } else {
@@ -913,11 +898,9 @@ HCIStatusCode BTManager::uploadLinkKey(const uint16_t dev_id, const MgmtLinkKeyI
             res = HCIStatusCode::TIMEOUT;
         }
         if( HCIStatusCode::SUCCESS != res ) {
-            WARN_PRINT("(dev_id %d): %s, result %s", dev_id,
-                    req.toString().c_str(), to_string(res).c_str());
+            jau_WARN_PRINT("(dev_id %d): %s, result %s", dev_id, req, res);
         } else {
-            DBG_PRINT("BTManager::uploadLinkKeyInfo(dev_id %d): %s, result %s", dev_id,
-                    req.toString().c_str(), to_string(res).c_str());
+            jau_DBG_PRINT("BTManager::uploadLinkKeyInfo(dev_id %d): %s, result %s", dev_id, req, res);
         }
         return res;
     } else {
@@ -1048,7 +1031,7 @@ bool BTManager::addDeviceToWhitelist(const uint16_t dev_id, const BDAddressAndTy
 
     // Check if already exist in our local whitelist first, reject if so ..
     if( isDeviceWhitelisted(dev_id, addressAndType) ) {
-        ERR_PRINT("BTManager::addDeviceToWhitelist: Already in local whitelist, remove first: %s", req.toString().c_str());
+        jau_ERR_PRINT("BTManager::addDeviceToWhitelist: Already in local whitelist, remove first: %s", req);
         return false;
     }
     std::unique_ptr<MgmtEvent> res = sendWithReply(req);
@@ -1066,7 +1049,7 @@ BTManager::size_type BTManager::removeAllDevicesFromWhitelist() noexcept {
 #if 0
     jau::darray<std::shared_ptr<WhitelistElem>> whitelist_copy = whitelist;
     int count = 0;
-    DBG_PRINT("BTManager::removeAllDevicesFromWhitelist.A: Start %zd elements", whitelist_copy.size());
+    jau_DBG_PRINT("BTManager::removeAllDevicesFromWhitelist.A: Start %zu elements", whitelist_copy.size());
 
     for(auto it = whitelist_copy.cbegin(); it != whitelist_copy.cend(); ++it) {
         std::shared_ptr<WhitelistElem> wle = *it;
@@ -1075,7 +1058,7 @@ BTManager::size_type BTManager::removeAllDevicesFromWhitelist() noexcept {
     }
 #else
     size_type count = 0;
-    DBG_PRINT("BTManager::removeAllDevicesFromWhitelist.B: Start %d elements", count);
+    jau_DBG_PRINT("BTManager::removeAllDevicesFromWhitelist.B: Start %zu elements", count);
     whitelist.clear();
     jau::for_each_const(adapters, [&](const std::shared_ptr<BTAdapter> & a) {
         if( removeDeviceFromWhitelist(a->dev_id, BDAddressAndType::ANY_BREDR_DEVICE) ) { // flush whitelist!
@@ -1084,7 +1067,7 @@ BTManager::size_type BTManager::removeAllDevicesFromWhitelist() noexcept {
     });
 #endif
 
-    DBG_PRINT("BTManager::removeAllDevicesFromWhitelist: End: Removed %zu elements, remaining %zd elements",
+    jau_DBG_PRINT("BTManager::removeAllDevicesFromWhitelist: End: Removed %zu elements, remaining %zu elements",
             (size_t)count, whitelist.size());
     return count;
 }
@@ -1162,7 +1145,16 @@ static MgmtAdapterEventCallbackList::equal_comparator _mgmtAdapterEventCallbackE
 
 bool BTManager::addMgmtEventCallback(const int dev_id, const MgmtEvent::Opcode opc, const MgmtEventCallback &cb) noexcept {
     if( !isValidMgmtEventCallbackListsIndex(opc) ) {
-        ERR_PRINT("Opcode %s >= %d", MgmtEvent::getOpcodeString(opc).c_str(), mgmtAdapterEventCallbackLists.size());
+        jau_ERR_PRINT("Opcode %s >= %zu", opc, mgmtAdapterEventCallbackLists.size());
+        return false;
+    }
+    try {
+        MgmtAdapterEventCallbackList &l = mgmtAdapterEventCallbackLists[static_cast<uint16_t>(opc)];
+        /* const bool added = */ l.push_back_unique(MgmtAdapterEventCallback(dev_id, opc, cb), _mgmtAdapterEventCallbackEqComp_ID_CB);
+        return true;
+    } catch (...) {
+        jau::fput_exception(stderr, std::current_exception(), E_FILE_LINE);
+        jau_ERR_PRINT3("Exception caught while processing %d %s", dev_id, opc);
         return false;
     }
     MgmtAdapterEventCallbackList &l = mgmtAdapterEventCallbackLists[static_cast<uint16_t>(opc)];
@@ -1171,7 +1163,16 @@ bool BTManager::addMgmtEventCallback(const int dev_id, const MgmtEvent::Opcode o
 }
 BTManager::size_type BTManager::removeMgmtEventCallback(const MgmtEvent::Opcode opc, const MgmtEventCallback &cb) noexcept {
     if( !isValidMgmtEventCallbackListsIndex(opc) ) {
-        ERR_PRINT("Opcode %s >= %d", MgmtEvent::getOpcodeString(opc).c_str(), mgmtAdapterEventCallbackLists.size());
+        jau_ERR_PRINT("Opcode %s >= %zu", opc, mgmtAdapterEventCallbackLists.size());
+        return 0;
+    }
+    try {
+        MgmtAdapterEventCallbackList &l = mgmtAdapterEventCallbackLists[static_cast<uint16_t>(opc)];
+        return l.erase_matching( MgmtAdapterEventCallback( 0, MgmtEvent::Opcode::INVALID, cb ),
+                                   true /* all_matching */, _mgmtAdapterEventCallbackEqComp_CB);
+    } catch (...) {
+        jau::fput_exception(stderr, std::current_exception(), E_FILE_LINE);
+        jau_ERR_PRINT3("Exception caught while processing %s", opc);
         return 0;
     }
     MgmtAdapterEventCallbackList &l = mgmtAdapterEventCallbackLists[static_cast<uint16_t>(opc)];
@@ -1192,7 +1193,7 @@ BTManager::size_type BTManager::removeMgmtEventCallback(const int dev_id) noexce
 }
 void BTManager::clearMgmtEventCallbacks(const MgmtEvent::Opcode opc) noexcept {
     if( !isValidMgmtEventCallbackListsIndex(opc) ) {
-        ERR_PRINT("Opcode %s >= %d", MgmtEvent::getOpcodeString(opc).c_str(), mgmtAdapterEventCallbackLists.size());
+        jau_ERR_PRINT("Opcode %s >= %zu", opc, mgmtAdapterEventCallbackLists.size());
         return;
     }
     mgmtAdapterEventCallbackLists[static_cast<uint16_t>(opc)].clear();
@@ -1213,29 +1214,29 @@ void BTManager::processAdapterAdded(std::unique_ptr<MgmtEvent> e) noexcept {
         std::shared_ptr<BTAdapter> adapter = addAdapter( *adapterInfo );
         DBG_PRINT("BTManager::Adapter[%d] Added: Start %s, added %d", dev_id, adapter->toString().c_str());
         sendMgmtEvent(*e);
-        DBG_PRINT("BTManager::Adapter[%d] Added: User_ %s", dev_id, adapter->toString().c_str());
+        jau_DBG_PRINT("BTManager::Adapter[%u] Added: User_ %s", dev_id, adapter->toString());
         jau::for_each_fidelity(mgmtChangedAdapterSetCallbackList, [&](ChangedAdapterSetCallback &cb) {
            cb(true /* added */, adapter);
         });
-        DBG_PRINT("BTManager::Adapter[%d] Added: End__ %s", dev_id, adapter->toString().c_str());
+        jau_DBG_PRINT("BTManager::Adapter[%u] Added: End__ %s", dev_id, adapter->toString());
     } else {
-        DBG_PRINT("BTManager::Adapter[%d] Added: InitAI failed", dev_id);
+        jau_DBG_PRINT("BTManager::Adapter[%u] Added: InitAI failed for %s", dev_id, e->toString());
     }
 }
 void BTManager::processAdapterRemoved(std::unique_ptr<MgmtEvent> e) noexcept {
     const uint16_t dev_id = e->getDevID();
     std::shared_ptr<BTAdapter> ai = removeAdapter(dev_id);
     if( nullptr != ai ) {
-        DBG_PRINT("BTManager::Adapter[%d] Removed: Start: %s", dev_id, ai->toString().c_str());
+        jau_DBG_PRINT("BTManager::Adapter[%u] Removed: Start: %s", dev_id, ai->toString());
         sendMgmtEvent(*e);
-        DBG_PRINT("BTManager::Adapter[%d] Removed: User_: %s", dev_id, ai->toString().c_str());
+        jau_DBG_PRINT("BTManager::Adapter[%u] Removed: User_: %s", dev_id, ai->toString());
         jau::for_each_fidelity(mgmtChangedAdapterSetCallbackList, [&](ChangedAdapterSetCallback &cb) {
            cb(false /* added */, ai);
         });
         ai->close(); // issuing dtor on DBTAdapter
-        DBG_PRINT("BTManager::Adapter[%d] Removed: End__: %s", dev_id, ai->toString().c_str());
+        jau_DBG_PRINT("BTManager::Adapter[%u] Removed: End__: %s", dev_id, ai->toString());
     } else {
-        DBG_PRINT("BTManager::Adapter[%d] Removed: RemoveAI failed", dev_id);
+        jau_DBG_PRINT("BTManager::Adapter[%u] Removed: RemoveAI failed for %s", dev_id, e->toString());
     }
 }
 void BTManager::mgmtEvNewSettingsCB(const MgmtEvent& e) noexcept {
@@ -1244,21 +1245,16 @@ void BTManager::mgmtEvNewSettingsCB(const MgmtEvent& e) noexcept {
     if( nullptr != adapter ) {
         const AdapterSetting old_settings = adapter->adapterInfo.getCurrentSettingMask();
         const AdapterSetting new_settings = adapter->adapterInfo.setCurrentSettingMask(event.getSettings());
-        DBG_PRINT("BTManager:mgmt:NewSettings: Adapter[%d] %s -> %s - %s",
-                event.getDevID(),
-                to_string(old_settings).c_str(),
-                to_string(new_settings).c_str(),
-                e.toString().c_str());
+        jau_DBG_PRINT("BTManager:mgmt:NewSettings: Adapter[%u] %s -> %s - %s",
+                event.getDevID(), old_settings, new_settings, e);
     } else {
-        DBG_PRINT("BTManager:mgmt:NewSettings: Adapter[%d] %s -> adapter not present - %s",
-                event.getDevID(),
-                to_string(event.getSettings()).c_str(),
-                e.toString().c_str());
+        jau_DBG_PRINT("BTManager:mgmt:NewSettings: Adapter[%u] %s -> adapter not present - %s",
+                event.getDevID(), event.getSettings(), e);
     }
 }
 
 void BTManager::mgmtEventAnyCB(const MgmtEvent& e) noexcept {
-    DBG_PRINT("BTManager:mgmt:Any: %s", e.toString().c_str());
+    jau_DBG_PRINT("BTManager:mgmt:Any: %s", e);
     (void)e;
 }
 

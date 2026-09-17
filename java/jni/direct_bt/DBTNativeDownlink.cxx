@@ -53,7 +53,7 @@ void Java_jau_direct_1bt_DBTNativeDownlink_initNativeJavaObject(JNIEnv *env, job
         }
         javaUplink->setJavaObject( std::make_shared<JavaGlobalObj>( std::move(global_obj), mNotifyDeleted ) );
         JavaGlobalObj::check(javaUplink->getJavaObject(), E_FILE_LINE);
-        DBG_JNI_PRINT("Java_jau_direct_1bt_DBTNativeDownlink_initNativeJavaObject %p -> %s", javaUplink.shared_ptr().get(), javaUplink->toString().c_str());
+        jau_DBG_JNI_PRINT("Java_jau_direct_1bt_DBTNativeDownlink_initNativeJavaObject %p -> %s", javaUplink.shared_ptr().get(), javaUplink->toString());
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
@@ -65,7 +65,7 @@ void Java_jau_direct_1bt_DBTNativeDownlink_deleteNativeJavaObject(JNIEnv *env, j
     try {
         shared_ptr_ref<JavaUplink> javaUplink(nativeInstance); // hold copy until done
         javaUplink.null_check2();
-        DBG_JNI_PRINT("Java_jau_direct_1bt_DBTNativeDownlink_deleteNativeJavaObject %p -> %s", javaUplink.shared_ptr().get(), javaUplink->toString().c_str());
+        jau_DBG_JNI_PRINT("Java_jau_direct_1bt_DBTNativeDownlink_deleteNativeJavaObject %p -> %s", javaUplink.shared_ptr().get(), javaUplink->toString());
         javaUplink->setJavaObject();
     } catch(...) {
         rethrow_and_raise_java_exception(env);

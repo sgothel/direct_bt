@@ -22,9 +22,7 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include <iostream>
 #include <cassert>
-#include <cinttypes>
 #include <cstring>
 
 #include <jau/test/catch2_ext.hpp>
@@ -49,21 +47,21 @@ static BaseDBTClientServer& base_test_framework = BaseDBTClientServer::get( fals
 TEST_CASE( "BTManager Bringup Trial 00.1", "[trial][BTManager][bringup]" ) {
     base_test_framework.setupTest( 5_s );
 
-    jau::fprintf_td(stderr, "Direct-BT Native Version %s (API %s)\n", DIRECT_BT_VERSION.toString().c_str(), DIRECT_BT_VERSION_API);
-    jau::fprintf_td(stderr, "%s\n", jau::os::get_platform_info().c_str());    
+    jau_fprintf_td(stderr, "Direct-BT Native Version %s (API %s)\n", DIRECT_BT_VERSION, DIRECT_BT_VERSION_API);
+    jau_fprintf_td(stderr, "%s\n", jau::os::get_platform_info());
 
-    std::shared_ptr<BTManager> manager = BTManager::get();
+    const std::shared_ptr<BTManager>& manager = BTManager::get();
     jau::darray<BTAdapterRef> adapters = manager->getAdapters();
     {
-        jau::fprintf_td(stderr, "Adapter: Count %u\n", adapters.size());
+        jau_fprintf_td(stderr, "Adapter: Count %zu\n", adapters.size());
 
         for(jau::nsize_t i=0; i<adapters.size(); i++) {
-            jau::fprintf_td(stderr, "%u: %s\n", i, adapters[i]->toString().c_str());
+            jau_fprintf_td(stderr, "%zu: %s\n", i, adapters[i]->toString());
         }
         REQUIRE( adapters.size() >= 1 );
     }
 
-    jau::fprintf_td(stderr, "Adapter: Status Checks\n");
+    jau_fprintf_td(stderr, "Adapter: Status Checks\n");
     for(const BTAdapterRef& a : adapters) {
         REQUIRE( false == a->isInitialized() );
         REQUIRE( false == a->isPowered() );
@@ -83,13 +81,13 @@ TEST_CASE( "BTManager Bringup Trial 00.1", "[trial][BTManager][bringup]" ) {
 TEST_CASE( "Server StartStop and SwitchRole Trial 00.2", "[trial][startstop][switchrole]" ) {
     base_test_framework.setupTest( 5_s );
 
-    std::shared_ptr<BTManager> manager = BTManager::get();
+    const std::shared_ptr<BTManager>& manager = BTManager::get();
     {
         jau::darray<BTAdapterRef> adapters = manager->getAdapters();
-        jau::fprintf_td(stderr, "Adapter: Count %u\n", adapters.size());
+        jau_fprintf_td(stderr, "Adapter: Count %zu\n", adapters.size());
 
         for(jau::nsize_t i=0; i<adapters.size(); i++) {
-            jau::fprintf_td(stderr, "%u: %s\n", i, adapters[i]->toString().c_str());
+            jau_fprintf_td(stderr, "%zu: %s\n", i, adapters[i]->toString());
         }
         REQUIRE( adapters.size() >= 1 );
     }

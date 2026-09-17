@@ -35,6 +35,7 @@
 
 #include "BTDevice.hpp"
 #include "BTGattHandler.hpp"
+#include "jau/string_util.hpp"
 #include "BTGattService.hpp"
 
 using namespace direct_bt;
@@ -79,21 +80,21 @@ BTGattCharRef BTGattService::findGattChar(const BTGattChar& characteristic) noex
 }
 
 std::string BTGattService::toString() const noexcept {
-    std::string name = "";
+    std::string name;
     if( uuid_t::TypeSize::UUID16_SZ == type->getTypeSize() ) {
         const uint16_t uuid16 = (static_cast<const uuid16_t*>(type.get()))->value;
-        name = " - "+GattServiceTypeToString(static_cast<GattServiceType>(uuid16));
+        name = jau_format_string(" - %s", static_cast<GattServiceType>(uuid16));
     }
-    return "Srvc[type 0x"+type->toString()+", handle ["+to_hexstring(handle)+".."+to_hexstring(end_handle)+"]"+
-                name+", "+std::to_string(characteristicList.size())+" chars]";
+    return jau_format_string("Srvc[type 0x%s, handle [%#x..%#x]%s, %zu chars]",
+        type->toString(), handle, end_handle, name, characteristicList.size());
 }
 
 std::string BTGattService::toShortString() const noexcept {
-    std::string name = "";
+    std::string name;
     if( uuid_t::TypeSize::UUID16_SZ == type->getTypeSize() ) {
         const uint16_t uuid16 = (static_cast<const uuid16_t*>(type.get()))->value;
-        name = " - "+GattServiceTypeToString(static_cast<GattServiceType>(uuid16));
+        name = jau_format_string(" - %s", static_cast<GattServiceType>(uuid16));
     }
-    return "Srvc[handle ["+to_hexstring(handle)+".."+to_hexstring(end_handle)+"]"+
-                name+", "+std::to_string(characteristicList.size())+" characteristics]";
+    return jau_format_string("Srvc[handle [%#x..%#x]%s, %zu chars]",
+        handle, end_handle, name, characteristicList.size());
 }

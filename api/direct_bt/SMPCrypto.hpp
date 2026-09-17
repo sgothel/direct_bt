@@ -1,6 +1,6 @@
 /*
  * Author: Sven Gothel <sgothel@jausoft.com>
- * Copyright (c) 2020 Gothel Software e.K.
+ * Copyright (c) 2020-2026 Gothel Software e.K.
  * Copyright (c) 2020 ZAFENA AB
  *
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -28,7 +28,6 @@
 
 #include <jau/int_types.hpp>
 #include <jau/byte_util.hpp>
-#include <jau/eui48.hpp>
 
 #include "BTAddress.hpp"
 

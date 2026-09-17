@@ -1,6 +1,6 @@
 /*
  * Author: Sven Gothel <sgothel@jausoft.com>
- * Copyright (c) 2021 Gothel Software e.K.
+ * Copyright (c) 2021-2026 Gothel Software e.K.
  * Copyright (c) 2021 ZAFENA AB
  *
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -29,6 +29,8 @@
 
 using namespace direct_bt;
 
+using namespace jau::fractions_i64_literals;
+
 void BTGattCmd::ResponseCharListener::store(const jau::TROOctets& char_value) {
     const jau::nsize_t rsp_pos = rsp_data.size();
     if( rsp_data.remaining() < char_value.size() ) {
@@ -41,8 +43,7 @@ void BTGattCmd::ResponseCharListener::store(const jau::TROOctets& char_value) {
 void BTGattCmd::ResponseCharListener::notificationReceived(BTGattCharRef charDecl,
                           const jau::TROOctets& char_value, const uint64_t timestamp) {
     std::unique_lock<std::mutex> lock(source.mtxRspReceived); // RAII-style acquire and relinquish via destructor
-    DBG_PRINT("BTGattCmd::notificationReceived: Resp %s, value[%s]",
-            charDecl->toString().c_str(), char_value.toString().c_str());
+    jau_DBG_PRINT("BTGattCmd::notificationReceived: Resp %s, value[%s]", charDecl->toString(), char_value.toString());
     store(char_value);
     if( nullptr != source.dataCallback ) {
         source.dataCallback(charDecl, char_value, timestamp);
@@ -57,8 +58,7 @@ void BTGattCmd::ResponseCharListener::indicationReceived(BTGattCharRef charDecl,
                         const bool confirmationSent)
 {
     std::unique_lock<std::mutex> lock(source.mtxRspReceived); // RAII-style acquire and relinquish via destructor
-    DBG_PRINT("BTGattCmd::indicationReceived: Resp %s, value[%s]",
-            charDecl->toString().c_str(), char_value.toString().c_str());
+    jau_DBG_PRINT("BTGattCmd::indicationReceived: Resp %s, value[%s]", charDecl->toString(), char_value.toString());
     store(char_value);
     if( nullptr != source.dataCallback ) {
         source.dataCallback(charDecl, char_value, timestamp);
@@ -81,15 +81,14 @@ HCIStatusCode BTGattCmd::setup() noexcept {
                                          : dev.findGattChar(*cmd_uuid);
     if( nullptr == cmdCharRef ) {
         if( verbose ) {
-            jau::INFO_PRINT("Command not found: service %s, char %s",
-                            srvUUIDStr().c_str(), cmd_uuid->toString().c_str());
+            jau_INFO_PRINT("Command not found: service %s, char %s", srvUUIDStr(), cmd_uuid->toString());
         }
         return HCIStatusCode::NOT_SUPPORTED;
     }
     if( !cmdCharRef->hasProperties(BTGattChar::PropertyBitVal::WriteNoAck) &&
         !cmdCharRef->hasProperties(BTGattChar::PropertyBitVal::WriteWithAck) ) {
         if( verbose ) {
-            jau::INFO_PRINT("Command has no write property: %s", cmdCharRef->toString().c_str());
+            jau_INFO_PRINT("Command has no write property: %s", cmdCharRef->toString());
         }
         cmdCharRef = nullptr;
         return HCIStatusCode::NOT_SUPPORTED;
@@ -100,8 +99,7 @@ HCIStatusCode BTGattCmd::setup() noexcept {
                                              : dev.findGattChar(*rsp_uuid);
         if( nullptr == rspCharRef ) {
             if( verbose ) {
-                jau::INFO_PRINT("Response not found: service %s, char %s",
-                                srvUUIDStr().c_str(), rsp_uuid->toString().c_str());
+                jau_INFO_PRINT("Response not found: service %s, char %s", srvUUIDStr(), rsp_uuid->toString());
             }
             cmdCharRef = nullptr;
             return HCIStatusCode::NOT_SUPPORTED;
@@ -113,14 +111,14 @@ HCIStatusCode BTGattCmd::setup() noexcept {
                 return HCIStatusCode::SUCCESS;
             } else {
                 if( verbose ) {
-                    jau::INFO_PRINT("CCCD Notify/Indicate not supported on response %s", rspCharRef->toString().c_str());
+                    jau_INFO_PRINT("CCCD Notify/Indicate not supported on response %s", rspCharRef->toString());
                 }
                 cmdCharRef = nullptr;
                 rspCharRef = nullptr;
                 return HCIStatusCode::NOT_SUPPORTED;
             }
         } catch ( std::exception & e ) {
-            ERR_PRINT("Exception caught for %s: %s\n", e.what(), toString().c_str());
+            jau_ERR_PRINT("Exception caught for %s: %s\n", e.what(), toString());
             cmdCharRef = nullptr;
             rspCharRef = nullptr;
             return HCIStatusCode::TIMEOUT;
@@ -156,7 +154,7 @@ HCIStatusCode BTGattCmd::close() noexcept {
                 return HCIStatusCode::FAILED;
             }
         } catch ( std::exception & e ) {
-            ERR_PRINT("Exception caught for %s: %s\n", e.what(), toString().c_str());
+            jau_ERR_PRINT("Exception caught for %s: %s\n", e.what(), toString());
             return HCIStatusCode::TIMEOUT;
         }
     } else {
@@ -192,11 +190,10 @@ HCIStatusCode BTGattCmd::sendImpl(const bool prefNoAck, const jau::TROOctets& cm
         if( HCIStatusCode::SUCCESS != res ) {
             return res;
         }
-        rsp_data.resize(0);
+        rsp_data.clear();
 
-        DBG_PRINT("BTGattCmd::sendBlocking: Start: Cmd %s, args[%s], Resp %s, result[%s]",
-                  cmdCharRef->toString().c_str(), cmd_data.toString().c_str(),
-                  rspCharStr().c_str(), rsp_data.toString().c_str());
+        jau_DBG_PRINT("BTGattCmd::sendBlocking: Start: Cmd %s, args[%s], Resp %s, result[%s]",
+                  cmdCharRef->toString(), cmd_data, rspCharStr(), rsp_data.toString());
 
         const bool hasWriteNoAck = cmdCharRef->hasProperties(BTGattChar::PropertyBitVal::WriteNoAck);
         const bool hasWriteWithAck = cmdCharRef->hasProperties(BTGattChar::PropertyBitVal::WriteWithAck);
@@ -206,29 +203,27 @@ HCIStatusCode BTGattCmd::sendImpl(const bool prefNoAck, const jau::TROOctets& cm
         if( prefWriteNoAck ) {
             try {
                 if( !cmdCharRef->writeValueNoResp(cmd_data) ) {
-                    ERR_PRINT("Write (noAck) to command failed: Cmd %s, args[%s]",
-                            cmdCharRef->toString().c_str(), cmd_data.toString().c_str());
+                    jau_ERR_PRINT("Write (noAck) to command failed: Cmd %s, args[%s]", cmdCharRef->toString(), cmd_data.toString());
                     res = HCIStatusCode::FAILED;
                 }
             } catch ( std::exception & e ) {
-                ERR_PRINT("Exception caught @ Write (noAck) to command failed: Cmd %s, args[%s]: %s",
-                        cmdCharRef->toString().c_str(), cmd_data.toString().c_str(), e.what());
+                jau_ERR_PRINT("Exception caught @ Write (noAck) to command failed: Cmd %s, args[%s]: %s",
+                        cmdCharRef->toString(), cmd_data.toString(), e.what());
                 res = HCIStatusCode::TIMEOUT;
             }
         } else if( hasWriteWithAck ) {
             try {
                 if( !cmdCharRef->writeValue(cmd_data) ) {
-                    ERR_PRINT("Write (withAck) to command failed: Cmd %s, args[%s]",
-                            cmdCharRef->toString().c_str(), cmd_data.toString().c_str());
+                    jau_ERR_PRINT("Write (withAck) to command failed: Cmd %s, args[%s]", cmdCharRef->toString(), cmd_data);
                     res = HCIStatusCode::TIMEOUT;
                 }
             } catch ( std::exception & e ) {
-                ERR_PRINT("Exception caught @ Write (withAck) to command failed: Cmd %s, args[%s]: %s",
-                        cmdCharRef->toString().c_str(), cmd_data.toString().c_str(), e.what());
+                jau_ERR_PRINT("Exception caught @ Write (withAck) to command failed: Cmd %s, args[%s]: %s",
+                        cmdCharRef->toString(), cmd_data.toString(), e.what());
                 res = HCIStatusCode::TIMEOUT;
             }
         } else {
-            ERR_PRINT("Command has no write property: %s: %s", cmdCharRef->toString().c_str(), toString().c_str());
+            jau_ERR_PRINT("Command has no write property: %s: %s", cmdCharRef->toString(), toString());
             res = HCIStatusCode::FAILED;
         }
 
@@ -243,8 +238,8 @@ HCIStatusCode BTGattCmd::sendImpl(const bool prefNoAck, const jau::TROOctets& cm
                 } else {
                     std::cv_status s = wait_until(cvRspReceived, lockRsp, timeout_time);
                     if( std::cv_status::timeout == s && 0 == rsp_data.size() ) {
-                        ERR_PRINT("BTGattCmd::sendBlocking: Timeout: Cmd %s, args[%s]",
-                                  cmdCharRef->toString().c_str(), cmd_data.toString().c_str());
+                        jau_ERR_PRINT("BTGattCmd::sendBlocking: Timeout: Cmd %s, args[%s]",
+                                  cmdCharRef->toString(), cmd_data.toString());
                         res = HCIStatusCode::TIMEOUT;
                     }
                 }
@@ -252,9 +247,8 @@ HCIStatusCode BTGattCmd::sendImpl(const bool prefNoAck, const jau::TROOctets& cm
         }
     } // mtxRspReceived
     if( HCIStatusCode::SUCCESS == res ) {
-        DBG_PRINT("BTGattCmd::sendBlocking: OK: Cmd %s, args[%s], Resp %s, result[%s]",
-                  cmdCharRef->toString().c_str(), cmd_data.toString().c_str(),
-                  rspCharStr().c_str(), rsp_data.toString().c_str());
+        jau_DBG_PRINT("BTGattCmd::sendBlocking: OK: Cmd %s, args[%s], Resp %s, result[%s]",
+                  cmdCharRef->toString(), cmd_data, rspCharStr(), rsp_data);
     }
     return res;
 }

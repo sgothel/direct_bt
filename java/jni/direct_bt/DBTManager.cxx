@@ -121,7 +121,7 @@ jlong Java_jau_direct_1bt_DBTManager_ctorImpl(JNIEnv *env, jobject obj)
         _addMgmtCBOnce(env, *ref, jmgmtRef, MgmtEvent::Opcode::INDEX_REMOVED, _removeAdapterCBMethodName, _removeAdapterCBMethodArgs);
         _addMgmtCBOnce(env, *ref, jmgmtRef, MgmtEvent::Opcode::INDEX_ADDED, _updatedAdapterCBMethodName, _updatedAdapterCBMethodArgs);
         _addMgmtCBOnce(env, *ref, jmgmtRef, MgmtEvent::Opcode::NEW_SETTINGS, _updatedAdapterCBMethodName, _updatedAdapterCBMethodArgs);
-        DBG_PRINT("Java_jau_direct_1bt_DBTManager_init: Manager %s", ref->toString().c_str());
+        jau_DBG_PRINT("Java_jau_direct_1bt_DBTManager_init: Manager %s", ref->toString());
         return ref.release_to_jlong();
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -168,7 +168,7 @@ static jobject _createJavaAdapter(JNIEnv *env_, jclass clazz, jmethodID clazz_ct
     env_->DeleteLocalRef(name);
     env_->DeleteLocalRef(jAdapter);
 
-    DBG_PRINT("Java_jau_direct_1bt_DBTManager_createJavaAdapter: New Adapter %p %s", adapter.get(), adapter->toString().c_str());
+    jau_DBG_PRINT("Java_jau_direct_1bt_DBTManager_createJavaAdapter: New Adapter %p %s", adapter.get(), adapter->toString());
     return JavaGlobalObj::GetObject(jAdapterRef);
 };
 
@@ -176,7 +176,7 @@ jobject Java_jau_direct_1bt_DBTManager_getAdapterListImpl(JNIEnv *env, jobject o
 {
     try {
         shared_ptr_ref<BTManager> ref(env, obj); // hold until done
-        DBG_PRINT("Java_jau_direct_1bt_DBTManager_getAdapterListImpl: Manager %s", ref->toString().c_str());
+        jau_DBG_PRINT("Java_jau_direct_1bt_DBTManager_getAdapterListImpl: Manager %s", ref->toString());
 
         jau::darray<std::shared_ptr<BTAdapter>> adapters = ref->getAdapters();
         return convert_vector_sharedptr_to_jarraylist<jau::darray<std::shared_ptr<BTAdapter>>, BTAdapter>(
@@ -194,10 +194,10 @@ jobject Java_jau_direct_1bt_DBTManager_getAdapterImpl(JNIEnv *env, jobject obj, 
 
         std::shared_ptr<BTAdapter> adapter = ref->getAdapter(dev_id);
         if( nullptr == adapter ) {
-            ERR_PRINT("BTManager::getAdapterImpl: Adapter dev_id %d: Not found", dev_id);
+            jau_ERR_PRINT("BTManager::getAdapterImpl: Adapter dev_id %d: Not found", dev_id);
             return nullptr;
         }
-        DBG_PRINT("BTManager::getAdapterImpl: Adapter dev_id %d: %s", dev_id, adapter->toString().c_str());
+        jau_DBG_PRINT("BTManager::getAdapterImpl: Adapter dev_id %d: %s", dev_id, adapter->toString());
 
         return convert_instance_to_jobject<BTAdapter>(env, adapter,  _adapterClazzCtorArgs.c_str(), _createJavaAdapter);
     } catch(...) {

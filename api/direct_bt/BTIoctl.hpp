@@ -21,7 +21,7 @@
  * ****************************************************************************************
  * ****************************************************************************************
  *
- * Copyright (c) 2020 Gothel Software e.K.
+ * Copyright (c) 2020-2026  Gothel Software e.K.
  * Copyright (c) 2020 ZAFENA AB
  *
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -84,6 +84,8 @@ extern "C" {
     #include <stdint.h>
     #include <netinet/in.h> // Already exported named by OS
 } /* extern "C" */
+
+// NOLINTBEGIN(modernize-macro-to-enum)
 
 /** \addtogroup DBTSystemAPI
  *
@@ -200,5 +202,7 @@ enum {
 };
 
 /**@}*/
+
+// NOLINTEND(modernize-macro-to-enum)
 
 #endif /* BT_IOCTL_HPP_ */

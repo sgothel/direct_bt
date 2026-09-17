@@ -23,7 +23,7 @@
  * ****************************************************************************************
  * ****************************************************************************************
  *
- * Copyright (c) 2020 Gothel Software e.K.
+ * Copyright (c) 2020-2026  Gothel Software e.K.
  * Copyright (c) 2020 ZAFENA AB
  *
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -82,8 +82,6 @@
 
 #include <jau/cpp_pragma.hpp>
 
-#include "BTAddress.hpp"
-
 #include "linux_kernel_types.hpp"
 
 /**
@@ -91,9 +89,10 @@
  */
 
 extern "C" {
-    #include <stdint.h>
     #include <sys/socket.h>
 } /* extern "C" */
+
+// NOLINTBEGIN(modernize-macro-to-enum)
 
 /** \addtogroup DBTSystemAPI
  *
@@ -560,5 +559,7 @@ struct l2cap_le_credits {
 PRAGMA_DISABLE_WARNING_POP
 
 /**@}*/
+
+// NOLINTEND(modernize-macro-to-enum)
 
 #endif /* L2CAP_IOCTL_HPP_ */

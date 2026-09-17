@@ -1,6 +1,6 @@
 /*
  * Author: Sven Gothel <sgothel@jausoft.com>
- * Copyright (c) 2020 Gothel Software e.K.
+ * Copyright (c) 2020-2026 Gothel Software e.K.
  * Copyright (c) 2020 ZAFENA AB
  *
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -30,19 +30,15 @@
 #include <string>
 #include <memory>
 #include <cstdint>
-
 #include <mutex>
 
 #include <jau/darray.hpp>
 
+#include "BTGattHandler.hpp"
 #include "BTTypes1.hpp"
-
 #include "HCIIoctl.hpp"
-#include "HCIComm.hpp"
-
 #include "MgmtTypes.hpp"
 #include "SMPHandler.hpp"
-#include "BTGattHandler.hpp"
 #include "SMPKeyBin.hpp"
 
 namespace direct_bt {
@@ -152,7 +148,7 @@ namespace direct_bt {
                  * @param addressAndType remote address of the BTDevice
                  * @param role remote role of the BTDevice
                  */
-                std::string toString(const uint16_t dev_id, const BDAddressAndType& addressAndType, const BTRole& role) const;
+                std::string toString(const uint16_t dev_id, const BDAddressAndType& addressAndType, const BTRole& role) const noexcept;
             };
             PairingData pairing_data;
             mutable std::recursive_mutex mtx_pairing;
@@ -261,7 +257,7 @@ namespace direct_bt {
              * Will be initiated by processL2CAPSetup()'s security_level setup after connectLE(..), i.e. notifyConnected() and notifyLEFeatures().
              * </p>
              */
-            void hciSMPMsgCallback(const std::shared_ptr<BTDevice>& sthis, const SMPPDUMsg& msg, const HCIACLData::l2cap_frame& source) noexcept;
+            void hciSMPMsgCallback(const std::shared_ptr<BTDevice>& sthis, const SMPPDUMsg& msg, const L2CapFrame& source) noexcept;
 
             void getSMPEncStatus(bool& enc_done, bool& using_auth, bool& is_pre_paired);
 

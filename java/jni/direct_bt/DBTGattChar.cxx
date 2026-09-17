@@ -124,7 +124,7 @@ jbyteArray Java_jau_direct_1bt_DBTGattChar_readValueImpl(JNIEnv *env, jobject ob
 
         jau::POctets res(BTGattHandler::number(BTGattHandler::Defaults::MAX_ATT_MTU), 0, jau::lb_endian_t::little);
         if( !characteristic->readValue(res) ) {
-            ERR_PRINT("Characteristic readValue failed: %s", characteristic->toString().c_str());
+            jau_ERR_PRINT("Characteristic readValue failed: %s", characteristic->toString());
             return env->NewByteArray((jsize)0);
         }
 
@@ -167,8 +167,7 @@ jboolean Java_jau_direct_1bt_DBTGattChar_writeValueImpl(JNIEnv *env, jobject obj
             res = characteristic->writeValueNoResp(value);
         }
         if( !res ) {
-            ERR_PRINT("Characteristic writeValue(withResponse %d) failed: %s",
-                    withResponse, characteristic->toString().c_str());
+            jau_ERR_PRINT("Characteristic writeValue(withResponse %d) failed: %s", withResponse, characteristic->toString());
             return JNI_FALSE;
         }
         return JNI_TRUE;
@@ -185,7 +184,7 @@ jboolean Java_jau_direct_1bt_DBTGattChar_configNotificationIndicationImpl(JNIEnv
         if( characteristic.is_null() ) {
             if( !enableNotification && !enableIndication ) {
                 // OK to have native characteristic being shutdown @ disable
-                DBG_PRINT("Characteristic's native instance has been deleted");
+                jau_DBG_PRINT("Characteristic's native instance has been deleted");
                 return false;
             }
             throw jau::IllegalStateError("Characteristic's native instance deleted", E_FILE_LINE);
@@ -208,7 +207,7 @@ jboolean Java_jau_direct_1bt_DBTGattChar_configNotificationIndicationImpl(JNIEnv
 
         bool cccdEnableResult[2];
         bool res = characteristic->configNotificationIndication(enableNotification, enableIndication, cccdEnableResult);
-        DBG_PRINT("BTGattChar::configNotificationIndication Config Notification(%d), Indication(%d): Result %d",
+        jau_DBG_PRINT("BTGattChar::configNotificationIndication Config Notification(%d), Indication(%d): Result %d",
                 cccdEnableResult[0], cccdEnableResult[1], res);
         state_ptr[0] = cccdEnableResult[0];
         state_ptr[1] = cccdEnableResult[1];

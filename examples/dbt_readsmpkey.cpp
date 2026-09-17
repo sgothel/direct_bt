@@ -25,8 +25,6 @@
 
 #include <cstring>
 #include <string>
-#include <memory>
-#include <cstdint>
 
 #include <direct_bt/SMPKeyBin.hpp>
 
@@ -57,10 +55,10 @@ int main(int argc, char *argv[])
         } else {
             const std::string fname(argv[i]);
             if( verbose ) {
-                fprintf(stderr, "Read: '%s'\n", fname.c_str());
+                jau_fprintf(stderr, "Read: '%s'\n", fname);
             }
             SMPKeyBin key = SMPKeyBin::read(fname, verbose);
-            fprintf(stderr, "%s\n", key.toString().c_str());
+            jau_fprintf(stderr, "%s\n", key);
             if( !key.isValid() ) {
                 --res;
             }

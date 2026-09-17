@@ -1,6 +1,6 @@
 /*
  * Author: Sven Gothel <sgothel@jausoft.com>
- * Copyright (c) 2020 Gothel Software e.K.
+ * Copyright (c) 2020-2026 Gothel Software e.K.
  * Copyright (c) 2020 ZAFENA AB
  *
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -27,60 +27,48 @@
 #include <string>
 #include <memory>
 #include <cstdint>
-#include <vector>
 #include <cstdio>
-
-#include  <algorithm>
 
 #include <jau/debug.hpp>
 
 #include "ATTPDUTypes.hpp"
 
-
 using namespace direct_bt;
 
-#define OPCODE_ENUM(X) \
-        X(PDU_UNDEFINED) \
-        X(ERROR_RSP) \
-        X(EXCHANGE_MTU_REQ) \
-        X(EXCHANGE_MTU_RSP) \
-        X(FIND_INFORMATION_REQ) \
-        X(FIND_INFORMATION_RSP) \
-        X(FIND_BY_TYPE_VALUE_REQ) \
-        X(FIND_BY_TYPE_VALUE_RSP) \
-        X(READ_BY_TYPE_REQ) \
-        X(READ_BY_TYPE_RSP) \
-        X(READ_REQ) \
-        X(READ_RSP) \
-        X(READ_BLOB_REQ) \
-        X(READ_BLOB_RSP) \
-        X(READ_MULTIPLE_REQ) \
-        X(READ_MULTIPLE_RSP) \
-        X(READ_BY_GROUP_TYPE_REQ) \
-        X(READ_BY_GROUP_TYPE_RSP) \
-        X(WRITE_REQ) \
-        X(WRITE_RSP) \
-        X(WRITE_CMD) \
-        X(PREPARE_WRITE_REQ) \
-        X(PREPARE_WRITE_RSP) \
-        X(EXECUTE_WRITE_REQ) \
-        X(EXECUTE_WRITE_RSP) \
-        X(READ_MULTIPLE_VARIABLE_REQ) \
-        X(READ_MULTIPLE_VARIABLE_RSP) \
-        X(MULTIPLE_HANDLE_VALUE_NTF) \
-        X(HANDLE_VALUE_NTF) \
-        X(HANDLE_VALUE_IND) \
-        X(HANDLE_VALUE_CFM) \
-        X(SIGNED_WRITE_CMD)
+namespace direct_bt {
+    JAU_MAKE_ENUM_STRING2_CODE(AttPDUMsg::Opcode, Opcode, PDU_UNDEFINED, ERROR_RSP, EXCHANGE_MTU_REQ, EXCHANGE_MTU_RSP, \
+        FIND_INFORMATION_REQ, FIND_INFORMATION_RSP, FIND_BY_TYPE_VALUE_REQ, FIND_BY_TYPE_VALUE_RSP, READ_BY_TYPE_REQ, \
+        READ_BY_TYPE_RSP, READ_REQ, READ_RSP, READ_BLOB_REQ, READ_BLOB_RSP, READ_MULTIPLE_REQ, READ_MULTIPLE_RSP, \
+        READ_BY_GROUP_TYPE_REQ, READ_BY_GROUP_TYPE_RSP, WRITE_REQ, WRITE_RSP, WRITE_CMD, PREPARE_WRITE_REQ, \
+        PREPARE_WRITE_RSP, EXECUTE_WRITE_REQ, EXECUTE_WRITE_RSP, READ_MULTIPLE_VARIABLE_REQ, \
+        READ_MULTIPLE_VARIABLE_RSP, MULTIPLE_HANDLE_VALUE_NTF, HANDLE_VALUE_NTF, HANDLE_VALUE_IND, HANDLE_VALUE_CFM, SIGNED_WRITE_CMD);
+}
 
-#define CASE_TO_STRING(V) case Opcode::V: return #V;
+std::string AttPDUMsg::to_string(const Opcode opc) noexcept {
+    return direct_bt::to_string(opc);
+}
+std::string_view AttPDUMsg::name(const Opcode opc) noexcept {
+    return direct_bt::name(opc);
+}
 
-std::string AttPDUMsg::getOpcodeString(const Opcode opc) noexcept {
-    switch(opc) {
-        OPCODE_ENUM(CASE_TO_STRING)
-        default: ; // fall through intended
-    }
-    return "Unknown Opcode";
+std::string AttPDUMsg::baseString() const noexcept {
+    return jau_format_string("opcode=%#x %s, size[total %zu, param %zu]",
+        number(getOpcode()), name(getOpcode()), pdu.size(), getPDUParamSize());
+}
+
+std::string AttPDUMsg::valueString() const noexcept {
+    return jau_format_string("size %zu, data %s", getPDUValueSize(),
+        jau::toHexString(pdu.get_ptr()+getPDUValueOffset(), getPDUValueSize(), jau::lb_endian_t::little));
+}
+std::string AttPDUMsg::toString() const noexcept {
+    return jau_format_string("%s[%s, value[%s]]", getName(), baseString(), valueString());
+}
+
+std::string AttErrorRsp::valueString() const noexcept {
+    const Opcode opc = getCausingOpcode();
+    const ErrorCode ec = getErrorCode();
+    return jau_format_string("error %#x: %s, cause(opc %#x: %s, handle %#x)",
+        *ec, getErrorCodeString(ec), *opc, opc, getCausingHandle());
 }
 
 std::string AttErrorRsp::getErrorCodeString(const ErrorCode errorCode) noexcept {
@@ -114,6 +102,109 @@ std::string AttErrorRsp::getErrorCodeString(const ErrorCode errorCode) noexcept 
         return "Common Profile and Services Error";
     }
     return "Error Reserved for future use";
+}
+
+std::string AttExchangeMTU::valueString() const noexcept {
+    return jau_format_string("mtu %u", getMTUSize());
+}
+
+std::string AttReadReq::valueString() const noexcept {
+    return jau_format_string("handle %#x", getHandle());
+}
+
+std::string AttReadBlobReq::valueString() const noexcept {
+    return jau_format_string("handle %#x, offset %u", getHandle(), getValueOffset());
+}
+
+std::string AttReadNRsp::valueString() const noexcept {
+    return jau_format_string("size %zu, data %s", getPDUValueSize(), view.toString());
+}
+
+std::string AttWriteReq::valueString() const noexcept {
+    return jau_format_string("handle %#x, data %s", getHandle(), view.toString());
+}
+
+std::string AttWriteCmd::valueString() const noexcept {
+    return jau_format_string("handle %#x, data %s", getHandle(), view.toString());
+}
+
+std::string AttPrepWrite::valueString() const noexcept {
+    return jau_format_string("handle %#x, offset %u, data %s", getHandle(), getValueOffset(), view.toString());
+}
+
+std::string AttHandleValueRcv::valueString() const noexcept {
+    return jau_format_string("handle %#x, size %zu, data %s", getHandle(), getPDUValueSize(), view.toString());
+}
+
+std::string AttElementList::valueString() const noexcept {
+    const jau::nsize_t count = getElementCount();
+    std::string res = jau_format_string("size %zu, %selements[count %zu, size [total %zu, value %zu]: ",
+        getPDUValueSize(), addValueString(), count, getElementSize(), getElementValueSize());
+    for(jau::nsize_t i=0; i<count; i++) {
+        jau_append_string(res, "%zu[%s],", i, elementString(i));
+    }
+    jau_append_string(res, "]");
+    return res;
+}
+
+void AttElementList::setElementCount(const jau::nsize_t count) {
+    const jau::nsize_t element_length = getElementSize();
+    const jau::nsize_t new_size = getPDUValueOffset() + element_length * count;
+    if( pdu.size() < new_size ) {
+        const std::string m = jau_format_string("%s: %zu + element[len %zu * count %zu > pdu %zu",
+            getName(), getPDUValueOffset(), element_length, count, pdu.size());
+        throw jau::IllegalArgumentError(m, E_FILE_LINE);
+    }
+    resize( new_size );
+    if( getPDUValueSize() % getElementSize() != 0 ) {
+        const std::string m = jau_format_string("%s: Invalid packet size: pdu-value-size %zu not multiple of element-size %zu",
+            getName(), getPDUValueSize(), getElementSize());
+        throw AttValueException(m, E_FILE_LINE);
+    }
+}
+
+std::string AttReadByNTypeReq::valueString() const noexcept {
+    return jau_format_string("handle [%#x..%#x], uuid %s", getStartHandle(), getEndHandle(), getNType()->toString());
+}
+
+std::string AttReadByGroupTypeRsp::elementString(const jau::nsize_t idx) const {
+    Element e = getElement(idx);
+    return "handle ["+jau::toHexString(e.getStartHandle())+".."+jau::toHexString(e.getEndHandle())+
+           "], data "+jau::toHexString(e.getValuePtr(), e.getValueSize(), jau::lb_endian_t::little);
+}
+
+std::string AttFindInfoReq::valueString() const noexcept {
+    return jau_format_string("handle [%#x..%#x]", getStartHandle(), getEndHandle());
+}
+
+std::string AttFindInfoRsp::addValueString() const noexcept {
+    return jau_format_string("format %u, ", pdu.get_uint8_nc(1));
+}
+
+std::string AttFindInfoRsp::elementString(const jau::nsize_t idx) const {
+    Element e = getElement(idx);
+    return "handle "+jau::toHexString(e.handle)+
+           ", uuid "+e.uuid->toString();
+}
+
+std::string AttFindByTypeValueReq::valueString() const noexcept {
+    return jau_format_string("handle [%#x..%#x], type %s, value %s",
+        getStartHandle(), getEndHandle(), getAttType(), getAttValue()->toString());
+}
+
+std::string AttFindByTypeValueRsp::elementString(const jau::nsize_t idx) const {
+    return jau_format_string("handle[%#x..%#x]", getElementHandle(idx), getElementHandleEnd(idx));
+}
+
+std::string AttFindByTypeValueRsp::valueString() const noexcept {
+    const jau::nsize_t count = getElementCount();
+    std::string res = jau_format_string("size %zu, elements[count %zu, size %zu: ",
+        getPDUValueSize(), count, getElementSize());
+    for(jau::nsize_t i=0; i<count; i++) {
+        jau_append_string(res, "%zu[%s], ", i, elementString(i));
+    }
+    jau_append_string(res, "]");
+    return res;
 }
 
 std::unique_ptr<const AttPDUMsg> AttPDUMsg::getSpecialized(const uint8_t * buffer, jau::nsize_t const buffer_size) noexcept {

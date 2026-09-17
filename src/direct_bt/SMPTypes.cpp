@@ -1,6 +1,6 @@
 /*
  * Author: Sven Gothel <sgothel@jausoft.com>
- * Copyright (c) 2020 Gothel Software e.K.
+ * Copyright (c) 2020-2026 Gothel Software e.K.
  * Copyright (c) 2020 ZAFENA AB
  *
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -27,127 +27,159 @@
 #include <string>
 #include <memory>
 #include <cstdint>
-#include <vector>
 #include <cstdio>
 
 #include <jau/debug.hpp>
 
 #include "SMPTypes.hpp"
 #include "SMPCrypto.hpp"
+#include "jau/string_util.hpp"
 
 using namespace direct_bt;
 
-template<typename T>
-static void append_bitstr(std::string& out, T mask, T bit, const std::string& bitstr, bool& comma) {
-    if( bit == ( mask & bit ) ) {
-        if( comma ) { out.append(", "); }
-        out.append(bitstr); comma = true;
-    }
-}
 #define APPEND_BITSTR(U,V,M) append_bitstr(out, M, U::V, #V, comma);
 
-#define PAIRSTATE_ENUM(X) \
-        X(NONE) \
-        X(FAILED) \
-        X(REQUESTED_BY_RESPONDER) \
-        X(FEATURE_EXCHANGE_STARTED) \
-        X(FEATURE_EXCHANGE_COMPLETED) \
-        X(PASSKEY_EXPECTED) \
-        X(NUMERIC_COMPARE_EXPECTED) \
-        X(PASSKEY_NOTIFY) \
-        X(OOB_EXPECTED) \
-        X(KEY_DISTRIBUTION) \
-        X(COMPLETED)
+namespace direct_bt {
+    JAU_MAKE_ENUM_STRING_CODE(SMPPairingState,
+        FAILED, REQUESTED_BY_RESPONDER, FEATURE_EXCHANGE_STARTED, FEATURE_EXCHANGE_COMPLETED, PASSKEY_EXPECTED, NUMERIC_COMPARE_EXPECTED,
+        PASSKEY_NOTIFY, OOB_EXPECTED, KEY_DISTRIBUTION, COMPLETED);
+    JAU_MAKE_ENUM_STRING_CODE(SMPIOCapability, DISPLAY_ONLY, DISPLAY_YES_NO, KEYBOARD_ONLY, NO_INPUT_NO_OUTPUT, KEYBOARD_DISPLAY, UNSET);
+    JAU_MAKE_ENUM_STRING_CODE(SMPOOBDataFlag, OOB_AUTH_DATA_NOT_PRESENT, OOB_AUTH_DATA_REMOTE_PRESENT);
+    JAU_MAKE_BITFIELD_ENUM_STRING_CODE(SMPAuthReqs, BONDING, BONDING_RFU, MITM, SECURE_CONNECTIONS, KEYPRESS, CT2_H7_FUNC_SUPPORT, RFU_1, RFU_2);
+    JAU_MAKE_BITFIELD_ENUM_STRING_CODE(SMPKeyType, ENC_KEY, ID_KEY, SIGN_KEY, LINK_KEY, RFU_1, RFU_2, RFU_3, RFU_4);
 
-#define CASE_TO_STRING_PAIRSTATE(V) case SMPPairingState::V: return #V;
+    JAU_MAKE_ENUM_STRING2_CODE(SMPLinkKey::KeyType, KeyType,
+        COMBI, LOCAL_UNIT, REMOTE_UNIT, DBG_COMBI, UNAUTH_COMBI_P192, AUTH_COMBI_P192,
+        CHANGED_COMBI, UNAUTH_COMBI_P256, AUTH_COMBI_P256, NONE);
 
-std::string direct_bt::to_string(const SMPPairingState state) noexcept {
-    switch(state) {
-        PAIRSTATE_ENUM(CASE_TO_STRING_PAIRSTATE)
-        default: ; // fall through intended
-    }
-    return "Unknown SMP PairingState";
+    JAU_MAKE_ENUM_STRING2_CODE(SMPPDUMsg::Opcode, Opcode,
+        UNDEFINED, PAIRING_REQUEST, PAIRING_RESPONSE, PAIRING_CONFIRM, PAIRING_RANDOM, PAIRING_FAILED, ENCRYPTION_INFORMATION,
+        MASTER_IDENTIFICATION, IDENTITY_INFORMATION, IDENTITY_ADDRESS_INFORMATION, SIGNING_INFORMATION, SECURITY_REQUEST,
+        PAIRING_PUBLIC_KEY, PAIRING_DHKEY_CHECK, PAIRING_KEYPRESS_NOTIFICATION);
+
+}  // namespace direct_bt
+
+std::string SMPLongTermKey::toString() const noexcept { // hex-fmt aligned with btmon
+    return jau_format_string("LTK[props %s, enc_size %u, ediv %s, rand %s, ltk %s, valid %s]",
+           getPropertyString(properties), enc_size,
+           jau::toHexString(reinterpret_cast<const uint8_t *>(&ediv), sizeof(ediv), jau::lb_endian_t::little),
+           jau::toHexString(reinterpret_cast<const uint8_t *>(&rand), sizeof(rand), jau::lb_endian_t::little),
+           jau::toHexString(ltk.data, sizeof(ltk), jau::lb_endian_t::little),
+           isValid());
 }
+
+std::string SMPIdentityResolvingKey::toString() const noexcept { // hex-fmt aligned with btmon
+    return jau_format_string("IRK[props %s, id %s, irk %s]",
+           getPropertyString(properties), id_address,
+           jau::toHexString(irk.data, sizeof(irk), jau::lb_endian_t::little));
+}
+
+std::string SMPSignatureResolvingKey::toString() const noexcept { // hex-fmt aligned with btmon
+    return jau_format_string("CSRK[props %s, csrk %s]",
+           getPropertyString(properties),
+           jau::toHexString(csrk.data, sizeof(csrk), jau::lb_endian_t::little));
+}
+
+std::string SMPLinkKey::toString() const noexcept { // hex-fmt aligned with btmon
+    return jau_format_string("LK[resp %s, type %s, key %s, plen %u]",
+        responder, getTypeString(type),
+        jau::toHexString(key.data, sizeof(key), jau::lb_endian_t::little),
+        pin_length);
+}
+
+std::string SMPPDUMsg::baseString() const noexcept {
+    const Opcode has = getOpcode();
+    return jau_format_string("opcode=%#x %s, size[total %zu, param %zu]",
+        *has, getOpcodeString(has), pdu.size(), getPDUParamSize());
+}
+
+std::string SMPPDUMsg::valueString() const noexcept {
+    return jau_format_string("size %zu, data %s", getDataSize(),
+        jau::toHexString(pdu.get_ptr() + getDataOffset(), getDataSize(), jau::lb_endian_t::little));
+}
+
+std::string SMPPDUMsg::toString() const noexcept{
+    return jau_format_string("%s[%s, value[%s]]", getName(), baseString(), valueString());
+}
+
+std::string SMPPairingMsg::valueString() const noexcept {
+    return jau_format_string("iocap %s, oob %s, auth_req %s, max_keysz %u, key_dist[init %s, resp %s]",
+        getIOCapability(), getOOBDataFlag(), getAuthReqMask(), getMaxEncryptionKeySize(),
+        getInitKeyDist(), getRespKeyDist());
+}
+
+std::string SMPPairConfirmMsg::valueString() const noexcept { // hex-fmt aligned with btmon
+    return jau_format_string("size %zu, value %s", getDataSize(),
+        jau::toHexString(pdu.get_ptr_nc(1), getDataSize(), jau::lb_endian_t::little));
+}
+
+std::string SMPPairRandMsg::valueString() const noexcept { // hex-fmt aligned with btmon
+    return jau_format_string("size %zu, rand %s", getDataSize(),
+        jau::toHexString(pdu.get_ptr_nc(1), getDataSize(), jau::lb_endian_t::little));
+}
+
+std::string SMPPairFailedMsg::valueString() const noexcept {
+    const ReasonCode ec = getReasonCode();
+    return jau_format_string("%#x:%s", ec, getReasonCodeString(ec));
+}
+
+std::string SMPPairPubKeyMsg::valueString() const noexcept {
+    return jau_format_string("size %zu, pk_x %s, pk_y %s", getDataSize(),
+        jau::toHexString(pdu.get_ptr_nc(1), 32, jau::lb_endian_t::little),
+        jau::toHexString(pdu.get_ptr_nc(1+32), 32, jau::lb_endian_t::little));
+}
+
+std::string SMPPairDHKeyCheckMsg::valueString() const noexcept {
+    return jau_format_string("size %zu, dhkey_chk %s", getDataSize(),
+        jau::toHexString(pdu.get_ptr_nc(1), getDataSize(), jau::lb_endian_t::little));
+}
+
+std::string SMPPasskeyNotification::valueString() const noexcept {
+    const TypeCode v = getTypeCode();
+    return jau_format_string("%#x:%s", v, getTypeCodeString(v));
+}
+
+std::string SMPEncInfoMsg::valueString() const noexcept { // hex-fmt aligned with btmon
+    return jau_format_string("size %zu, ltk %s", getDataSize(),
+        jau::toHexString(pdu.get_ptr_nc(1), getDataSize(), jau::lb_endian_t::little));
+}
+
+std::string SMPMasterIdentMsg::valueString() const noexcept { // hex-fmt aligned with btmon
+    return jau_format_string("size %zu, ediv %s, rand %s", getDataSize(),
+        jau::toHexString(pdu.get_ptr_nc(1), 2, jau::lb_endian_t::big),
+        jau::toHexString(pdu.get_ptr_nc(1+2), 8, jau::lb_endian_t::big));
+}
+
+std::string SMPIdentInfoMsg::valueString() const noexcept {
+    return jau_format_string("size %zu, irk %s", getDataSize(),
+        jau::toHexString(pdu.get_ptr_nc(1), getDataSize(), jau::lb_endian_t::little));
+}
+
+std::string SMPIdentAddrInfoMsg::valueString() const noexcept {
+    const std::string_view ats = isStaticRandomAddress() ? "static-random" : "public";
+    return jau_format_string("address[%s, %s]", getAddress(), ats);
+}
+
+std::string SMPSignInfoMsg::valueString() const noexcept { // hex-fmt aligned with btmon
+    return jau_format_string("size %zu, csrk %s", getDataSize(),
+        jau::toHexString(pdu.get_ptr_nc(1), getDataSize(), jau::lb_endian_t::little));
+}
+
+std::string SMPSecurityReqMsg::valueString() const noexcept {
+    return jau_format_string("auth_req %s", getAuthReqMask());
+}
+
+//
+//
+//
 
 std::string direct_bt::toPassKeyString(const std::uint32_t passKey) noexcept {
     std::string pin;
-    pin.reserve(6+1); // including EOS for snprintf
-    pin.resize(6);
-    snprintf(&pin[0], pin.capacity(), "%06u", passKey%1000000u );
+    jau::reserve_string(pin, 6+1); // +EOS
+    if (pin.capacity() > 6) {
+        jau_append_string(pin, "%06u", passKey%1000000u);
+    }
     return pin;
-}
-
-#define IOCAP_ENUM(X) \
-        X(DISPLAY_ONLY) \
-        X(DISPLAY_YES_NO) \
-        X(KEYBOARD_ONLY) \
-        X(NO_INPUT_NO_OUTPUT) \
-        X(KEYBOARD_DISPLAY) \
-        X(UNSET)
-
-#define CASE_TO_STRING_IOCAP(V) case SMPIOCapability::V: return #V;
-
-std::string direct_bt::to_string(const SMPIOCapability ioc) noexcept {
-    switch(ioc) {
-        IOCAP_ENUM(CASE_TO_STRING_IOCAP)
-        default: ; // fall through intended
-    }
-    return "Unknown SMP IOCapability";
-}
-
-std::string direct_bt::to_string(const SMPOOBDataFlag v) noexcept {
-    switch(v) {
-        case SMPOOBDataFlag::OOB_AUTH_DATA_NOT_PRESENT: return "OOB_AUTH_DATA_NOT_PRESENT";
-        case SMPOOBDataFlag::OOB_AUTH_DATA_REMOTE_PRESENT: return "OOB_AUTH_DATA_REMOTE_PRESENT";
-        default: ; // fall through intended
-    }
-    return "Unknown SMP OOBDataFlag";
-}
-
-
-std::string direct_bt::to_string(const SMPAuthReqs mask) noexcept {
-    std::string out("[");
-    if( is_set(mask, SMPAuthReqs::BONDING) ) {
-        out.append("Bonding");
-    } else {
-        out.append("No bonding");
-    }
-    if( is_set(mask, SMPAuthReqs::BONDING_RFU) ) {
-        out.append(", ");
-        out.append("Bonding Reserved");
-    }
-    out.append(", ");
-    if( is_set(mask, SMPAuthReqs::MITM) ) {
-        out.append("MITM");
-    } else {
-        out.append("No MITM");
-    }
-    out.append(", ");
-    if( is_set(mask, SMPAuthReqs::SECURE_CONNECTIONS) ) {
-        out.append("SC");
-    } else {
-        out.append("Legacy");
-    }
-    out.append(", ");
-    if( is_set(mask, SMPAuthReqs::KEYPRESS) ) {
-        out.append("Keypresses");
-    } else {
-        out.append("No keypresses");
-    }
-    if( is_set(mask, SMPAuthReqs::CT2_H7_FUNC_SUPPORT) ) {
-        out.append(", ");
-        out.append("CT2_H7");
-    }
-    if( is_set(mask, SMPAuthReqs::RFU_1) ) {
-        out.append(", ");
-        out.append("RFU_1");
-    }
-    if( is_set(mask, SMPAuthReqs::RFU_2) ) {
-        out.append(", ");
-        out.append("RFU_2");
-    }
-    out.append("]");
-    return out;
 }
 
 PairingMode direct_bt::getPairingMode(const bool use_sc,
@@ -247,35 +279,16 @@ PairingMode direct_bt::getPairingMode(const bool use_sc,
     const uint8_t ioCap_ini_int = number(ioCap_ini);
     const uint8_t ioCap_res_int = number(ioCap_res);
     if( ioCap_ini_int > 4) {
-        ABORT("Invalid ioCap_init %s, %d", to_string(ioCap_ini).c_str(), ioCap_ini_int);
+        jau_ABORT("Invalid ioCap_init %s, %d", ioCap_ini, ioCap_ini_int);
     }
     if( ioCap_res_int > 4) {
-        ABORT("Invalid ioCap_resp %s, %d", to_string(ioCap_res).c_str(), ioCap_res_int);
+        jau_ABORT("Invalid ioCap_resp %s, %d", ioCap_res, ioCap_res_int);
     }
     if( use_sc ) {
         return seccon_pairing[ioCap_res_int][ioCap_ini_int];
     } else {
         return legacy_pairing[ioCap_res_int][ioCap_ini_int];
     }
-}
-
-
-#define KEYDISTFMT_ENUM(X,M) \
-    X(SMPKeyType,ENC_KEY,M) \
-    X(SMPKeyType,ID_KEY,M) \
-    X(SMPKeyType,SIGN_KEY,M) \
-    X(SMPKeyType,LINK_KEY,M) \
-    X(SMPKeyType,RFU_1,M) \
-    X(SMPKeyType,RFU_2,M) \
-    X(SMPKeyType,RFU_3,M) \
-    X(SMPKeyType,RFU_4,M)
-
-std::string direct_bt::to_string(const SMPKeyType mask) noexcept {
-    std::string out("[");
-    bool comma = false;
-    KEYDISTFMT_ENUM(APPEND_BITSTR,mask)
-    out.append("]");
-    return out;
 }
 
 #define LTKPROP_ENUM(X,M) \
@@ -335,54 +348,9 @@ bool SMPSignatureResolvingKey::isResponder() const noexcept {
     return ( SMPSignatureResolvingKey::Property::RESPONDER & properties ) != SMPSignatureResolvingKey::Property::NONE;
 }
 
-#define SMP_LINKKEYTYPE_ENUM(X) \
-    X(COMBI) \
-    X(LOCAL_UNIT) \
-    X(REMOTE_UNIT) \
-    X(DBG_COMBI) \
-    X(UNAUTH_COMBI_P192) \
-    X(AUTH_COMBI_P192) \
-    X(CHANGED_COMBI) \
-    X(UNAUTH_COMBI_P256) \
-    X(AUTH_COMBI_P256) \
-    X(NONE)
+std::string SMPLinkKey::getTypeString(const KeyType type) noexcept { return to_string(type); }
 
-#define SMP_LINKKEYTYPE_TO_STRING(V) case SMPLinkKey::KeyType::V: return #V;
-
-std::string SMPLinkKey::getTypeString(const KeyType type) noexcept {
-    switch(type) {
-        SMP_LINKKEYTYPE_ENUM(SMP_LINKKEYTYPE_TO_STRING)
-        default: ; // fall through intended
-    }
-    return "Unknown SMPLinkKeyType";
-}
-
-#define OPCODE_ENUM(X) \
-        X(UNDEFINED) \
-        X(PAIRING_REQUEST) \
-        X(PAIRING_RESPONSE) \
-        X(PAIRING_CONFIRM) \
-        X(PAIRING_RANDOM) \
-        X(PAIRING_FAILED) \
-        X(ENCRYPTION_INFORMATION) \
-        X(MASTER_IDENTIFICATION) \
-        X(IDENTITY_INFORMATION) \
-        X(IDENTITY_ADDRESS_INFORMATION) \
-        X(SIGNING_INFORMATION) \
-        X(SECURITY_REQUEST) \
-        X(PAIRING_PUBLIC_KEY) \
-        X(PAIRING_DHKEY_CHECK) \
-        X(PAIRING_KEYPRESS_NOTIFICATION)
-
-#define CASE_TO_STRING_OPCODE(V) case Opcode::V: return #V;
-
-std::string SMPPDUMsg::getOpcodeString(const Opcode opc) noexcept {
-    switch(opc) {
-        OPCODE_ENUM(CASE_TO_STRING_OPCODE)
-        default: ; // fall through intended
-    }
-    return "Unknown SMP Opcode";
-}
+std::string SMPPDUMsg::getOpcodeString(const Opcode opc) noexcept { return to_string(opc); }
 
 std::string SMPPairFailedMsg::getReasonCodeString(const ReasonCode reasonCode) noexcept {
     switch(reasonCode) {

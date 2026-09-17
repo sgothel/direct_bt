@@ -1,6 +1,6 @@
 /*
  * Author: Sven Gothel <sgothel@jausoft.com>
- * Copyright (c) 2020 Gothel Software e.K.
+ * Copyright (c) 2020-2026 Gothel Software e.K.
  * Copyright (c) 2020 ZAFENA AB
  *
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -30,33 +30,17 @@
  * Convenient global header file for the user space.
  */
 
-#include <cstring>
-#include <string>
-#include <memory>
-#include <cstdint>
-
-#include <mutex>
-#include <atomic>
-
-#include <jau/darray.hpp>
-
 #include "version.hpp"
 
-#include "BTTypes0.hpp"
-
-#include "BTDevice.hpp"
-
 #include "BTAdapter.hpp"
-
-#include "BTManager.hpp"
-
-#include "SMPKeyBin.hpp"
-
-#include "BTGattCmd.hpp"
-
-#include "DBGattServer.hpp"
-
+#include "BTDevice.hpp"
 #include "BTDeviceRegistry.hpp"
+#include "BTGattCmd.hpp"
+#include "BTManager.hpp"
 #include "BTSecurityRegistry.hpp"
+#include "BTTypes0.hpp"
+#include "DBTConst.hpp"
+#include "DBGattServer.hpp"
+#include "SMPKeyBin.hpp"
 
 #endif /* DIRECTBT_HPP_ */

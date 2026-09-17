@@ -27,20 +27,18 @@
 
 #include <cstring>
 #include <string>
-#include <memory>
-#include <cstdint>
 #include <cstdio>
 
 #include "dbt_constants.hpp"
 
-#include <jau/file_util.hpp>
+#include <jau/io/file_util.hpp>
 
 class DBTUtils {
     public:
 
         static bool mkdirKeyFolder() {
-            if( jau::fs::mkdir( DBTConstants::CLIENT_KEY_PATH ) ) {
-                if( jau::fs::mkdir( DBTConstants::SERVER_KEY_PATH ) ) {
+            if( jau::io::fs::mkdir( DBTConstants::CLIENT_KEY_PATH ) ) {
+                if( jau::io::fs::mkdir( DBTConstants::SERVER_KEY_PATH ) ) {
                     return true;
                 }
             }
@@ -49,8 +47,8 @@ class DBTUtils {
 
 
         static bool rmKeyFolder() {
-            if( jau::fs::remove( DBTConstants::CLIENT_KEY_PATH, jau::fs::traverse_options::recursive ) ) {
-                if( jau::fs::remove( DBTConstants::SERVER_KEY_PATH, jau::fs::traverse_options::recursive ) ) {
+            if( jau::io::fs::remove( DBTConstants::CLIENT_KEY_PATH, jau::io::fs::traverse_options::recursive ) ) {
+                if( jau::io::fs::remove( DBTConstants::SERVER_KEY_PATH, jau::io::fs::traverse_options::recursive ) ) {
                     return true;
                 }
             }

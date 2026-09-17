@@ -29,10 +29,10 @@
 #include <cstdint>
 #include <cstdio>
 
-#include  <algorithm>
-
 #include <jau/darray.hpp>
 #include <jau/debug.hpp>
+#include <jau/string_cfmt.hpp>
+#include <jau/string_util.hpp>
 
 #include "GattNumbers.hpp"
 
@@ -257,120 +257,64 @@ const GattCharacteristicSpec * direct_bt::findGattCharSpec(const uint16_t uuid16
 
 #endif /* DIRECTBT_BUILDIN_GATT_SERVICE_CHARACTERISTIC_SPEC */
 
-#define CASE_TO_STRING(V) case V: return #V;
+namespace direct_bt {
+    JAU_MAKE_ENUM_STRING_CODE(GattAttributeType,
+        PRIMARY_SERVICE, SECONDARY_SERVICE, INCLUDE_DECLARATION, CHARACTERISTIC);
+    JAU_MAKE_ENUM_STRING_CODE(GattServiceType,
+        GENERIC_ACCESS, GENERIC_ATTRIBUTE, IMMEDIATE_ALERT, LINK_LOSS,
+        HEALTH_THERMOMETER, DEVICE_INFORMATION, BATTERY_SERVICE);
+    JAU_MAKE_ENUM_STRING_CODE(GattCharacteristicType,
+        DEVICE_NAME, APPEARANCE, PERIPHERAL_PRIVACY_FLAG,
+        RECONNECTION_ADDRESS, PERIPHERAL_PREFERRED_CONNECTION_PARAMETERS,
+        SERVICE_CHANGED, TEMPERATURE, TEMPERATURE_CELSIUS, TEMPERATURE_FAHRENHEIT,
+        TEMPERATURE_MEASUREMENT, TEMPERATURE_TYPE, INTERMEDIATE_TEMPERATURE,
+        MEASUREMENT_INTERVAL, SYSTEM_ID, MODEL_NUMBER_STRING, SERIAL_NUMBER_STRING,
+        FIRMWARE_REVISION_STRING, HARDWARE_REVISION_STRING, SOFTWARE_REVISION_STRING,
+        MANUFACTURER_NAME_STRING, REGULATORY_CERT_DATA_LIST, PNP_ID);
+    JAU_MAKE_ENUM_STRING_CODE(GattCharacteristicProperty,
+        Broadcast, Read, WriteNoAck, WriteWithAck, Notify, Indicate,
+        AuthSignedWrite, ExtProps, ReliableWriteExt, AuxWriteExt);
+    JAU_MAKE_ENUM_STRING_CODE(GattRequirementSpec,
+        Excluded, Mandatory, Optional, Conditional,
+        if_characteristic_supported, if_notify_or_indicate_supported, C1);
 
-#define SERVICE_TYPE_ENUM(X) \
-    X(GENERIC_ACCESS) \
-    X(HEALTH_THERMOMETER) \
-	X(DEVICE_INFORMATION) \
-    X(BATTERY_SERVICE)
-
-std::string direct_bt::GattServiceTypeToString(const GattServiceType v) noexcept {
-    switch(v) {
-        SERVICE_TYPE_ENUM(CASE_TO_STRING)
-        default: ; // fall through intended
-    }
-    return "Unknown";
-}
-
-#define CHARACTERISTIC_TYPE_ENUM(X) \
-    X(DEVICE_NAME) \
-    X(APPEARANCE) \
-    X(PERIPHERAL_PRIVACY_FLAG) \
-    X(RECONNECTION_ADDRESS) \
-    X(PERIPHERAL_PREFERRED_CONNECTION_PARAMETERS) \
-    X(TEMPERATURE) \
-    X(TEMPERATURE_CELSIUS) \
-    X(TEMPERATURE_FAHRENHEIT) \
-    X(TEMPERATURE_MEASUREMENT) \
-    X(TEMPERATURE_TYPE) \
-    X(INTERMEDIATE_TEMPERATURE) \
-    X(MEASUREMENT_INTERVAL) \
-	X(SYSTEM_ID) \
-	X(MODEL_NUMBER_STRING) \
-    X(SERIAL_NUMBER_STRING) \
-    X(FIRMWARE_REVISION_STRING) \
-    X(HARDWARE_REVISION_STRING) \
-    X(SOFTWARE_REVISION_STRING) \
-    X(MANUFACTURER_NAME_STRING) \
-    X(REGULATORY_CERT_DATA_LIST) \
-    X(PNP_ID)
-
-
-std::string direct_bt::GattCharacteristicTypeToString(const GattCharacteristicType v) noexcept {
-    switch(v) {
-        CHARACTERISTIC_TYPE_ENUM(CASE_TO_STRING)
-        default: ; // fall through intended
-    }
-    return "Unknown";
-}
-
-#define CHARACTERISTIC_PROP_ENUM(X) \
-        X(Broadcast) \
-        X(Read) \
-        X(WriteNoAck) \
-        X(WriteWithAck) \
-        X(Notify) \
-        X(Indicate) \
-        X(AuthSignedWrite) \
-        X(ExtProps) \
-        X(ReliableWriteExt) \
-        X(AuxWriteExt)
-
-std::string direct_bt::GattCharacteristicPropertyToString(const GattCharacteristicProperty v) noexcept {
-    switch(v) {
-        CHARACTERISTIC_PROP_ENUM(CASE_TO_STRING)
-        default: ; // fall through intended
-    }
-    return "Unknown";
-}
-
-#define REQUIREMENT_SPEC_ENUM(X) \
-    X(Excluded) \
-    X(Mandatory) \
-    X(Optional) \
-    X(Conditional) \
-    X(if_characteristic_supported) \
-    X(if_notify_or_indicate_supported) \
-    X(C1)
-
-std::string direct_bt::GattRequirementSpecToString(const GattRequirementSpec v) noexcept {
-    switch(v) {
-        REQUIREMENT_SPEC_ENUM(CASE_TO_STRING)
-        default: ; // fall through intended
-    }
-    return "Unknown";
+    JAU_MAKE_ENUM_STRING2_CODE(GattCharacteristicSpec::PropertySpecIdx, PropertySpecIdx,
+        ReadIdx, WriteNoAckIdx, WriteWithAckIdx, AuthSignedWriteIdx,
+        ReliableWriteExtIdx, NotifyIdx, IndicateIdx, AuxWriteExtIdx, BroadcastIdx);
 }
 
 std::string GattCharacteristicPropertySpec::toString() const noexcept {
-    return GattCharacteristicPropertyToString(property)+": "+GattRequirementSpecToString(requirement);
+    return jau_format_string("%s: %s", property, requirement);
 }
 
 std::string GattClientCharacteristicConfigSpec::toString() const noexcept {
-    return "ClientCharCfg["+GattRequirementSpecToString(requirement)+"["+read.toString()+", "+writeWithAck.toString()+"]]";
+    return jau_format_string("ClientCharCfg[%s[%s, %s]]", requirement, read, writeWithAck);
 }
 
 std::string GattCharacteristicSpec::toString() const noexcept {
-    std::string res = GattCharacteristicTypeToString(characteristic)+": "+GattRequirementSpecToString(requirement)+", Properties[";
+    std::string res = jau_format_string("%s: %s, Properties[", characteristic, requirement);
     for(size_t i=0; i<propertySpec.size(); i++) {
         if(0<i) {
-            res += ", ";
+            jau::append_string(res, ", ");
         }
-        res += propertySpec.at(i).toString();
+        jau::append_string(res, propertySpec.at(i).toString());
     }
-    res += "], "+clientConfig.toString();
+    jau::append_string(res, "], ");
+    jau::append_string(res, clientConfig.toString());
     return res;
 }
 
 std::string GattServiceCharacteristic::toString() const noexcept {
-    std::string res = GattServiceTypeToString(service)+": [";
+    std::string res = jau_format_string("%s: [", service);
     for(size_t i=0; i<characteristics.size(); i++) {
         if(0<i) {
-            res += ", ";
+            jau::append_string(res, ", ");
         }
-        res.append("[").append(characteristics.at(i).toString()).append("]");
+        jau::append_string(res, "[");
+        jau::append_string(res, characteristics[i].toString());
+        jau::append_string(res, "]");
     }
-    res += "]";
+    jau::append_string(res, "]");
     return res;
 }
 
@@ -379,25 +323,18 @@ std::string GattServiceCharacteristic::toString() const noexcept {
 /********************************************************/
 
 std::string direct_bt::GattNameToString(const jau::TROOctets &v) noexcept {
-	const jau::nsize_t str_len = v.size();
-	if( 0 == str_len ) {
-	    return std::string(); // empty
-	}
-	jau::POctets s(str_len+1, jau::lb_endian_t::little); // dtor releases chunk
-	{
-	    // Prelim checking to avoid g++ 8.3 showing a warning: pointer overflow between offset 0 and size
-        uint8_t const * const v_p = v.get_ptr();
-        if( nullptr == v_p ) {
-            return std::string(); // emptylb_lb_lb_
-        }
-        uint8_t * const s_p = s.get_wptr();
-        if( nullptr == s_p ) {
-            return std::string(); // empty
-        }
-        memcpy(s_p, v_p, str_len);
-	}
-	s.put_uint8_nc(str_len, 0); // EOS
-	return std::string((const char*)s.get_ptr());
+    const jau::nsize_t str_len = v.size();
+    if (0 == str_len) {
+        return std::string();  // empty
+    }
+    uint8_t const *const v_p = v.get_ptr();
+    std::string res;
+    jau::reserve_append_string(res, str_len + 1, str_len);
+    if (!v_p || res.capacity() < str_len + 1 || res.length() < str_len) {
+        return std::string();
+    }
+    ::memcpy(res.data(), v_p, str_len);
+    return res;
 }
 
 GattPeriphalPreferredConnectionParameters::GattPeriphalPreferredConnectionParameters(const jau::TROOctets &source) noexcept
@@ -409,7 +346,7 @@ GattPeriphalPreferredConnectionParameters::GattPeriphalPreferredConnectionParame
 std::shared_ptr<GattPeriphalPreferredConnectionParameters> GattPeriphalPreferredConnectionParameters::get(const jau::TROOctets &source) noexcept {
     const jau::nsize_t reqSize = 8;
     if( source.size() < reqSize ) {
-        ERR_PRINT("GattPeriphalPreferredConnectionParameters: Insufficient data, less than %d bytes in %s", reqSize, source.toString().c_str());
+        jau_ERR_PRINT("GattPeriphalPreferredConnectionParameters: Insufficient data, less than %zu bytes in %s", reqSize, source.toString());
         return nullptr;
     }
     return std::make_shared<GattPeriphalPreferredConnectionParameters>(source);
@@ -424,7 +361,7 @@ std::string GattPeriphalPreferredConnectionParameters::toString() const noexcept
 
 std::string GattGenericAccessSvc::toString() const noexcept {
     std::string pcp(nullptr != prefConnParam ? prefConnParam->toString() : "");
-    return "'"+deviceName+"'[appearance "+jau::to_hexstring(static_cast<uint16_t>(appearance))+" ("+to_string(appearance)+"), "+pcp+"]";
+    return "'"+deviceName+"'[appearance "+jau::toHexString(static_cast<uint16_t>(appearance))+" ("+to_string(appearance)+"), "+pcp+"]";
 }
 
 GattPnP_ID::GattPnP_ID(const jau::TROOctets &source) noexcept
@@ -434,24 +371,23 @@ GattPnP_ID::GattPnP_ID(const jau::TROOctets &source) noexcept
 std::shared_ptr<GattPnP_ID> GattPnP_ID::get(const jau::TROOctets &source) noexcept {
     const jau::nsize_t reqSize = 7;
     if( source.size() < reqSize ) {
-        ERR_PRINT("GattPnP_ID: Insufficient data, less than %d bytes in %s", reqSize, source.toString().c_str());
+        jau_ERR_PRINT("GattPnP_ID: Insufficient data, less than %zu bytes in %s", reqSize, source.toString());
         return nullptr;
     }
     return std::make_shared<GattPnP_ID>(source);
 }
 
 std::string GattPnP_ID::toString() const noexcept {
-    return "vendor_id[source "+jau::to_hexstring(vendor_id_source)+
-            ", id "+jau::to_hexstring(vendor_id)+
-            "], product_id "+jau::to_hexstring(product_id)+
-            ", product_version "+jau::to_hexstring(product_version);
+    return jau_format_string("vendor_id[source %#x, id %#x], product[id %#x, version %#x]",
+        vendor_id_source, vendor_id, product_id, product_version);
 }
 
 std::string GattDeviceInformationSvc::toString() const noexcept {
-    std::string pnp(nullptr != pnpID ? pnpID->toString() : "");
-    return "DeviceInfo[manufacturer '"+manufacturer+"', model '"+modelNumber+"', serial '"+serialNumber+"', systemID '"+systemID.toString()+
-            "', revisions[firmware '"+firmwareRevision+"', hardware '"+hardwareRevision+"', software '"+softwareRevision+
-            "'], pnpID["+pnp+"], regCertData '"+regulatoryCertDataList.toString()+"']";
+    return jau_format_string("DeviceInfo[manufacturer '%s', model '%s', serial '%s', systemID '%s', "
+        "revisions[firmware '%s', hardware '%s', software '%s'], pnpID[%s], repCertData '%s']",
+        manufacturer, modelNumber, serialNumber, systemID,
+        firmwareRevision, hardwareRevision, softwareRevision,
+        (nullptr != pnpID ? pnpID->toString() : ""), regulatoryCertDataList);
 }
 
 std::shared_ptr<GattTemperatureMeasurement> GattTemperatureMeasurement::get(const jau::TROOctets &source) noexcept {
@@ -459,7 +395,7 @@ std::shared_ptr<GattTemperatureMeasurement> GattTemperatureMeasurement::get(cons
     jau::nsize_t reqSize = 1 + 4; // max size = 13
     if( reqSize > size ) {
         // min size: flags + temperatureValue
-        ERR_PRINT("GattTemperatureMeasurement: Insufficient data, less than %d bytes in %s", reqSize, source.toString().c_str());
+        jau_ERR_PRINT("GattTemperatureMeasurement: Insufficient data, less than %zu bytes in %s", reqSize, source.toString());
         return nullptr;
     }
 
@@ -494,13 +430,12 @@ std::shared_ptr<GattTemperatureMeasurement> GattTemperatureMeasurement::get(cons
 }
 
 std::string GattTemperatureMeasurement::toString() const noexcept {
-    std::string res = std::to_string(temperatureValue);
-    res += isFahrenheit() ? " F" : " C";
+    std::string res = jau_format_string("%.3f %c", temperatureValue, (isFahrenheit() ? 'F' : 'C'));
     if( hasTimestamp() ) {
-        res += ", "+timestamp.toString();
+        jau_append_string(res, ", %s", timestamp);
     }
     if( hasTemperatureType() ) {
-        res += ", type "+std::to_string(temperature_type);
+        jau_append_string(res, ", type %u", temperature_type);
     }
     return res;
 }

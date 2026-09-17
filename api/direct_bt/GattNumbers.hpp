@@ -1,6 +1,6 @@
 /*
  * Author: Sven Gothel <sgothel@jausoft.com>
- * Copyright (c) 2020 Gothel Software e.K.
+ * Copyright (c) 2020-2026 Gothel Software e.K.
  * Copyright (c) 2020 ZAFENA AB
  *
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -71,6 +71,7 @@ enum GattAttributeType : uint16_t {
     /* BT Core Spec v5.2: Vol 3, Part G GATT: 4.6.1 Discover All Characteristics of a Service, using , using AttPDUMsg::Opcode::READ_BY_TYPE_REQ */
     CHARACTERISTIC                              = 0x2803
 };
+JAU_MAKE_ENUM_STRING_DECL(GattAttributeType);
 
 /**
  * GATT Service Type, each encapsulating a set of Characteristics.
@@ -97,7 +98,7 @@ enum GattServiceType : uint16_t {
     /** This service exposes the state of a battery within a device. */
     BATTERY_SERVICE                             = 0x180F,
 };
-std::string GattServiceTypeToString(const GattServiceType v) noexcept;
+JAU_MAKE_ENUM_STRING_DECL(GattServiceType);
 
 /**
  * GATT Assigned Characteristic Attribute Type for single logical value.
@@ -151,7 +152,7 @@ enum GattCharacteristicType : uint16_t {
 	REGULATORY_CERT_DATA_LIST 					= 0x2A2A,
 	PNP_ID 										= 0x2A50,
 };
-std::string GattCharacteristicTypeToString(const GattCharacteristicType v) noexcept;
+JAU_MAKE_ENUM_STRING_DECL(GattCharacteristicType);
 
 enum GattCharacteristicProperty : uint8_t {
     Broadcast = 0x01,
@@ -167,7 +168,7 @@ enum GattCharacteristicProperty : uint8_t {
     /** FIXME: extension? */
     AuxWriteExt = 0x82
 };
-std::string GattCharacteristicPropertyToString(const GattCharacteristicProperty v) noexcept;
+JAU_MAKE_ENUM_STRING_DECL(GattCharacteristicProperty);
 
 enum GattRequirementSpec : uint8_t {
     Excluded    = 0x00,
@@ -178,7 +179,7 @@ enum GattRequirementSpec : uint8_t {
     if_notify_or_indicate_supported = 0x12,
     C1 = 0x21,
 };
-std::string GattRequirementSpecToString(const GattRequirementSpec v) noexcept;
+JAU_MAKE_ENUM_STRING_DECL(GattRequirementSpec);
 
 struct GattCharacteristicPropertySpec {
     GattCharacteristicProperty property;
@@ -217,6 +218,7 @@ struct GattCharacteristicSpec {
 
     std::string toString() const noexcept;
 };
+JAU_MAKE_ENUM_STRING2_DECL(GattCharacteristicSpec::PropertySpecIdx);
 
 struct GattServiceCharacteristic {
     GattServiceType service;
@@ -366,8 +368,8 @@ class GattDeviceInformationSvc {
         GattDeviceInformationSvc(jau::POctets systemID_, std::string modelNumber_, std::string serialNumber_,
                                  std::string firmwareRevision_, std::string hardwareRevision_, std::string softwareRevision_,
                                  std::string manufacturer_, jau::POctets regulatoryCertDataList_, std::shared_ptr<GattPnP_ID> pnpID_) noexcept
-        : systemID( std::move(systemID_) ), modelNumber( std::move(modelNumber_) ), serialNumber( std::move(serialNumber_) ), 
-          firmwareRevision( std::move(firmwareRevision_) ), hardwareRevision( std::move(hardwareRevision_) ), 
+        : systemID( std::move(systemID_) ), modelNumber( std::move(modelNumber_) ), serialNumber( std::move(serialNumber_) ),
+          firmwareRevision( std::move(firmwareRevision_) ), hardwareRevision( std::move(hardwareRevision_) ),
           softwareRevision( std::move(softwareRevision_) ), manufacturer( std::move(manufacturer_) ),
           regulatoryCertDataList( std::move(regulatoryCertDataList_) ), pnpID( std::move(pnpID_) ) {}
 

@@ -1,6 +1,6 @@
 /*
  * Author: Sven Gothel <sgothel@jausoft.com>
- * Copyright (c) 2021 Gothel Software e.K.
+ * Copyright (c) 2021-2026 Gothel Software e.K.
  *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
@@ -27,11 +27,9 @@
 
 #include <cstring>
 #include <string>
-#include <memory>
 #include <cstdint>
 
 #include "SMPTypes.hpp"
-#include "HCITypes.hpp"
 
 namespace direct_bt {
 

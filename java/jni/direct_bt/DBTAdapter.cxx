@@ -116,7 +116,7 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
   public:
 
     std::string toString() const noexcept override {
-        return "JNIAdapterStatusListener[this "+jau::to_hexstring(this)+", iname "+std::to_string(iname)+"]";
+        return "JNIAdapterStatusListener[this "+jau::toHexString(this)+", iname "+std::to_string(iname)+"]";
     }
 
     // listenerObjRef dtor will call notifyDelete and clears the nativeInstance handle
@@ -469,15 +469,15 @@ void Java_jau_direct_1bt_DBTAdapter_deleteImpl(JNIEnv *env, jobject obj, jlong n
         shared_ptr_ref<BTAdapter> adapter(nativeInstance, false /* throw_on_nullptr */); // hold copy until done
         if( nullptr != adapter.pointer() ) {
             if( !adapter.is_null() ) {
-                DBG_PRINT("Java_jau_direct_1bt_DBTAdapter_deleteImpl (w/ close) %s", adapter->toString().c_str());
+                jau_DBG_PRINT("Java_jau_direct_1bt_DBTAdapter_deleteImpl (w/ close) %s", adapter->toString());
                 adapter->close();
             } else {
-                DBG_PRINT("Java_jau_direct_1bt_DBTAdapter_deleteImpl null reference");
+                jau_DBG_PRINT("Java_jau_direct_1bt_DBTAdapter_deleteImpl null reference");
             }
             std::shared_ptr<BTAdapter>* ref_ptr = castInstance<BTAdapter>(nativeInstance);
             delete ref_ptr;
         } else {
-            DBG_PRINT("Java_jau_direct_1bt_DBTAdapter_deleteImpl null reference store");
+            jau_DBG_PRINT("Java_jau_direct_1bt_DBTAdapter_deleteImpl null reference store");
         }
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -509,7 +509,7 @@ jboolean Java_jau_direct_1bt_DBTAdapter_addStatusListenerImpl(JNIEnv *env, jobje
         if( addRes ) {
             return JNI_TRUE;
         }
-        ERR_PRINT("BTAdapter::addStatusListener: FAILED: %s", asl->toString().c_str());
+        jau_ERR_PRINT("BTAdapter::addStatusListener: FAILED: %s", asl->toString());
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
@@ -528,7 +528,7 @@ jboolean Java_jau_direct_1bt_DBTAdapter_removeStatusListenerImpl(JNIEnv *env, jo
         JavaGlobalObj::check(asl_java, E_FILE_LINE);
 
         if( ! adapter->removeStatusListener( asl.shared_ptr() ) ) {
-            WARN_PRINT("Failed to remove statusListener with nativeInstance: %p at %s", asl.shared_ptr().get(), adapter->toString().c_str());
+            jau_WARN_PRINT("Failed to remove statusListener with nativeInstance: %p at %s", asl.shared_ptr().get(), adapter->toString());
             return false;
         }
         return true;

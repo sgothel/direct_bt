@@ -25,12 +25,7 @@
 
 #include <cstring>
 #include <string>
-#include <memory>
-#include <cstdint>
-#include <vector>
 #include <cstdio>
-
-#include <algorithm>
 
 // #define PERF_PRINT_ON 1
 // #define VERBOSE_ON 1
@@ -39,7 +34,6 @@
 #include "BTTypes1.hpp"
 
 extern "C" {
-    #include <inttypes.h>
     #include <unistd.h>
 }
 
@@ -56,33 +50,16 @@ static void append_bitstr(std::string& out, T mask, T bit, const std::string& bi
         out.append(bitstr); comma = true;
     }
 }
-#define APPEND_BITSTR(U,V,M) append_bitstr(out, M, U::V, #V, comma);
 
-#define SETTING_ENUM(X,M) \
-    X(AdapterSetting,POWERED,M) \
-    X(AdapterSetting,CONNECTABLE,M) \
-    X(AdapterSetting,FAST_CONNECTABLE,M) \
-    X(AdapterSetting,DISCOVERABLE,M) \
-    X(AdapterSetting,BONDABLE,M) \
-    X(AdapterSetting,LINK_SECURITY,M) \
-    X(AdapterSetting,SSP,M) \
-    X(AdapterSetting,BREDR,M) \
-    X(AdapterSetting,HS,M) \
-    X(AdapterSetting,LE,M) \
-    X(AdapterSetting,ADVERTISING,M) \
-    X(AdapterSetting,SECURE_CONN,M) \
-    X(AdapterSetting,DEBUG_KEYS,M) \
-    X(AdapterSetting,PRIVACY,M) \
-    X(AdapterSetting,CONFIGURATION,M) \
-    X(AdapterSetting,STATIC_ADDRESS,M) \
-    X(AdapterSetting,PHY_CONFIGURATION,M)
+namespace direct_bt {
+    JAU_MAKE_BITFIELD_ENUM_STRING_CODE(AdapterSetting, POWERED, CONNECTABLE, FAST_CONNECTABLE, DISCOVERABLE, BONDABLE, LINK_SECURITY,
+                                                       SSP, BREDR, HS, LE, ADVERTISING, SECURE_CONN,
+                                                       DEBUG_KEYS, PRIVACY, CONFIGURATION, STATIC_ADDRESS, PHY_CONFIGURATION);
+}
 
-std::string direct_bt::to_string(const AdapterSetting mask) noexcept {
-    std::string out("[");
-    bool comma = false;
-    SETTING_ENUM(APPEND_BITSTR,mask)
-    out.append("]");
-    return out;
+std::string direct_bt::ConnectionInfo::toString() const noexcept {
+    return jau_format_string("address %s, addressType %s, rssi %d, tx_power[set %d, max %d]",
+        getAddress(), getAddressType(), rssi, tx_power, max_tx_power);
 }
 
 BTMode direct_bt::getAdapterSettingsBTMode(const AdapterSetting settingMask) noexcept {
@@ -97,4 +74,9 @@ BTMode direct_bt::getAdapterSettingsBTMode(const AdapterSetting settingMask) noe
     } else {
         return BTMode::NONE;
     }
+}
+
+std::string direct_bt::AdapterInfo::toString() const noexcept {
+    return jau_format_string("AdapterInfo[id %u, address %s, version %u, manuf %u, settings[sup %s, cur %s], name '%s', shortName '%s']",
+        dev_id, addressAndType, version, manufacturer, supported_setting, current_setting, name, short_name);
 }

@@ -1,6 +1,6 @@
 /*
  * Author: Sven Gothel <sgothel@jausoft.com>
- * Copyright (c) 2020 Gothel Software e.K.
+ * Copyright (c) 2020-2026 Gothel Software e.K.
  * Copyright (c) 2020 ZAFENA AB
  *
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -31,19 +31,23 @@
 #include <memory>
 #include <cstdint>
 
-#include <jau/java_uplink.hpp>
 #include <jau/basic_types.hpp>
+#include <jau/byte_util.hpp>
 #include <jau/darray.hpp>
+#include <jau/enum_util.hpp>
+#include <jau/int_types.hpp>
+#include <jau/java_uplink.hpp>
 #include <jau/octets.hpp>
 #include <jau/uuid.hpp>
 
 #include "BTAddress.hpp"
-#include "jau/int_types.hpp"
 
 #define JAVA_DBT_PACKAGE "jau/direct_bt/"
 #define JAVA_MAIN_PACKAGE "org/direct_bt/"
 
 namespace direct_bt {
+
+    using namespace jau::enums;
 
     /** \addtogroup DBTUserAPI
      *
@@ -74,17 +78,15 @@ namespace direct_bt {
         /** Slave or *peripheral* role, advertising and waiting for connections to accept. This is a ::GATTRole::Server. */
         Slave      = 2
     };
-    constexpr uint8_t number(const BTRole rhs) noexcept {
-        return static_cast<uint8_t>(rhs);
-    }
-    constexpr BTRole operator !(const BTRole rhs) noexcept {
-        switch(rhs) {
+    JAU_MAKE_ENUM_STRING_DECL(BTRole);
+
+    constexpr BTRole operator!(const BTRole rhs) noexcept {
+        switch( rhs ) {
             case BTRole::Master: return BTRole::Slave;
-            case BTRole::Slave: return BTRole::Master;
-            default: return BTRole::None;
+            case BTRole::Slave:  return BTRole::Master;
+            default:             return BTRole::None;
         }
     }
-    std::string to_string(const BTRole v) noexcept;
 
     /**
      * Bluetooth GATT roles
@@ -101,10 +103,7 @@ namespace direct_bt {
         /** Local GATT client role to a remote BTDevice ::BTRole::Slave running a ::GATTRole::Server. Local BTAdapter is in ::BTRole::Master role. */
         Client     = 2
     };
-    constexpr uint8_t number(const GATTRole rhs) noexcept {
-        return static_cast<uint8_t>(rhs);
-    }
-    std::string to_string(const GATTRole v) noexcept;
+    JAU_MAKE_ENUM_STRING_DECL(GATTRole);
 
     /**
      * Bluetooth adapter operating mode
@@ -119,10 +118,7 @@ namespace direct_bt {
         /** LE only Bluetooth mode */
         LE          = 3
     };
-    constexpr uint8_t number(const BTMode rhs) noexcept {
-        return static_cast<uint8_t>(rhs);
-    }
-    std::string to_string(const BTMode v) noexcept;
+    JAU_MAKE_ENUM_STRING_DECL(BTMode);
 
     /**
      * Maps the specified name to a constant of BTMode.
@@ -198,28 +194,7 @@ namespace direct_bt {
         LE_Pwr_Chg_Ind          = 0b0000000000000000000000000000010000000000000000000000000000000000,
         LE_Path_Loss_Mon        = 0b0000000000000000000000000000100000000000000000000000000000000000  // bit #35
     };
-    constexpr uint64_t number(const LE_Features rhs) noexcept {
-        return static_cast<uint64_t>(rhs);
-    }
-    constexpr LE_Features operator ^(const LE_Features lhs, const LE_Features rhs) noexcept {
-        return static_cast<LE_Features> ( number(lhs) ^ number(rhs) );
-    }
-    constexpr LE_Features operator |(const LE_Features lhs, const LE_Features rhs) noexcept {
-        return static_cast<LE_Features> ( number(lhs) | number(rhs) );
-    }
-    constexpr LE_Features operator &(const LE_Features lhs, const LE_Features rhs) noexcept {
-        return static_cast<LE_Features> ( number(lhs) & number(rhs) );
-    }
-    constexpr bool operator ==(const LE_Features lhs, const LE_Features rhs) noexcept {
-        return number(lhs) == number(rhs);
-    }
-    constexpr bool operator !=(const LE_Features lhs, const LE_Features rhs) noexcept {
-        return !( lhs == rhs );
-    }
-    constexpr bool is_set(const LE_Features mask, const LE_Features bit) noexcept {
-        return bit == ( mask & bit );
-    }
-    std::string to_string(const LE_Features mask) noexcept;
+    JAU_MAKE_BITFIELD_ENUM_STRING_DECL(LE_Features);
 
     /**
      * LE Transport PHY bit values
@@ -234,28 +209,7 @@ namespace direct_bt {
         LE_2M       = 0b00000010,
         LE_CODED    = 0b00000100
     };
-    constexpr uint8_t number(const LE_PHYs rhs) noexcept {
-        return static_cast<uint8_t>(rhs);
-    }
-    constexpr LE_PHYs operator ^(const LE_PHYs lhs, const LE_PHYs rhs) noexcept {
-        return static_cast<LE_PHYs> ( number(lhs) ^ number(rhs) );
-    }
-    constexpr LE_PHYs operator |(const LE_PHYs lhs, const LE_PHYs rhs) noexcept {
-        return static_cast<LE_PHYs> ( number(lhs) | number(rhs) );
-    }
-    constexpr LE_PHYs operator &(const LE_PHYs lhs, const LE_PHYs rhs) noexcept {
-        return static_cast<LE_PHYs> ( number(lhs) & number(rhs) );
-    }
-    constexpr bool operator ==(const LE_PHYs lhs, const LE_PHYs rhs) noexcept {
-        return number(lhs) == number(rhs);
-    }
-    constexpr bool operator !=(const LE_PHYs lhs, const LE_PHYs rhs) noexcept {
-        return !( lhs == rhs );
-    }
-    constexpr bool is_set(const LE_PHYs mask, const LE_PHYs bit) noexcept {
-        return bit == ( mask & bit );
-    }
-    std::string to_string(const LE_PHYs mask) noexcept;
+    JAU_MAKE_BITFIELD_ENUM_STRING_DECL(LE_PHYs);
 
     /**
      * Bluetooth Security Level.
@@ -276,34 +230,14 @@ namespace direct_bt {
         /** Authenticated Secure Connections. Also known as BT_SECURITY_FIPS, value 4. */
         ENC_AUTH_FIPS = 4
     };
-    constexpr uint8_t number(const BTSecurityLevel rhs) noexcept {
-        return static_cast<uint8_t>(rhs);
-    }
-    constexpr bool operator ==(const BTSecurityLevel lhs, const BTSecurityLevel rhs) noexcept {
-        return number(lhs) == number(rhs);
-    }
-    constexpr bool operator !=(const BTSecurityLevel lhs, const BTSecurityLevel rhs) noexcept {
-        return !( lhs == rhs );
-    }
-    constexpr bool operator <(const BTSecurityLevel lhs, const BTSecurityLevel rhs) noexcept {
-        return number(lhs) < number(rhs);
-    }
-    constexpr bool operator <=(const BTSecurityLevel lhs, const BTSecurityLevel rhs) noexcept {
-        return number(lhs) <= number(rhs);
-    }
-    constexpr bool operator >(const BTSecurityLevel lhs, const BTSecurityLevel rhs) noexcept {
-        return number(lhs) > number(rhs);
-    }
-    constexpr bool operator >=(const BTSecurityLevel lhs, const BTSecurityLevel rhs) noexcept {
-        return number(lhs) >= number(rhs);
-    }
+
     constexpr BTSecurityLevel to_BTSecurityLevel(const uint8_t v) noexcept {
         if( 1 <= v && v <= 4 ) {
             return static_cast<BTSecurityLevel>(v);
         }
         return BTSecurityLevel::UNSET;
     }
-    std::string to_string(const BTSecurityLevel v) noexcept;
+    JAU_MAKE_ENUM_STRING_DECL(BTSecurityLevel);
 
     /**
      * Bluetooth secure pairing mode
@@ -334,10 +268,7 @@ namespace direct_bt {
         /** Reusing encryption keys from previous pairing. */
         PRE_PAIRED          = 8
     };
-    constexpr uint8_t number(const PairingMode rhs) noexcept {
-        return static_cast<uint8_t>(rhs);
-    }
-    std::string to_string(const PairingMode v) noexcept;
+    JAU_MAKE_ENUM_STRING_DECL(PairingMode);
 
     /**
      * Meta ScanType as derived from BTMode,
@@ -353,35 +284,11 @@ namespace direct_bt {
         LE    = ( 1 << number(BDAddressType::BDADDR_LE_PUBLIC) ) | ( 1 << number(BDAddressType::BDADDR_LE_RANDOM) ),
         DUAL  = BREDR | LE
     };
-    constexpr uint8_t number(const ScanType rhs) noexcept {
-        return static_cast<uint8_t>(rhs);
-    }
-    constexpr ScanType operator ~(const ScanType val) noexcept {
-        return static_cast<ScanType> ( ~number(val) );
-    }
-    constexpr ScanType operator ^(const ScanType lhs, const ScanType rhs) noexcept {
-        return static_cast<ScanType> ( number(lhs) ^ number(rhs) );
-    }
-    constexpr ScanType operator |(const ScanType lhs, const ScanType rhs) noexcept {
-        return static_cast<ScanType> ( number(lhs) | number(rhs) );
-    }
-    constexpr ScanType operator &(const ScanType lhs, const ScanType rhs) noexcept {
-        return static_cast<ScanType> ( number(lhs) & number(rhs) );
-    }
-    constexpr bool operator ==(const ScanType lhs, const ScanType rhs) noexcept {
-        return number(lhs) == number(rhs);
-    }
-    constexpr bool operator !=(const ScanType lhs, const ScanType rhs) noexcept {
-        return !( lhs == rhs );
-    }
+    JAU_MAKE_BITFIELD_ENUM_STRING_DECL(ScanType);
+
     constexpr ScanType changeScanType(const ScanType current, const ScanType changeType, const bool changeEnable) noexcept {
         return changeEnable ? ( current | changeType ) : ( current & ~changeType );
     }
-    constexpr bool is_set(const ScanType current, const ScanType testType) noexcept {
-        return testType == ( current & testType );
-    }
-
-    std::string to_string(const ScanType v) noexcept;
 
     ScanType to_ScanType(BTMode btMode);
 
@@ -424,11 +331,7 @@ namespace direct_bt {
 
         UNDEFINED                   = 0xff
     };
-    constexpr uint8_t number(const AD_PDU_Type rhs) noexcept {
-        return static_cast<uint8_t>(rhs);
-    }
-    std::string to_string(const AD_PDU_Type v) noexcept;
-
+    JAU_MAKE_ENUM_STRING_DECL(AD_PDU_Type);
 
     /**
      * LE Extended Advertising (EAD) Event Types
@@ -446,24 +349,7 @@ namespace direct_bt {
         DATA_B0     = 0b00100000,
         DATA_B1     = 0b01000000,
     };
-    constexpr uint16_t number(const EAD_Event_Type rhs) noexcept {
-        return static_cast<uint16_t>(rhs);
-    }
-    constexpr EAD_Event_Type operator |(const EAD_Event_Type lhs, const EAD_Event_Type rhs) noexcept {
-        return static_cast<EAD_Event_Type> ( number(lhs) | number(rhs) );
-    }
-    constexpr EAD_Event_Type operator &(const EAD_Event_Type lhs, const EAD_Event_Type rhs) noexcept {
-        return static_cast<EAD_Event_Type> ( number(lhs) & number(rhs) );
-    }
-    constexpr bool operator ==(const EAD_Event_Type lhs, const EAD_Event_Type rhs) noexcept {
-        return number(lhs) == number(rhs);
-    }
-    constexpr bool operator !=(const EAD_Event_Type lhs, const EAD_Event_Type rhs) noexcept {
-        return !( lhs == rhs );
-    }
-    constexpr bool is_set(const EAD_Event_Type mask, const EAD_Event_Type bit) noexcept { return bit == ( mask & bit ); }
-    constexpr void set(EAD_Event_Type &mask, const EAD_Event_Type bit) noexcept { mask = mask | bit; }
-    std::string to_string(const EAD_Event_Type v) noexcept;
+    JAU_MAKE_BITFIELD_ENUM_STRING_DECL(EAD_Event_Type);
 
     /**
      * HCI Whitelist connection type.
@@ -476,9 +362,6 @@ namespace direct_bt {
         /** Auto Connect: Only supported for LE on Linux .. */
         HCI_AUTO_CONN_ALWAYS = 0x02
     };
-    constexpr uint8_t number(const HCIWhitelistConnectType rhs) noexcept {
-        return static_cast<uint8_t>(rhs);
-    }
 
     enum class AD_Type_Const : uint8_t {
         AD_FLAGS_LIMITED_MODE_BIT = 0x01,
@@ -501,11 +384,8 @@ namespace direct_bt {
         DYN_END       = 0xffff,
         LE_DYN_END    = 0x007f
     };
-    constexpr uint16_t number(const L2CAP_CID rhs) noexcept {
-        return static_cast<uint16_t>(rhs);
-    }
+    JAU_MAKE_ENUM_STRING_DECL(L2CAP_CID);
     constexpr L2CAP_CID to_L2CAP_CID(const uint16_t v) noexcept { return static_cast<L2CAP_CID>(v); }
-    std::string to_string(const L2CAP_CID v) noexcept;
 
     /**
      * Protocol Service Multiplexers (PSM) Assigned numbers
@@ -532,11 +412,8 @@ namespace direct_bt {
         DYN_END           = 0xffff,
         AUTO_END          = 0x10ff
     };
-    constexpr uint16_t number(const L2CAP_PSM rhs) noexcept {
-        return static_cast<uint16_t>(rhs);
-    }
+    JAU_MAKE_ENUM_STRING_DECL(L2CAP_PSM);
     constexpr L2CAP_PSM to_L2CAP_PSM(const uint16_t v) noexcept { return static_cast<L2CAP_PSM>(v); }
-    std::string to_string(const L2CAP_PSM v) noexcept;
 
     /**
      * BT Core Spec v5.2:  Vol 3, Part A L2CAP Spec: 6 State Machine
@@ -691,7 +568,6 @@ namespace direct_bt {
         /** Manufacturer id code and specific opaque data */
         MANUFACTURE_SPECIFIC    = 0xFF
     };
-    constexpr uint8_t number(const GAP_T rhs) noexcept { return static_cast<uint8_t>(rhs); }
 
     enum class AppearanceCat : uint16_t {
         UNKNOWN = 0,
@@ -753,8 +629,7 @@ namespace direct_bt {
         OUTDOOR_SPORTS_ACTIVITY_LOCATION_POD = 5187,
         OUTDOOR_SPORTS_ACTIVITY_LOCATION_AND_NAVIGATION_POD = 5188
     };
-    constexpr uint16_t number(const AppearanceCat rhs) noexcept { return static_cast<uint16_t>(rhs); }
-    std::string to_string(const AppearanceCat v) noexcept;
+    JAU_MAKE_ENUM_STRING_DECL(AppearanceCat);
 
     // *************************************************
     // *************************************************
@@ -810,20 +685,7 @@ namespace direct_bt {
         RESERVED2              = (1 << 6),
         RESERVED3              = (1 << 7)
     };
-    constexpr uint8_t number(const GAPFlags rhs) noexcept { return static_cast<uint8_t>(rhs); }
-    constexpr GAPFlags operator |(const GAPFlags lhs, const GAPFlags rhs) noexcept {
-        return static_cast<GAPFlags> ( number(lhs) | number(rhs) );
-    }
-    constexpr GAPFlags operator &(const GAPFlags lhs, const GAPFlags rhs) noexcept {
-        return static_cast<GAPFlags> ( number(lhs) & number(rhs) );
-    }
-    constexpr bool operator ==(const GAPFlags lhs, const GAPFlags rhs) noexcept {
-        return number(lhs) == number(rhs);
-    }
-    constexpr bool operator !=(const GAPFlags lhs, const GAPFlags rhs) noexcept {
-        return !( lhs == rhs );
-    }
-    std::string to_string(const GAPFlags v) noexcept;
+    JAU_MAKE_BITFIELD_ENUM_STRING_DECL(GAPFlags);
 
     // *************************************************
     // *************************************************
@@ -856,26 +718,7 @@ namespace direct_bt {
         SERVICE_UUID = (1 << 30),
         ALL          = 0xffffffff
     };
-    constexpr uint32_t number(const EIRDataType rhs) noexcept { return static_cast<uint32_t>(rhs); }
-
-    constexpr EIRDataType operator |(const EIRDataType lhs, const EIRDataType rhs) noexcept {
-        return static_cast<EIRDataType> ( number(lhs) | number(rhs) );
-    }
-    constexpr EIRDataType operator &(const EIRDataType lhs, const EIRDataType rhs) noexcept {
-        return static_cast<EIRDataType> ( number(lhs) & number(rhs) );
-    }
-    constexpr EIRDataType operator ~(const EIRDataType rhs) noexcept {
-        return static_cast<EIRDataType> ( ~number(rhs) );
-    }
-    constexpr bool operator ==(const EIRDataType lhs, const EIRDataType rhs) noexcept {
-        return number(lhs) == number(rhs);
-    }
-    constexpr bool operator !=(const EIRDataType lhs, const EIRDataType rhs) noexcept {
-        return !( lhs == rhs );
-    }
-    constexpr bool is_set(const EIRDataType mask, const EIRDataType bit) noexcept { return bit == ( mask & bit ); }
-    constexpr void set(EIRDataType &mask, const EIRDataType bit) noexcept { mask = mask | bit; }
-    std::string to_string(const EIRDataType mask) noexcept;
+    JAU_MAKE_BITFIELD_ENUM_STRING_DECL(EIRDataType);
 
     /** Explicit mask to erase all implicit set EIRDataType fields: EVT_TYPE, EXT_EVT_TYPE, BDADDR_TYPE, BDADDR and RSSI. */
     inline constexpr const EIRDataType EIR_DATA_TYPE_MASK = ~( EIRDataType::EVT_TYPE | EIRDataType::EXT_EVT_TYPE |
@@ -928,7 +771,7 @@ namespace direct_bt {
             EAD_Event_Type ead_type = EAD_Event_Type::NONE;
             uint8_t ad_address_type = 0;
             BDAddressType addressType = BDAddressType::BDADDR_UNDEFINED;
-            jau::EUI48 address;
+            jau::io::net::EUI48 address;
 
             GAPFlags flags = GAPFlags::NONE;
             std::string name;
@@ -984,7 +827,7 @@ namespace direct_bt {
             void setEvtType(AD_PDU_Type et) noexcept { evt_type = et; set(EIRDataType::EVT_TYPE); }
             void setExtEvtType(EAD_Event_Type eadt) noexcept { ead_type = eadt; set(EIRDataType::EXT_EVT_TYPE); }
             void setAddressType(BDAddressType at) noexcept;
-            void setAddress(jau::EUI48 const &a) noexcept { address = a; set(EIRDataType::BDADDR); }
+            void setAddress(jau::io::net::EUI48 const &a) noexcept { address = a; set(EIRDataType::BDADDR); }
             void setRSSI(int8_t v) noexcept { rssi = v; set(EIRDataType::RSSI); }
             void setTxPower(int8_t v) noexcept { tx_power = v; set(EIRDataType::TX_POWER); }
 
@@ -1115,7 +958,7 @@ namespace direct_bt {
             GAPFlags getFlags() const noexcept { return flags; }
             uint8_t getADAddressType() const noexcept { return ad_address_type; }
             BDAddressType getAddressType() const noexcept { return addressType; }
-            jau::EUI48 const & getAddress() const noexcept { return address; }
+            jau::io::net::EUI48 const & getAddress() const noexcept { return address; }
             std::string const & getName() const noexcept { return name; }
             std::string const & getShortName() const noexcept{ return name_short; }
             int8_t getRSSI() const noexcept { return rssi; }
@@ -1160,6 +1003,10 @@ namespace direct_bt {
     };
     std::string to_string(EInfoReport::Source source) noexcept;
     inline std::string to_string(const EInfoReport& eir, const bool includeServices=true) noexcept { return eir.toString(includeServices); }
+
+    inline std::ostream& operator<<(std::ostream& os, const EInfoReport& v) {
+        return os << v.toString();
+    }
 
     typedef std::shared_ptr<EInfoReport> EInfoReportRef;
 

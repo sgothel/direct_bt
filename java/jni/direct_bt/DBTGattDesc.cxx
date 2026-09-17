@@ -70,7 +70,7 @@ jbyteArray Java_jau_direct_1bt_DBTGattDesc_readValueImpl(JNIEnv *env, jobject ob
         JavaGlobalObj::check(descriptor_java, E_FILE_LINE);
 
         if( !descriptor->readValue() ) {
-            ERR_PRINT("Characteristic readValue failed: %s", descriptor->toString().c_str());
+            jau_ERR_PRINT("Characteristic readValue failed: %s", descriptor->toString());
             return env->NewByteArray((jsize)0);
         }
         const size_t value_size = descriptor->value.size();
@@ -107,7 +107,7 @@ jboolean Java_jau_direct_1bt_DBTGattDesc_writeValueImpl(JNIEnv *env, jobject obj
         descriptor->value = value; // copy data
 
         if( !descriptor->writeValue() ) {
-            ERR_PRINT("Descriptor writeValue failed: %s", descriptor->toString().c_str());
+            jau_ERR_PRINT("Descriptor writeValue failed: %s", descriptor->toString());
             return JNI_FALSE;
         }
         return JNI_TRUE;

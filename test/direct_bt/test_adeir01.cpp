@@ -1,6 +1,5 @@
 #include <iostream>
 #include <cassert>
-#include <cinttypes>
 #include <cstring>
 
 #include <jau/test/catch2_ext.hpp>
@@ -10,6 +9,7 @@
 // #include <direct_bt/BTTypes1.hpp>
 #include <direct_bt/ATTPDUTypes.hpp>
 #include "direct_bt/BTTypes0.hpp"
+#include "jau/string_util.hpp"
 // #include <direct_bt/GATTHandler.hpp>
 // #include <direct_bt/GATTIoctl.hpp>
 
@@ -46,7 +46,7 @@ TEST_CASE( "AD EIR PDU Test 01", "[datatype][AD][EIR]" ) {
         const jau::nsize_t eir_sz = eir0.write_data(EIRDataType::ALL, buffer.data(), buffer.capacity());
         buffer.resize(eir_sz);
         std::cout << "eir0.0: bytes-out " << eir_sz << ", " << buffer.size() << std::endl;
-        std::cout << "eir0.0: " << jau::bytesHexString(buffer.data(), 0, buffer.size(), true /* lsb */) << std::endl;
+        std::cout << "eir0.0: " << jau::toHexString(buffer.data(), buffer.size(), jau::lb_endian_t::little) << std::endl;
     }
     std::cout << std::endl;
 
@@ -110,7 +110,7 @@ TEST_CASE( "AD EIR PDU Test 02", "[datatype][AD][EIR]" ) {
         const jau::nsize_t eir_sz = eir0a.write_data(mask_0b, buffer.data(), buffer.capacity());
         buffer.resize(eir_sz);
         std::cout << "eir0a.1: bytes-out " << eir_sz << ", " << buffer.size() << std::endl;
-        std::cout << "eir0a.1: " << jau::bytesHexString(buffer.data(), 0, buffer.size(), true /* lsb */) << std::endl;
+        std::cout << "eir0a.1: " << jau::toHexString(buffer.data(), buffer.size(), jau::lb_endian_t::little) << std::endl;
         std::cout << std::endl;
 
         EInfoReport eir1;
@@ -128,7 +128,7 @@ TEST_CASE( "AD EIR PDU Test 02", "[datatype][AD][EIR]" ) {
         const jau::nsize_t eir_sz = eir0a.write_data(mask_0c, buffer.data(), buffer.capacity());
         buffer.resize(eir_sz);
         std::cout << "eir0a.2: bytes-out " << eir_sz << ", " << buffer.size() << std::endl;
-        std::cout << "eir0a.2: " << jau::bytesHexString(buffer.data(), 0, buffer.size(), true /* lsb */) << std::endl;
+        std::cout << "eir0a.2: " << jau::toHexString(buffer.data(), buffer.size(), jau::lb_endian_t::little) << std::endl;
         std::cout << std::endl;
 
         EInfoReport eir1;
@@ -147,7 +147,7 @@ TEST_CASE( "AD EIR PDU Test 02", "[datatype][AD][EIR]" ) {
         const jau::nsize_t eir_sz1 = eir0a.write_data(mask_0b, buffer1.data(), buffer1.capacity());
         buffer1.resize(eir_sz1);
         std::cout << "eir0a.3: bytes-out " << eir_sz1 << ", " << buffer1.size() << std::endl;
-        std::cout << "eir0a.3: " << jau::bytesHexString(buffer1.data(), 0, buffer1.size(), true /* lsb */) << std::endl;
+        std::cout << "eir0a.3: " << jau::toHexString(buffer1.data(), buffer1.size(), jau::lb_endian_t::little) << std::endl;
         std::cout << std::endl;
 
         std::vector<uint8_t> buffer2;
@@ -155,7 +155,7 @@ TEST_CASE( "AD EIR PDU Test 02", "[datatype][AD][EIR]" ) {
         const jau::nsize_t eir_sz2 = eir0a.write_data(mask_0c, buffer2.data(), buffer2.capacity());
         buffer2.resize(eir_sz2);
         std::cout << "eir0a.4: bytes-out " << eir_sz2 << ", " << buffer2.size() << std::endl;
-        std::cout << "eir0a.4: " << jau::bytesHexString(buffer2.data(), 0, buffer2.size(), true /* lsb */) << std::endl;
+        std::cout << "eir0a.4: " << jau::toHexString(buffer2.data(), buffer2.size(), jau::lb_endian_t::little) << std::endl;
         std::cout << std::endl;
 
         EInfoReport eir1;

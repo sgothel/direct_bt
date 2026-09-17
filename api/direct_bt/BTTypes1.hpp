@@ -1,6 +1,6 @@
 /*
  * Author: Sven Gothel <sgothel@jausoft.com>
- * Copyright (c) 2020 Gothel Software e.K.
+ * Copyright (c) 2020-2026 Gothel Software e.K.
  * Copyright (c) 2020 ZAFENA AB
  *
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -28,14 +28,18 @@
 
 #include <atomic>
 
-#include <jau/java_uplink.hpp>
 #include <jau/basic_types.hpp>
+#include <jau/enum_util.hpp>
+#include <jau/java_uplink.hpp>
 #include <jau/uuid.hpp>
 
 #include "BTAddress.hpp"
 #include "BTTypes0.hpp"
+#include "jau/ordered_atomic.hpp"
 
 namespace direct_bt {
+
+    using namespace jau::enums;
 
     class BTAdapter; // forward
     class BTDevice; // forward
@@ -48,12 +52,12 @@ namespace direct_bt {
     class BTObject : public jau::jni::JavaUplink
     {
         protected:
-            std::atomic_bool instance_valid;
+            jau::sc_atomic_bool instance_valid;
 
-            BTObject() noexcept : instance_valid(true) {}
+            BTObject() noexcept : instance_valid(true) {} // NOLINT(modernize-use-equals-default)
 
         public:
-            std::string toString() const noexcept override { return "BTObject["+jau::to_hexstring(this)+"]"; }
+            std::string toString() const noexcept override { return jau_format_string("BTObject[%p]", this); }
 
             ~BTObject() noexcept override {
                 instance_valid = false;
@@ -62,11 +66,11 @@ namespace direct_bt {
             /**
              * Returns whether the object's reference is valid and in a general operational state.
              */
-            inline bool isValidInstance() const noexcept { return instance_valid.load(); }
+            inline bool isValidInstance() const noexcept { return instance_valid; }
 
             void checkValidInstance() const override {
                 if( !isValidInstance() ) {
-                    throw jau::IllegalStateError("BTObject::checkValidInstance: Invalid object: "+jau::to_hexstring(this), E_FILE_LINE);
+                    throw jau::IllegalStateError("BTObject::checkValidInstance: Invalid object: "+jau::toHexString(this), E_FILE_LINE);
                 }
             }
     };
@@ -81,7 +85,7 @@ namespace direct_bt {
     class ConnectionInfo
     {
         private:
-            jau::EUI48 address;
+            jau::io::net::EUI48 address;
             BDAddressType addressType;
             int8_t rssi;
             int8_t tx_power;
@@ -90,20 +94,16 @@ namespace direct_bt {
         public:
             static jau::nsize_t minimumDataSize() noexcept { return 6 + 1 + 1 + 1 + 1; }
 
-            ConnectionInfo(const jau::EUI48 &address_, BDAddressType addressType_, int8_t rssi_, int8_t tx_power_, int8_t max_tx_power_) noexcept
+            ConnectionInfo(const jau::io::net::EUI48 &address_, BDAddressType addressType_, int8_t rssi_, int8_t tx_power_, int8_t max_tx_power_) noexcept
             : address(address_), addressType(addressType_), rssi(rssi_), tx_power(tx_power_), max_tx_power(max_tx_power_) {}
 
-            const jau::EUI48 getAddress() const noexcept { return address; }
+            const jau::io::net::EUI48 getAddress() const noexcept { return address; }
             BDAddressType getAddressType() const noexcept { return addressType; }
             int8_t getRSSI() const noexcept { return rssi; }
             int8_t getTxPower() const noexcept { return tx_power; }
             int8_t getMaxTxPower() const noexcept { return max_tx_power; }
 
-            std::string toString() const noexcept {
-                return "address="+getAddress().toString()+", addressType "+to_string(getAddressType())+
-                       ", rssi "+std::to_string(rssi)+
-                       ", tx_power[set "+std::to_string(tx_power)+", max "+std::to_string(tx_power)+"]";
-            }
+            std::string toString() const noexcept;
     };
 
     class NameAndShortName
@@ -130,7 +130,7 @@ namespace direct_bt {
             std::string getShortName() const noexcept { return short_name; }
 
             std::string toString() const noexcept {
-                return "name '"+getName()+"', shortName '"+getShortName()+"'";
+                return jau_format_string("name '%s', shortName '%s'", getName(), getShortName());
             }
     };
 
@@ -160,24 +160,7 @@ namespace direct_bt {
         STATIC_ADDRESS     = 0x00008000,
         PHY_CONFIGURATION  = 0x00010000
     };
-    constexpr AdapterSetting operator ~(const AdapterSetting rhs) noexcept {
-        return static_cast<AdapterSetting> ( ~static_cast<uint32_t>(rhs) );
-    }
-    constexpr AdapterSetting operator ^(const AdapterSetting lhs, const AdapterSetting rhs) noexcept {
-        return static_cast<AdapterSetting> ( static_cast<uint32_t>(lhs) ^ static_cast<uint32_t>(rhs) );
-    }
-    constexpr AdapterSetting operator |(const AdapterSetting lhs, const AdapterSetting rhs) noexcept {
-        return static_cast<AdapterSetting> ( static_cast<uint32_t>(lhs) | static_cast<uint32_t>(rhs) );
-    }
-    constexpr AdapterSetting operator &(const AdapterSetting lhs, const AdapterSetting rhs) noexcept {
-        return static_cast<AdapterSetting> ( static_cast<uint32_t>(lhs) & static_cast<uint32_t>(rhs) );
-    }
-    constexpr bool operator ==(const AdapterSetting lhs, const AdapterSetting rhs) noexcept {
-        return static_cast<uint32_t>(lhs) == static_cast<uint32_t>(rhs);
-    }
-    constexpr bool operator !=(const AdapterSetting lhs, const AdapterSetting rhs) noexcept {
-        return !( lhs == rhs );
-    }
+    JAU_MAKE_BITFIELD_ENUM_STRING_DECL(AdapterSetting);
 
     constexpr AdapterSetting getAdapterSettingMaskDiff(const AdapterSetting setting_a, const AdapterSetting setting_b) noexcept { return setting_a ^ setting_b; }
 
@@ -185,8 +168,6 @@ namespace direct_bt {
 
     constexpr void setAdapterSettingMaskBit(AdapterSetting &mask, const AdapterSetting bit) noexcept { mask = mask | bit; }
     constexpr void clrAdapterSettingMaskBit(AdapterSetting &mask, const AdapterSetting bit) noexcept { mask = mask & ~bit; }
-
-    std::string to_string(const AdapterSetting settingBitMask) noexcept;
 
     /** Maps the given {@link AdapterSetting} to {@link BTMode} */
     BTMode getAdapterSettingsBTMode(const AdapterSetting settingMask) noexcept;
@@ -287,12 +268,7 @@ namespace direct_bt {
             std::string getName() const noexcept { return name; }
             std::string getShortName() const noexcept { return short_name; }
 
-            std::string toString() const noexcept {
-                return "AdapterInfo[id "+std::to_string(dev_id)+", address "+addressAndType.toString()+", version "+std::to_string(version)+
-                        ", manuf "+std::to_string(manufacturer)+
-                        ", settings[sup "+to_string(supported_setting)+", cur "+to_string(current_setting)+
-                        "], name '"+name+"', shortName '"+short_name+"']";
-            }
+            std::string toString() const noexcept;
     };
     inline std::string to_string(const AdapterInfo& a) noexcept { return a.toString(); }
 

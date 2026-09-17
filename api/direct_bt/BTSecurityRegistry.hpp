@@ -32,220 +32,218 @@
 #include "BTAddress.hpp"
 #include "SMPTypes.hpp"
 
-namespace direct_bt {
+
+/** \addtogroup DBTUserAPI
+ *
+ *  @{
+ */
+
+/**
+ * Application toolkit providing BT security setup and its device association
+ * on a pattern matching basis, i.e. EUI48Sub or name-sub.
+ */
+namespace direct_bt::BTSecurityRegistry {
 
     /** \addtogroup DBTUserAPI
      *
      *  @{
      */
 
+    struct Entry {
+        static constexpr int NO_PASSKEY = -1;
+
+        EUI48Sub addrSub;
+        std::string nameSub;
+
+        BTSecurityLevel sec_level { BTSecurityLevel::UNSET };
+        SMPIOCapability io_cap { SMPIOCapability::UNSET };
+        SMPIOCapability io_cap_auto { SMPIOCapability::UNSET };
+        int passkey = NO_PASSKEY;
+
+        Entry(const EUI48Sub& addrSub_)
+        : addrSub(addrSub_), nameSub() {}
+
+        Entry(std::string nameSub_)
+        : addrSub(EUI48Sub::ALL_DEVICE), nameSub(std::move(nameSub_)) {}
+
+        constexpr bool isSecLevelOrIOCapSet() const noexcept {
+            return SMPIOCapability::UNSET != io_cap ||  BTSecurityLevel::UNSET != sec_level;
+        }
+        constexpr const BTSecurityLevel& getSecLevel() const noexcept { return sec_level; }
+        constexpr const SMPIOCapability& getIOCap() const noexcept { return io_cap; }
+
+        constexpr bool isSecurityAutoEnabled() const noexcept {
+            return SMPIOCapability::UNSET != io_cap_auto;
+        }
+        constexpr const SMPIOCapability& getSecurityAutoIOCap() const noexcept { return io_cap_auto; }
+
+        constexpr int getPairingPasskey() const noexcept { return passkey; }
+
+        constexpr bool getPairingNumericComparison() const noexcept { return true; }
+
+        std::string toString() const noexcept {
+            const std::string id = addrSub == EUI48Sub::ALL_DEVICE ? "'"+nameSub+"'" : addrSub.toString();
+            return "BTSecurityDetail["+id+", lvl "+
+                    to_string(sec_level)+
+                    ", io "+to_string(io_cap)+
+                    ", auto-io "+to_string(io_cap_auto)+
+                    ", passkey "+std::to_string(passkey)+"]";
+        }
+    };
+
     /**
-     * Application toolkit providing BT security setup and its device association
-     * on a pattern matching basis, i.e. EUI48Sub or name-sub.
+     * Function for user defined EUI48 address and name BTSecurityRegistry::Entry matching criteria and algorithm.
+     * <p>
+     * Return {@code true} if the given {@code address} or {@code name} matches
+     * with the BTSecurityRegistry::Entry.
+     * </p>
+     *
+     * @param address EUI48 address
+     * @param name optional name, maybe empty
+     * @param e Entry entry
      */
-    namespace BTSecurityRegistry {
+    typedef bool (*AddressNameEntryMatchFunc)(const EUI48& address, const std::string& name, const Entry& e);
 
-        /** \addtogroup DBTUserAPI
-         *
-         *  @{
-         */
+    /**
+     * Function for user defined EUI48Sub addressSub and name BTSecurityRegistry::Entry matching criteria and algorithm.
+     * <p>
+     * Return {@code true} if the given {@code addressSub} or {@code name} matches
+     * with the BTSecurityRegistry::Entry.
+     * </p>
+     *
+     * @param addressSub EUI48Sub address
+     * @param name optional name, maybe empty
+     * @param e Entry entry
+     */
+    typedef bool (*AddressSubNameEntryMatchFunc)(const EUI48Sub& addressSub, const std::string& name, const Entry& e);
 
-        struct Entry {
-            static constexpr int NO_PASSKEY = -1;
+    /**
+     * Function for user defined std::string name BTSecurityRegistry::Entry matching criteria and algorithm.
+     * <p>
+     * Return {@code true} if the given {@code name} matches
+     * with the BTSecurityRegistry::Entry.
+     * </p>
+     *
+     * @param name
+     * @param e Entry entry
+     */
+    typedef bool (*NameEntryMatchFunc)(const std::string& name, const Entry& e);
 
-            EUI48Sub addrSub;
-            std::string nameSub;
+    /**
+     * Returns a matching BTSecurityRegistry::Entry with the given {@code addr} and/or {@code name}.
+     * <p>
+     * Matching criteria and algorithm is defined by the given AddressNameEntryMatchFunc.
+     * </p>
+     */
+    Entry* get(const EUI48& addr, const std::string& name, AddressNameEntryMatchFunc m) noexcept;
 
-            BTSecurityLevel sec_level { BTSecurityLevel::UNSET };
-            SMPIOCapability io_cap { SMPIOCapability::UNSET };
-            SMPIOCapability io_cap_auto { SMPIOCapability::UNSET };
-            int passkey = NO_PASSKEY;
+    /**
+     * Returns a matching BTSecurityRegistry::Entry with the given {@code addrSub} and/or {@code name}.
+     * <p>
+     * Matching criteria and algorithm is defined by the given AddressSubNameEntryMatchFunc.
+     * </p>
+     */
+    Entry* get(const EUI48Sub& addrSub, const std::string& name, AddressSubNameEntryMatchFunc m) noexcept;
 
-            Entry(const EUI48Sub& addrSub_)
-            : addrSub(addrSub_), nameSub() {}
+    /**
+     * Returns a matching BTSecurityRegistry::Entry with the given {@code name}.
+     * <p>
+     * Matching criteria and algorithm is defined by the given NameEntryMatchFunc.
+     * </p>
+     */
+    Entry* get(const std::string& name, NameEntryMatchFunc m) noexcept;
 
-            Entry(std::string nameSub_)
-            : addrSub(EUI48Sub::ALL_DEVICE), nameSub(std::move(nameSub_)) {}
+    /**
+     * Returns a matching Entry,
+     * - which Entry::addrSub is set and the given {@code addr} starts with Entry::addrSub, or
+     * - which Entry::nameSub is set and the given {@code name} starts with Entry::nameSub.
+     *
+     * Otherwise {@code null} is returned.
+     */
+    inline Entry* getStartOf(const EUI48& addr, const std::string& name) noexcept {
+        return get(addr, name, [](const EUI48& a, const std::string& n, const Entry& e)->bool {
+           return ( e.addrSub.length > 0 && 0 == a.indexOf(e.addrSub, jau::lb_endian_t::big) ) ||
+                  ( e.nameSub.length() > 0 && n.starts_with(e.nameSub) );
+        });
+    }
+    /**
+     * Returns a matching Entry,
+     * - which Entry::addrSub is set and the given {@code addrSub} starts with Entry::addrSub, or
+     * - which Entry::nameSub is set and the given {@code name} starts with Entry::nameSub.
+     *
+     * Otherwise {@code null} is returned.
+     */
+    inline Entry* getStartOf(const EUI48Sub& addrSub, const std::string& name) noexcept {
+        return get(addrSub, name, [](const EUI48Sub& as, const std::string& n, const Entry& e)->bool {
+           return ( e.addrSub.length > 0 && 0 == as.indexOf(e.addrSub, jau::lb_endian_t::big) ) ||
+                  ( e.nameSub.length() > 0 && n.starts_with(e.nameSub) );
+        });
+    }
+    /**
+     * Returns a matching Entry,
+     * which Entry::nameSub is set and the given {@code name} starts with Entry::nameSub.
+     *
+     * Otherwise {@code null} is returned.
+     */
+    inline Entry* getStartOf(const std::string& name) noexcept {
+        return get(name, [](const std::string& n, const Entry& e)->bool {
+           return e.nameSub.length() > 0 && n.starts_with(e.nameSub);
+        });
+    }
 
-            constexpr bool isSecLevelOrIOCapSet() const noexcept {
-                return SMPIOCapability::UNSET != io_cap ||  BTSecurityLevel::UNSET != sec_level;
-            }
-            constexpr const BTSecurityLevel& getSecLevel() const noexcept { return sec_level; }
-            constexpr const SMPIOCapability& getIOCap() const noexcept { return io_cap; }
+    /**
+     * Returns a matching Entry,
+     * - which Entry::addrSub is set and the given {@code addrSub} starts with Entry::addrSub, or
+     * - which Entry::nameSub is set and the given {@code name} starts with Entry::nameSub.
+     *
+     * Otherwise {@code null} is returned.
+     */
+    inline Entry* getEqual(const EUI48Sub& addrSub, const std::string& name) noexcept {
+        return get(addrSub, name, [](const EUI48Sub& as, const std::string& n, const Entry& e)->bool {
+           return ( e.addrSub.length > 0 && as == e.addrSub ) ||
+                  ( e.nameSub.length() > 0 && n == e.nameSub );
+        });
+    }
+    /**
+     * Returns a matching Entry,
+     * which Entry::nameSub is set and the given {@code name} starts with Entry::nameSub.
+     *
+     * Otherwise {@code null} is returned.
+     */
+    inline Entry* getEqual(const std::string& name) noexcept {
+        return get(name, [](const std::string& n, const Entry& e)->bool {
+           return e.nameSub.length() > 0 && n == e.nameSub;
+        });
+    }
 
-            constexpr bool isSecurityAutoEnabled() const noexcept {
-                return SMPIOCapability::UNSET != io_cap_auto;
-            }
-            constexpr const SMPIOCapability& getSecurityAutoIOCap() const noexcept { return io_cap_auto; }
+    /**
+     * Returns the reference of the current list of Entry, not a copy.
+     */
+    jau::darray<Entry>& getEntries() noexcept;
 
-            constexpr int getPairingPasskey() const noexcept { return passkey; }
+    /**
+     * Determines whether the given {@code addrOrNameSub} is a EUI48Sub or just a {@code name}
+     * and retrieves an entry. If no entry exists, creates a new entry.
+     * <p>
+     * Implementation uses getEqual() to find a pre-existing entry.
+     * </p>
+     * @param addrOrNameSub either a EUI48Sub or just a name
+     * @return new or existing instance
+     */
+    Entry* getOrCreate(const std::string& addrOrNameSub) noexcept;
 
-            constexpr bool getPairingNumericComparison() const noexcept { return true; }
+    /**
+     * Clears internal list
+     */
+    void clear() noexcept;
 
-            std::string toString() const noexcept {
-                const std::string id = addrSub == EUI48Sub::ALL_DEVICE ? "'"+nameSub+"'" : addrSub.toString();
-                return "BTSecurityDetail["+id+", lvl "+
-                        to_string(sec_level)+
-                        ", io "+to_string(io_cap)+
-                        ", auto-io "+to_string(io_cap_auto)+
-                        ", passkey "+std::to_string(passkey)+"]";
-            }
-        };
-
-        /**
-         * Function for user defined EUI48 address and name BTSecurityRegistry::Entry matching criteria and algorithm.
-         * <p>
-         * Return {@code true} if the given {@code address} or {@code name} matches
-         * with the BTSecurityRegistry::Entry.
-         * </p>
-         *
-         * @param address EUI48 address
-         * @param name optional name, maybe empty
-         * @param e Entry entry
-         */
-        typedef bool (*AddressNameEntryMatchFunc)(const EUI48& address, const std::string& name, const Entry& e);
-
-        /**
-         * Function for user defined EUI48Sub addressSub and name BTSecurityRegistry::Entry matching criteria and algorithm.
-         * <p>
-         * Return {@code true} if the given {@code addressSub} or {@code name} matches
-         * with the BTSecurityRegistry::Entry.
-         * </p>
-         *
-         * @param addressSub EUI48Sub address
-         * @param name optional name, maybe empty
-         * @param e Entry entry
-         */
-        typedef bool (*AddressSubNameEntryMatchFunc)(const EUI48Sub& addressSub, const std::string& name, const Entry& e);
-
-        /**
-         * Function for user defined std::string name BTSecurityRegistry::Entry matching criteria and algorithm.
-         * <p>
-         * Return {@code true} if the given {@code name} matches
-         * with the BTSecurityRegistry::Entry.
-         * </p>
-         *
-         * @param name
-         * @param e Entry entry
-         */
-        typedef bool (*NameEntryMatchFunc)(const std::string& name, const Entry& e);
-
-        /**
-         * Returns a matching BTSecurityRegistry::Entry with the given {@code addr} and/or {@code name}.
-         * <p>
-         * Matching criteria and algorithm is defined by the given AddressNameEntryMatchFunc.
-         * </p>
-         */
-        Entry* get(const EUI48& addr, const std::string& name, AddressNameEntryMatchFunc m) noexcept;
-
-        /**
-         * Returns a matching BTSecurityRegistry::Entry with the given {@code addrSub} and/or {@code name}.
-         * <p>
-         * Matching criteria and algorithm is defined by the given AddressSubNameEntryMatchFunc.
-         * </p>
-         */
-        Entry* get(const EUI48Sub& addrSub, const std::string& name, AddressSubNameEntryMatchFunc m) noexcept;
-
-        /**
-         * Returns a matching BTSecurityRegistry::Entry with the given {@code name}.
-         * <p>
-         * Matching criteria and algorithm is defined by the given NameEntryMatchFunc.
-         * </p>
-         */
-        Entry* get(const std::string& name, NameEntryMatchFunc m) noexcept;
-
-        /**
-         * Returns a matching Entry,
-         * - which Entry::addrSub is set and the given {@code addr} starts with Entry::addrSub, or
-         * - which Entry::nameSub is set and the given {@code name} starts with Entry::nameSub.
-         *
-         * Otherwise {@code null} is returned.
-         */
-        inline Entry* getStartOf(const EUI48& addr, const std::string& name) noexcept {
-            return get(addr, name, [](const EUI48& a, const std::string& n, const Entry& e)->bool {
-               return ( e.addrSub.length > 0 && 0 == a.indexOf(e.addrSub, jau::lb_endian_t::big) ) ||
-                      ( e.nameSub.length() > 0 && n.starts_with(e.nameSub) );
-            });
-        }
-        /**
-         * Returns a matching Entry,
-         * - which Entry::addrSub is set and the given {@code addrSub} starts with Entry::addrSub, or
-         * - which Entry::nameSub is set and the given {@code name} starts with Entry::nameSub.
-         *
-         * Otherwise {@code null} is returned.
-         */
-        inline Entry* getStartOf(const EUI48Sub& addrSub, const std::string& name) noexcept {
-            return get(addrSub, name, [](const EUI48Sub& as, const std::string& n, const Entry& e)->bool {
-               return ( e.addrSub.length > 0 && 0 == as.indexOf(e.addrSub, jau::lb_endian_t::big) ) ||
-                      ( e.nameSub.length() > 0 && n.starts_with(e.nameSub) );
-            });
-        }
-        /**
-         * Returns a matching Entry,
-         * which Entry::nameSub is set and the given {@code name} starts with Entry::nameSub.
-         *
-         * Otherwise {@code null} is returned.
-         */
-        inline Entry* getStartOf(const std::string& name) noexcept {
-            return get(name, [](const std::string& n, const Entry& e)->bool {
-               return e.nameSub.length() > 0 && n.starts_with(e.nameSub);
-            });
-        }
-
-        /**
-         * Returns a matching Entry,
-         * - which Entry::addrSub is set and the given {@code addrSub} starts with Entry::addrSub, or
-         * - which Entry::nameSub is set and the given {@code name} starts with Entry::nameSub.
-         *
-         * Otherwise {@code null} is returned.
-         */
-        inline Entry* getEqual(const EUI48Sub& addrSub, const std::string& name) noexcept {
-            return get(addrSub, name, [](const EUI48Sub& as, const std::string& n, const Entry& e)->bool {
-               return ( e.addrSub.length > 0 && as == e.addrSub ) ||
-                      ( e.nameSub.length() > 0 && n == e.nameSub );
-            });
-        }
-        /**
-         * Returns a matching Entry,
-         * which Entry::nameSub is set and the given {@code name} starts with Entry::nameSub.
-         *
-         * Otherwise {@code null} is returned.
-         */
-        inline Entry* getEqual(const std::string& name) noexcept {
-            return get(name, [](const std::string& n, const Entry& e)->bool {
-               return e.nameSub.length() > 0 && n == e.nameSub;
-            });
-        }
-
-        /**
-         * Returns the reference of the current list of Entry, not a copy.
-         */
-        jau::darray<Entry>& getEntries() noexcept;
-
-        /**
-         * Determines whether the given {@code addrOrNameSub} is a EUI48Sub or just a {@code name}
-         * and retrieves an entry. If no entry exists, creates a new entry.
-         * <p>
-         * Implementation uses getEqual() to find a pre-existing entry.
-         * </p>
-         * @param addrOrNameSub either a EUI48Sub or just a name
-         * @return new or existing instance
-         */
-        Entry* getOrCreate(const std::string& addrOrNameSub) noexcept;
-
-        /**
-         * Clears internal list
-         */
-        void clear() noexcept;
-
-        std::string allToString() noexcept;
-
-        /**@}*/
-
-    } // namespace BTSecurityRegistry
+    std::string allToString() noexcept;
 
     /**@}*/
 
-} // namespace direct_bt
+} // namespace direct_bt::BTSecurityRegistry
+
+/**@}*/
+
 
 #endif /* DBT_SEC_SETTINGS_HPP_ */

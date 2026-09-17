@@ -1,6 +1,6 @@
 /*
  * Author: Sven Gothel <sgothel@jausoft.com>
- * Copyright (c) 2021 Gothel Software e.K.
+ * Copyright (c) 2020-2026 Gothel Software e.K.
  * Copyright (c) 2021 ZAFENA AB
  *
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -172,7 +172,7 @@ namespace direct_bt {
              * @param rsp_uuid_ command's BTGattChar value jau::uuid_t for the notification or indication response.
              * @param rsp_capacity initial capacity of response sink, see getResponse()
              */
-            BTGattCmd(BTDevice& dev_, std::string  name_,
+            BTGattCmd(BTDevice& dev_, std::string name_,
                       const jau::uuid_t& cmd_uuid_,
                       const jau::uuid_t& rsp_uuid_,
                       const jau::nsize_t rsp_capacity) noexcept
@@ -181,7 +181,7 @@ namespace direct_bt {
               cmd_uuid(&cmd_uuid_),
               rsp_uuid(&rsp_uuid_),
               dev(dev_),
-              rsp_data(rsp_capacity, 0 /* size */, jau::lb_endian_t::little),
+              rsp_data(rsp_capacity, 0 /* size */, jau::lb_endian_t::little), // NOLINT(clang-analyzer-unix.Malloc): False positive
               cmdCharRef(nullptr),
               rspCharRef(nullptr),
               rspMinSize(0),

@@ -1,6 +1,6 @@
 /*
  * Author: Sven Gothel <sgothel@jausoft.com>
- * Copyright (c) 2020 Gothel Software e.K.
+ * Copyright (c) 2020-2026 Gothel Software e.K.
  * Copyright (c) 2020 ZAFENA AB
  *
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -246,7 +246,7 @@ namespace direct_bt {
                         BDAddressAndType remoteAddressAndType, int client_socket) noexcept;
 
             /** Destructor closing the L2CAP channel, see {@link #close()}. */
-            ~L2CAPClient() noexcept override { 
+            ~L2CAPClient() noexcept override {
                 close_impl();
             }
 
@@ -324,7 +324,7 @@ namespace direct_bt {
             L2CAPServer(const uint16_t adev_id, BDAddressAndType localAddressAndType, const L2CAP_PSM psm, const L2CAP_CID cid) noexcept;
 
             /** Destructor closing the L2CAP channel, see {@link #close()}. */
-            ~L2CAPServer() noexcept override { 
+            ~L2CAPServer() noexcept override {
                 close_impl();
             }
 

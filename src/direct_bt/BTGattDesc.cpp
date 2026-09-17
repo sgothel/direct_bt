@@ -67,12 +67,12 @@ std::shared_ptr<BTDevice> BTGattDesc::getDeviceUnchecked() const noexcept {
 bool BTGattDesc::readValue(int expectedLength) noexcept {
     std::shared_ptr<BTDevice> device = getDeviceUnchecked();
     if( nullptr == device ) {
-        ERR_PRINT("Descriptor's device null: %s", toShortString().c_str());
+        jau_ERR_PRINT("Descriptor's device null: %s", toShortString());
         return false;
     }
     std::shared_ptr<BTGattHandler> gatt = device->getGattHandler();
     if( nullptr == gatt ) {
-        ERR_PRINT("Descriptor's device GATTHandle not connected: %s", toShortString().c_str());
+        jau_ERR_PRINT("Descriptor's device GATTHandle not connected: %s", toShortString());
         return false;
     }
     return gatt->readDescriptorValue(*this, expectedLength);
@@ -81,24 +81,24 @@ bool BTGattDesc::readValue(int expectedLength) noexcept {
 bool BTGattDesc::writeValue() noexcept {
     std::shared_ptr<BTDevice> device = getDeviceUnchecked();
     if( nullptr == device ) {
-        ERR_PRINT("Descriptor's device null: %s", toShortString().c_str());
+        jau_ERR_PRINT("Descriptor's device null: %s", toShortString());
         return false;
     }
     std::shared_ptr<BTGattHandler> gatt = device->getGattHandler();
     if( nullptr == gatt ) {
-        ERR_PRINT("Descriptor's device GATTHandle not connected: %s", toShortString().c_str());
+        jau_ERR_PRINT("Descriptor's device GATTHandle not connected: %s", toShortString());
         return false;
     }
     return gatt->writeDescriptorValue(*this);
 }
 
 std::string BTGattDesc::toString() const noexcept {
-    return "Desc[type 0x"+type->toString()+", handle "+jau::to_hexstring(handle)+
+    return "Desc[type 0x"+type->toString()+", handle "+jau::toHexString(handle)+
            ", value["+value.toString()+
            " '" + jau::dfa_utf8_decode( value.get_ptr(), value.size() ) + "'"+
            "]]";
 }
 
 std::string BTGattDesc::toShortString() const noexcept {
-    return "Desc[handle "+jau::to_hexstring(handle)+", value["+value.toString()+"]]";
+    return "Desc[handle "+jau::toHexString(handle)+", value["+value.toString()+"]]";
 }

@@ -32,7 +32,7 @@
 
 using namespace direct_bt;
 
-static std::string jStringEmpty("");
+static std::string jStringEmpty;
 static std::string jAddressTypePublic("public");
 static std::string jAddressTypeRandom("random");
 

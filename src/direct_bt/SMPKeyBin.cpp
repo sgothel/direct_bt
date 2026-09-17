@@ -30,34 +30,36 @@
 #include <fstream>
 #include <iostream>
 
-#include <jau/file_util.hpp>
+#include <jau/io/file_util.hpp>
 
 #include "SMPKeyBin.hpp"
 
 #include "BTDevice.hpp"
 #include "BTAdapter.hpp"
+#include "jau/string_util.hpp"
 
 using namespace direct_bt;
 
 static std::vector<std::string> get_file_list(const std::string& dname) {
     std::vector<std::string> res;
-    const jau::fs::consume_dir_item cs = jau::bind_capref(&res,
-            ( void(*)(std::vector<std::string>*, const jau::fs::dir_item&) ) /* help template type deduction of function-ptr */
-                ( [](std::vector<std::string>* receiver, const jau::fs::dir_item& item) -> void {
+    const jau::io::fs::consume_dir_item cs = jau::bind_capref(&res,
+            ( bool(*)(std::vector<std::string>*, const jau::io::fs::dir_item&) ) /* help template type deduction of function-ptr */
+                ( [](std::vector<std::string>* receiver, const jau::io::fs::dir_item& item) -> bool {
                     if( item.basename().starts_with("bd_") ) { // prefix checl
                         const jau::nsize_t suffix_pos = item.basename().size() - 4;
                         if( suffix_pos == item.basename().find(".key", suffix_pos) ) { // suffix check
                             receiver->push_back( item.path() ); // full path
                         }
                     }
+                    return true;
                   } )
         );
-    jau::fs::get_dir_content(dname, cs);
+    jau::io::fs::get_dir_content(dname, cs);
     return res;
 }
 
 bool SMPKeyBin::remove_impl(const std::string& fname) {
-    return 0 == std::remove( fname.c_str() );
+    return jau::io::fs::remove( fname );
 }
 
 SMPKeyBin SMPKeyBin::create(const BTDevice& device) {
@@ -115,7 +117,7 @@ bool SMPKeyBin::createAndWrite(const BTDevice& device, const std::string& path, 
         return smpKeyBin.write( path, overwrite );
     } else {
         if( verbose_ ) {
-            jau::fprintf_td(stderr, "Create SMPKeyBin: Invalid %s, %s\n", smpKeyBin.toString().c_str(), device.toString().c_str());
+            jau_fprintf_td(stderr, "Create SMPKeyBin: Invalid %s, %s\n", smpKeyBin.toString(), device.toString());
         }
         return false;
     }
@@ -145,80 +147,78 @@ std::vector<SMPKeyBin> SMPKeyBin::readAllForLocalAdapter(const BDAddressAndType&
 }
 
 std::string SMPKeyBin::toString() const noexcept {
-    std::string res = "SMPKeyBin[local["+to_string(localRole)+", "+localAddress.toString()+"], remote "+remoteAddress.toString()+
-                      ", SC "+std::to_string(uses_SC())+", sec "+to_string(sec_level)+", io "+to_string(io_cap)+
-                      ", ";
+    std::string res = jau_format_string("SMPKeyBin[local[%s, %s], remote %s, SC %s, sec %s, io %s, ",
+        localRole, localAddress, remoteAddress, uses_SC(), sec_level, io_cap);
+
     if( isVersionValid() ) {
         bool comma = false;
-        res += "Init[";
+        jau::append_string(res, "Init[");
         if( hasLTKInit() ) {
-            res += ltk_init.toString();
+            jau::append_string(res, ltk_init.toString());
             comma = true;
         }
         if( hasIRKInit() ) {
             if( comma ) {
-                res += ", ";
+                jau::append_string(res, ", ");
             }
-            res += irk_init.toString();
+            jau::append_string(res, irk_init.toString());
             comma = true;
         }
         if( hasCSRKInit() ) {
             if( comma ) {
-                res += ", ";
+                jau::append_string(res, ", ");
             }
-            res += csrk_init.toString();
+            jau::append_string(res, csrk_init.toString());
             comma = true;
         }
-        // NOLINTBEGIN(clang-analyzer-deadcode.DeadStores)        
+        // NOLINTBEGIN(clang-analyzer-deadcode.DeadStores)
         if( hasLKInit() ) {
             if( comma ) {
-                res += ", ";
+                jau::append_string(res, ", ");
             }
-            res += lk_init.toString();
+            jau::append_string(res, lk_init.toString());
             comma = true;
         }
         comma = false;
-        res += "], Resp[";
+        jau::append_string(res, "], Resp[");
         if( hasLTKResp() ) {
-            res += ltk_resp.toString();
+            jau::append_string(res, ltk_resp.toString());
             comma = true;
         }
         if( hasIRKResp() ) {
             if( comma ) {
-                res += ", ";
+                jau::append_string(res, ", ");
             }
-            res += irk_resp.toString();
+            jau::append_string(res, irk_resp.toString());
             comma = true;
         }
         if( hasCSRKResp() ) {
             if( comma ) {
-                res += ", ";
+                jau::append_string(res, ", ");
             }
-            res += csrk_resp.toString();
+            jau::append_string(res, csrk_resp.toString());
             comma = true;
         }
         if( hasLKResp() ) {
             if( comma ) {
-                res += ", ";
+                jau::append_string(res, ", ");
             }
-            res += lk_resp.toString();
+            jau::append_string(res, lk_resp.toString());
             comma = true;
         }
-        res += "], ";
-        // NOLINTEND(clang-analyzer-deadcode.DeadStores)        
+        jau::append_string(res, "], ");
+        // NOLINTEND(clang-analyzer-deadcode.DeadStores)
     }
-    res += "ver["+jau::to_hexstring(version)+", ok "+std::to_string( isVersionValid() )+
-           "], size["+std::to_string(size);
+    jau_append_string(res, "ver[%#x, ok %s], size[%zu", version, isVersionValid(), size);
     if( verbose ) {
-        res += ", calc "+std::to_string( calcSize() );
+        jau_append_string(res, ", calc %u", calcSize());
     }
-    res += ", valid "+std::to_string( isSizeValid() )+
-           "], ";
+    jau_append_string(res, ", valid %s], ", isSizeValid());
     {
         jau::fraction_timespec t0( (int64_t) std::min<uint64_t>(ts_creation_sec, std::numeric_limits<int64_t>::max()), 0 );
-        res += t0.to_iso8601_string();
+        jau::append_string(res, t0.toISO8601String());
     }
-    res += ", valid "+std::to_string( isValid() )+"]";
+    jau_append_string(res, ", valid %s]", isValid());
     return res;
 }
 
@@ -245,21 +245,21 @@ bool SMPKeyBin::remove(const std::string& path, const BTDevice& remoteDevice) {
 bool SMPKeyBin::write(const std::string& path, const bool overwrite) const noexcept {
     if( !isValid() ) {
         if( verbose ) {
-            jau::fprintf_td(stderr, "Write SMPKeyBin: Invalid (skipped) %s\n", toString().c_str());
+            jau_fprintf_td(stderr, "Write SMPKeyBin: Invalid (skipped) %s\n", toString());
         }
         return false;
     }
     const std::string fname = getFilename(path);
-    const jau::fs::file_stats fname_stat(fname);
+    const jau::io::fs::file_stats fname_stat(fname);
     if( fname_stat.exists() ) {
         if( fname_stat.is_file() && overwrite ) {
             if( !remove_impl(fname) ) {
-                jau::fprintf_td(stderr, "Write SMPKeyBin: Failed deletion of existing file %s, %s\n", fname_stat.to_string().c_str(), toString().c_str());
+                jau_fprintf_td(stderr, "Write SMPKeyBin: Failed deletion of existing file %s, %s\n", fname_stat.toString(), toString());
                 return false;
             }
         } else {
             if( verbose ) {
-                jau::fprintf_td(stderr, "Write SMPKeyBin: Not overwriting existing %s, %s\n", fname_stat.to_string().c_str(), toString().c_str());
+                jau_fprintf_td(stderr, "Write SMPKeyBin: Not overwriting existing %s, %s\n", fname_stat.toString(), toString());
             }
             return false;
         }
@@ -267,7 +267,7 @@ bool SMPKeyBin::write(const std::string& path, const bool overwrite) const noexc
     std::ofstream file(fname, std::ios::out | std::ios::binary);
 
     if ( !file.good() || !file.is_open() ) {
-        jau::fprintf_td(stderr, "Write SMPKeyBin: Failed: File not open %s: %s\n", fname_stat.to_string().c_str(), toString().c_str());
+        jau_fprintf_td(stderr, "Write SMPKeyBin: Failed: File not open %s: %s\n", fname_stat.toString(), toString());
         file.close();
         return false;
     }
@@ -328,10 +328,10 @@ bool SMPKeyBin::write(const std::string& path, const bool overwrite) const noexc
     const bool res = file.good() && file.is_open();
     if( res ) {
         if( verbose ) {
-            jau::fprintf_td(stderr, "Write SMPKeyBin: Success: %s: %s\n", fname.c_str(), toString().c_str());
+            jau_fprintf_td(stderr, "Write SMPKeyBin: Success: %s: %s\n", fname, toString());
         }
     } else {
-        jau::fprintf_td(stderr, "Write SMPKeyBin: Failed: %s: %s\n", fname.c_str(), toString().c_str());
+        jau_fprintf_td(stderr, "Write SMPKeyBin: Failed: %s: %s\n", fname, toString());
     }
     file.close();
     return res;
@@ -341,7 +341,7 @@ bool SMPKeyBin::read(const std::string& fname) {
     std::ifstream file(fname, std::ios::binary);
     if ( !file.is_open() ) {
         if( verbose ) {
-            jau::fprintf_td(stderr, "Read SMPKeyBin failed: %s\n", fname.c_str());
+            jau_fprintf_td(stderr, "Read SMPKeyBin failed: %s\n", fname);
         }
         size = 0; // explicitly mark invalid
         return false;
@@ -372,12 +372,12 @@ bool SMPKeyBin::read(const std::string& fname) {
         file.read((char*)&localRole, sizeof(localRole));
         {
             file.read((char*)buffer, sizeof(localAddress.address.b));
-            localAddress.address = jau::EUI48(buffer, jau::lb_endian_t::little);
+            localAddress.address = jau::io::net::EUI48(buffer, jau::lb_endian_t::little);
         }
         file.read((char*)&localAddress.type, sizeof(localAddress.type));
         {
             file.read((char*)buffer, sizeof(remoteAddress.address.b));
-            remoteAddress.address = jau::EUI48(buffer, jau::lb_endian_t::little);
+            remoteAddress.address = jau::io::net::EUI48(buffer, jau::lb_endian_t::little);
         }
         file.read((char*)&remoteAddress.type, sizeof(remoteAddress.type));
         file.read((char*)&sec_level, sizeof(sec_level));
@@ -474,14 +474,12 @@ bool SMPKeyBin::read(const std::string& fname) {
     if( err ) {
         remove_impl( fname );
         if( verbose ) {
-            jau::fprintf_td(stderr, "Read SMPKeyBin: Failed %s (removed): %s, remaining %u\n",
-                    fname.c_str(), toString().c_str(), remaining);
+            jau_fprintf_td(stderr, "Read SMPKeyBin: Failed %s (removed): %s, remaining %u\n", fname, toString(), remaining);
         }
         size = 0; // explicitly mark invalid
     } else {
         if( verbose ) {
-            jau::fprintf_td(stderr, "Read SMPKeyBin: OK %s: %s, remaining %u\n",
-                    fname.c_str(), toString().c_str(), remaining);
+            jau_fprintf_td(stderr, "Read SMPKeyBin: OK %s: %s, remaining %u\n", fname, toString(), remaining);
         }
     }
     return err;

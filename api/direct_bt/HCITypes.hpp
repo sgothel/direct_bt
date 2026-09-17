@@ -1,6 +1,6 @@
 /*
  * Author: Sven Gothel <sgothel@jausoft.com>
- * Copyright (c) 2020 Gothel Software e.K.
+ * Copyright (c) 2020-2026 Gothel Software e.K.
  * Copyright (c) 2020 ZAFENA AB
  *
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -34,6 +34,8 @@
 #include <algorithm>
 
 #include <jau/basic_types.hpp>
+#include <jau/byte_util.hpp>
+#include <jau/enum_util.hpp>
 #include <jau/octets.hpp>
 
 #include "BTTypes0.hpp"
@@ -47,6 +49,8 @@
  *
  */
 namespace direct_bt {
+
+    using namespace jau::enums;
 
     /** \addtogroup DBTUserAPI
      *
@@ -78,9 +82,6 @@ namespace direct_bt {
         /** le connection supervisor timeout minimum of 500ms, see getHCIConnSupervisorTimeout() and v5.2 Vol 4, Part E - 7.8.12. */
         LE_CONN_MIN_TIMEOUT_MS  = 500
     };
-    constexpr int32_t number(const HCIConstInt rhs) noexcept {
-        return static_cast<int>(rhs);
-    }
 
     /**
      * Defining the supervising timeout for LE connections to be a multiple of the maximum connection interval as follows:
@@ -121,9 +122,6 @@ namespace direct_bt {
         MAX_SHORT_NAME_LENGTH  =  10,
         MAX_AD_LENGTH          =  31
     };
-    constexpr uint16_t number(const HCIConstU16 rhs) noexcept {
-        return static_cast<uint16_t>(rhs);
-    }
 
     /**
      * BT Core Spec v5.2: Vol 1, Part F Controller Error Codes: 1.3 List of Error Codes
@@ -228,10 +226,7 @@ namespace direct_bt {
         INTERNAL_FAILURE = 0xfe,
         UNKNOWN = 0xff
     };
-    constexpr uint8_t number(const HCIStatusCode rhs) noexcept {
-        return static_cast<uint8_t>(rhs);
-    }
-    std::string to_string(const HCIStatusCode ec) noexcept;
+    JAU_MAKE_ENUM_STRING_DECL(HCIStatusCode);
 
     class HCIStatusCodeCategory : public std::error_category {
         public:
@@ -267,9 +262,6 @@ namespace direct_bt {
         /** Total packet size, guaranteed to be handled by adapter. */
         PACKET_MAX_SIZE   = 255
     };
-    constexpr jau::nsize_t number(const HCIConstSizeT rhs) noexcept {
-        return static_cast<jau::nsize_t>(rhs);
-    }
 
     enum class HCIPacketType : uint8_t {
         COMMAND = 0x01,
@@ -279,9 +271,6 @@ namespace direct_bt {
         DIAG    = 0xf0,
         VENDOR  = 0xff
     };
-    constexpr uint8_t number(const HCIPacketType rhs) noexcept {
-        return static_cast<uint8_t>(rhs);
-    }
     std::string to_string(const HCIPacketType op) noexcept;
 
     enum class HCIOGF : uint8_t {
@@ -294,9 +283,6 @@ namespace direct_bt {
         /** LE controller commands */
         LE_CTL      = 0x08
     };
-    constexpr uint8_t number(const HCIOGF rhs) noexcept {
-        return static_cast<uint8_t>(rhs);
-    }
     std::string to_string(const HCIOGF op) noexcept;
 
     /**
@@ -336,10 +322,7 @@ namespace direct_bt {
         AMP_Receiver_Report             = 0x4b
         // etc etc - incomplete
     };
-    constexpr uint8_t number(const HCIEventType rhs) noexcept {
-        return static_cast<uint8_t>(rhs);
-    }
-    std::string to_string(const HCIEventType op) noexcept;
+    JAU_MAKE_ENUM_STRING_DECL(HCIEventType);
 
     /**
      * BT Core Spec v5.2: Vol 4, Part E HCI: 7.7.65 LE Meta event
@@ -381,10 +364,7 @@ namespace direct_bt {
         LE_TRANSMIT_POWER_REPORTING         = 0x21,/**< LE_TRANSMIT_POWER_REPORTING */
         LE_BIGINFO_ADV_REPORT               = 0x22 /**< LE_BIGINFO_ADV_REPORT */
     };
-    constexpr uint8_t number(const HCIMetaEventType rhs) noexcept {
-        return static_cast<uint8_t>(rhs);
-    }
-    std::string to_string(const HCIMetaEventType op) noexcept;
+    JAU_MAKE_ENUM_STRING_DECL(HCIMetaEventType);
 
     /**
      * BT Core Spec v5.2: Vol 4, Part E HCI: 7.1 Link Controller commands
@@ -451,10 +431,7 @@ namespace direct_bt {
         LE_EXT_CREATE_CONN          = 0x2043,
         // etc etc - incomplete
     };
-    constexpr uint16_t number(const HCIOpcode rhs) noexcept {
-        return static_cast<uint16_t>(rhs);
-    }
-    std::string to_string(const HCIOpcode op) noexcept;
+    JAU_MAKE_ENUM_STRING_DECL(HCIOpcode);
 
     enum class HCIOpcodeBit : uint8_t {
         SPECIAL                     =  0,
@@ -509,9 +486,6 @@ namespace direct_bt {
         LE_EXT_CREATE_CONN          = 58
         // etc etc - incomplete
     };
-    constexpr uint8_t number(const HCIOpcodeBit rhs) noexcept {
-        return static_cast<uint8_t>(rhs);
-    }
 
     /**
      * BT Core Spec v5.2: Vol 4, Part E HCI: 5.4 Exchange of HCI-specific information
@@ -543,7 +517,7 @@ namespace direct_bt {
                     case HCIPacketType::VENDOR:
                         return; // OK
                     default:
-                        throw HCIPacketException("Unsupported packet type "+jau::to_hexstring(number(type)), E_FILE_LINE);
+                        throw HCIPacketException("Unsupported packet type "+jau::toHexString(number(type)), E_FILE_LINE);
                 }
             }
 
@@ -591,9 +565,7 @@ namespace direct_bt {
 
             HCIPacketType getPacketType() noexcept { return static_cast<HCIPacketType>(pdu.get_uint8_nc(0)); }
 
-            std::string toString() const noexcept {
-                return nameString()+"["+baseString()+", "+valueString()+"]";
-            }
+            std::string toString() const noexcept;
     };
     inline std::string to_string(const HCIPacket& p) noexcept { return p.toString(); }
 
@@ -615,29 +587,22 @@ namespace direct_bt {
             inline static void checkOpcode(const HCIOpcode has, const HCIOpcode min, const HCIOpcode max)
             {
                 if( has < min || has > max ) {
-                    throw HCIOpcodeException("Has opcode "+jau::to_hexstring(number(has))+
-                                     ", not within range ["+jau::to_hexstring(number(min))+
-                                     ".."+jau::to_hexstring(number(max))+"]", E_FILE_LINE);
+                    throw HCIOpcodeException("Has opcode "+jau::toHexString(number(has))+
+                                     ", not within range ["+jau::toHexString(number(min))+
+                                     ".."+jau::toHexString(number(max))+"]", E_FILE_LINE);
                 }
             }
             inline static void checkOpcode(const HCIOpcode has, const HCIOpcode exp)
             {
                 if( has != exp ) {
-                    throw HCIOpcodeException("Has opcode "+jau::to_hexstring(number(has))+
-                                     ", not matching "+jau::to_hexstring(number(exp)), E_FILE_LINE);
+                    throw HCIOpcodeException("Has opcode "+jau::toHexString(number(has))+
+                                     ", not matching "+jau::toHexString(number(exp)), E_FILE_LINE);
                 }
             }
 
             std::string nameString() const noexcept override { return "HCICommand"; }
-
-            std::string baseString() const noexcept override {
-                return "opcode="+jau::to_hexstring(number(getOpcode()))+" "+to_string(getOpcode());
-            }
-            std::string valueString() const noexcept override {
-                const jau::nsize_t psz = getParamSize();
-                const std::string ps = psz > 0 ? jau::bytesHexString(getParam(), psz, true /* lsbFirst */) : "";
-                return "param[size "+std::to_string(getParamSize())+", data "+ps+"], tsz "+std::to_string(getTotalSize());
-            }
+            std::string baseString() const noexcept override;
+            std::string valueString() const noexcept override;
 
         public:
 
@@ -719,12 +684,6 @@ namespace direct_bt {
         protected:
             std::string nameString() const noexcept override { return "HCIDisconnectCmd"; }
 
-            std::string valueString() const noexcept override {
-                const jau::nsize_t psz = getParamSize();
-                const std::string ps = psz > 0 ? jau::bytesHexString(getParam(), psz, true /* lsbFirst */) : "";
-                return "param[size "+std::to_string(getParamSize())+", data "+ps+"], tsz "+std::to_string(getTotalSize());
-            }
-
         public:
             HCIDisconnectCmd(const uint8_t* buffer, const jau::nsize_t buffer_len)
             : HCICommand(buffer, buffer_len, 2+1)
@@ -772,14 +731,7 @@ namespace direct_bt {
     {
         protected:
             std::string nameString() const noexcept override { return "HCILEEnableEncryptionCmd"; }
-
-            std::string valueString() const noexcept override {
-                return "data[handle "+jau::to_hexstring(getHandle())+
-                        ", rand "+jau::bytesHexString(pdu.get_ptr_nc(number(HCIConstSizeT::COMMAND_HDR_SIZE) + 2),      8, false /* lsbFirst */)+
-                        ", ediv "+jau::bytesHexString(pdu.get_ptr_nc(number(HCIConstSizeT::COMMAND_HDR_SIZE) + 2+8),    2, false /* lsbFirst */)+
-                        ", ltk "+jau::bytesHexString(pdu.get_ptr_nc(number(HCIConstSizeT::COMMAND_HDR_SIZE)  + 2+8+2), 16, true /* lsbFirst */)+
-                        "], tsz "+std::to_string(getTotalSize());
-            }
+            std::string valueString() const noexcept override;
 
         public:
             HCILEEnableEncryptionCmd(const uint8_t* buffer, const jau::nsize_t buffer_len)
@@ -847,12 +799,8 @@ namespace direct_bt {
     {
         protected:
             std::string nameString() const noexcept override { return "HCILELTKReplyAckCmd"; }
+            std::string valueString() const noexcept override;
 
-            std::string valueString() const noexcept override {
-                return "data[handle "+jau::to_hexstring(getHandle())+
-                        ", ltk "+jau::bytesHexString(pdu.get_ptr_nc(number(HCIConstSizeT::COMMAND_HDR_SIZE) + 2), 16, true /* lsbFirst */)+
-                        "], tsz "+std::to_string(getTotalSize());
-            }
         public:
             HCILELTKReplyAckCmd(const uint8_t* buffer, const jau::nsize_t buffer_len)
             : HCICommand(buffer, buffer_len, 18)
@@ -895,11 +843,7 @@ namespace direct_bt {
     {
         protected:
             std::string nameString() const noexcept override { return "HCILELTKReplyRejCmd"; }
-
-            std::string valueString() const noexcept override {
-                return "data[handle "+jau::to_hexstring(getHandle())+
-                        "], tsz "+std::to_string(getTotalSize());
-            }
+            std::string valueString() const noexcept override;
 
         public:
             HCILELTKReplyRejCmd(const uint8_t* buffer, const jau::nsize_t buffer_len)
@@ -948,6 +892,55 @@ namespace direct_bt {
     class HCIHandler; // fwd
 
     /**
+     * Representing ACL Datas' L2CAP Frame
+     * <p>
+     * BT Core Spec v5.2: Vol 4, Part E HCI: 5.4.2 HCI ACL Data packets
+     * </p>
+     */
+    struct L2CapFrame {
+        /**
+         * The Packet_Boundary_Flag
+         * <p>
+         * BT Core Spec v5.2: Vol 4, Part E HCI: 5.4.2 HCI ACL Data packets
+         * </p>
+         */
+        enum class PBFlag : uint8_t {
+            /** 0b00: Start of a non-automatically-flushable PDU from Host to Controller. Value 0b00. */
+            START_NON_AUTOFLUSH_HOST      =  0b00,
+            /** 0b01: Continuing fragment. Value 0b01. */
+            CONTINUING_FRAGMENT           =  0b01,
+            /** 0b10: Start of an automatically flushable PDU. Value 0b10. */
+            START_AUTOFLUSH               =  0b10,
+            /** A complete L2CAP PDU. Automatically flushable. Value 0b11.*/
+            COMPLETE_L2CAP_AUTOFLUSH      =  0b11,
+        };
+
+        /** The connection handle */
+        const uint16_t handle;
+        const PBFlag pb_flag;
+        /** The Broadcast_Flag */
+        const uint8_t bc_flag;
+        const L2CAP_CID cid;
+        const L2CAP_PSM psm;
+        const uint16_t len;
+
+        /** For manual injection, usually using casted pointer */
+        L2CapFrame(const uint16_t handle_, const PBFlag pb_flag_, const uint8_t bc_flag_,
+                   const L2CAP_CID cid_, const L2CAP_PSM psm_, const uint16_t len_)
+        : handle(handle_), pb_flag(pb_flag_), bc_flag(bc_flag_),
+          cid(cid_), psm(psm_), len(len_) {}
+
+        constexpr bool isSMP() const noexcept { return L2CAP_CID::SMP == cid || L2CAP_CID::SMP_BREDR == cid; }
+
+        constexpr bool isGATT() const noexcept { return L2CAP_CID::ATT == cid; }
+
+        std::string toString() const noexcept;
+
+        std::string toString(const uint8_t* l2cap_data) const noexcept;
+    };
+    JAU_MAKE_ENUM_STRING2_DECL(L2CapFrame::PBFlag);
+
+    /**
      * BT Core Spec v5.2: Vol 4, Part E HCI: 5.4.2 HCI ACL Data packets
      * <p>
      * BT Core Spec v5.2: Vol 4, Part E HCI: 7.7 Events
@@ -965,64 +958,6 @@ namespace direct_bt {
     class HCIACLData : public HCIPacket
     {
         public:
-            /**
-             * Representing ACL Datas' L2CAP Frame
-             * <p>
-             * BT Core Spec v5.2: Vol 4, Part E HCI: 5.4.2 HCI ACL Data packets
-             * </p>
-             */
-            struct l2cap_frame {
-                /**
-                 * The Packet_Boundary_Flag
-                 * <p>
-                 * BT Core Spec v5.2: Vol 4, Part E HCI: 5.4.2 HCI ACL Data packets
-                 * </p>
-                 */
-                enum class PBFlag : uint8_t {
-                    /** 0b00: Start of a non-automatically-flushable PDU from Host to Controller. Value 0b00. */
-                    START_NON_AUTOFLUSH_HOST      =  0b00,
-                    /** 0b01: Continuing fragment. Value 0b01. */
-                    CONTINUING_FRAGMENT           =  0b01,
-                    /** 0b10: Start of an automatically flushable PDU. Value 0b10. */
-                    START_AUTOFLUSH               =  0b10,
-                    /** A complete L2CAP PDU. Automatically flushable. Value 0b11.*/
-                    COMPLETE_L2CAP_AUTOFLUSH      =  0b11,
-                };
-                static constexpr uint8_t number(const PBFlag v) noexcept { return static_cast<uint8_t>(v); }
-                static std::string toString(const PBFlag v) noexcept;
-
-                /** The connection handle */
-                const uint16_t handle;
-                const PBFlag pb_flag;
-                /** The Broadcast_Flag */
-                const uint8_t bc_flag;
-                const L2CAP_CID cid;
-                const L2CAP_PSM psm;
-                const uint16_t len;
-
-                /** Oly for manual injection, usually using casted pointer */
-                l2cap_frame(const uint16_t handle_, const PBFlag pb_flag_, const uint8_t bc_flag_,
-                            const L2CAP_CID cid_, const L2CAP_PSM psm_, const uint16_t len_)
-                : handle(handle_), pb_flag(pb_flag_), bc_flag(bc_flag_),
-                  cid(cid_), psm(psm_), len(len_) {}
-
-                constexpr bool isSMP() const noexcept { return L2CAP_CID::SMP == cid || L2CAP_CID::SMP_BREDR == cid; }
-
-                constexpr bool isGATT() const noexcept { return L2CAP_CID::ATT == cid; }
-
-                std::string toString() const noexcept {
-                    return "l2cap[handle "+jau::to_hexstring(handle)+", flags[pb "+toString(pb_flag)+", bc "+jau::to_hexstring(bc_flag)+
-                            "], cid "+to_string(cid)+
-                            ", psm "+to_string(psm)+", len "+std::to_string(len)+ "]";
-                }
-                std::string toString(const uint8_t* l2cap_data) const noexcept {
-                    const std::string ds = nullptr != l2cap_data && 0 < len ?  jau::bytesHexString(l2cap_data, len, true /* lsbFirst*/) : "empty";
-                    return "l2cap[handle "+jau::to_hexstring(handle)+", flags[pb "+toString(pb_flag)+", bc "+jau::to_hexstring(bc_flag)+
-                            "], cid "+to_string(cid)+
-                            ", psm "+to_string(psm)+", len "+std::to_string(len)+", data "+ds+"]";
-                }
-            };
-
             /**
              * Return a newly created specialized instance pointer to base class.
              * <p>
@@ -1058,15 +993,10 @@ namespace direct_bt {
             jau::nsize_t getParamSize() const noexcept { return pdu.get_uint16_nc(3); }
             const uint8_t* getParam() const noexcept { return pdu.get_ptr_nc(number(HCIConstSizeT::ACL_HDR_SIZE)); }
 
-            l2cap_frame getL2CAPFrame(const uint8_t* & l2cap_data) const noexcept;
+            L2CapFrame getL2CapFrame(const uint8_t* & l2cap_data) const noexcept;
 
-            std::string toString() const noexcept {
-                const uint8_t* l2cap_data;
-                return "ACLData[size "+std::to_string(getParamSize())+", data "+getL2CAPFrame(l2cap_data).toString(l2cap_data)+", tsz "+std::to_string(getTotalSize())+"]";
-            }
-            std::string toString(const l2cap_frame& l2cap, const uint8_t* l2cap_data) const noexcept {
-                return "ACLData[size "+std::to_string(getParamSize())+", data "+l2cap.toString(l2cap_data)+", tsz "+std::to_string(getTotalSize())+"]";
-            }
+            std::string toString() const noexcept;
+            std::string toString(const L2CapFrame& l2cap, const uint8_t* l2cap_data) const noexcept;
     };
 
     /**
@@ -1089,30 +1019,22 @@ namespace direct_bt {
             inline static void checkEventType(const HCIEventType has, const HCIEventType min, const HCIEventType max)
             {
                 if( has < min || has > max ) {
-                    throw HCIOpcodeException("Has evcode "+jau::to_hexstring(number(has))+
-                                     ", not within range ["+jau::to_hexstring(number(min))+
-                                     ".."+jau::to_hexstring(number(max))+"]", E_FILE_LINE);
+                    throw HCIOpcodeException("Has evcode "+jau::toHexString(number(has))+
+                                     ", not within range ["+jau::toHexString(number(min))+
+                                     ".."+jau::toHexString(number(max))+"]", E_FILE_LINE);
                 }
             }
             inline static void checkEventType(const HCIEventType has, const HCIEventType exp)
             {
                 if( has != exp ) {
-                    throw HCIOpcodeException("Has evcode "+jau::to_hexstring(number(has))+
-                                     ", not matching "+jau::to_hexstring(number(exp)), E_FILE_LINE);
+                    throw HCIOpcodeException("Has evcode "+jau::toHexString(number(has))+
+                                     ", not matching "+jau::toHexString(number(exp)), E_FILE_LINE);
                 }
             }
 
             std::string nameString() const noexcept override { return "HCIEvent"; }
-
-            std::string baseString() const noexcept override {
-                return "event="+jau::to_hexstring(number(getEventType()))+" "+to_string(getEventType());
-            }
-            std::string valueString() const noexcept override {
-                const jau::nsize_t d_sz_base = getBaseParamSize();
-                const jau::nsize_t d_sz = getParamSize();
-                const std::string d_str = d_sz > 0 ? jau::bytesHexString(getParam(), d_sz, true /* lsbFirst */) : "";
-                return "data[size "+std::to_string(d_sz)+"/"+std::to_string(d_sz_base)+", data "+d_str+"], tsz "+std::to_string(getTotalSize());
-            }
+            std::string baseString() const noexcept override;
+            std::string valueString() const noexcept override;
 
             jau::nsize_t getBaseParamSize() const noexcept { return pdu.get_uint8_nc(2); }
 
@@ -1215,13 +1137,7 @@ namespace direct_bt {
     {
         protected:
             std::string nameString() const noexcept override { return "HCIDisconnectionCompleteEvent"; }
-
-            std::string baseString() const noexcept override {
-                return HCIEvent::baseString()+
-                        ", status "+jau::to_hexstring(static_cast<uint8_t>(getStatus()))+" "+to_string(getStatus())+
-                        ", handle "+jau::to_hexstring(getHandle())+
-                        ", reason "+jau::to_hexstring(static_cast<uint8_t>(getReason()))+" "+to_string(getReason());
-            }
+            std::string baseString() const noexcept override;
 
         public:
             HCIDisconnectionCompleteEvent(const uint8_t* buffer, const jau::nsize_t buffer_len)
@@ -1252,12 +1168,7 @@ namespace direct_bt {
     {
         protected:
             std::string nameString() const noexcept override { return "HCICmdCompleteEvent"; }
-
-            std::string baseString() const noexcept override {
-                return HCIEvent::baseString()+", opcode="+jau::to_hexstring(static_cast<uint16_t>(getOpcode()))+
-                        " "+to_string(getOpcode())+
-                        ", ncmd "+std::to_string(getNumCommandPackets());
-            }
+            std::string baseString() const noexcept override;
 
         public:
             HCICommandCompleteEvent(const uint8_t* buffer, const jau::nsize_t buffer_len)
@@ -1300,13 +1211,7 @@ namespace direct_bt {
     {
         protected:
             std::string nameString() const noexcept override { return "HCICmdStatusEvent"; }
-
-            std::string baseString() const noexcept override {
-                return HCIEvent::baseString()+", opcode="+jau::to_hexstring(static_cast<uint16_t>(getOpcode()))+
-                        " "+to_string(getOpcode())+
-                        ", ncmd "+std::to_string(getNumCommandPackets())+
-                        ", status "+jau::to_hexstring(static_cast<uint8_t>(getStatus()))+" "+to_string(getStatus());
-            }
+            std::string baseString() const noexcept override;
 
         public:
             HCICommandStatusEvent(const uint8_t* buffer, const jau::nsize_t buffer_len)
@@ -1354,14 +1259,12 @@ namespace direct_bt {
             static void checkMetaType(const HCIMetaEventType has, const HCIMetaEventType exp)
             {
                 if( has != exp ) {
-                    throw HCIOpcodeException("Has meta "+jau::to_hexstring(number(has))+
-                                     ", not matching "+jau::to_hexstring(number(exp)), E_FILE_LINE);
+                    throw HCIOpcodeException("Has meta "+jau::toHexString(number(has))+
+                                     ", not matching "+jau::toHexString(number(exp)), E_FILE_LINE);
                 }
             }
 
-            std::string baseString() const noexcept override {
-                return "event="+jau::to_hexstring(number(getMetaEventType()))+" "+to_string(getMetaEventType())+" (le-meta)";
-            }
+            std::string baseString() const noexcept override;
 
         public:
             /** Passing through preset buffer of this type */
@@ -1424,13 +1327,8 @@ namespace direct_bt {
     {
         protected:
             std::string nameString() const noexcept override { return "HCILELTKReqEvent"; }
+            std::string valueString() const noexcept override;
 
-            std::string valueString() const noexcept override {
-                return "data[handle "+jau::to_hexstring(getHandle())+
-                        ", rand "+jau::bytesHexString(pdu.get_ptr_nc(number(HCIConstSizeT::EVENT_HDR_SIZE) + 1+2),   8, false /* lsbFirst */)+
-                        ", ediv "+jau::bytesHexString(pdu.get_ptr_nc(number(HCIConstSizeT::EVENT_HDR_SIZE) + 1+2+8), 2, false /* lsbFirst */)+
-                        "], tsz "+std::to_string(getTotalSize());
-            }
         public:
             /** Passing through preset buffer of this type */
             HCILELTKReqEvent(const uint8_t* buffer, const jau::nsize_t buffer_len)
@@ -1492,7 +1390,7 @@ namespace direct_bt {
         uint16_t    manufacturer;
         uint16_t    lmp_subver;
 
-        std::string toString() noexcept;
+        std::string toString() const noexcept;
     };
 
     /**@}*/

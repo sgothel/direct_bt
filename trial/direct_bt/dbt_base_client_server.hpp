@@ -25,6 +25,7 @@
 #ifndef DBT_BASE_CLIENY_SERVER_HPP_
 #define DBT_BASE_CLIENY_SERVER_HPP_
 
+#include "catch2/catch_amalgamated.hpp"
 #include "dbt_utils.hpp"
 
 #include "dbt_constants.hpp"
@@ -48,7 +49,7 @@ class BaseDBTClientServer {
 
         jau::fraction_i64 timeout_func(jau::simple_timer& timer) {
             if( !timer.shall_stop() ) {
-                fprintf(stderr, "\n***** DBTTrial Error: Timeout %s sec -> abort *****\n\n", test_timeout.to_string(true).c_str());
+                jau_fprintf(stderr, "\n***** DBTTrial Error: Timeout %s sec -> abort *****\n\n", test_timeout.toString(true));
                 timedout = true;
             }
             return 0_s;
@@ -95,13 +96,13 @@ class BaseDBTClientServer {
 
     private:
         void resetStates() {
-            std::shared_ptr<BTManager> mngr = BTManager::get();
+            const std::shared_ptr<BTManager>& mngr = BTManager::get();
             jau::darray<BTAdapterRef> adapters = mngr->getAdapters();
             for(const BTAdapterRef& a : adapters) {
                 a->removeAllStatusListener();
                 a->stopAdvertising();
                 a->stopDiscovery();
-                REQUIRE( a->setPowered(false) );
+                REQUIRE( true == a->setPowered(false) );
             }
             mngr->removeAllChangedAdapterSetCallbacks();
             BTDeviceRegistry::clearWaitForDevices();
@@ -137,7 +138,7 @@ class BaseDBTClientServer {
         }
 
         void closeBTManager() {
-            std::shared_ptr<BTManager> mngr = BTManager::get();
+            const std::shared_ptr<BTManager>& mngr = BTManager::get();
             mngr->close();
         }
 };

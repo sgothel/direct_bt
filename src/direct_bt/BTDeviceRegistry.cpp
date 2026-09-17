@@ -1,6 +1,6 @@
 /*
  * Author: Sven Gothel <sgothel@jausoft.com>
- * Copyright (c) 2020 Gothel Software e.K.
+ * Copyright (c) 2020-2026 Gothel Software e.K.
  * Copyright (c) 2020 ZAFENA AB
  *
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -31,6 +31,7 @@
 
 #include <unordered_set>
 #include <unordered_map>
+#include "jau/string_cfmt.hpp"
 
 using namespace direct_bt;
 
@@ -90,13 +91,7 @@ namespace direct_bt::BTDeviceRegistry {
         const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessed); // RAII-style acquire and relinquish via destructor
         std::string res;
         jau::for_each(devicesProcessed.cbegin(), devicesProcessed.cend(), [&res](const DeviceID &id) {
-            PRAGMA_DISABLE_WARNING_PUSH
-            PRAGMA_DISABLE_WARNING_RESTRICT   
-            if( res.length() > 0 ) {
-                res.append( ", " ); // bogus gcc 12.2 'may overlap'
-            }
-            res.append( id.toString() );
-            PRAGMA_DISABLE_WARNING_POP
+            jau_append_string(res, ", %s", id);
         });
         return res;
     }
