@@ -493,17 +493,13 @@ namespace direct_bt {
     typedef std::shared_ptr<DBGattChar> DBGattCharRef;
 
     /** Convenience jau::POctets ctor function to create DBGattChar or DBGattDesc values. */
-    inline jau::POctets make_gvalue(const char* name) {
-        return jau::POctets( (const uint8_t*)name, (jau::nsize_t)strlen(name), jau::lb_endian_t::little );
+    inline jau::POctets make_gvalue(std::string_view name) {
+        return jau::POctets(name, jau::lb_endian_t::little);
     }
 
     /** Convenience jau::POctets ctor function to create DBGattChar or DBGattDesc values. */
-    inline jau::POctets make_gvalue(const char* name, const jau::nsize_t capacity) {
-        const jau::nsize_t name_len = (jau::nsize_t)strlen(name);
-        jau::POctets p( std::max<jau::nsize_t>(capacity, name_len), name_len, jau::lb_endian_t::little );
-        p.bzero();
-        p.put_bytes_nc(0, reinterpret_cast<const uint8_t*>(name), name_len);
-        return p;
+    inline jau::POctets make_gvalue(std::string_view name, const jau::nsize_t capacity) {
+        return jau::POctets( capacity, name, jau::lb_endian_t::little );
     }
 
     /** Convenience jau::POctets ctor function to create DBGattChar or DBGattDesc values. */
