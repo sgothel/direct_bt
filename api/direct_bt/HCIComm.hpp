@@ -1,6 +1,6 @@
 /*
  * Author: Sven Gothel <sgothel@jausoft.com>
- * Copyright (c) 2020 Gothel Software e.K.
+ * Copyright (c) 2020-2026 Gothel Software e.K.
  * Copyright (c) 2020 ZAFENA AB
  *
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -31,7 +31,7 @@
 #include <mutex>
 
 #include <jau/basic_types.hpp>
-#include <jau/functional.hpp> 
+#include <jau/functional.hpp>
 #include <jau/secmem.hpp>
 
 #include "HCIIoctl.hpp"
@@ -90,7 +90,7 @@ namespace direct_bt {
             bool is_open() const noexcept { return 0 <= socket_descriptor; }
 
             /** The external `is interrupted` callback is used until close(), thereafter it is removed. */
-            void set_interrupted_query(get_boolean_callback_t is_interrupted_cb) { is_interrupted_extern = std::move(is_interrupted_cb); }
+            void set_interrupted_query(get_boolean_callback_t && is_interrupted_cb) { is_interrupted_extern = std::move(is_interrupted_cb); }
 
             /** Returns true if interrupted by internal or external cause, hence shall stop connecting and reading. */
             bool interrupted() const noexcept { return interrupted_intern || ( !is_interrupted_extern.is_null() && is_interrupted_extern(0/*dummy*/) ); }
