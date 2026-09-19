@@ -545,8 +545,12 @@ void BTManager::close() noexcept {
             ++i;
         });
     }
-
-    adapters.clear();
+    // remove all adapter safely via swap, since adapter dtor calls removeAdapter(this) -> adapters
+    {
+        adapters_t old;
+        adapters.swap(old);
+        old.clear(); // explicit destruction
+    }
     adapterIOCapability.clear();
 
     jau_PERF3_TS_TD("BTManager::close.1");
@@ -620,7 +624,7 @@ std::shared_ptr<BTAdapter> BTManager::removeAdapter(const uint16_t dev_id) noexc
             if( ai->dev_id == dev_id ) {
                 try {
                     adapterIOCapability.erase( adapterIOCapability.cbegin() + it.dist_begin() );
-                    std::shared_ptr<BTAdapter> res = ai; // copy
+                    std::shared_ptr<BTAdapter> res = ai; // copy, also defers adapter dtor
                     jau_DBG_PRINT("BTManager::removeAdapter: Remove: dev %u -> %s", dev_id, res->toString());
                     it.erase();
                     it.write_back();
@@ -648,9 +652,11 @@ bool BTManager::removeAdapter(BTAdapter* adapter) noexcept {
             if( ai.get() == adapter ) {
                 try {
                     adapterIOCapability.erase( adapterIOCapability.cbegin() + it.dist_begin() );
-                    jau_DBG_PRINT("BTManager::removeAdapter: Remove: %p -> %s", adapter, ai->toString());
+                    std::shared_ptr<BTAdapter> ai2 = ai;
+                    jau_DBG_PRINT("BTManager::removeAdapter: Remove: %p -> %s", adapter, ai2->toString());
                     it.erase();
                     it.write_back();
+                    ai2 = nullptr; // deferred adapter dtor post cow write_back
                     return true;
                 } catch (...) {
                     jau::fput_exception(stderr, std::current_exception(), E_FILE_LINE);
