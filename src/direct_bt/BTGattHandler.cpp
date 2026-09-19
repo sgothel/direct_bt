@@ -776,6 +776,25 @@ std::unique_ptr<const AttPDUMsg> BTGattHandler::sendWithReply(const AttPDUMsg & 
     return res;
 }
 
+bool BTGattHandler::sendError(AttErrorRsp::ErrorCode ec, const AttPDUMsg *cause_req, uint16_t cause_handle, log_level llvl, std::string_view msg) noexcept {
+    try {
+        AttErrorRsp err(ec, cause_req->getOpcode(), cause_handle);
+        if ( log_level::warning == llvl ) {
+            jau_WARN_PRINT("%s: %s -> %s from %s", msg, cause_req->toString(), err.toString(), toString());
+        } else if ( log_level::error == llvl ) {
+            jau_ERR_PRINT("%s: %s -> %s from %s", msg, cause_req->toString(), err.toString(), toString());
+        } else if ( log_level::cond == llvl ) {
+            jau_COND_PRINT(env.DEBUG_DATA, "%s: %s -> %s from %s", msg, cause_req->toString(), err.toString(), toString());
+        }
+        return send(err);
+    } catch (...) {
+        std::exception_ptr eptr = std::current_exception();
+        jau::fput_exception(stderr, eptr, E_FILE_LINE);
+        jau_ERR_PRINT3("Exception caught while sending error: %s", toString());
+        return false;
+    }
+}
+
 uint16_t BTGattHandler::clientMTUExchange(const jau::fraction_i64& timeout) noexcept {
     if( GATTRole::Client != getRole() ) {
         jau_ERR_PRINT("GATT MTU exchange only allowed in client mode");

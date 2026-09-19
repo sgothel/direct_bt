@@ -706,6 +706,17 @@ namespace direct_bt {
             std::unique_ptr<const AttPDUMsg> sendWithReply(const AttPDUMsg & msg, const jau::fraction_i64& timeout) noexcept;
 
             /**
+             * Sends an AttErrorRsp error response of the given `cause_req` and `cause_handle` to the connected device via l2cap.
+             *
+             * @param msg the message to be send
+             * @return true if successful otherwise false if write error, not connected or if message size exceeds usedMTU-1.
+             * @see send()
+             * @see AttErrorRsp
+             */
+            bool sendError(AttErrorRsp::ErrorCode ec, const AttPDUMsg *cause_req, uint16_t cause_handle,
+                           log_level llvl, std::string_view msg) noexcept;
+
+            /**
              * Generic read GATT value and long value
              * <p>
              * If expectedLength = 0, then only one ATT_READ_REQ/RSP will be used.
