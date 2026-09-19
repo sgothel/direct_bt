@@ -1,7 +1,13 @@
 #!/bin/bash
 
-#export direct_bt_debug=true
-#export direct_bt_verbose=true
+# export direct_bt_debug=true
+# export direct_bt_debug=adapter.event=false,gatt.data=false,hci.event=true,hci.scan_ad_eir=true,mgmt.event=false
+# export direct_bt_debug=adapter.event,gatt.data,hci.event,hci.scan_ad_eir,mgmt.event
+# export direct_bt_debug=adapter.event,gatt.data
+# export direct_bt_debug=adapter.event,hci.event
+# export direct_bt_debug=adapter.event
+# export direct_bt_verbose=true
+#
 
 #
 # See scripts/scripts/run-native-example.sh for general details,
@@ -15,12 +21,18 @@ bname=`basename $0 .sh`
 
 . $rootdir/jaulib/scripts/setup-machine-arch.sh "-quiet"
 
-build_dir=$rootdir/build/default
-#build_dir=$rootdir/"build-$os_name-$archabi"
 if [ ! -z "$1" ] ; then
-    build_dir=$1
+    preset_name=$1
     shift 1
+else
+    echo "ERROR: No preset passed as 1st argument, use one of:"
+    cmake --list-presets
+    exit 1
 fi
+
+dist_dir="$rootdir/dist/${preset_name}-${tripleid}"
+build_dir="$rootdir/build/${preset_name}"
+echo dist_dir $dist_dir
 echo build_dir $build_dir
 
 test_exe=${build_dir}/trial/direct_bt/test_client_server10_NoEnc

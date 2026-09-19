@@ -6,6 +6,14 @@
 #   -v normal         dummy for full benchmarking
 #   <none>            auto_run, no benchmarking
 #
+#
+# export direct_bt_debug=true
+# export direct_bt_debug=adapter.event=false,gatt.data=false,hci.event=true,hci.scan_ad_eir=true,mgmt.event=false
+# export direct_bt_debug=adapter.event,gatt.data,hci.event,hci.scan_ad_eir,mgmt.event
+# export direct_bt_debug=adapter.event,gatt.data
+# export direct_bt_debug=adapter.event,hci.event
+# export direct_bt_debug=adapter.event
+#
 
 script_args="$@"
 
@@ -61,7 +69,7 @@ export LC_MEASUREMENT=en_US.UTF-8
 export LC_ALL=en_US.UTF-8
 export LANG=en_US.UTF-8
 
-export EXE_WRAPPER="valgrind --tool=memcheck --leak-check=full --show-reachable=yes --track-origins=yes --malloc-fill=0xff --free-fill=0xfe --error-limit=no --default-suppressions=yes --suppressions=$sdir/valgrind.supp --gen-suppressions=all --show-error-list=yes --log-file=$valgrindlogfile"
+#export EXE_WRAPPER="valgrind --tool=memcheck --leak-check=full --show-reachable=yes --track-origins=yes --malloc-fill=0xff --free-fill=0xfe --error-limit=no --default-suppressions=yes --suppressions=$sdir/valgrind.supp --gen-suppressions=all --show-error-list=yes --log-file=$valgrindlogfile"
 # export EXE_WRAPPER="valgrind --tool=memcheck --leak-check=full --show-leak-kinds=definite --track-origins=yes --malloc-fill=0xff --free-fill=0xfe --error-limit=no --default-suppressions=yes --suppressions=$sdir/valgrind.supp --gen-suppressions=all --show-error-list=yes --log-file=$valgrindlogfile"
 # export EXE_WRAPPER="valgrind --tool=memcheck --leak-check=summary --show-leak-kinds=definite --default-suppressions=yes --suppressions=$sdir/valgrind.supp --gen-suppressions=all --log-file=$valgrindlogfile"
 # export EXE_WRAPPER="valgrind --tool=helgrind --track-lockorders=yes  --ignore-thread-creation=yes --default-suppressions=yes --suppressions=$sdir/valgrind.supp --gen-suppressions=all -s --log-file=$valgrindlogfile"
