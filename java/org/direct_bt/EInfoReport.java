@@ -105,10 +105,10 @@ public final class EInfoReport implements AutoCloseable, Cloneable
      * Replace the native shared managed EInfoReport object
      * @param nativeInstanceOther native pointer to shared managed EInfoReport object `std::shared_ptr<EInfoReport>`
      */
-    /* pp */ final void replaces_native(final long nativeInstanceOther) {
-        replaces_nativeImpl(nativeInstanceOther);
+    /* pp */ final void replace_native(final long nativeInstanceOther) {
+        replace_nativeImpl(nativeInstanceOther);
     }
-    private native void replaces_nativeImpl(final long nativeInstanceOther);
+    private native void replace_nativeImpl(final long nativeInstanceOther);
 
     @Override
     public EInfoReport clone() {

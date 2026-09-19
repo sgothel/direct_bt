@@ -70,7 +70,7 @@ jlong Java_org_direct_1bt_EInfoReport_ctorImpl2(JNIEnv *env, jobject obj, jlong 
     return (jlong) (intptr_t)nullptr;
 }
 
-void Java_org_direct_1bt_EInfoReport_replace_nativeImpl(JNIEnv *env, jobject obj, jlong nativeInstanceOther) {
+void Java_org_direct_1bt_EInfoReport_replace_1nativeImpl(JNIEnv *env, jobject obj, jlong nativeInstanceOther) {
     try {
         shared_ptr_ref<EInfoReport> ref_other(nativeInstanceOther);
         shared_ptr_ref<EInfoReport> ref(env, obj);

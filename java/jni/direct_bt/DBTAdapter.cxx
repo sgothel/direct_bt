@@ -550,7 +550,7 @@ jint Java_jau_direct_1bt_DBTAdapter_removeAllStatusListenerImpl(JNIEnv *env, job
     return 0;
 }
 
-jboolean Java_jau_direct_1bt_DBTAdapter_isDeviceWhitelisted(JNIEnv *env, jobject obj, jbyteArray jaddress, jbyte jaddressType) {
+jboolean Java_jau_direct_1bt_DBTAdapter_isDeviceWhitelistedImpl(JNIEnv *env, jobject obj, jbyteArray jaddress, jbyte jaddressType) {
     try {
         shared_ptr_ref<BTAdapter> adapter(env, obj); // hold until done
         JavaAnonRef adapter_java = adapter->getJavaObject(); // hold until done!
