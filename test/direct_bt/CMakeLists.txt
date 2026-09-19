@@ -18,7 +18,7 @@ foreach( name ${TARGETS_IDIOMATIC_EXAMPLES} )
     add_dependencies(${name} direct_bt catch2)
     add_test (NAME ${name} COMMAND ${name})
     if(DEFINED CMAKE_CXX_CLANG_TIDY)
-        set_target_properties(${name} PROPERTIES CXX_CLANG_TIDY "${CMAKE_CXX_CLANG_TIDY};--checks;-bugprone-chained-comparison")
+        set_target_properties(${name} PROPERTIES CXX_CLANG_TIDY "${CMAKE_CXX_CLANG_TIDY};--checks;-bugprone-chained-comparison,-bugprone-macro-parentheses")
     endif()
 endforeach()
 
