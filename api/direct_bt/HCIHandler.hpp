@@ -243,7 +243,7 @@ namespace direct_bt {
             jau::POctets rbuffer;
             HCIComm comm;
             hci_ufilter filter_mask;
-            std::atomic<uint32_t> metaev_filter_mask;
+            std::atomic<uint64_t> metaev_filter_mask;
             std::atomic<uint64_t> opcbit_filter_mask;
 
             inline bool filter_test_metaev(HCIMetaEventType mec) noexcept { return 0 != jau::test_bit_uint64_nc(number(mec)-1, metaev_filter_mask); }
