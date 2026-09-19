@@ -247,10 +247,10 @@ std::unique_ptr<MgmtEvent> HCIHandler::translate(HCIEvent& ev) noexcept {
                 const HCIConnectionRef conn = addOrUpdateTrackerConnection(addressAndType, handle);
                 if( HCIStatusCode::SUCCESS == status ) {
                     advertisingEnabled = false;
-                    return std::make_unique<MgmtEvtDeviceConnected>(dev_id, addressAndType, handle);
+                    return jau::make_unique_or_abort<MgmtEvtDeviceConnected>(dev_id, addressAndType, handle);
                 } else {
                     removeTrackerConnection(conn);
-                    return std::make_unique<MgmtEvtDeviceConnectFailed>(dev_id, addressAndType, status);
+                    return jau::make_unique_or_abort<MgmtEvtDeviceConnectFailed>(dev_id, addressAndType, status);
                 }
             }
             case HCIMetaEventType::LE_LTK_REQUEST: {
@@ -260,7 +260,7 @@ std::unique_ptr<MgmtEvent> HCIHandler::translate(HCIEvent& ev) noexcept {
                     jau_WARN_PRINT("dev_id %u: LE_LTK_REQUEST: Not tracked conn_handle of %s", dev_id, ev2.toString());
                     return nullptr;
                 }
-                return std::make_unique<MgmtEvtHCILELTKReq>(dev_id, conn->getAddressAndType(), ev2.getRand(), ev2.getEDIV());
+                return jau::make_unique_or_abort<MgmtEvtHCILELTKReq>(dev_id, conn->getAddressAndType(), ev2.getRand(), ev2.getEDIV());
             }
             case HCIMetaEventType::LE_EXT_CONN_COMPLETE: {
                 HCIStatusCode status;
@@ -275,10 +275,10 @@ std::unique_ptr<MgmtEvent> HCIHandler::translate(HCIEvent& ev) noexcept {
                 const HCIConnectionRef conn = addOrUpdateTrackerConnection(addressAndType, handle);
                 if( HCIStatusCode::SUCCESS == status ) {
                     advertisingEnabled = false;
-                    return std::make_unique<MgmtEvtDeviceConnected>(dev_id, addressAndType, handle);
+                    return jau::make_unique_or_abort<MgmtEvtDeviceConnected>(dev_id, addressAndType, handle);
                 } else {
                     removeTrackerConnection(conn);
-                    return std::make_unique<MgmtEvtDeviceConnectFailed>(dev_id, addressAndType, status);
+                    return jau::make_unique_or_abort<MgmtEvtDeviceConnectFailed>(dev_id, addressAndType, status);
                 }
             }
             case HCIMetaEventType::LE_REMOTE_FEAT_COMPLETE: {
@@ -296,7 +296,7 @@ std::unique_ptr<MgmtEvent> HCIHandler::translate(HCIEvent& ev) noexcept {
                             dev_id, jau::toHexString(handle), ev.toString());
                     return nullptr;
                 }
-                return std::make_unique<MgmtEvtHCILERemoteFeatures>(dev_id, conn->getAddressAndType(), status, features);
+                return jau::make_unique_or_abort<MgmtEvtHCILERemoteFeatures>(dev_id, conn->getAddressAndType(), status, features);
             }
             case HCIMetaEventType::LE_PHY_UPDATE_COMPLETE: {
                 HCIStatusCode status;
@@ -320,7 +320,7 @@ std::unique_ptr<MgmtEvent> HCIHandler::translate(HCIEvent& ev) noexcept {
                             dev_id, jau::toHexString(handle), ev.toString());
                     return nullptr;
                 }
-                return std::make_unique<MgmtEvtHCILEPhyUpdateComplete>(dev_id, conn->getAddressAndType(), status, Tx, Rx);
+                return jau::make_unique_or_abort<MgmtEvtHCILEPhyUpdateComplete>(dev_id, conn->getAddressAndType(), status, Tx, Rx);
             }
             default:
                 return nullptr;
@@ -338,16 +338,10 @@ std::unique_ptr<MgmtEvent> HCIHandler::translate(HCIEvent& ev) noexcept {
             HCIConnectionRef conn = addOrUpdateTrackerConnection(addressAndType, ev_cc->handle);
             if( HCIStatusCode::SUCCESS == status ) {
                 advertisingEnabled = false;
-                return std::make_unique<MgmtEvtDeviceConnected>(dev_id, conn->getAddressAndType(), conn->getHandle());
+                return jau::make_unique_or_abort<MgmtEvtDeviceConnected>(dev_id, conn->getAddressAndType(), conn->getHandle());
             } else {
-                try {
-                    std::unique_ptr<MgmtEvent> res( std::make_unique<MgmtEvtDeviceConnectFailed>(dev_id, conn->getAddressAndType(),status) );
-                    removeTrackerConnection(conn);
-                    return res;
-                } catch (const std::bad_alloc &e) {
-                    ABORT("Error: bad_alloc: MgmtEvtDeviceConnectFailedRef allocation failed");
-                    return nullptr; // unreachable
-                }
+                removeTrackerConnection(conn);
+                return jau::make_unique_or_abort<MgmtEvtDeviceConnectFailed>(dev_id, conn->getAddressAndType(), status);
             }
         }
         case HCIEventType::DISCONN_COMPLETE: {
@@ -370,7 +364,7 @@ std::unique_ptr<MgmtEvent> HCIHandler::translate(HCIEvent& ev) noexcept {
                             jau::toHexString(static_cast<uint8_t>(status)), to_string(status), conn->toString(), ev.toString(), toString());
                 }
                 const HCIStatusCode hciRootReason = static_cast<HCIStatusCode>(ev_cc->reason);
-                return std::make_unique<MgmtEvtDeviceDisconnected>(dev_id, conn->getAddressAndType(), hciRootReason, conn->getHandle());
+                return jau::make_unique_or_abort<MgmtEvtDeviceDisconnected>(dev_id, conn->getAddressAndType(), hciRootReason, conn->getHandle());
             }
         }
         case HCIEventType::ENCRYPT_CHANGE: {
@@ -387,7 +381,7 @@ std::unique_ptr<MgmtEvent> HCIHandler::translate(HCIEvent& ev) noexcept {
                         dev_id, jau::toHexString(handle), ev.toString());
                 return nullptr;
             }
-            return std::make_unique<MgmtEvtHCIEncryptionChanged>(dev_id, conn->getAddressAndType(), status, ev_cc->encrypt);
+            return jau::make_unique_or_abort<MgmtEvtHCIEncryptionChanged>(dev_id, conn->getAddressAndType(), status, ev_cc->encrypt);
         }
         case HCIEventType::ENCRYPT_KEY_REFRESH_COMPLETE: {
             HCIStatusCode status;
@@ -403,7 +397,7 @@ std::unique_ptr<MgmtEvent> HCIHandler::translate(HCIEvent& ev) noexcept {
                         dev_id, jau::toHexString(handle), ev.toString());
                 return nullptr;
             }
-            return std::make_unique<MgmtEvtHCIEncryptionKeyRefreshComplete>(dev_id, conn->getAddressAndType(), status);
+            return jau::make_unique_or_abort<MgmtEvtHCIEncryptionKeyRefreshComplete>(dev_id, conn->getAddressAndType(), status);
         }
         // TODO: AUTH_COMPLETE
         // 7.7.6 AUTH_COMPLETE 0x06
@@ -423,7 +417,7 @@ std::unique_ptr<MgmtEvent> HCIHandler::translate(HCICommand& ev) noexcept {
                 jau_WARN_PRINT("dev_id %u:: LE_ENABLE_ENC: Not tracked conn_handle %s", dev_id, ev2.toString());
                 return nullptr;
             }
-            return std::make_unique<MgmtEvtHCILEEnableEncryptionCmd>(dev_id, conn->getAddressAndType(),
+            return jau::make_unique_or_abort<MgmtEvtHCILEEnableEncryptionCmd>(dev_id, conn->getAddressAndType(),
                                                                      ev2.getRand(), ev2.getEDIV(), ev2.getLTK());
         }
         case HCIOpcode::LE_LTK_REPLY_ACK: {
@@ -433,7 +427,7 @@ std::unique_ptr<MgmtEvent> HCIHandler::translate(HCICommand& ev) noexcept {
                 jau_WARN_PRINT("dev_id %u:: LE_LTK_REPLY_ACK: Not tracked conn_handle %s", dev_id, ev2.toString());
                 return nullptr;
             }
-            return std::make_unique<MgmtEvtHCILELTKReplyAckCmd>(dev_id, conn->getAddressAndType(), ev2.getLTK());
+            return jau::make_unique_or_abort<MgmtEvtHCILELTKReplyAckCmd>(dev_id, conn->getAddressAndType(), ev2.getLTK());
         }
         case HCIOpcode::LE_LTK_REPLY_REJ: {
             const HCILELTKReplyRejCmd & ev2 = *static_cast<const HCILELTKReplyRejCmd*>( &ev );
@@ -442,7 +436,7 @@ std::unique_ptr<MgmtEvent> HCIHandler::translate(HCICommand& ev) noexcept {
                 jau_WARN_PRINT("dev_id %u:: LE_LTK_REPLY_REJ: Not tracked conn_handle %s", dev_id, ev2.toString());
                 return nullptr;
             }
-            return std::make_unique<MgmtEvtHCILELTKReplyRejCmd>(dev_id, conn->getAddressAndType());
+            return jau::make_unique_or_abort<MgmtEvtHCILELTKReplyRejCmd>(dev_id, conn->getAddressAndType());
         }
         default:
             return nullptr;
@@ -926,6 +920,10 @@ HCIStatusCode HCIHandler::check_open_connection(const std::string& caller,
         if( addUntrackedConn ) {
             // add unknown connection to tracker
             conn = addOrUpdateTrackerConnection(peerAddressAndType, conn_handle);
+            if (!conn) {
+                jau_ERR_PRINT3("Exception caught while addOrUpdateDisconnectCmd of handle %#x, address %s for %s", conn_handle, peerAddressAndType, toString());
+                return HCIStatusCode::INTERNAL_FAILURE;
+            }
             jau_WORDY_PRINT("HCIHandler::%s: Not tracked address%s, added %s - %s",
                        caller, peerAddressAndType.toString(), conn->toString(), toString());
         } else {
@@ -1564,7 +1562,10 @@ HCIStatusCode HCIHandler::disconnect(const uint16_t conn_handle, const BDAddress
         return HCIStatusCode::INTERNAL_FAILURE;
     }
     if( HCIStatusCode::SUCCESS == status ) {
-        addOrUpdateDisconnectCmd(peerAddressAndType, conn_handle);
+        if(!addOrUpdateDisconnectCmd(peerAddressAndType, conn_handle)) {
+            jau_ERR_PRINT3("Exception caught while addOrUpdateDisconnectCmd of handle %#x, address %s for %s", conn_handle, peerAddressAndType, toString());
+            return HCIStatusCode::INTERNAL_FAILURE;
+        }
     } else {
         HCIConnectionRef c;
         if( (HCIStatusCode::L2CAP_CLIENT_TIMEOUT <= reason && reason <= HCIStatusCode::INTERNAL_FAILURE) ||
