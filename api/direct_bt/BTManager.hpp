@@ -285,7 +285,7 @@ namespace direct_bt {
              * Instantiate singleton.
              */
             BTManager() noexcept;
-            bool initialize(const std::shared_ptr<BTManager>& self) noexcept;
+            bool initialize(const std::shared_ptr<BTManager>& self);
 
             static const std::shared_ptr<BTManager> make_shared() noexcept {
                 try {
@@ -302,10 +302,10 @@ namespace direct_bt {
                 }
             }
 
-            std::unique_ptr<AdapterInfo> readAdapterInfo(const uint16_t dev_id) noexcept;
+            std::unique_ptr<AdapterInfo> readAdapterInfo(const uint16_t dev_id);
 
-            void processAdapterAdded(std::unique_ptr<MgmtEvent> e) noexcept;
-            void processAdapterRemoved(std::unique_ptr<MgmtEvent> e) noexcept;
+            void processAdapterAdded(std::unique_ptr<MgmtEvent> e);
+            void processAdapterRemoved(std::unique_ptr<MgmtEvent> e);
             void mgmtEvNewSettingsCB(const MgmtEvent& e) noexcept;
             void mgmtEventAnyCB(const MgmtEvent& e) noexcept;
 
@@ -398,11 +398,11 @@ namespace direct_bt {
              */
             std::shared_ptr<BTAdapter> getDefaultAdapter() const noexcept;
 
-            bool setIOCapability(const uint16_t dev_id, const SMPIOCapability io_cap, SMPIOCapability& pre_io_cap) noexcept;
-            SMPIOCapability getIOCapability(const uint16_t dev_id) const noexcept;
+            bool setIOCapability(const uint16_t dev_id, const SMPIOCapability io_cap, SMPIOCapability& pre_io_cap);
+            SMPIOCapability getIOCapability(const uint16_t dev_id) const;
 
-            bool setMode(const uint16_t dev_id, const MgmtCommand::Opcode opc, const uint8_t mode, AdapterSetting& current_settings) noexcept;
-            MgmtStatus setDiscoverable(const uint16_t dev_id, const uint8_t state, const uint16_t timeout, AdapterSetting& current_settings) noexcept;
+            bool setMode(const uint16_t dev_id, const MgmtCommand::Opcode opc, const uint8_t mode, AdapterSetting& current_settings);
+            MgmtStatus setDiscoverable(const uint16_t dev_id, const uint8_t state, const uint16_t timeout, AdapterSetting& current_settings);
 
             /**
              * Initialize the adapter with default values, including power-on.
@@ -420,9 +420,9 @@ namespace direct_bt {
              * @since 3.2.0
              */
             HCIStatusCode initializeAdapter(AdapterInfo& adapterInfo, const uint16_t dev_id,
-                                            const BTMode btMode, const bool powerOn) noexcept;
+                                            const BTMode btMode, const bool powerOn);
 
-            HCIStatusCode setPrivacy(const uint16_t dev_id, const uint8_t privacy, const jau::uint128dp_t& irk, AdapterSetting& current_settings) noexcept;
+            HCIStatusCode setPrivacy(const uint16_t dev_id, const uint8_t privacy, const jau::uint128dp_t& irk, AdapterSetting& current_settings);
 
             /**
              * Read default connection parameter for given adapter to the kernel.
@@ -431,7 +431,7 @@ namespace direct_bt {
              * @return list of MgmtDefaultParam if successful, empty if command failed.
              * @since 2.6.3
              */
-            std::vector<MgmtDefaultParam> readDefaultSysParam(const uint16_t dev_id) noexcept;
+            std::vector<MgmtDefaultParam> readDefaultSysParam(const uint16_t dev_id);
 
             /**
              * Set default connection parameter for given adapter to the kernel.
@@ -446,7 +446,7 @@ namespace direct_bt {
              */
             HCIStatusCode setDefaultConnParam(const uint16_t dev_id,
                                               const uint16_t conn_interval_min=8, const uint16_t conn_interval_max=40,
-                                              const uint16_t conn_latency=0, const uint16_t supervision_timeout=getHCIConnSupervisorTimeout(0, 50)) noexcept;
+                                              const uint16_t conn_latency=0, const uint16_t supervision_timeout=getHCIConnSupervisorTimeout(0, 50));
 
             /**
              * Uploads given connection parameter for given device to the kernel.
@@ -462,7 +462,7 @@ namespace direct_bt {
              */
             HCIStatusCode uploadConnParam(const uint16_t dev_id, const BDAddressAndType & addressAndType,
                                           const uint16_t conn_interval_min=12, const uint16_t conn_interval_max=12,
-                                          const uint16_t conn_latency=0, const uint16_t supervision_timeout=getHCIConnSupervisorTimeout(0, 15)) noexcept;
+                                          const uint16_t conn_latency=0, const uint16_t supervision_timeout=getHCIConnSupervisorTimeout(0, 15));
 
             /**
              * Returns true, if the adapter's device is already whitelisted.
@@ -478,7 +478,7 @@ namespace direct_bt {
              * Method will reject duplicate devices, in which case it should be removed first.
              * </p>
              */
-            bool addDeviceToWhitelist(const uint16_t dev_id, const BDAddressAndType & addressAndType, const HCIWhitelistConnectType ctype) noexcept;
+            bool addDeviceToWhitelist(const uint16_t dev_id, const BDAddressAndType & addressAndType, const HCIWhitelistConnectType ctype);
 
             /** Remove the given device from the adapter's autoconnect whitelist. */
             bool removeDeviceFromWhitelist(const uint16_t dev_id, const BDAddressAndType & addressAndType) noexcept;
@@ -486,8 +486,8 @@ namespace direct_bt {
             /** Remove all previously added devices from the autoconnect whitelist. Returns number of removed devices. */
             size_type removeAllDevicesFromWhitelist() noexcept;
 
-            std::shared_ptr<ConnectionInfo> getConnectionInfo(const uint16_t dev_id, const BDAddressAndType& addressAndType) noexcept;
-            std::shared_ptr<NameAndShortName> setLocalName(const uint16_t dev_id, const std::string & name, const std::string & short_name) noexcept;
+            std::shared_ptr<ConnectionInfo> getConnectionInfo(const uint16_t dev_id, const BDAddressAndType& addressAndType);
+            std::shared_ptr<NameAndShortName> setLocalName(const uint16_t dev_id, const std::string & name, const std::string & short_name);
 
             /** Security commands */
 
@@ -501,24 +501,24 @@ namespace direct_bt {
              */
             bool isValidLongTermKeyAddressAndType(const EUI48 &address, const BDAddressType &address_type) const noexcept;
 
-            HCIStatusCode uploadLongTermKey(const uint16_t dev_id, const jau::darray<MgmtLongTermKey> &keys) noexcept;
+            HCIStatusCode uploadLongTermKey(const uint16_t dev_id, const jau::darray<MgmtLongTermKey> &keys);
             HCIStatusCode uploadLongTermKey(const BTRole adapterRole,
-                                            const uint16_t dev_id, const BDAddressAndType & addressAndType, const jau::darray<SMPLongTermKey>& ltks) noexcept;
+                                            const uint16_t dev_id, const BDAddressAndType & addressAndType, const jau::darray<SMPLongTermKey>& ltks);
 
-            HCIStatusCode uploadIdentityResolvingKey(const uint16_t dev_id, const jau::darray<MgmtIdentityResolvingKey> &keys) noexcept;
-            HCIStatusCode uploadIdentityResolvingKey(const uint16_t dev_id, const jau::darray<SMPIdentityResolvingKey>& irks) noexcept;
-            HCIStatusCode clearIdentityResolvingKeys(const uint16_t dev_id) noexcept;
+            HCIStatusCode uploadIdentityResolvingKey(const uint16_t dev_id, const jau::darray<MgmtIdentityResolvingKey> &keys);
+            HCIStatusCode uploadIdentityResolvingKey(const uint16_t dev_id, const jau::darray<SMPIdentityResolvingKey>& irks);
+            HCIStatusCode clearIdentityResolvingKeys(const uint16_t dev_id);
 
-            HCIStatusCode uploadLinkKey(const uint16_t dev_id, const MgmtLinkKeyInfo &key) noexcept;
-            HCIStatusCode uploadLinkKey(const uint16_t dev_id, const BDAddressAndType & addressAndType, const SMPLinkKey& lk) noexcept;
+            HCIStatusCode uploadLinkKey(const uint16_t dev_id, const MgmtLinkKeyInfo &key);
+            HCIStatusCode uploadLinkKey(const uint16_t dev_id, const BDAddressAndType & addressAndType, const SMPLinkKey& lk);
 
-            MgmtStatus userPINCodeReply(const uint16_t dev_id, const BDAddressAndType & addressAndType, const std::string& pinCode) noexcept;
-            MgmtStatus userPINCodeNegativeReply(const uint16_t dev_id, const BDAddressAndType & addressAndType) noexcept;
-            MgmtStatus userPasskeyReply(const uint16_t dev_id, const BDAddressAndType & addressAndType, const uint32_t passkey) noexcept;
-            MgmtStatus userPasskeyNegativeReply(const uint16_t dev_id, const BDAddressAndType & addressAndType) noexcept;
-            MgmtStatus userConfirmReply(const uint16_t dev_id, const BDAddressAndType & addressAndType, const bool positive) noexcept;
+            MgmtStatus userPINCodeReply(const uint16_t dev_id, const BDAddressAndType & addressAndType, const std::string& pinCode);
+            MgmtStatus userPINCodeNegativeReply(const uint16_t dev_id, const BDAddressAndType & addressAndType);
+            MgmtStatus userPasskeyReply(const uint16_t dev_id, const BDAddressAndType & addressAndType, const uint32_t passkey);
+            MgmtStatus userPasskeyNegativeReply(const uint16_t dev_id, const BDAddressAndType & addressAndType);
+            MgmtStatus userConfirmReply(const uint16_t dev_id, const BDAddressAndType & addressAndType, const bool positive);
 
-            HCIStatusCode unpairDevice(const uint16_t dev_id, const BDAddressAndType & addressAndType, const bool disconnect) noexcept;
+            HCIStatusCode unpairDevice(const uint16_t dev_id, const BDAddressAndType & addressAndType, const bool disconnect);
 
             /** MgmtEventCallback handling  */
 

@@ -192,7 +192,7 @@ std::unique_ptr<MgmtEvent> BTManager::sendWithReply(MgmtCommand &req, const jau:
     return nullptr;
 }
 
-std::unique_ptr<AdapterInfo> BTManager::readAdapterInfo(const uint16_t dev_id) noexcept {
+std::unique_ptr<AdapterInfo> BTManager::readAdapterInfo(const uint16_t dev_id) {
     std::unique_ptr<AdapterInfo> adapterInfo(nullptr); // nullptr
     MgmtCommand req0(MgmtCommand::Opcode::READ_INFO, dev_id);
     {
@@ -217,7 +217,7 @@ fail:
 }
 
 HCIStatusCode BTManager::initializeAdapter(AdapterInfo& adapterInfo, const uint16_t dev_id,
-                                           const BTMode btMode, const bool powerOn) noexcept {
+                                           const BTMode btMode, const bool powerOn) {
     /**
      * We set BTManager::defaultIOCapability, i.e. SMPIOCapability::NO_INPUT_NO_OUTPUT,
      * which may be overridden for each connection by BTDevice/BTAdapter!
@@ -390,7 +390,7 @@ BTManager::BTManager() noexcept
     }
 }
 
-bool BTManager::initialize(const std::shared_ptr<BTManager>& self) noexcept {
+bool BTManager::initialize(const std::shared_ptr<BTManager>& self) {
     comm.set_interrupted_query( jau::bind_member(&mgmt_reader_service, &jau::service_runner::shall_stop2) );
     mgmt_reader_service.start();
 
@@ -667,7 +667,7 @@ bool BTManager::removeAdapter(BTAdapter* adapter) noexcept {
     return false;
 }
 
-bool BTManager::setIOCapability(const uint16_t dev_id, const SMPIOCapability io_cap, SMPIOCapability& pre_io_cap) noexcept {
+bool BTManager::setIOCapability(const uint16_t dev_id, const SMPIOCapability io_cap, SMPIOCapability& pre_io_cap) {
     if( SMPIOCapability::UNSET != io_cap ) {
         if constexpr ( USE_LINUX_BT_SECURITY ) {
             typename adapters_t::const_iterator it = adapters.cbegin();
@@ -690,7 +690,7 @@ bool BTManager::setIOCapability(const uint16_t dev_id, const SMPIOCapability io_
     return false;
 }
 
-SMPIOCapability BTManager::getIOCapability(const uint16_t dev_id) const noexcept {
+SMPIOCapability BTManager::getIOCapability(const uint16_t dev_id) const {
     typename adapters_t::const_iterator it = adapters.cbegin();
     for (; !it.is_end(); ++it) {
         if( (*it)->dev_id == dev_id ) {
@@ -720,7 +720,7 @@ MgmtStatus BTManager::handleCurrentSettingsReply(std::unique_ptr<MgmtEvent>&& re
     }
 }
 
-bool BTManager::setMode(const uint16_t dev_id, const MgmtCommand::Opcode opc, const uint8_t mode, AdapterSetting& current_settings) noexcept {
+bool BTManager::setMode(const uint16_t dev_id, const MgmtCommand::Opcode opc, const uint8_t mode, AdapterSetting& current_settings) {
     const jau::fraction_i64& timeout = MgmtCommand::Opcode::SET_POWERED == opc ? env.MGMT_SET_POWER_COMMAND_TIMEOUT : env.MGMT_COMMAND_REPLY_TIMEOUT;
     MgmtUint8Cmd req(opc, dev_id, mode);
     MgmtStatus res = handleCurrentSettingsReply(sendWithReply(req, timeout), current_settings);
@@ -729,14 +729,14 @@ bool BTManager::setMode(const uint16_t dev_id, const MgmtCommand::Opcode opc, co
     return MgmtStatus::SUCCESS == res;
 }
 
-MgmtStatus BTManager::setDiscoverable(const uint16_t dev_id, const uint8_t state, const uint16_t timeout_sec, AdapterSetting& current_settings) noexcept {
+MgmtStatus BTManager::setDiscoverable(const uint16_t dev_id, const uint8_t state, const uint16_t timeout_sec, AdapterSetting& current_settings) {
     MgmtSetDiscoverableCmd req(dev_id, state, timeout_sec);
     MgmtStatus res = handleCurrentSettingsReply(sendWithReply(req), current_settings);
     jau_DBG_PRINT("BTManager::setDiscoverable[%d]: %s, result %s %s", dev_id, req, res, current_settings);
     return res;
 }
 
-std::vector<MgmtDefaultParam> BTManager::readDefaultSysParam(const uint16_t dev_id) noexcept {
+std::vector<MgmtDefaultParam> BTManager::readDefaultSysParam(const uint16_t dev_id) {
     MgmtReadDefaultSysParamCmd req(dev_id);
     std::unique_ptr<MgmtEvent> res = sendWithReply(req);
     jau_DBG_PRINT("BTManager::readDefaultSysParam[%d]: %s, result %s", dev_id, req, res->toString());
@@ -749,7 +749,7 @@ std::vector<MgmtDefaultParam> BTManager::readDefaultSysParam(const uint16_t dev_
     return std::vector<MgmtDefaultParam>();
 }
 
-HCIStatusCode BTManager::setPrivacy(const uint16_t dev_id, const uint8_t privacy, const jau::uint128dp_t& irk, AdapterSetting& current_settings) noexcept {
+HCIStatusCode BTManager::setPrivacy(const uint16_t dev_id, const uint8_t privacy, const jau::uint128dp_t& irk, AdapterSetting& current_settings) {
     MgmtSetPrivacyCmd req(dev_id, privacy, irk);
     MgmtStatus res = handleCurrentSettingsReply(sendWithReply(req), current_settings);
     jau_DBG_PRINT("BTManager::setPrivacy[%d]: %s, result %s %s", dev_id, req, res, current_settings);
@@ -758,7 +758,7 @@ HCIStatusCode BTManager::setPrivacy(const uint16_t dev_id, const uint8_t privacy
 
 HCIStatusCode BTManager::setDefaultConnParam(const uint16_t dev_id,
                                              const uint16_t conn_min_interval, const uint16_t conn_max_interval,
-                                             const uint16_t conn_latency, const uint16_t supervision_timeout) noexcept {
+                                             const uint16_t conn_latency, const uint16_t supervision_timeout) {
     MgmtSetDefaultConnParamCmd req(dev_id,
                                       conn_min_interval, conn_max_interval,
                                       conn_latency, supervision_timeout);
@@ -778,7 +778,7 @@ HCIStatusCode BTManager::setDefaultConnParam(const uint16_t dev_id,
 
 HCIStatusCode BTManager::uploadConnParam(const uint16_t dev_id, const BDAddressAndType & addressAndType,
                                          const uint16_t conn_min_interval, const uint16_t conn_max_interval,
-                                         const uint16_t conn_latency, const uint16_t supervision_timeout) noexcept {
+                                         const uint16_t conn_latency, const uint16_t supervision_timeout) {
     MgmtConnParam connParam{ addressAndType.address, addressAndType.type, conn_min_interval, conn_max_interval, conn_latency, supervision_timeout };
     MgmtLoadConnParamCmd req(dev_id, connParam);
     std::unique_ptr<MgmtEvent> res = sendWithReply(req);
@@ -812,7 +812,7 @@ bool BTManager::isValidLongTermKeyAddressAndType(const EUI48 &address, const BDA
     }
 }
 
-HCIStatusCode BTManager::uploadLongTermKey(const uint16_t dev_id, const jau::darray<MgmtLongTermKey> &keys) noexcept {
+HCIStatusCode BTManager::uploadLongTermKey(const uint16_t dev_id, const jau::darray<MgmtLongTermKey> &keys) {
     if constexpr ( USE_LINUX_BT_SECURITY ) {
         // const bool is_valid_ltk_addr = isValidLongTermKeyAddressAndType(key.address, key.address_type);
         MgmtLoadLongTermKeyCmd req(dev_id, keys);
@@ -842,7 +842,7 @@ HCIStatusCode BTManager::uploadLongTermKey(const uint16_t dev_id, const jau::dar
 
 HCIStatusCode BTManager::uploadLongTermKey(const BTRole adapterRole,
                                            const uint16_t dev_id, const BDAddressAndType & addressAndType,
-                                           const jau::darray<SMPLongTermKey>& ltks) noexcept
+                                           const jau::darray<SMPLongTermKey>& ltks)
 {
     if constexpr ( USE_LINUX_BT_SECURITY ) {
         jau::darray<MgmtLongTermKey> mgmt_keys;
@@ -858,7 +858,7 @@ HCIStatusCode BTManager::uploadLongTermKey(const BTRole adapterRole,
     }
 }
 
-HCIStatusCode BTManager::uploadIdentityResolvingKey(const uint16_t dev_id, const jau::darray<MgmtIdentityResolvingKey> &keys) noexcept {
+HCIStatusCode BTManager::uploadIdentityResolvingKey(const uint16_t dev_id, const jau::darray<MgmtIdentityResolvingKey> &keys) {
     if constexpr ( USE_LINUX_BT_SECURITY ) {
         MgmtLoadIdentityResolvingKeyCmd req(dev_id, keys);
         HCIStatusCode res;
@@ -885,7 +885,7 @@ HCIStatusCode BTManager::uploadIdentityResolvingKey(const uint16_t dev_id, const
     }
 }
 
-HCIStatusCode BTManager::uploadIdentityResolvingKey(const uint16_t dev_id, const jau::darray<SMPIdentityResolvingKey>& irks) noexcept
+HCIStatusCode BTManager::uploadIdentityResolvingKey(const uint16_t dev_id, const jau::darray<SMPIdentityResolvingKey>& irks)
 {
     if constexpr ( USE_LINUX_BT_SECURITY ) {
         jau::darray<MgmtIdentityResolvingKey> mgmt_keys;
@@ -898,7 +898,7 @@ HCIStatusCode BTManager::uploadIdentityResolvingKey(const uint16_t dev_id, const
     }
 }
 
-HCIStatusCode BTManager::clearIdentityResolvingKeys(const uint16_t dev_id) noexcept {
+HCIStatusCode BTManager::clearIdentityResolvingKeys(const uint16_t dev_id) {
     if constexpr ( USE_LINUX_BT_SECURITY ) {
         jau::darray<MgmtIdentityResolvingKey> mgmt_keys; // intentionally empty
         // BDAddressAndType addressAndType(jau::io::net::EUI48(), BDAddressType::BDADDR_LE_PUBLIC);
@@ -909,7 +909,7 @@ HCIStatusCode BTManager::clearIdentityResolvingKeys(const uint16_t dev_id) noexc
     }
 }
 
-HCIStatusCode BTManager::uploadLinkKey(const uint16_t dev_id, const MgmtLinkKeyInfo &key) noexcept {
+HCIStatusCode BTManager::uploadLinkKey(const uint16_t dev_id, const MgmtLinkKeyInfo &key) {
     if constexpr ( USE_LINUX_BT_SECURITY ) {
         MgmtLoadLinkKeyCmd req(dev_id, false /* debug_keys */, key);
         HCIStatusCode res;
@@ -936,7 +936,7 @@ HCIStatusCode BTManager::uploadLinkKey(const uint16_t dev_id, const MgmtLinkKeyI
     }
 }
 
-HCIStatusCode BTManager::uploadLinkKey(const uint16_t dev_id, const BDAddressAndType & addressAndType, const SMPLinkKey& lk) noexcept {
+HCIStatusCode BTManager::uploadLinkKey(const uint16_t dev_id, const BDAddressAndType & addressAndType, const SMPLinkKey& lk) {
     if constexpr ( USE_LINUX_BT_SECURITY ) {
         const MgmtLinkKeyInfo mgmt_lk_info { addressAndType.address, addressAndType.type, static_cast<MgmtLinkKeyType>(lk.type),
                                              lk.key, lk.pin_length };
@@ -946,7 +946,7 @@ HCIStatusCode BTManager::uploadLinkKey(const uint16_t dev_id, const BDAddressAnd
     }
 }
 
-MgmtStatus BTManager::userPINCodeReply(const uint16_t dev_id, const BDAddressAndType & addressAndType, const std::string& pinCode) noexcept {
+MgmtStatus BTManager::userPINCodeReply(const uint16_t dev_id, const BDAddressAndType & addressAndType, const std::string& pinCode) {
     if constexpr ( USE_LINUX_BT_SECURITY ) {
         MgmtPinCodeReplyCmd cmd(dev_id, addressAndType, pinCode);
         std::unique_ptr<MgmtEvent> res = sendWithReply(cmd);
@@ -961,7 +961,7 @@ MgmtStatus BTManager::userPINCodeReply(const uint16_t dev_id, const BDAddressAnd
     }
 }
 
-MgmtStatus BTManager::userPINCodeNegativeReply(const uint16_t dev_id, const BDAddressAndType & addressAndType) noexcept {
+MgmtStatus BTManager::userPINCodeNegativeReply(const uint16_t dev_id, const BDAddressAndType & addressAndType) {
     if constexpr ( USE_LINUX_BT_SECURITY ) {
         MgmtPinCodeNegativeReplyCmd cmd(dev_id, addressAndType);
         std::unique_ptr<MgmtEvent> res = sendWithReply(cmd);
@@ -976,7 +976,7 @@ MgmtStatus BTManager::userPINCodeNegativeReply(const uint16_t dev_id, const BDAd
     }
 }
 
-MgmtStatus BTManager::userPasskeyReply(const uint16_t dev_id, const BDAddressAndType & addressAndType, const uint32_t passkey) noexcept {
+MgmtStatus BTManager::userPasskeyReply(const uint16_t dev_id, const BDAddressAndType & addressAndType, const uint32_t passkey) {
     if constexpr ( USE_LINUX_BT_SECURITY ) {
         MgmtUserPasskeyReplyCmd cmd(dev_id, addressAndType, passkey);
         std::unique_ptr<MgmtEvent> res = sendWithReply(cmd);
@@ -991,7 +991,7 @@ MgmtStatus BTManager::userPasskeyReply(const uint16_t dev_id, const BDAddressAnd
     }
 }
 
-MgmtStatus BTManager::userPasskeyNegativeReply(const uint16_t dev_id, const BDAddressAndType & addressAndType) noexcept {
+MgmtStatus BTManager::userPasskeyNegativeReply(const uint16_t dev_id, const BDAddressAndType & addressAndType) {
     if constexpr ( USE_LINUX_BT_SECURITY ) {
         MgmtUserPasskeyNegativeReplyCmd cmd(dev_id, addressAndType);
         std::unique_ptr<MgmtEvent> res = sendWithReply(cmd);
@@ -1006,7 +1006,7 @@ MgmtStatus BTManager::userPasskeyNegativeReply(const uint16_t dev_id, const BDAd
     }
 }
 
-MgmtStatus BTManager::userConfirmReply(const uint16_t dev_id, const BDAddressAndType & addressAndType, const bool positive) noexcept {
+MgmtStatus BTManager::userConfirmReply(const uint16_t dev_id, const BDAddressAndType & addressAndType, const bool positive) {
     if constexpr ( USE_LINUX_BT_SECURITY ) {
         std::unique_ptr<MgmtEvent> res;
         if( positive ) {
@@ -1027,7 +1027,7 @@ MgmtStatus BTManager::userConfirmReply(const uint16_t dev_id, const BDAddressAnd
     }
 }
 
-HCIStatusCode BTManager::unpairDevice(const uint16_t dev_id, const BDAddressAndType & addressAndType, const bool disconnect) noexcept {
+HCIStatusCode BTManager::unpairDevice(const uint16_t dev_id, const BDAddressAndType & addressAndType, const bool disconnect) {
     if constexpr ( USE_LINUX_BT_SECURITY ) {
         MgmtUnpairDeviceCmd cmd(dev_id, addressAndType, disconnect);
         std::unique_ptr<MgmtEvent> res = sendWithReply(cmd);
@@ -1054,7 +1054,7 @@ bool BTManager::isDeviceWhitelisted(const uint16_t dev_id, const BDAddressAndTyp
     return false;
 }
 
-bool BTManager::addDeviceToWhitelist(const uint16_t dev_id, const BDAddressAndType & addressAndType, const HCIWhitelistConnectType ctype) noexcept {
+bool BTManager::addDeviceToWhitelist(const uint16_t dev_id, const BDAddressAndType & addressAndType, const HCIWhitelistConnectType ctype) {
     MgmtAddDeviceToWhitelistCmd req(dev_id, addressAndType, ctype);
 
     // Check if already exist in our local whitelist first, reject if so ..
@@ -1131,7 +1131,7 @@ bool BTManager::removeDeviceFromWhitelist(const uint16_t dev_id, const BDAddress
     return false;
 }
 
-std::shared_ptr<ConnectionInfo> BTManager::getConnectionInfo(const uint16_t dev_id, const BDAddressAndType& addressAndType) noexcept {
+std::shared_ptr<ConnectionInfo> BTManager::getConnectionInfo(const uint16_t dev_id, const BDAddressAndType& addressAndType) {
     MgmtGetConnectionInfoCmd req(dev_id, addressAndType);
     std::unique_ptr<MgmtEvent> res = sendWithReply(req);
     if( nullptr != res && res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
@@ -1144,7 +1144,7 @@ std::shared_ptr<ConnectionInfo> BTManager::getConnectionInfo(const uint16_t dev_
     return nullptr;
 }
 
-std::shared_ptr<NameAndShortName> BTManager::setLocalName(const uint16_t dev_id, const std::string & name, const std::string & short_name) noexcept {
+std::shared_ptr<NameAndShortName> BTManager::setLocalName(const uint16_t dev_id, const std::string & name, const std::string & short_name) {
     MgmtSetLocalNameCmd req (static_cast<uint16_t>(dev_id), name, short_name);
     std::unique_ptr<MgmtEvent> res = sendWithReply(req);
     if( nullptr != res && res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
@@ -1238,7 +1238,7 @@ void BTManager::clearAllCallbacks() noexcept {
     mgmtChangedAdapterSetCallbackList.clear();
 }
 
-void BTManager::processAdapterAdded(std::unique_ptr<MgmtEvent> e) noexcept {
+void BTManager::processAdapterAdded(std::unique_ptr<MgmtEvent> e) {
     const uint16_t dev_id = e->getDevID();
 
     std::unique_ptr<AdapterInfo> adapterInfo = readAdapterInfo(dev_id);
@@ -1264,7 +1264,7 @@ void BTManager::processAdapterAdded(std::unique_ptr<MgmtEvent> e) noexcept {
         jau_DBG_PRINT("BTManager::Adapter[%u] Added: InitAI failed for %s", dev_id, e->toString());
     }
 }
-void BTManager::processAdapterRemoved(std::unique_ptr<MgmtEvent> e) noexcept {
+void BTManager::processAdapterRemoved(std::unique_ptr<MgmtEvent> e) {
     const uint16_t dev_id = e->getDevID();
     std::shared_ptr<BTAdapter> ai = removeAdapter(dev_id);
     if( nullptr != ai ) {

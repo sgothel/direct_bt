@@ -462,7 +462,7 @@ namespace direct_bt {
             friend void BTDevice::remove() noexcept;
             friend BTDevice::~BTDevice() noexcept;
 
-            friend std::shared_ptr<ConnectionInfo> BTDevice::getConnectionInfo() noexcept;
+            friend std::shared_ptr<ConnectionInfo> BTDevice::getConnectionInfo();
             friend void BTDevice::sendMgmtEvDeviceDisconnected(std::unique_ptr<MgmtEvent> evt) noexcept;
             friend HCIStatusCode BTDevice::disconnect(const HCIStatusCode reason) noexcept;
             friend HCIStatusCode BTDevice::connectLE(uint16_t interval, uint16_t window,
@@ -475,28 +475,28 @@ namespace direct_bt {
             friend void BTDevice::hciSMPMsgCallback(const BTDeviceRef& sthis, const SMPPDUMsg& msg, const L2CapFrame& source) noexcept;
             friend void BTDevice::processDeviceReady(BTDeviceRef sthis, const uint64_t timestamp);
             friend bool BTDevice::connectGATT(const std::shared_ptr<BTDevice>& sthis) noexcept;
-            friend jau::darray<BTGattServiceRef> BTDevice::getGattServices() noexcept;
+            friend jau::darray<BTGattServiceRef> BTDevice::getGattServices();
 
             bool lockConnect(const BTDevice & device, const bool wait, const SMPIOCapability io_cap) noexcept;
             bool unlockConnect(const BTDevice & device) noexcept;
             bool unlockConnectAny() noexcept;
 
-            bool addDevicePausingDiscovery(const BTDeviceRef & device) noexcept;
+            bool addDevicePausingDiscovery(const BTDeviceRef & device);
             BTDeviceRef findDevicePausingDiscovery (const EUI48 & address, const BDAddressType & addressType) noexcept;
             void clearDevicesPausingDiscovery() noexcept;
             jau::nsize_t getDevicesPausingDiscoveryCount() noexcept;
 
-            bool addConnectedDevice(const BTDeviceRef & device) noexcept;
+            bool addConnectedDevice(const BTDeviceRef & device);
             bool removeConnectedDevice(const BTDevice & device) noexcept;
             size_type disconnectAllDevices(const HCIStatusCode reason=HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION ) noexcept;
             BTDeviceRef findConnectedDevice (const EUI48 & address, const BDAddressType & addressType) noexcept;
             jau::nsize_t getConnectedDeviceCount() const noexcept;
 
-            bool addDiscoveredDevice(BTDeviceRef const &device) noexcept;
+            bool addDiscoveredDevice(BTDeviceRef const &device);
 
             void removeDevice(BTDevice & device) noexcept;
 
-            bool addSharedDevice(BTDeviceRef const &device) noexcept;
+            bool addSharedDevice(BTDeviceRef const &device);
             BTDeviceRef getSharedDevice(const BTDevice & device) noexcept;
             void removeSharedDevice(const BTDevice & device) noexcept;
 
@@ -504,7 +504,7 @@ namespace direct_bt {
             static bool removeSMPKeyBin(key_list_t & keys, BDAddressAndType const & remoteAddress, const bool remove_file, const std::string& key_path_) noexcept;
             SMPKeyBinRef findSMPKeyBin(BDAddressAndType const & remoteAddress) noexcept;
             /** Adding a SMPKeyBin will remove previous entry. */
-            bool addSMPKeyBin(const SMPKeyBinRef& key, const bool write_file) noexcept;
+            bool addSMPKeyBin(const SMPKeyBinRef& key, const bool write_file);
             bool removeSMPKeyBin(BDAddressAndType const & remoteAddress, const bool remove_file) noexcept;
 
             L2CAPServer l2cap_att_srv;
@@ -521,7 +521,7 @@ namespace direct_bt {
             void updateAdapterSettings(const bool off_thread, const AdapterSetting new_settings, const bool sendEvent, const uint64_t timestamp) noexcept;
             void mgmtEvDeviceDiscoveringMgmt(const MgmtEvent& e) noexcept;
             void mgmtEvLocalNameChangedMgmt(const MgmtEvent& e) noexcept;
-            void mgmtEvDeviceFoundHCI(const MgmtEvent& e) noexcept;
+            void mgmtEvDeviceFoundHCI(const MgmtEvent& e);
 
             void mgmtEvPairDeviceCompleteMgmt(const MgmtEvent& e) noexcept;
             void mgmtEvNewLongTermKeyMgmt(const MgmtEvent& e) noexcept;
@@ -531,11 +531,11 @@ namespace direct_bt {
             void mgmtEvHCIAnyHCI(const MgmtEvent& e) noexcept;
             void mgmtEvMgmtAnyMgmt(const MgmtEvent& e) noexcept;
             void mgmtEvDeviceDiscoveringHCI(const MgmtEvent& e) noexcept;
-            void mgmtEvDeviceConnectedHCI(const MgmtEvent& e) noexcept;
+            void mgmtEvDeviceConnectedHCI(const MgmtEvent& e);
             void mgmtEvDeviceConnectedMgmt(const MgmtEvent& e) noexcept;
 
             void mgmtEvConnectFailedHCI(const MgmtEvent& e) noexcept;
-            void mgmtEvHCILERemoteUserFeaturesHCI(const MgmtEvent& e) noexcept;
+            void mgmtEvHCILERemoteUserFeaturesHCI(const MgmtEvent& e);
             void mgmtEvHCILEPhyUpdateCompleteHCI(const MgmtEvent& e) noexcept;
             void mgmtEvDeviceDisconnectedHCI(const MgmtEvent& e) noexcept;
 
@@ -581,7 +581,7 @@ namespace direct_bt {
         public:
 
             /** Private ctor for private BTAdapter::make_shared() intended for friends. */
-            BTAdapter(const BTAdapter::ctor_cookie& cc, BTManagerRef mgmt_, AdapterInfo adapterInfo_) noexcept;
+            BTAdapter(const BTAdapter::ctor_cookie& cc, BTManagerRef mgmt_, AdapterInfo adapterInfo_);
 
             BTAdapter(const BTAdapter&) = delete;
             void operator=(const BTAdapter&) = delete;
@@ -734,7 +734,7 @@ namespace direct_bt {
              * @see setPowered()
              * @since 2.4.0
              */
-            HCIStatusCode setName(const std::string &name, const std::string &short_name) noexcept;
+            HCIStatusCode setName(const std::string &name, const std::string &short_name);
 
             /**
              * Set the power state of the adapter.
@@ -842,7 +842,7 @@ namespace direct_bt {
              * @param path persistent storage path to SMPKeyBin files
              * @see uploadKeys()
              */
-            void setSMPKeyPath(const std::string path) noexcept;
+            void setSMPKeyPath(const std::string path);
 
             /**
              * Associate the given SMPKeyBin with the contained remote address, i.e. SMPKeyBin::getRemoteAddrAndType().
@@ -861,7 +861,7 @@ namespace direct_bt {
              * @see setSMPKeyPath()
              * @see BTDevice::uploadKeys()
              */
-            HCIStatusCode uploadKeys(SMPKeyBin& bin, const bool write) noexcept;
+            HCIStatusCode uploadKeys(SMPKeyBin& bin, const bool write);
 
             /**
              * Initialize the adapter with default values, including power-on.
@@ -958,7 +958,7 @@ namespace direct_bt {
             bool addDeviceToWhitelist(const BDAddressAndType & addressAndType,
                                       const HCIWhitelistConnectType ctype,
                                       const uint16_t conn_interval_min=12, const uint16_t conn_interval_max=12,
-                                      const uint16_t conn_latency=0, const uint16_t supervision_timeout=getHCIConnSupervisorTimeout(0, 15));
+                                      const uint16_t conn_latency=0, const uint16_t supervision_timeout=getHCIConnSupervisorTimeout(0, 15)) noexcept;
 
 
             /** Remove the given device from the adapter's autoconnect whitelist. */
@@ -987,14 +987,14 @@ namespace direct_bt {
              * @see removeStatusListener()
              * @see removeAllStatusListener()
              */
-            bool addStatusListener(const AdapterStatusListenerRef& l) noexcept;
+            bool addStatusListener(const AdapterStatusListenerRef& l);
 
             /**
              * Please use BTDevice::addStatusListener() for clarity, merely existing here to allow JNI access.
              */
-            bool addStatusListener(const BTDeviceRef& d, const AdapterStatusListenerRef& l) noexcept;
+            bool addStatusListener(const BTDeviceRef& d, const AdapterStatusListenerRef& l);
 
-            bool addStatusListener(const BTDevice& d, const AdapterStatusListenerRef& l) noexcept;
+            bool addStatusListener(const BTDevice& d, const AdapterStatusListenerRef& l);
 
             /**
              * Remove the given listener from the list.
@@ -1084,7 +1084,7 @@ namespace direct_bt {
                                          const uint8_t filter_policy=0x00,
                                          const bool filter_dup=true) noexcept;
         private:
-            HCIStatusCode stopDiscoveryImpl(const bool forceDiscoveringEvent, const bool temporary) noexcept;
+            HCIStatusCode stopDiscoveryImpl(const bool forceDiscoveringEvent, const bool temporary);
 
         public:
             /**
@@ -1097,7 +1097,7 @@ namespace direct_bt {
              * @see startDiscovery()
              * @see isDiscovering()
              */
-            HCIStatusCode stopDiscovery() noexcept;
+            HCIStatusCode stopDiscovery();
 
             /**
              * Return the current DiscoveryPolicy, set via startDiscovery().
@@ -1168,7 +1168,7 @@ namespace direct_bt {
             jau::darray<BTDeviceRef> getDiscoveredDevices() const noexcept;
 
             /** Discards all discovered devices. Returns number of removed discovered devices. */
-            size_type removeDiscoveredDevices() noexcept;
+            size_type removeDiscoveredDevices();
 
             /** Discards matching discovered devices. Returns `true` if found and removed, otherwise false. */
             bool removeDiscoveredDevice(const BDAddressAndType & addressAndType) noexcept;
@@ -1233,7 +1233,7 @@ namespace direct_bt {
                                            const uint16_t adv_interval_min=160, const uint16_t adv_interval_max=480,
                                            const AD_PDU_Type adv_type=AD_PDU_Type::ADV_IND,
                                            const uint8_t adv_chan_map=0x07,
-                                           const uint8_t filter_policy=0x00) noexcept;
+                                           const uint8_t filter_policy=0x00);
 
             /**
              * Starts advertising
@@ -1282,7 +1282,7 @@ namespace direct_bt {
                                            const uint16_t adv_interval_min=160, const uint16_t adv_interval_max=480,
                                            const AD_PDU_Type adv_type=AD_PDU_Type::ADV_IND,
                                            const uint8_t adv_chan_map=0x07,
-                                           const uint8_t filter_policy=0x00) noexcept;
+                                           const uint8_t filter_policy=0x00);
 
             /**
              * Ends advertising.
@@ -1301,7 +1301,7 @@ namespace direct_bt {
              * @see isAdvertising()
              * @since 2.4.0
              */
-            HCIStatusCode stopAdvertising() noexcept;
+            HCIStatusCode stopAdvertising();
 
             /**
              * Returns the adapter's current advertising state. It can be modified through startAdvertising(..) and stopAdvertising().

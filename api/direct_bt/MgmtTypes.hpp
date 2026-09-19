@@ -1156,7 +1156,7 @@ namespace direct_bt {
 
         static constexpr const jau::nsize_t uint16_size = 2 + 1 + 2;
 
-        static MgmtDefaultParam read(const uint8_t* data, const jau::nsize_t length) noexcept;
+        static MgmtDefaultParam read(const uint8_t* data, const jau::nsize_t length);
 
         MgmtDefaultParam() noexcept
         : type(Type::NONE), value(jau::lb_endian_t::little) {}
@@ -1164,7 +1164,7 @@ namespace direct_bt {
         MgmtDefaultParam(const Type type_) noexcept
         : type(type_), value(jau::lb_endian_t::little) {}
 
-        MgmtDefaultParam(const Type type_, const uint16_t value_) noexcept
+        MgmtDefaultParam(const Type type_, const uint16_t value_)
         : type(type_), value( to_size(type_) == 2 ? 2 : 0, jau::lb_endian_t::little) {
             if( 2 == value.size() ) {
                 value.put_uint16_nc(0, value_);
@@ -1209,7 +1209,7 @@ namespace direct_bt {
             : MgmtCommand(Opcode::READ_DEF_SYSTEM_CONFIG, dev_id, 0)
             { }
 
-            static std::vector<MgmtDefaultParam> getParams(const uint8_t *data, const jau::nsize_t length) noexcept;
+            static std::vector<MgmtDefaultParam> getParams(const uint8_t *data, const jau::nsize_t length);
     };
 
     /**
@@ -2627,7 +2627,7 @@ namespace direct_bt {
             std::string getName() const noexcept { return pdu.get_string_nc(getDataOffset()+20); }
             std::string getShortName() const noexcept { return pdu.get_string_nc(getDataOffset()+20+MGMT_MAX_NAME_LENGTH); }
 
-            std::unique_ptr<AdapterInfo> toAdapterInfo() const noexcept;
+            std::unique_ptr<AdapterInfo> toAdapterInfo() const;
             bool updateAdapterInfo(AdapterInfo& info) const noexcept;
     };
 

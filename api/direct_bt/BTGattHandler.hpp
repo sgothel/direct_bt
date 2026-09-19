@@ -535,7 +535,7 @@ namespace direct_bt {
              * @see initClientGatt()
              * @see discoverCompletePrimaryServices()
              */
-            bool discoverPrimaryServices(const std::shared_ptr<BTGattHandler>& shared_this, GattServiceList_t& result) noexcept;
+            bool discoverPrimaryServices(const std::shared_ptr<BTGattHandler>& shared_this, GattServiceList_t& result);
 
             /**
              * Discover all characteristics of a service and declaration attributes _only_.
@@ -545,7 +545,7 @@ namespace direct_bt {
              * @see initClientGatt()
              * @see discoverCompletePrimaryServices()
              */
-            bool discoverCharacteristics(BTGattServiceRef & service) noexcept;
+            bool discoverCharacteristics(BTGattServiceRef & service);
 
             /**
              * Discover all descriptors of a service _only_.
@@ -554,7 +554,7 @@ namespace direct_bt {
              * @see initClientGatt()
              * @see discoverCompletePrimaryServices()
              */
-            bool discoverDescriptors(BTGattServiceRef & service) noexcept;
+            bool discoverDescriptors(BTGattServiceRef & service);
 
             /**
              * Discover all primary services _and_ all its characteristics declarations
@@ -572,7 +572,7 @@ namespace direct_bt {
              * @return true if successful, otherwise false
              * @see initClientGatt()
              */
-            bool discoverCompletePrimaryServices(const std::shared_ptr<BTGattHandler>& shared_this) noexcept;
+            bool discoverCompletePrimaryServices(const std::shared_ptr<BTGattHandler>& shared_this);
 
         public:
             /**
@@ -652,7 +652,7 @@ namespace direct_bt {
              * @see clientMTUExchange()
              * @see discoverCompletePrimaryServices()
              */
-            bool initClientGatt(const std::shared_ptr<BTGattHandler>& shared_this, bool& already_init) noexcept;
+            bool initClientGatt(const std::shared_ptr<BTGattHandler>& shared_this, bool& already_init);
 
             /**
              * Returns a reference of the internal kept BTGattService list.
@@ -714,7 +714,7 @@ namespace direct_bt {
              * @see AttErrorRsp
              */
             bool sendError(AttErrorRsp::ErrorCode ec, const AttPDUMsg *cause_req, uint16_t cause_handle,
-                           log_level llvl, std::string_view msg) noexcept;
+                           LogLevel llvl, std::string_view msg) noexcept;
 
             /**
              * Generic read GATT value and long value
@@ -730,7 +730,7 @@ namespace direct_bt {
              * if required until the response returns zero.
              * </p>
              */
-            bool readValue(const uint16_t handle, jau::POctets & res, ssize_type expectedLength=-1) noexcept;
+            bool readValue(const uint16_t handle, jau::POctets & res, ssize_type expectedLength=-1);
 
             /**
              * BT Core Spec v5.2: Vol 3, Part G GATT: 4.8.1 Read Characteristic Value
@@ -749,7 +749,7 @@ namespace direct_bt {
              * if required until the response returns zero.
              * </p>
              */
-            bool readCharacteristicValue(const BTGattChar & c, jau::POctets & res, ssize_type expectedLength=-1) noexcept;
+            bool readCharacteristicValue(const BTGattChar & c, jau::POctets & res, ssize_type expectedLength=-1);
 
             /**
              * BT Core Spec v5.2: Vol 3, Part G GATT: 4.12.1 Read Characteristic Descriptor
@@ -768,12 +768,12 @@ namespace direct_bt {
              * if required until the response returns zero.
              * </p>
              */
-            bool readDescriptorValue(BTGattDesc & cd, ssize_type expectedLength=-1) noexcept;
+            bool readDescriptorValue(BTGattDesc & cd, ssize_type expectedLength=-1);
 
             /**
              * Generic write GATT value and long value
              */
-            bool writeValue(const uint16_t handle, const jau::TROOctets & value, const bool withResponse) noexcept;
+            bool writeValue(const uint16_t handle, const jau::TROOctets & value, const bool withResponse);
 
             /**
              * BT Core Spec v5.2: Vol 3, Part G GATT: 4.12.3 Write Characteristic Descriptors
@@ -784,17 +784,17 @@ namespace direct_bt {
              * BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3.3 Client Characteristic Configuration
              * </p>
              */
-            bool writeDescriptorValue(const BTGattDesc & cd) noexcept;
+            bool writeDescriptorValue(const BTGattDesc & cd);
 
             /**
              * BT Core Spec v5.2: Vol 3, Part G GATT: 4.9.3 Write Characteristic Value
              */
-            bool writeCharacteristicValue(const BTGattChar & c, const jau::TROOctets & value) noexcept;
+            bool writeCharacteristicValue(const BTGattChar & c, const jau::TROOctets & value);
 
             /**
              * BT Core Spec v5.2: Vol 3, Part G GATT: 4.9.1 Write Characteristic Value Without Response
              */
-            bool writeCharacteristicValueNoResp(const BTGattChar & c, const jau::TROOctets & value) noexcept;
+            bool writeCharacteristicValueNoResp(const BTGattChar & c, const jau::TROOctets & value);
 
             /**
              * BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3.3 Client Characteristic Configuration
@@ -809,7 +809,7 @@ namespace direct_bt {
              * Throws an IllegalArgumentException if the given BTGattDesc is not a ClientCharacteristicConfiguration.
              * </p>
              */
-            bool configNotificationIndication(BTGattDesc & cd, const bool enableNotification, const bool enableIndication) noexcept;
+            bool configNotificationIndication(BTGattDesc & cd, const bool enableNotification, const bool enableIndication);
 
             /**
              * Send a notification event consisting out of the given `value` representing the given characteristic value handle
@@ -822,7 +822,7 @@ namespace direct_bt {
              * @param char_value_handle valid characteristic value handle, must be sourced from referenced DBGattServer
              * @return true if successful, otherwise false
              */
-            bool sendNotification(const uint16_t char_value_handle, const jau::TROOctets & value) noexcept;
+            bool sendNotification(const uint16_t char_value_handle, const jau::TROOctets & value);
 
             /**
              * Send an indication event consisting out of the given `value` representing the given characteristic value handle
@@ -835,7 +835,7 @@ namespace direct_bt {
              * @param char_value_handle valid characteristic value handle, must be sourced from referenced DBGattServer
              * @return true if successful, otherwise false
              */
-            bool sendIndication(const uint16_t char_value_handle, const jau::TROOctets & value) noexcept;
+            bool sendIndication(const uint16_t char_value_handle, const jau::TROOctets & value);
 
             /**
              * Add the given listener to the list if not already present.
@@ -844,12 +844,12 @@ namespace direct_bt {
              * otherwise false.
              * </p>
              */
-            bool addCharListener(const BTGattCharListenerRef& l) noexcept;
+            bool addCharListener(const BTGattCharListenerRef& l);
 
             /**
              * Please use BTGattChar::addCharListener() for clarity, merely existing here to allow JNI access.
              */
-            bool addCharListener(const BTGattCharListenerRef& l, const BTGattCharRef& d) noexcept;
+            bool addCharListener(const BTGattCharListenerRef& l, const BTGattCharRef& d);
 
             /**
              * Remove the given listener from the list.
@@ -858,7 +858,7 @@ namespace direct_bt {
              * otherwise false.
              * </p>
              */
-            bool removeCharListener(const BTGattCharListenerRef& l) noexcept;
+            bool removeCharListener(const BTGattCharListenerRef& l);
 
             /**
              * Remove the given listener from the list.
@@ -867,8 +867,8 @@ namespace direct_bt {
              * otherwise false.
              * </p>
              */
-            bool removeCharListener(const BTGattCharListener * l) noexcept;
-            
+            bool removeCharListener(const BTGattCharListener * l);
+
             /**
              * Remove all {@link BTGattCharListener} from the list, which are associated to the given {@link BTGattChar}
              * when added via BTGattChar::addCharListener().
@@ -876,9 +876,9 @@ namespace direct_bt {
              * @param associatedCharacteristic the match criteria to remove any BTGattCharListener from the list
              * @return number of removed listener.
              */
-            size_type removeAllAssociatedCharListener(const BTGattCharRef& associatedChar) noexcept;
+            size_type removeAllAssociatedCharListener(const BTGattCharRef& associatedChar);
 
-            size_type removeAllAssociatedCharListener(const BTGattChar * associatedChar) noexcept;
+            size_type removeAllAssociatedCharListener(const BTGattChar * associatedChar);
 
             /**
              * Add the given listener to the list if not already present.
@@ -887,7 +887,7 @@ namespace direct_bt {
              * otherwise false.
              * </p>
              */
-            bool addCharListener(const NativeGattCharListenerRef& l) noexcept;
+            bool addCharListener(const NativeGattCharListenerRef& l);
 
             /**
              * Remove the given listener from the list.
@@ -896,7 +896,7 @@ namespace direct_bt {
              * otherwise false.
              * </p>
              */
-            bool removeCharListener(const NativeGattCharListenerRef& l) noexcept;
+            bool removeCharListener(const NativeGattCharListenerRef& l);
 
             /**
              * Remove all event listener from the list.
@@ -916,7 +916,7 @@ namespace direct_bt {
              *
              * This is merely a facility for debug and analysis.
              */
-            void printCharListener() noexcept;
+            void printCharListener();
 
             /**
              * Notify all NativeGattCharListener about a low-level AttPDUMsg request being sent to this GATTRole::Server.
@@ -1019,11 +1019,11 @@ namespace direct_bt {
             /** Higher level semantic functionality **/
             /*****************************************************/
 
-            std::shared_ptr<GattGenericAccessSvc> getGenericAccess(GattServiceList_t& primServices) noexcept;
-            std::shared_ptr<GattGenericAccessSvc> getGenericAccess(jau::darray<BTGattCharRef> & genericAccessCharDeclList) noexcept;
+            std::shared_ptr<GattGenericAccessSvc> getGenericAccess(GattServiceList_t& primServices);
+            std::shared_ptr<GattGenericAccessSvc> getGenericAccess(jau::darray<BTGattCharRef> & genericAccessCharDeclList);
 
-            std::shared_ptr<GattDeviceInformationSvc> getDeviceInformation(GattServiceList_t& primServices) noexcept;
-            std::shared_ptr<GattDeviceInformationSvc> getDeviceInformation(jau::darray<BTGattCharRef> & deviceInfoCharDeclList) noexcept;
+            std::shared_ptr<GattDeviceInformationSvc> getDeviceInformation(GattServiceList_t& primServices);
+            std::shared_ptr<GattDeviceInformationSvc> getDeviceInformation(jau::darray<BTGattCharRef> & deviceInfoCharDeclList);
 
             /**
              * Issues a ping to the device, validating whether it is still reachable.
@@ -1036,7 +1036,7 @@ namespace direct_bt {
              * </p>
              * @return `true` if successful, otherwise false in case no GATT services exists etc.
              */
-            bool ping() noexcept;
+            bool ping();
 
             std::string toString() const noexcept;
     };

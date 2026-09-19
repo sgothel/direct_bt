@@ -64,6 +64,16 @@ namespace direct_bt {
     };
 
 
+    enum class LogLevel : uint8_t {
+        none        = 0,
+        error       = 1,
+        warning     = 2,
+        info        = 3,
+        debug       = 4,
+        cond        = 5
+    };
+    JAU_MAKE_ENUM_STRING_DECL(LogLevel);
+
     /**
      * Bluetooth roles from the perspective of the link layer (connection initiator).
      * @see [BTAdapter roles](@ref BTAdapterRoles).
@@ -813,14 +823,14 @@ namespace direct_bt {
             /**
              * Reset all data fields.
              */
-            void clear() noexcept;
+            void clear();
 
             /**
              * Merge all fields from given EInfoReport if set and different.
              * @param eir
              * @return The changed fields, i.e. EIRDataType bit field
              */
-            EIRDataType set(const EInfoReport& eir) noexcept;
+            EIRDataType set(const EInfoReport& eir);
 
             void setSource(Source s, bool ext) noexcept { source = s; source_ext = ext; }
             void setTimestamp(uint64_t ts) noexcept { timestamp = ts; }
@@ -837,13 +847,13 @@ namespace direct_bt {
             void setShortName(const std::string& name_short_) noexcept;
 
             void setManufactureSpecificData(const ManufactureSpecificData& msd_);
-            bool addService(const std::shared_ptr<const jau::uuid_t>& uuid) noexcept;
-            bool addService(const jau::uuid_t& uuid) noexcept;
+            bool addService(const std::shared_ptr<const jau::uuid_t>& uuid);
+            bool addService(const jau::uuid_t& uuid);
             void setServicesComplete(const bool v) noexcept { services_complete = v; }
             void setDeviceClass(uint32_t c) noexcept { device_class= c; set(EIRDataType::DEVICE_CLASS); }
             void setAppearance(AppearanceCat a) noexcept { appearance= a; set(EIRDataType::APPEARANCE); }
-            void setHash(const uint8_t * h) noexcept { hash.resize(16); memcpy(hash.get_wptr(), h, 16); set(EIRDataType::HASH); }
-            void setRandomizer(const uint8_t * r) noexcept { randomizer.resize(16); memcpy(randomizer.get_wptr(), r, 16); set(EIRDataType::RANDOMIZER); }
+            void setHash(const uint8_t * h) noexcept { ::memcpy(hash.get_wptr(), h, 16); set(EIRDataType::HASH); }
+            void setRandomizer(const uint8_t * r) noexcept { ::memcpy(randomizer.get_wptr(), r, 16); set(EIRDataType::RANDOMIZER); }
             void setDeviceID(const uint16_t source, const uint16_t vendor, const uint16_t product, const uint16_t version) noexcept;
 
             /**
@@ -867,7 +877,7 @@ namespace direct_bt {
              * https://www.bluetooth.com/specifications/archived-specifications/
              * </p>
              */
-            static jau::darray<std::unique_ptr<EInfoReport>> read_ad_reports(uint8_t const * data, jau::nsize_t const data_length) noexcept;
+            static jau::darray<std::unique_ptr<EInfoReport>> read_ad_reports(uint8_t const * data, jau::nsize_t const data_length);
 
             /**
              * Reads a complete Extended Advertising Data (AD) Report
@@ -881,7 +891,7 @@ namespace direct_bt {
              * https://www.bluetooth.com/specifications/archived-specifications/
              * </p>
              */
-            static jau::darray<std::unique_ptr<EInfoReport>> read_ext_ad_reports(uint8_t const * data, jau::nsize_t const data_length) noexcept;
+            static jau::darray<std::unique_ptr<EInfoReport>> read_ext_ad_reports(uint8_t const * data, jau::nsize_t const data_length);
 
             /**
              * Reads the Extended Inquiry Response (EIR) or (Extended) Advertising Data (EAD or AD) segments
@@ -912,7 +922,7 @@ namespace direct_bt {
              * https://www.bluetooth.com/specifications/archived-specifications/
              * </p>
              */
-            int read_data(uint8_t const * data, uint8_t const data_length) noexcept;
+            int read_data(uint8_t const * data, uint8_t const data_length);
 
             /**
              * Writes the Extended Inquiry Response (EIR) or (Extended) Advertising Data (EAD or AD) segments
@@ -944,7 +954,7 @@ namespace direct_bt {
              * @return number of bytes written
              * @see read_data()
              */
-            jau::nsize_t write_data(EIRDataType write_mask, uint8_t * data, jau::nsize_t const data_length) const noexcept;
+            jau::nsize_t write_data(EIRDataType write_mask, uint8_t * data, jau::nsize_t const data_length) const;
 
             Source getSource() const noexcept { return source; }
             bool getSourceExt() const noexcept { return source_ext; }

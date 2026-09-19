@@ -168,8 +168,8 @@ namespace direct_bt {
 
             bool updateIdentityAddress(BDAddressAndType const & identityAddress, bool sendEvent) noexcept;
             bool updateVisibleAddress(BDAddressAndType const & randomPrivateAddress) noexcept;
-            EIRDataType update(EInfoReport const & data) noexcept;
-            EIRDataType update(GattGenericAccessSvc const &data, const uint64_t timestamp) noexcept;
+            EIRDataType update(EInfoReport const & data);
+            EIRDataType update(GattGenericAccessSvc const &data, const uint64_t timestamp);
 
             void notifyDisconnected() noexcept;
             void notifyConnected(const std::shared_ptr<BTDevice>& sthis, const uint16_t handle, const SMPIOCapability io_cap_has) noexcept;
@@ -515,7 +515,7 @@ namespace direct_bt {
              * and therefore all BTAdapterStatusListener's deviceUpdated(..) method called for notification.
              * </p>
              */
-            std::shared_ptr<ConnectionInfo> getConnectionInfo() noexcept;
+            std::shared_ptr<ConnectionInfo> getConnectionInfo();
 
             /**
              * Return true if the device has been successfully connected, otherwise false.
@@ -781,7 +781,7 @@ namespace direct_bt {
              * @see setSMPKeyBin()
              * @since 2.4.0
              */
-            HCIStatusCode uploadKeys() noexcept;
+            HCIStatusCode uploadKeys();
 
             /**
              * Convenient combination of setSMPKeyBin() and uploadKeys()
@@ -794,7 +794,7 @@ namespace direct_bt {
              * @see uploadKeys()
              * @since 2.4.0
              */
-            HCIStatusCode uploadKeys(const SMPKeyBin& bin, const BTSecurityLevel req_min_level) noexcept {
+            HCIStatusCode uploadKeys(const SMPKeyBin& bin, const BTSecurityLevel req_min_level) {
                 if( bin.isValid() && bin.getSecLevel() >= req_min_level && setSMPKeyBin(bin) ) {
                     return uploadKeys();
                 } else {
@@ -814,7 +814,7 @@ namespace direct_bt {
              * @see uploadKeys()
              * @since 2.4.0
              */
-            HCIStatusCode uploadKeys(const std::string& smp_key_bin_path, const BTSecurityLevel req_min_level, const bool verbose_) noexcept {
+            HCIStatusCode uploadKeys(const std::string& smp_key_bin_path, const BTSecurityLevel req_min_level, const bool verbose_) {
                 return uploadKeys(SMPKeyBin::read(smp_key_bin_path, *this, verbose_), req_min_level);
             }
 
@@ -1181,7 +1181,7 @@ namespace direct_bt {
              * A GATT connection will be created via connectGATT() if not established yet.
              * @see getGattGenericAccess()
              */
-            GattServiceList_t getGattServices() noexcept;
+            GattServiceList_t getGattServices();
 
             /**
              * Returns the shared GenericAccess instance, retrieved by getGattServices() or nullptr if not available.
@@ -1202,7 +1202,7 @@ namespace direct_bt {
              * @return The matching service or null if not found
              * @see findGattChar()
              */
-            BTGattServiceRef findGattService(const jau::uuid_t& service_uuid) noexcept;
+            BTGattServiceRef findGattService(const jau::uuid_t& service_uuid);
 
             /**
              * Find a BTGattChar by its service_uuid and char_uuid.
@@ -1217,7 +1217,7 @@ namespace direct_bt {
              * @since 2.4.0
              * @see findGattService()
              */
-            BTGattCharRef findGattChar(const jau::uuid_t& service_uuid, const jau::uuid_t& char_uuid) noexcept;
+            BTGattCharRef findGattChar(const jau::uuid_t& service_uuid, const jau::uuid_t& char_uuid);
 
             /**
              * Find a BTGattChar by its char_uuid only.
@@ -1234,7 +1234,7 @@ namespace direct_bt {
              * @since 2.4.0
              * @see findGattService()
              */
-            BTGattCharRef findGattChar(const jau::uuid_t& char_uuid) noexcept;
+            BTGattCharRef findGattChar(const jau::uuid_t& char_uuid);
 
             /**
              * Send a notification event consisting out of the given `value` representing the given characteristic value handle

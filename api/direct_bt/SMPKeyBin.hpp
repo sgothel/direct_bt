@@ -380,17 +380,17 @@ class SMPKeyBin {
         /**
          * Returns the base filename, see SMPKeyBin API doc for naming scheme.
          */
-        std::string getFileBasename() const noexcept;
+        std::string getFileBasename() const;
 
         /**
          * Returns the base filename, see SMPKeyBin API doc for naming scheme.
          */
-        static std::string getFileBasename(const BDAddressAndType& localAddress_, const BDAddressAndType& remoteAddress_) noexcept;
+        static std::string getFileBasename(const BDAddressAndType& localAddress_, const BDAddressAndType& remoteAddress_);
 
-        static std::string getFilename(const std::string& path, const BDAddressAndType& localAddress_, const BDAddressAndType& remoteAddress_) noexcept {
-            return path + "/" + getFileBasename(localAddress_, remoteAddress_);
+        static std::string getFilename(const std::string& path, const BDAddressAndType& localAddress_, const BDAddressAndType& remoteAddress_) {
+            return jau_format_string("%s/%s", path, getFileBasename(localAddress_, remoteAddress_));
         }
-        static std::string getFilename(const std::string& path, const BTDevice& remoteDevice) noexcept ;
+        static std::string getFilename(const std::string& path, const BTDevice& remoteDevice);
 
         static bool remove(const std::string& path, const BDAddressAndType& localAddress_, const BDAddressAndType& remoteAddress_) {
             return remove_impl( getFilename(path, localAddress_, remoteAddress_) );

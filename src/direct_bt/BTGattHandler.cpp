@@ -101,7 +101,7 @@ bool BTGattHandler::validateConnected() noexcept {
 BTGattHandler::gattCharListenerList_t::equal_comparator BTGattHandler::gattCharListenerRefEqComparator =
         [](const GattCharListenerPair& a, const GattCharListenerPair& b) noexcept -> bool { return *a.listener == *b.listener; };
 
-bool BTGattHandler::addCharListener(const BTGattCharListenerRef& l) noexcept {
+bool BTGattHandler::addCharListener(const BTGattCharListenerRef& l) {
     if( nullptr == l ) {
         jau_ERR_PRINT("GATTCharacteristicListener ref is null");
         return false;
@@ -110,7 +110,7 @@ bool BTGattHandler::addCharListener(const BTGattCharListenerRef& l) noexcept {
                                                  gattCharListenerRefEqComparator);
 }
 
-bool BTGattHandler::addCharListener(const BTGattCharListenerRef& l, const BTGattCharRef& d) noexcept {
+bool BTGattHandler::addCharListener(const BTGattCharListenerRef& l, const BTGattCharRef& d) {
     if( nullptr == l ) {
         jau_ERR_PRINT("GATTCharacteristicListener ref is null");
         return false;
@@ -123,7 +123,7 @@ bool BTGattHandler::addCharListener(const BTGattCharListenerRef& l, const BTGatt
                                                  gattCharListenerRefEqComparator);
 }
 
-bool BTGattHandler::removeCharListener(const BTGattCharListenerRef& l) noexcept {
+bool BTGattHandler::removeCharListener(const BTGattCharListenerRef& l) {
     if( nullptr == l ) {
         jau_ERR_PRINT("GATTCharacteristicListener ref is null");
         return false;
@@ -134,7 +134,7 @@ bool BTGattHandler::removeCharListener(const BTGattCharListenerRef& l) noexcept 
     return count > 0;
 }
 
-bool BTGattHandler::removeCharListener(const BTGattCharListener * l) noexcept {
+bool BTGattHandler::removeCharListener(const BTGattCharListener * l) {
     if( nullptr == l ) {
         jau_ERR_PRINT("GATTCharacteristicListener ref is null");
         return false;
@@ -153,7 +153,7 @@ bool BTGattHandler::removeCharListener(const BTGattCharListener * l) noexcept {
 static jau::cow_darray<BTGattHandler::NativeGattCharListenerRef>::equal_comparator _nativeGattCharListenerRefEqComparator =
         [](const BTGattHandler::NativeGattCharListenerRef& a, const BTGattHandler::NativeGattCharListenerRef& b) noexcept -> bool { return *a == *b; };
 
-bool BTGattHandler::addCharListener(const BTGattHandler::NativeGattCharListenerRef& l) noexcept {
+bool BTGattHandler::addCharListener(const BTGattHandler::NativeGattCharListenerRef& l) {
     if( nullptr == l ) {
         jau_ERR_PRINT("NativeGattCharListener ref is null");
         return false;
@@ -161,7 +161,7 @@ bool BTGattHandler::addCharListener(const BTGattHandler::NativeGattCharListenerR
     return nativeGattCharListenerList.push_back_unique(l, _nativeGattCharListenerRefEqComparator);
 }
 
-bool BTGattHandler::removeCharListener(const BTGattHandler::NativeGattCharListenerRef& l) noexcept {
+bool BTGattHandler::removeCharListener(const BTGattHandler::NativeGattCharListenerRef& l) {
     if( nullptr == l ) {
         jau_ERR_PRINT("NativeGattCharListener ref is null");
         return false;
@@ -170,8 +170,8 @@ bool BTGattHandler::removeCharListener(const BTGattHandler::NativeGattCharListen
     return count > 0;
 }
 
-void BTGattHandler::printCharListener() noexcept {
-    jau::INFO_PRINT("BTGattHandler: BTGattChar %u listener", gattCharListenerList.size());
+void BTGattHandler::printCharListener() {
+    jau_INFO_PRINT("BTGattHandler: BTGattChar %zu listener", gattCharListenerList.size());
     {
         int i=0;
         auto it = gattCharListenerList.begin(); // lock mutex and copy_store
@@ -189,7 +189,7 @@ void BTGattHandler::printCharListener() noexcept {
     }
 }
 
-BTGattHandler::size_type BTGattHandler::removeAllAssociatedCharListener(const BTGattCharRef& associatedCharacteristic) noexcept {
+BTGattHandler::size_type BTGattHandler::removeAllAssociatedCharListener(const BTGattCharRef& associatedCharacteristic) {
     if( nullptr == associatedCharacteristic ) {
         jau_ERR_PRINT("Given GATTCharacteristic ref is null");
         return false;
@@ -197,7 +197,7 @@ BTGattHandler::size_type BTGattHandler::removeAllAssociatedCharListener(const BT
     return removeAllAssociatedCharListener( associatedCharacteristic.get() );
 }
 
-BTGattHandler::size_type BTGattHandler::removeAllAssociatedCharListener(const BTGattChar * associatedCharacteristic) noexcept {
+BTGattHandler::size_type BTGattHandler::removeAllAssociatedCharListener(const BTGattChar * associatedCharacteristic) {
     if( nullptr == associatedCharacteristic ) {
         jau_ERR_PRINT("Given GATTCharacteristic ref is null");
         return false;
@@ -776,15 +776,15 @@ std::unique_ptr<const AttPDUMsg> BTGattHandler::sendWithReply(const AttPDUMsg & 
     return res;
 }
 
-bool BTGattHandler::sendError(AttErrorRsp::ErrorCode ec, const AttPDUMsg *cause_req, uint16_t cause_handle, log_level llvl, std::string_view msg) noexcept {
+bool BTGattHandler::sendError(AttErrorRsp::ErrorCode ec, const AttPDUMsg *cause_req, uint16_t cause_handle, LogLevel llvl, std::string_view msg) noexcept {
     try {
         AttErrorRsp err(ec, cause_req->getOpcode(), cause_handle);
-        if ( log_level::warning == llvl ) {
-            jau_WARN_PRINT("%s: %s -> %s from %s", msg, cause_req->toString(), err.toString(), toString());
-        } else if ( log_level::error == llvl ) {
-            jau_ERR_PRINT("%s: %s -> %s from %s", msg, cause_req->toString(), err.toString(), toString());
-        } else if ( log_level::cond == llvl ) {
-            jau_COND_PRINT(env.DEBUG_DATA, "%s: %s -> %s from %s", msg, cause_req->toString(), err.toString(), toString());
+        if ( LogLevel::warning == llvl ) {
+            jau_WARN_PRINT("%s: %s -> %s from %s", msg, cause_req->toString(), err, toString());
+        } else if ( LogLevel::error == llvl ) {
+            jau_ERR_PRINT("%s: %s -> %s from %s", msg, cause_req->toString(), err, toString());
+        } else if ( LogLevel::cond == llvl ) {
+            jau_COND_PRINT(env.DEBUG_DATA, "%s: %s -> %s from %s", msg, cause_req->toString(), err, toString());
         }
         return send(err);
     } catch (...) {
@@ -847,7 +847,7 @@ DBGattCharRef BTGattHandler::findServerGattCharByValueHandle(const uint16_t char
     }
 }
 
-bool BTGattHandler::sendNotification(const uint16_t char_value_handle, const jau::TROOctets & value) noexcept {
+bool BTGattHandler::sendNotification(const uint16_t char_value_handle, const jau::TROOctets & value) {
     if( GATTRole::Server != role ) {
         jau_ERR_PRINT("GATTRole not server");
         return false;
@@ -868,7 +868,7 @@ bool BTGattHandler::sendNotification(const uint16_t char_value_handle, const jau
     return send(data);
 }
 
-bool BTGattHandler::sendIndication(const uint16_t char_value_handle, const jau::TROOctets & value) noexcept {
+bool BTGattHandler::sendIndication(const uint16_t char_value_handle, const jau::TROOctets & value) {
     if( GATTRole::Server != role ) {
         jau_ERR_PRINT("GATTRole not server");
         return false;
@@ -920,7 +920,7 @@ BTGattCharRef BTGattHandler::findCharacterisicsByValueHandle(const BTGattService
     return nullptr;
 }
 
-bool BTGattHandler::initClientGatt(const std::shared_ptr<BTGattHandler>& shared_this, bool& already_init) noexcept {
+bool BTGattHandler::initClientGatt(const std::shared_ptr<BTGattHandler>& shared_this, bool& already_init) {
     const std::lock_guard<std::recursive_mutex> lock(mtx_command);
     already_init = clientMTUExchanged && services.size() > 0 && nullptr != genericAccess;
     if( already_init ) {
@@ -978,7 +978,7 @@ bool BTGattHandler::initClientGatt(const std::shared_ptr<BTGattHandler>& shared_
     return true;
 }
 
-bool BTGattHandler::discoverCompletePrimaryServices(const std::shared_ptr<BTGattHandler>& shared_this) noexcept {
+bool BTGattHandler::discoverCompletePrimaryServices(const std::shared_ptr<BTGattHandler>& shared_this) {
     const std::lock_guard<std::recursive_mutex> lock(mtx_command); // RAII-style acquire and relinquish via destructor
     if( !discoverPrimaryServices(shared_this, services) ) {
         return false;
@@ -996,7 +996,7 @@ bool BTGattHandler::discoverCompletePrimaryServices(const std::shared_ptr<BTGatt
     return true;
 }
 
-bool BTGattHandler::discoverPrimaryServices(const std::shared_ptr<BTGattHandler>& shared_this, jau::darray<BTGattServiceRef> & result) noexcept {
+bool BTGattHandler::discoverPrimaryServices(const std::shared_ptr<BTGattHandler>& shared_this, jau::darray<BTGattServiceRef> & result) {
     {
         // validate shared_this first!
         BTGattHandler *given_this = shared_this.get();
@@ -1068,7 +1068,7 @@ bool BTGattHandler::discoverPrimaryServices(const std::shared_ptr<BTGattHandler>
     return true;
 }
 
-bool BTGattHandler::discoverCharacteristics(BTGattServiceRef & service) noexcept {
+bool BTGattHandler::discoverCharacteristics(BTGattServiceRef & service) {
     /***
      * BT Core Spec v5.2: Vol 3, Part G GATT: 4.6.1 Discover All Characteristics of a Service
      * <p>
@@ -1140,7 +1140,7 @@ bool BTGattHandler::discoverCharacteristics(BTGattServiceRef & service) noexcept
     return true;
 }
 
-bool BTGattHandler::discoverDescriptors(BTGattServiceRef & service) noexcept {
+bool BTGattHandler::discoverDescriptors(BTGattServiceRef & service) {
     /***
      * BT Core Spec v5.2: Vol 3, Part G GATT: 4.7.1 Discover All Characteristic Descriptors
      * <p>
@@ -1231,8 +1231,8 @@ bool BTGattHandler::discoverDescriptors(BTGattServiceRef & service) noexcept {
     return true;
 }
 
-bool BTGattHandler::readDescriptorValue(BTGattDesc & desc, ssize_type expectedLength) noexcept {
-    COND_PRINT(env.DEBUG_DATA, "GATTHandler::readDescriptorValue expLen %zd, desc %s", (size_t)expectedLength, desc.toString().c_str());
+bool BTGattHandler::readDescriptorValue(BTGattDesc & desc, ssize_type expectedLength) {
+    jau_COND_PRINT(env.DEBUG_DATA, "GATTHandler::readDescriptorValue expLen %zu, desc %s", (size_t)expectedLength, desc.toString());
     const bool res = readValue(desc.handle, desc.value, expectedLength);
     if( !res ) {
         jau_WORDY_PRINT("GATT readDescriptorValue error on desc%s within char%s from %s",
@@ -1241,8 +1241,8 @@ bool BTGattHandler::readDescriptorValue(BTGattDesc & desc, ssize_type expectedLe
     return res;
 }
 
-bool BTGattHandler::readCharacteristicValue(const BTGattChar & decl, jau::POctets & resValue, ssize_type expectedLength) noexcept {
-    COND_PRINT(env.DEBUG_DATA, "GATTHandler::readCharacteristicValue expLen %zd, decl %s", (size_t)expectedLength, decl.toString().c_str());
+bool BTGattHandler::readCharacteristicValue(const BTGattChar & decl, jau::POctets & resValue, ssize_type expectedLength) {
+    jau_COND_PRINT(env.DEBUG_DATA, "GATTHandler::readCharacteristicValue expLen %zu, decl %s", (size_t)expectedLength, decl.toString());
     const bool res = readValue(decl.value_handle, resValue, expectedLength);
     if( !res ) {
         jau_WORDY_PRINT("GATT readCharacteristicValue error on char%s from %s", decl.toString(), toString());
@@ -1250,7 +1250,7 @@ bool BTGattHandler::readCharacteristicValue(const BTGattChar & decl, jau::POctet
     return res;
 }
 
-bool BTGattHandler::readValue(const uint16_t handle, jau::POctets & res, ssize_type expectedLength) noexcept {
+bool BTGattHandler::readValue(const uint16_t handle, jau::POctets & res, ssize_type expectedLength) {
     /* BT Core Spec v5.2: Vol 3, Part G GATT: 4.8.1 Read Characteristic Value */
     /* BT Core Spec v5.2: Vol 3, Part G GATT: 4.8.3 Read Long Characteristic Value */
     const std::lock_guard<std::recursive_mutex> lock(mtx_command); // RAII-style acquire and relinquish via destructor
@@ -1327,7 +1327,7 @@ bool BTGattHandler::readValue(const uint16_t handle, jau::POctets & res, ssize_t
     return offset > 0;
 }
 
-bool BTGattHandler::writeDescriptorValue(const BTGattDesc & cd) noexcept {
+bool BTGattHandler::writeDescriptorValue(const BTGattDesc & cd) {
     /* BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3.3 Client Characteristic Configuration */
     /* BT Core Spec v5.2: Vol 3, Part G GATT: 4.9.3 Write Characteristic Value */
     /* BT Core Spec v5.2: Vol 3, Part G GATT: 4.11 Characteristic Value Indication */
@@ -1341,7 +1341,7 @@ bool BTGattHandler::writeDescriptorValue(const BTGattDesc & cd) noexcept {
     return res;
 }
 
-bool BTGattHandler::writeCharacteristicValue(const BTGattChar & c, const jau::TROOctets & value) noexcept {
+bool BTGattHandler::writeCharacteristicValue(const BTGattChar & c, const jau::TROOctets & value) {
     /* BT Core Spec v5.2: Vol 3, Part G GATT: 4.9.3 Write Characteristic Value */
     jau_COND_PRINT(env.DEBUG_DATA, "GATTHandler::writeCharacteristicValue desc %s, value %s", c.toString(), value.toString());
     const bool res = writeValue(c.value_handle, value, true);
@@ -1351,13 +1351,13 @@ bool BTGattHandler::writeCharacteristicValue(const BTGattChar & c, const jau::TR
     return res;
 }
 
-bool BTGattHandler::writeCharacteristicValueNoResp(const BTGattChar & c, const jau::TROOctets & value) noexcept {
+bool BTGattHandler::writeCharacteristicValueNoResp(const BTGattChar & c, const jau::TROOctets & value) {
     /* BT Core Spec v5.2: Vol 3, Part G GATT: 4.9.1 Write Characteristic Value Without Response */
     jau_COND_PRINT(env.DEBUG_DATA, "GATT writeCharacteristicValueNoResp decl %s, value %s", c.toString(), value.toString());
     return writeValue(c.value_handle, value, false);
 }
 
-bool BTGattHandler::writeValue(const uint16_t handle, const jau::TROOctets & value, const bool withResponse) noexcept {
+bool BTGattHandler::writeValue(const uint16_t handle, const jau::TROOctets & value, const bool withResponse) {
     /* BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3.3 Client Characteristic Configuration */
     /* BT Core Spec v5.2: Vol 3, Part G GATT: 4.9.3 Write Characteristic Value */
     /* BT Core Spec v5.2: Vol 3, Part G GATT: 4.11 Characteristic Value Indication */
@@ -1409,7 +1409,7 @@ bool BTGattHandler::writeValue(const uint16_t handle, const jau::TROOctets & val
     return res;
 }
 
-bool BTGattHandler::configNotificationIndication(BTGattDesc & cccd, const bool enableNotification, const bool enableIndication) noexcept {
+bool BTGattHandler::configNotificationIndication(BTGattDesc & cccd, const bool enableNotification, const bool enableIndication) {
     if( !cccd.isClientCharConfig() ) {
         jau_ERR_PRINT("Not a ClientCharacteristicConfiguration: %s", cccd.toString());
         return false;
@@ -1443,7 +1443,7 @@ static const jau::uuid16_t _MANUFACTURER_NAME_STRING(GattCharacteristicType::MAN
 static const jau::uuid16_t _REGULATORY_CERT_DATA_LIST(GattCharacteristicType::REGULATORY_CERT_DATA_LIST);
 static const jau::uuid16_t _PNP_ID(GattCharacteristicType::PNP_ID);
 
-std::shared_ptr<GattGenericAccessSvc> BTGattHandler::getGenericAccess(jau::darray<BTGattCharRef> & genericAccessCharDeclList) noexcept {
+std::shared_ptr<GattGenericAccessSvc> BTGattHandler::getGenericAccess(jau::darray<BTGattCharRef> & genericAccessCharDeclList) {
     std::shared_ptr<GattGenericAccessSvc> res = nullptr;
     jau::POctets value(number(Defaults::MAX_ATT_MTU), 0, jau::lb_endian_t::little);
     std::string deviceName;
@@ -1478,7 +1478,7 @@ std::shared_ptr<GattGenericAccessSvc> BTGattHandler::getGenericAccess(jau::darra
     return res;
 }
 
-std::shared_ptr<GattGenericAccessSvc> BTGattHandler::getGenericAccess(jau::darray<BTGattServiceRef> & primServices) noexcept {
+std::shared_ptr<GattGenericAccessSvc> BTGattHandler::getGenericAccess(jau::darray<BTGattServiceRef> & primServices) {
 	for(auto & primService : primServices) {
 	    BTGattServiceRef service = primService;
 	    if( _GENERIC_ACCESS == *service->type ) {
@@ -1488,7 +1488,7 @@ std::shared_ptr<GattGenericAccessSvc> BTGattHandler::getGenericAccess(jau::darra
 	return nullptr;
 }
 
-bool BTGattHandler::ping() noexcept {
+bool BTGattHandler::ping() {
     const std::lock_guard<std::recursive_mutex> lock(mtx_command); // RAII-style acquire and relinquish via destructor
     bool readOK = true;
 
@@ -1520,7 +1520,7 @@ bool BTGattHandler::ping() noexcept {
     return false;
 }
 
-std::shared_ptr<GattDeviceInformationSvc> BTGattHandler::getDeviceInformation(jau::darray<BTGattCharRef> & characteristicDeclList) noexcept {
+std::shared_ptr<GattDeviceInformationSvc> BTGattHandler::getDeviceInformation(jau::darray<BTGattCharRef> & characteristicDeclList) {
     std::shared_ptr<GattDeviceInformationSvc> res = nullptr;
     jau::POctets value(number(Defaults::MAX_ATT_MTU), 0, jau::lb_endian_t::little);
 
@@ -1590,7 +1590,7 @@ std::shared_ptr<GattDeviceInformationSvc> BTGattHandler::getDeviceInformation(ja
     return res;
 }
 
-std::shared_ptr<GattDeviceInformationSvc> BTGattHandler::getDeviceInformation(jau::darray<BTGattServiceRef> & primServices) noexcept {
+std::shared_ptr<GattDeviceInformationSvc> BTGattHandler::getDeviceInformation(jau::darray<BTGattServiceRef> & primServices) {
     for(auto & primService : primServices) {
         BTGattServiceRef service = primService;
         if( _DEVICE_INFORMATION == *service->type ) {

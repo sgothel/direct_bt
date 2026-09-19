@@ -145,7 +145,7 @@ namespace direct_bt {
                       const jau::uuid_t& service_uuid_,
                       const jau::uuid_t& cmd_uuid_,
                       const jau::uuid_t& rsp_uuid_,
-                      const jau::nsize_t rsp_capacity) noexcept
+                      const jau::nsize_t rsp_capacity)
             : name(std::move(name_)),
               service_uuid(&service_uuid_),
               cmd_uuid(&cmd_uuid_),
@@ -175,7 +175,7 @@ namespace direct_bt {
             BTGattCmd(BTDevice& dev_, std::string name_,
                       const jau::uuid_t& cmd_uuid_,
                       const jau::uuid_t& rsp_uuid_,
-                      const jau::nsize_t rsp_capacity) noexcept
+                      const jau::nsize_t rsp_capacity)
             : name(std::move(name_)),
               service_uuid(nullptr),
               cmd_uuid(&cmd_uuid_),

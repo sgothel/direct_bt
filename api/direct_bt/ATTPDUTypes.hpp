@@ -671,7 +671,7 @@ namespace direct_bt {
         protected:
             jau::POctets spdu;
 
-            AttPDUHeap(const jau::nsize_t size) noexcept
+            AttPDUHeap(const jau::nsize_t size)
             : spdu(std::max<jau::nsize_t>(1, size), jau::lb_endian_t::little) {}
 
             jau::TOctets& octets() noexcept { return spdu; }
@@ -694,7 +694,7 @@ namespace direct_bt {
             { }
 
             /** Transient memory, ownership belongs to caller object. */
-            AttPDUFixedMsg(const Opcode opc, const jau::nsize_t size) noexcept
+            AttPDUFixedMsg(const Opcode opc, const jau::nsize_t size)
             : AttPDUMsg(opc, AttPDUFixed<_Size>::octets())
             {
                 AttPDUFixed<_Size>::spdu.resize(size);

@@ -337,13 +337,13 @@ std::string direct_bt::GattNameToString(const jau::TROOctets &v) noexcept {
     return res;
 }
 
-GattPeriphalPreferredConnectionParameters::GattPeriphalPreferredConnectionParameters(const jau::TROOctets &source) noexcept
+GattPeriphalPreferredConnectionParameters::GattPeriphalPreferredConnectionParameters(const jau::TROOctets &source)
 : minConnectionInterval(source.get_uint16(0)), maxConnectionInterval(source.get_uint16(2)),
   slaveLatency(source.get_uint16(4)), connectionSupervisionTimeoutMultiplier(source.get_uint16(6))
 {
 }
 
-std::shared_ptr<GattPeriphalPreferredConnectionParameters> GattPeriphalPreferredConnectionParameters::get(const jau::TROOctets &source) noexcept {
+std::shared_ptr<GattPeriphalPreferredConnectionParameters> GattPeriphalPreferredConnectionParameters::get(const jau::TROOctets &source) {
     const jau::nsize_t reqSize = 8;
     if( source.size() < reqSize ) {
         jau_ERR_PRINT("GattPeriphalPreferredConnectionParameters: Insufficient data, less than %zu bytes in %s", reqSize, source.toString());
@@ -364,11 +364,11 @@ std::string GattGenericAccessSvc::toString() const noexcept {
     return "'"+deviceName+"'[appearance "+jau::toHexString(static_cast<uint16_t>(appearance))+" ("+to_string(appearance)+"), "+pcp+"]";
 }
 
-GattPnP_ID::GattPnP_ID(const jau::TROOctets &source) noexcept
+GattPnP_ID::GattPnP_ID(const jau::TROOctets &source)
 : vendor_id_source(source.get_uint8(0)), vendor_id(source.get_uint16(1)),
   product_id(source.get_uint16(3)), product_version(source.get_uint16(5)) {}
 
-std::shared_ptr<GattPnP_ID> GattPnP_ID::get(const jau::TROOctets &source) noexcept {
+std::shared_ptr<GattPnP_ID> GattPnP_ID::get(const jau::TROOctets &source) {
     const jau::nsize_t reqSize = 7;
     if( source.size() < reqSize ) {
         jau_ERR_PRINT("GattPnP_ID: Insufficient data, less than %zu bytes in %s", reqSize, source.toString());
@@ -390,7 +390,7 @@ std::string GattDeviceInformationSvc::toString() const noexcept {
         (nullptr != pnpID ? pnpID->toString() : ""), regulatoryCertDataList);
 }
 
-std::shared_ptr<GattTemperatureMeasurement> GattTemperatureMeasurement::get(const jau::TROOctets &source) noexcept {
+std::shared_ptr<GattTemperatureMeasurement> GattTemperatureMeasurement::get(const jau::TROOctets &source) {
     const jau::nsize_t size = source.size();
     jau::nsize_t reqSize = 1 + 4; // max size = 13
     if( reqSize > size ) {

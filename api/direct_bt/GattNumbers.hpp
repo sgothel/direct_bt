@@ -280,9 +280,9 @@ struct GattPeriphalPreferredConnectionParameters {
     /** mandatory [10..3200] */
     const uint16_t connectionSupervisionTimeoutMultiplier;
 
-    static std::shared_ptr<GattPeriphalPreferredConnectionParameters> get(const jau::TROOctets &source) noexcept;
+    static std::shared_ptr<GattPeriphalPreferredConnectionParameters> get(const jau::TROOctets &source);
 
-    GattPeriphalPreferredConnectionParameters(const jau::TROOctets &source) noexcept;
+    GattPeriphalPreferredConnectionParameters(const jau::TROOctets &source);
 
     std::string toString() const noexcept;
 };
@@ -325,12 +325,12 @@ struct GattPnP_ID {
     const uint16_t product_id;
     const uint16_t product_version;
 
-    static std::shared_ptr<GattPnP_ID> get(const jau::TROOctets &source) noexcept;
+    static std::shared_ptr<GattPnP_ID> get(const jau::TROOctets &source);
 
     GattPnP_ID() noexcept
     : vendor_id_source(0), vendor_id(0), product_id(0), product_version(0) {}
 
-    GattPnP_ID(const jau::TROOctets &source) noexcept;
+    GattPnP_ID(const jau::TROOctets &source);
 
     GattPnP_ID(const uint8_t vendor_id_source_, const uint16_t vendor_id_, const uint16_t product_id_, const uint16_t product_version_) noexcept
     : vendor_id_source(vendor_id_source_), vendor_id(vendor_id_), product_id(product_id_), product_version(product_version_) {}
@@ -404,9 +404,9 @@ class GattTemperatureMeasurement {
         /** Temperature Type, if HAS_TEMP_TYPE is set: Format ????. 1 byte (!?). */
         const uint8_t temperature_type;
 
-        static std::shared_ptr<GattTemperatureMeasurement> get(const jau::TROOctets &source) noexcept;
+        static std::shared_ptr<GattTemperatureMeasurement> get(const jau::TROOctets &source);
 
-        static std::shared_ptr<GattTemperatureMeasurement> get(const jau::TOctetSlice &source) noexcept {
+        static std::shared_ptr<GattTemperatureMeasurement> get(const jau::TOctetSlice &source) {
             const jau::TROOctets o(source.get_ptr(0), source.size(), jau::lb_endian_t::little);
             return get(o);
         }

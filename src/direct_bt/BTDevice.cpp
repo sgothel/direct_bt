@@ -210,7 +210,7 @@ bool BTDevice::updateVisibleAddress(BDAddressAndType const & randomPrivateAddres
     }
 }
 
-EIRDataType BTDevice::update(EInfoReport const & data) noexcept {
+EIRDataType BTDevice::update(EInfoReport const & data) {
     const std::lock_guard<std::mutex> lock(mtx_eir); // RAII-style acquire and relinquish via destructor
 
     btRole = !adapter.getRole(); // update role
@@ -263,7 +263,7 @@ EIRDataType BTDevice::update(EInfoReport const & data) noexcept {
     return res0;
 }
 
-EIRDataType BTDevice::update(GattGenericAccessSvc const &data, const uint64_t timestamp) noexcept {
+EIRDataType BTDevice::update(GattGenericAccessSvc const &data, const uint64_t timestamp) {
     const std::lock_guard<std::mutex> lock(mtx_eir); // RAII-style acquire and relinquish via destructor
 
     // Update eir CoW style
@@ -297,7 +297,7 @@ bool BTDevice::removeStatusListener(const AdapterStatusListenerRef& l) noexcept 
     return adapter.removeStatusListener(l);
 }
 
-std::shared_ptr<ConnectionInfo> BTDevice::getConnectionInfo() noexcept {
+std::shared_ptr<ConnectionInfo> BTDevice::getConnectionInfo() {
     const BTManagerRef& mgmt = adapter.getManager();
     std::shared_ptr<ConnectionInfo> connInfo = mgmt->getConnectionInfo(adapter.dev_id, addressAndType);
     if( nullptr != connInfo ) {
@@ -1667,7 +1667,7 @@ bool BTDevice::setSMPKeyBin(const SMPKeyBin& bin) noexcept {
     return true;
 }
 
-HCIStatusCode BTDevice::uploadKeys() noexcept {
+HCIStatusCode BTDevice::uploadKeys() {
     if( isConnected ) {
         jau_ERR_PRINT("Already connected: %s", toString());
         return HCIStatusCode::CONNECTION_ALREADY_EXISTS;
@@ -2251,7 +2251,7 @@ std::shared_ptr<BTGattHandler> BTDevice::getGattHandler() noexcept {
     return gattHandler;
 }
 
-BTDevice::GattServiceList_t BTDevice::getGattServices() noexcept {
+BTDevice::GattServiceList_t BTDevice::getGattServices() {
     std::shared_ptr<BTGattHandler> gh = getGattHandler();
     if( nullptr == gh ) {
         jau_ERR_PRINT("GATTHandler nullptr: %s", toString());
@@ -2310,7 +2310,7 @@ std::shared_ptr<GattGenericAccessSvc> BTDevice::getGattGenericAccess() noexcept 
     return gh->getGenericAccess();
 }
 
-BTGattServiceRef BTDevice::findGattService(const jau::uuid_t& service_uuid) noexcept {
+BTGattServiceRef BTDevice::findGattService(const jau::uuid_t& service_uuid) {
     const jau::darray<std::shared_ptr<BTGattService>> & services = getGattServices(); // reference of the GATTHandler's list
     for(const BTGattServiceRef& s : services) {
         if ( nullptr != s && service_uuid.equivalent( *(s->type) ) ) {
@@ -2320,7 +2320,7 @@ BTGattServiceRef BTDevice::findGattService(const jau::uuid_t& service_uuid) noex
     return nullptr;
 }
 
-BTGattCharRef BTDevice::findGattChar(const jau::uuid_t&  service_uuid, const jau::uuid_t& char_uuid) noexcept {
+BTGattCharRef BTDevice::findGattChar(const jau::uuid_t&  service_uuid, const jau::uuid_t& char_uuid) {
     BTGattServiceRef service = findGattService(service_uuid);
     if( nullptr == service ) {
         return nullptr;
@@ -2328,7 +2328,7 @@ BTGattCharRef BTDevice::findGattChar(const jau::uuid_t&  service_uuid, const jau
     return service->findGattChar(char_uuid);
 }
 
-BTGattCharRef BTDevice::findGattChar(const jau::uuid_t& char_uuid) noexcept {
+BTGattCharRef BTDevice::findGattChar(const jau::uuid_t& char_uuid) {
     const jau::darray<std::shared_ptr<BTGattService>> & services = getGattServices(); // reference of the GATTHandler's list
     for(const BTGattServiceRef& s : services) {
         if ( nullptr != s ) {

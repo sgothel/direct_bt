@@ -491,7 +491,7 @@ MgmtLTKType direct_bt::to_MgmtLTKType(const SMPLongTermKey::Property mask) noexc
 // *************************************************
 // *************************************************
 
-MgmtDefaultParam MgmtDefaultParam::read(const uint8_t* data, const jau::nsize_t length) noexcept {
+MgmtDefaultParam MgmtDefaultParam::read(const uint8_t* data, const jau::nsize_t length) {
     if( length < 2U ) {
         return MgmtDefaultParam();
     }
@@ -514,7 +514,7 @@ MgmtDefaultParam MgmtDefaultParam::read(const uint8_t* data, const jau::nsize_t 
     }
 }
 
-std::vector<MgmtDefaultParam> MgmtReadDefaultSysParamCmd::getParams(const uint8_t *data, const jau::nsize_t length) noexcept {
+std::vector<MgmtDefaultParam> MgmtReadDefaultSysParamCmd::getParams(const uint8_t *data, const jau::nsize_t length) {
     std::vector<MgmtDefaultParam> res;
     jau::nsize_t consumed = 0;
     while( consumed < length && ( length - consumed ) > 2U + 1U ) {
@@ -703,7 +703,7 @@ std::shared_ptr<NameAndShortName> MgmtEvtLocalNameChanged::toNameAndShortName() 
     return std::make_shared<NameAndShortName>(getName(), getShortName());
 }
 
-std::unique_ptr<AdapterInfo> MgmtEvtAdapterInfo::toAdapterInfo() const noexcept {
+std::unique_ptr<AdapterInfo> MgmtEvtAdapterInfo::toAdapterInfo() const {
     return std::make_unique<AdapterInfo>(
             getDevID(),
             BDAddressAndType(getAddress(), BDAddressType::BDADDR_LE_PUBLIC),

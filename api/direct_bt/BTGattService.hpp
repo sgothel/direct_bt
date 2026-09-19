@@ -108,7 +108,7 @@ namespace direct_bt {
             jau::darray<BTGattCharRef> characteristicList;
 
             BTGattService(const std::shared_ptr<BTGattHandler> &handler_, const bool isPrimary_,
-                        const uint16_t startHandle_, const uint16_t endHandle_, std::unique_ptr<const jau::uuid_t> && type_) noexcept
+                        const uint16_t startHandle_, const uint16_t endHandle_, std::unique_ptr<const jau::uuid_t> && type_)
             : wbr_handler(handler_), primary(isPrimary_), handle(startHandle_), end_handle(endHandle_), type(std::move(type_)), characteristicList() {
                 characteristicList.reserve(10);
             }

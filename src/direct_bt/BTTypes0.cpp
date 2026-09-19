@@ -149,6 +149,7 @@ static inline const int8_t * const_uint8_to_const_int8_ptr(const uint8_t* p) noe
 }
 
 namespace direct_bt { // from BTTypes0.hpp
+    JAU_MAKE_ENUM_STRING_CODE(LogLevel, none, error, warning, info, debug, cond);
     JAU_MAKE_ENUM_STRING_CODE(BTRole, None, Master, Slave);
     JAU_MAKE_ENUM_STRING_CODE(GATTRole, None, Server, Client);
     JAU_MAKE_ENUM_STRING_CODE(BTMode, NONE, DUAL, BREDR);
@@ -464,7 +465,7 @@ void EInfoReport::setDeviceID(const uint16_t source_, const uint16_t vendor, con
     set(EIRDataType::DEVICE_ID);
 }
 
-bool EInfoReport::addService(const std::shared_ptr<const jau::uuid_t>& uuid) noexcept
+bool EInfoReport::addService(const std::shared_ptr<const jau::uuid_t>& uuid)
 {
     auto begin = services.begin();
     auto it = std::find_if(begin, services.end(), [&](std::shared_ptr<const jau::uuid_t> const& p) {
@@ -477,7 +478,7 @@ bool EInfoReport::addService(const std::shared_ptr<const jau::uuid_t>& uuid) noe
     }
     return false;
 }
-bool EInfoReport::addService(const jau::uuid_t& uuid) noexcept {
+bool EInfoReport::addService(const jau::uuid_t& uuid) {
     return addService( uuid.clone() );
 }
 
@@ -615,7 +616,7 @@ int EInfoReport::next_data_elem(uint8_t *eir_elem_len, uint8_t *eir_elem_type, u
     return -ENOENT;
 }
 
-int EInfoReport::read_data(uint8_t const * data, uint8_t const data_length) noexcept {
+int EInfoReport::read_data(uint8_t const * data, uint8_t const data_length) {
     int count = 0;
     int offset = 0;
     uint8_t elem_len, elem_type;
@@ -761,7 +762,7 @@ int EInfoReport::read_data(uint8_t const * data, uint8_t const data_length) noex
 
 #define _WARN_OOB(a) jau_DBG_PRINT("%s: Out of buffer: count %zu + 1 + ad_sz %zu > data_len %zu -> drop %s\n", (a), count, ad_sz, data_length, true);
 
-jau::nsize_t EInfoReport::write_data(EIRDataType write_mask, uint8_t * data, jau::nsize_t const data_length) const noexcept {
+jau::nsize_t EInfoReport::write_data(EIRDataType write_mask, uint8_t * data, jau::nsize_t const data_length) const {
     jau::nsize_t count = 0;
     uint8_t * data_i = data;
     const EIRDataType mask = write_mask & eir_data_mask;
@@ -960,7 +961,7 @@ EInfoReport::Source EInfoReport::toSource(const EAD_Event_Type type) {
 }
 
 
-jau::darray<std::unique_ptr<EInfoReport>> EInfoReport::read_ad_reports(uint8_t const * data, jau::nsize_t const data_length) noexcept {
+jau::darray<std::unique_ptr<EInfoReport>> EInfoReport::read_ad_reports(uint8_t const * data, jau::nsize_t const data_length) {
     jau::nsize_t const num_reports = (jau::nsize_t) data[0];
     jau::darray<std::unique_ptr<EInfoReport>> ad_reports;
 
@@ -1047,7 +1048,7 @@ errout:
     return ad_reports;
 }
 
-jau::darray<std::unique_ptr<EInfoReport>> EInfoReport::read_ext_ad_reports(uint8_t const * data, jau::nsize_t const data_length) noexcept {
+jau::darray<std::unique_ptr<EInfoReport>> EInfoReport::read_ext_ad_reports(uint8_t const * data, jau::nsize_t const data_length) {
     jau::nsize_t const num_reports = (jau::nsize_t) data[0];
     jau::darray<std::unique_ptr<EInfoReport>> ad_reports;
 

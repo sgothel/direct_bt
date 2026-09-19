@@ -406,13 +406,13 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
              */
             BTDeviceRef device = gh.getDeviceUnchecked();
             if( nullptr == device ) {
-                return gh.sendError(AttErrorRsp::ErrorCode::UNLIKELY_ERROR, pdu, 0, log_level::error, "ReplyWrite: Null device");
+                return gh.sendError(AttErrorRsp::ErrorCode::UNLIKELY_ERROR, pdu, 0, LogLevel::error, "ReplyWrite: Null device");
             }
 
             if( AttPDUMsg::Opcode::PREPARE_WRITE_REQ == pdu->getOpcode() ) {
                 const AttPrepWrite * req = static_cast<const AttPrepWrite*>(pdu);
                 if( !hasServerHandle( req->getHandle() ) ) {
-                    return gh.sendError(AttErrorRsp::ErrorCode::INVALID_HANDLE, req, req->getHandle(), log_level::warning, "ReplyWrite:");
+                    return gh.sendError(AttErrorRsp::ErrorCode::INVALID_HANDLE, req, req->getHandle(), LogLevel::warning, "ReplyWrite:");
                 }
                 const uint16_t handle = req->getHandle();
                 try {
@@ -447,7 +447,7 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
                                     writeDataQueue.clear();
                                     writeDataQueueHandles.clear();
                                     if( AttErrorRsp::ErrorCode::INSUFFICIENT_RESOURCES != res ) {
-                                        return gh.sendError(res, pdu, handle, log_level::warning, "ReplyWrite: Apply");
+                                        return gh.sendError(res, pdu, handle, LogLevel::warning, "ReplyWrite: Apply");
                                     }
                                     AttErrorRsp err(res, pdu->getOpcode(), handle);
                                     jau_ERR_PRINT3("ReplyWrite: Apply: %s -> %s from %s (no response)",
@@ -483,13 +483,13 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
                 withResp = false;
             } else {
                 // Actually an internal error, method should not have been called
-                return gh.sendError(AttErrorRsp::ErrorCode::UNSUPPORTED_REQUEST, pdu, 0, log_level::warning, "ReplyWrite");
+                return gh.sendError(AttErrorRsp::ErrorCode::UNSUPPORTED_REQUEST, pdu, 0, LogLevel::warning, "ReplyWrite");
             }
             jau::TROOctets req_val(vslice->get_ptr_nc(0), vslice->size(), vslice->byte_order());
             AttErrorRsp::ErrorCode res = applyWrite(device, handle, req_val, 0);
             if( AttErrorRsp::ErrorCode::NO_ERROR != res ) {
                 if( withResp && AttErrorRsp::ErrorCode::INSUFFICIENT_RESOURCES != res ) {
-                    return gh.sendError(res, pdu, handle, log_level::warning, "ReplyWrite: Apply");
+                    return gh.sendError(res, pdu, handle, LogLevel::warning, "ReplyWrite: Apply");
                 }
                 AttErrorRsp err(res, pdu->getOpcode(), handle);
                 jau_ERR_PRINT3("ReplyWrite: Apply: %s -> %s from %s (no response)",
@@ -513,7 +513,7 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
             /* For any follow up request, which previous request reply couldn't fit in ATT_MTU */
             BTDeviceRef device = gh.getDeviceUnchecked();
             if( nullptr == device ) {
-                return gh.sendError(AttErrorRsp::ErrorCode::UNLIKELY_ERROR, pdu, 0, log_level::error, "ReplyRead: Null device");
+                return gh.sendError(AttErrorRsp::ErrorCode::UNLIKELY_ERROR, pdu, 0, LogLevel::error, "ReplyRead: Null device");
             }
             uint16_t handle = 0;
             uint16_t value_offset = 0;
@@ -536,10 +536,10 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
                 value_offset = req->getValueOffset();
                 isBlobReq = true;
             } else {
-                return gh.sendError(AttErrorRsp::ErrorCode::UNSUPPORTED_REQUEST, pdu, 0, log_level::warning, "ReplyRead");
+                return gh.sendError(AttErrorRsp::ErrorCode::UNSUPPORTED_REQUEST, pdu, 0, LogLevel::warning, "ReplyRead");
             }
             if( 0 == handle ) {
-                return gh.sendError(AttErrorRsp::ErrorCode::INVALID_HANDLE, pdu, 0, log_level::warning, "ReplyRead");
+                return gh.sendError(AttErrorRsp::ErrorCode::INVALID_HANDLE, pdu, 0, LogLevel::warning, "ReplyRead");
             }
             const jau::nsize_t rspMaxSize = gh.getUsedMTU()-1;
             (void)rspMaxSize;
@@ -560,7 +560,7 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
                                     }
 #endif
                                     if( value_offset > c->getValue().size() ) {
-                                        return gh.sendError(AttErrorRsp::ErrorCode::INVALID_OFFSET, pdu, handle, log_level::cond, "ReplyRead");
+                                        return gh.sendError(AttErrorRsp::ErrorCode::INVALID_OFFSET, pdu, handle, LogLevel::cond, "ReplyRead");
                                     }
                                 }
                                 {
@@ -577,7 +577,7 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
                                         i++;
                                     });
                                     if( !allowed ) {
-                                        return gh.sendError(AttErrorRsp::ErrorCode::NO_READ_PERM, pdu, handle, log_level::warning, "ReplyRead");
+                                        return gh.sendError(AttErrorRsp::ErrorCode::NO_READ_PERM, pdu, handle, LogLevel::warning, "ReplyRead");
                                     }
                                 }
                                 try {
@@ -647,7 +647,7 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
                     } // for characteristics
                 } // if service-range
             } // for services
-            return gh.sendError(AttErrorRsp::ErrorCode::INVALID_HANDLE, pdu, handle, log_level::cond, "ReplyRead");
+            return gh.sendError(AttErrorRsp::ErrorCode::INVALID_HANDLE, pdu, handle, LogLevel::cond, "ReplyRead");
         }
 
         bool replyFindInfoReq(const AttFindInfoReq * pdu) noexcept override {
@@ -655,10 +655,10 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
             // BT Core Spec v5.2: Vol 3, Part F ATT: 3.4.3.2 ATT_FIND_INFORMATION_RSP
             // BT Core Spec v5.2: Vol 3, Part G GATT: 4.7.1 Discover All Characteristic Descriptors
             if( 0 == pdu->getStartHandle() ) {
-                return gh.sendError(AttErrorRsp::ErrorCode::INVALID_HANDLE, pdu, 0, log_level::cond, "ReplyFindInfo");
+                return gh.sendError(AttErrorRsp::ErrorCode::INVALID_HANDLE, pdu, 0, LogLevel::cond, "ReplyFindInfo");
             }
             if( pdu->getStartHandle() > pdu->getEndHandle() ) {
-                return gh.sendError(AttErrorRsp::ErrorCode::INVALID_HANDLE, pdu, pdu->getStartHandle(), log_level::cond, "ReplyFindInfo");
+                return gh.sendError(AttErrorRsp::ErrorCode::INVALID_HANDLE, pdu, pdu->getStartHandle(), LogLevel::cond, "ReplyFindInfo");
             }
             const uint16_t end_handle = pdu->getEndHandle();
             const uint16_t start_handle = pdu->getStartHandle();
@@ -699,7 +699,7 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
                     jau_COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: INFO.3: %s -> %s from %s", pdu->toString(), rsp.toString(), gh.toString());
                     return gh.send(rsp);
                 }
-                return gh.sendError(AttErrorRsp::ErrorCode::ATTRIBUTE_NOT_FOUND, pdu, start_handle, log_level::cond, "ReplyFindInfo");
+                return gh.sendError(AttErrorRsp::ErrorCode::ATTRIBUTE_NOT_FOUND, pdu, start_handle, LogLevel::cond, "ReplyFindInfo");
             } catch (...) {
                 jau::fput_exception(stderr, std::current_exception(), E_FILE_LINE);
                 jau_ERR_PRINT3("Exception caught while preparing response for %s", pdu->toString());
@@ -712,10 +712,10 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
             // BT Core Spec v5.2: Vol 3, Part F ATT: 3.4.3.4 ATT_FIND_BY_TYPE_VALUE_RSP
             // BT Core Spec v5.2: Vol 3, Part G GATT: 4.4.2 Discover Primary Service by Service UUID
             if( 0 == pdu->getStartHandle() ) {
-                return gh.sendError(AttErrorRsp::ErrorCode::INVALID_HANDLE, pdu, 0, log_level::cond, "ReplyFindByTypeValue");
+                return gh.sendError(AttErrorRsp::ErrorCode::INVALID_HANDLE, pdu, 0, LogLevel::cond, "ReplyFindByTypeValue");
             }
             if( pdu->getStartHandle() > pdu->getEndHandle() ) {
-                return gh.sendError(AttErrorRsp::ErrorCode::INVALID_HANDLE, pdu, pdu->getStartHandle(), log_level::cond, "ReplyFindByTypeValue");
+                return gh.sendError(AttErrorRsp::ErrorCode::INVALID_HANDLE, pdu, pdu->getStartHandle(), LogLevel::cond, "ReplyFindByTypeValue");
             }
             const jau::uuid16_t uuid_prim_service = jau::uuid16_t(GattAttributeType::PRIMARY_SERVICE);
             const jau::uuid16_t uuid_secd_service = jau::uuid16_t(GattAttributeType::SECONDARY_SERVICE);
@@ -772,7 +772,7 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
                     has_err = true;
                 }
                 return gh.sendError(AttErrorRsp::ErrorCode::ATTRIBUTE_NOT_FOUND, pdu, start_handle,
-                    has_err ? log_level::error : log_level::cond, "ReplyFindByTypeValue");
+                    has_err ? LogLevel::error : LogLevel::cond, "ReplyFindByTypeValue");
             } catch (...) {
                 jau::fput_exception(stderr, std::current_exception(), E_FILE_LINE);
                 jau_ERR_PRINT3("Exception caught while preparing response for %s", pdu->toString());
@@ -784,10 +784,10 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
             // BT Core Spec v5.2: Vol 3, Part F ATT: 3.4.4.1 ATT_READ_BY_TYPE_REQ
             // BT Core Spec v5.2: Vol 3, Part F ATT: 3.4.4.2 ATT_READ_BY_TYPE_RSP
             if( 0 == pdu->getStartHandle() ) {
-                return gh.sendError(AttErrorRsp::ErrorCode::INVALID_HANDLE, pdu, 0, log_level::cond, "ReplyFindByType");
+                return gh.sendError(AttErrorRsp::ErrorCode::INVALID_HANDLE, pdu, 0, LogLevel::cond, "ReplyFindByType");
             }
             if( pdu->getStartHandle() > pdu->getEndHandle() ) {
-                return gh.sendError(AttErrorRsp::ErrorCode::INVALID_HANDLE, pdu, pdu->getStartHandle(), log_level::cond, "ReplyFindByType");
+                return gh.sendError(AttErrorRsp::ErrorCode::INVALID_HANDLE, pdu, pdu->getStartHandle(), LogLevel::cond, "ReplyFindByType");
             }
             const jau::uuid16_t uuid_characteristic = jau::uuid16_t(GattAttributeType::CHARACTERISTIC);
             const jau::uuid16_t uuid_incl_service = jau::uuid16_t(GattAttributeType::INCLUDE_DECLARATION);
@@ -859,7 +859,7 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
                         jau_COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: TYPE.3: %s -> %s from %s", pdu->toString(), rsp.toString(), gh.toString());
                         return gh.send(rsp);
                     }
-                    return gh.sendError(AttErrorRsp::ErrorCode::ATTRIBUTE_NOT_FOUND, pdu, pdu->getStartHandle(), log_level::cond, "ReplyFindByType");
+                    return gh.sendError(AttErrorRsp::ErrorCode::ATTRIBUTE_NOT_FOUND, pdu, pdu->getStartHandle(), LogLevel::cond, "ReplyFindByType");
                 } catch (...) {
                     jau::fput_exception(stderr, std::current_exception(), E_FILE_LINE);
                     jau_ERR_PRINT3("Exception caught while preparing response for %s", pdu->toString());
@@ -867,7 +867,7 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
                 }
             } else if( GattAttributeType::INCLUDE_DECLARATION == req_type ) {
                 // TODO: Support INCLUDE_DECLARATION ??
-                return gh.sendError(AttErrorRsp::ErrorCode::ATTRIBUTE_NOT_FOUND, pdu, pdu->getStartHandle(), log_level::cond, "ReplyFindByType");
+                return gh.sendError(AttErrorRsp::ErrorCode::ATTRIBUTE_NOT_FOUND, pdu, pdu->getStartHandle(), LogLevel::cond, "ReplyFindByType");
             } else { // TODO: Add other group types ???
                 // BT Core Spec v5.2: Vol 3, Part G GATT: 4.8.2 Read Using Characteristic UUID
                 const uint16_t end_handle = pdu->getEndHandle();
@@ -900,7 +900,7 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
                             }
                         }
                     }
-                    return gh.sendError(AttErrorRsp::ErrorCode::ATTRIBUTE_NOT_FOUND, pdu, pdu->getStartHandle(), log_level::cond, "ReplyFindByType");
+                    return gh.sendError(AttErrorRsp::ErrorCode::ATTRIBUTE_NOT_FOUND, pdu, pdu->getStartHandle(), LogLevel::cond, "ReplyFindByType");
                 } catch (...) {
                     jau::fput_exception(stderr, std::current_exception(), E_FILE_LINE);
                     jau_ERR_PRINT3("Exception caught while preparing response for %s", pdu->toString());
@@ -914,10 +914,10 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
             // BT Core Spec v5.2: Vol 3, Part F ATT: 3.4.4.10 ATT_READ_BY_GROUP_TYPE_RSP
             // BT Core Spec v5.2: Vol 3, Part G GATT: 4.4.1 Discover All Primary Services
             if( 0 == pdu->getStartHandle() ) {
-                return gh.sendError(AttErrorRsp::ErrorCode::INVALID_HANDLE, pdu, 0, log_level::cond, "ReplyFindByGroupType");
+                return gh.sendError(AttErrorRsp::ErrorCode::INVALID_HANDLE, pdu, 0, LogLevel::cond, "ReplyFindByGroupType");
             }
             if( pdu->getStartHandle() > pdu->getEndHandle() ) {
-                return gh.sendError(AttErrorRsp::ErrorCode::INVALID_HANDLE, pdu, pdu->getStartHandle(), log_level::cond, "ReplyFindByGroupType");
+                return gh.sendError(AttErrorRsp::ErrorCode::INVALID_HANDLE, pdu, pdu->getStartHandle(), LogLevel::cond, "ReplyFindByGroupType");
             }
             const jau::uuid16_t uuid_prim_service = jau::uuid16_t(GattAttributeType::PRIMARY_SERVICE);
             const jau::uuid16_t uuid_secd_service = jau::uuid16_t(GattAttributeType::SECONDARY_SERVICE);
@@ -983,7 +983,7 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
                         jau_COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: GROUP_TYPE.4: %s -> %s from %s", pdu->toString(), rsp.toString(), gh.toString());
                         return gh.send(rsp);
                     }
-                    return gh.sendError(AttErrorRsp::ErrorCode::ATTRIBUTE_NOT_FOUND, pdu, pdu->getStartHandle(), log_level::cond, "ReplyFindByGroupType");
+                    return gh.sendError(AttErrorRsp::ErrorCode::ATTRIBUTE_NOT_FOUND, pdu, pdu->getStartHandle(), LogLevel::cond, "ReplyFindByGroupType");
                 } catch (...) {
                     jau::fput_exception(stderr, std::current_exception(), E_FILE_LINE);
                     jau_ERR_PRINT3("Exception caught while preparing response for %s", pdu->toString());
@@ -991,7 +991,7 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
                 }
             } else {
                 // TODO: Add other group types ???
-                return gh.sendError(AttErrorRsp::ErrorCode::UNSUPPORTED_GROUP_TYPE, pdu, pdu->getStartHandle(), log_level::cond, "ReplyFindByGroupType");
+                return gh.sendError(AttErrorRsp::ErrorCode::UNSUPPORTED_GROUP_TYPE, pdu, pdu->getStartHandle(), LogLevel::cond, "ReplyFindByGroupType");
             }
         }
 };

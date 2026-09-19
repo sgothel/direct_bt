@@ -154,7 +154,7 @@ BTDeviceRef BTAdapter::findDevicePausingDiscovery (const EUI48 & address, const 
     return findWeakDevice(pausing_discovery_devices, address, addressType);
 }
 
-bool BTAdapter::addDevicePausingDiscovery(const BTDeviceRef & device) noexcept {
+bool BTAdapter::addDevicePausingDiscovery(const BTDeviceRef & device) {
     bool added_first = false;
     {
         const std::lock_guard<std::mutex> lock(mtx_pausingDiscoveryDevices); // RAII-style acquire and relinquish via destructor
@@ -221,7 +221,7 @@ jau::nsize_t BTAdapter::getDevicesPausingDiscoveryCount() noexcept {
     return pausing_discovery_devices.size();
 }
 
-bool BTAdapter::addConnectedDevice(const BTDeviceRef & device) noexcept {
+bool BTAdapter::addConnectedDevice(const BTDeviceRef & device) {
     const std::lock_guard<std::mutex> lock(mtx_connectedDevices); // RAII-style acquire and relinquish via destructor
     if( nullptr != findDevice(connectedDevices, *device) ) {
         return false;
@@ -432,7 +432,7 @@ bool BTAdapter::enableListening(const bool enable) noexcept {
     return true;
 }
 
-BTAdapter::BTAdapter(const BTAdapter::ctor_cookie& cc, BTManagerRef mgmt_, AdapterInfo adapterInfo_) noexcept
+BTAdapter::BTAdapter(const BTAdapter::ctor_cookie& cc, BTManagerRef mgmt_, AdapterInfo adapterInfo_)
 : debug_event(jau::environment::getBooleanProperty("direct_bt.debug.adapter.event", false)),
   debug_lock(jau::environment::getBooleanProperty("direct_bt.debug.adapter.lock", false)),
   mgmt( std::move(mgmt_) ),
@@ -669,7 +669,7 @@ void BTAdapter::printStatusListenerList() noexcept {
     }
 }
 
-HCIStatusCode BTAdapter::setName(const std::string &name, const std::string &short_name) noexcept {
+HCIStatusCode BTAdapter::setName(const std::string &name, const std::string &short_name) {
     if( isAdapterSettingBitSet(adapterInfo.getCurrentSettingMask(), AdapterSetting::POWERED) ) {
         return HCIStatusCode::COMMAND_DISALLOWED;
     }
@@ -756,7 +756,7 @@ void BTAdapter::setServerConnSecurity(const BTSecurityLevel sec_level, const SMP
     BTDevice::validateSecParam(sec_level, io_cap, sec_level_server, io_cap_server);
 }
 
-void BTAdapter::setSMPKeyPath(std::string path) noexcept {
+void BTAdapter::setSMPKeyPath(std::string path) {
     jau::sc_atomic_critical sync(sync_data);
     key_path = std::move(path);
 
@@ -766,7 +766,7 @@ void BTAdapter::setSMPKeyPath(std::string path) noexcept {
     }
 }
 
-HCIStatusCode BTAdapter::uploadKeys(SMPKeyBin& bin, const bool write) noexcept {
+HCIStatusCode BTAdapter::uploadKeys(SMPKeyBin& bin, const bool write) {
     if( bin.getLocalAddrAndType() != adapterInfo.addressAndType ) {
         if( bin.getVerbose() ) {
             jau_PLAIN_PRINT(true, "BTAdapter::setSMPKeyBin: Adapter address not matching: %s, %s", bin, toString());
@@ -994,7 +994,7 @@ bool BTAdapter::isDeviceWhitelisted(const BDAddressAndType & addressAndType) noe
 
 bool BTAdapter::addDeviceToWhitelist(const BDAddressAndType & addressAndType, const HCIWhitelistConnectType ctype,
                                      const uint16_t conn_interval_min, const uint16_t conn_interval_max,
-                                     const uint16_t conn_latency, const uint16_t timeout) {
+                                     const uint16_t conn_latency, const uint16_t timeout) noexcept {
     if( !isPowered() ) { // isValid() && hci.isOpen() && POWERED
         poweredOff(false /* active */, "addDeviceToWhitelist.np");
         return false;
@@ -1019,7 +1019,7 @@ bool BTAdapter::removeDeviceFromWhitelist(const BDAddressAndType & addressAndTyp
 BTAdapter::statusListenerList_t::equal_comparator BTAdapter::adapterStatusListenerRefEqComparator =
         [](const StatusListenerPair &a, const StatusListenerPair &b) noexcept -> bool { return *a.listener == *b.listener; };
 
-bool BTAdapter::addStatusListener(const AdapterStatusListenerRef& l) noexcept {
+bool BTAdapter::addStatusListener(const AdapterStatusListenerRef& l) {
     if( nullptr == l ) {
         jau_ERR_PRINT("AdapterStatusListener ref is null");
         return false;
@@ -1036,7 +1036,7 @@ bool BTAdapter::addStatusListener(const AdapterStatusListenerRef& l) noexcept {
     return added;
 }
 
-bool BTAdapter::addStatusListener(const BTDeviceRef& d, const AdapterStatusListenerRef& l) noexcept {
+bool BTAdapter::addStatusListener(const BTDeviceRef& d, const AdapterStatusListenerRef& l) {
     if( nullptr == l ) {
         jau_ERR_PRINT("AdapterStatusListener ref is null");
         return false;
@@ -1057,7 +1057,7 @@ bool BTAdapter::addStatusListener(const BTDeviceRef& d, const AdapterStatusListe
     return added;
 }
 
-bool BTAdapter::addStatusListener(const BTDevice& d, const AdapterStatusListenerRef& l) noexcept {
+bool BTAdapter::addStatusListener(const BTDevice& d, const AdapterStatusListenerRef& l) {
     return addStatusListener(getSharedDevice(d), l);
 }
 
@@ -1290,13 +1290,13 @@ void BTAdapter::discoveryServerWork(jau::service_runner& sr) noexcept {
     }
 }
 
-HCIStatusCode BTAdapter::stopDiscovery() noexcept {
+HCIStatusCode BTAdapter::stopDiscovery() {
     clearDevicesPausingDiscovery();
 
     return stopDiscoveryImpl(false /* forceDiscoveringEvent */, false /* temporary */);
 }
 
-HCIStatusCode BTAdapter::stopDiscoveryImpl(const bool forceDiscoveringEvent, const bool temporary) noexcept {
+HCIStatusCode BTAdapter::stopDiscoveryImpl(const bool forceDiscoveringEvent, const bool temporary) {
     // We allow !isEnabled, to utilize method for adjusting discovery state and notifying listeners
     // FIXME: Respect BTAdapter::btMode, i.e. BTMode::BREDR, BTMode::LE or BTMode::DUAL to stop BREDR, LE or DUAL scanning!
 
@@ -1390,7 +1390,7 @@ BTDeviceRef BTAdapter::findDiscoveredDevice (const EUI48 & address, const BDAddr
     return findDevice(hci, discoveredDevices, address, addressType);
 }
 
-bool BTAdapter::addDiscoveredDevice(BTDeviceRef const &device) noexcept {
+bool BTAdapter::addDiscoveredDevice(BTDeviceRef const &device) {
     const std::lock_guard<std::mutex> lock(mtx_discoveredDevices); // RAII-style acquire and relinquish via destructor
     if( nullptr != findDevice(discoveredDevices, *device) ) {
         // already discovered
@@ -1421,7 +1421,7 @@ bool BTAdapter::removeDiscoveredDevice(const BDAddressAndType & addressAndType) 
     return false;
 }
 
-BTAdapter::size_type BTAdapter::removeDiscoveredDevices() noexcept {
+BTAdapter::size_type BTAdapter::removeDiscoveredDevices() {
     size_type res;
     {
         const std::lock_guard<std::mutex> lock(mtx_discoveredDevices); // RAII-style acquire and relinquish via destructor
@@ -1459,7 +1459,7 @@ jau::darray<BTDeviceRef> BTAdapter::getDiscoveredDevices() const noexcept {
 
 // *************************************************
 
-bool BTAdapter::addSharedDevice(BTDeviceRef const &device) noexcept {
+bool BTAdapter::addSharedDevice(BTDeviceRef const &device) {
     const std::lock_guard<std::mutex> lock(mtx_sharedDevices); // RAII-style acquire and relinquish via destructor
     if( nullptr != findDevice(sharedDevices, *device) ) {
         // already shared
@@ -1551,7 +1551,7 @@ BTAdapter::SMPKeyBinRef BTAdapter::findSMPKeyBin(BDAddressAndType const & remote
     const std::lock_guard<std::mutex> lock(mtx_keys); // RAII-style acquire and relinquish via destructor
     return findSMPKeyBin(key_list, remoteAddress);
 }
-bool BTAdapter::addSMPKeyBin(const SMPKeyBinRef& key, const bool write_file) noexcept {
+bool BTAdapter::addSMPKeyBin(const SMPKeyBinRef& key, const bool write_file) {
     const std::lock_guard<std::mutex> lock(mtx_keys); // RAII-style acquire and relinquish via destructor
     removeSMPKeyBin(key_list, key->getRemoteAddrAndType(), write_file /* remove_file */, key_path);
     if( jau::environment::get().debug ) {
@@ -1578,7 +1578,7 @@ HCIStatusCode BTAdapter::startAdvertising(const DBGattServerRef& gattServerData_
                                const uint16_t adv_interval_min, const uint16_t adv_interval_max,
                                const AD_PDU_Type adv_type,
                                const uint8_t adv_chan_map,
-                               const uint8_t filter_policy) noexcept {
+                               const uint8_t filter_policy) {
     if( !isPowered() ) { // isValid() && hci.isOpen() && POWERED
         poweredOff(false /* active */, "startAdvertising.np");
         return HCIStatusCode::NOT_POWERED;
@@ -1657,7 +1657,7 @@ HCIStatusCode BTAdapter::startAdvertising(const DBGattServerRef& gattServerData_
                                const uint16_t adv_interval_min, const uint16_t adv_interval_max,
                                const AD_PDU_Type adv_type,
                                const uint8_t adv_chan_map,
-                               const uint8_t filter_policy) noexcept {
+                               const uint8_t filter_policy) {
     EInfoReport eir;
     EIRDataType adv_mask = EIRDataType::FLAGS | EIRDataType::SERVICE_UUID;
     EIRDataType scanrsp_mask = EIRDataType::NAME | EIRDataType::CONN_IVAL;
@@ -1687,7 +1687,7 @@ HCIStatusCode BTAdapter::startAdvertising(const DBGattServerRef& gattServerData_
  * </p>
  * @return HCIStatusCode::SUCCESS if successful, otherwise the HCIStatusCode error state
  */
-HCIStatusCode BTAdapter::stopAdvertising() noexcept {
+HCIStatusCode BTAdapter::stopAdvertising() {
     if( !isPowered() ) { // isValid() && hci.isOpen() && POWERED
         poweredOff(false /* active */, "stopAdvertising.np");
         return HCIStatusCode::NOT_POWERED;
@@ -1719,7 +1719,7 @@ std::string BTAdapter::toString(bool includeDiscoveredDevices) const noexcept {
     if( includeDiscoveredDevices ) {
         device_list_t devices = getDiscoveredDevices();
         if( devices.size() > 0 ) {
-            jau_append_string(out, "\n");
+            jau::append_string(out, "\n");
             for(const auto& p : devices) {
                  if( nullptr != p ) {
                     jau_append_string(out, "  %s\n", p->toString());
@@ -2039,7 +2039,7 @@ jau::fraction_i64 BTAdapter::smp_timeoutfunc(jau::simple_timer& timer) {
     return timer.shall_stop() ? 0_s : SMP_NEXT_EVENT_TIMEOUT_MS; // keep going until BTAdapter closes
 }
 
-void BTAdapter::mgmtEvDeviceConnectedHCI(const MgmtEvent& e) noexcept {
+void BTAdapter::mgmtEvDeviceConnectedHCI(const MgmtEvent& e) {
     const MgmtEvtDeviceConnected &event = *static_cast<const MgmtEvtDeviceConnected *>(&e);
     EInfoReport ad_report;
     {
@@ -2208,7 +2208,7 @@ void BTAdapter::mgmtEvConnectFailedHCI(const MgmtEvent& e) noexcept {
     }
 }
 
-void BTAdapter::mgmtEvHCILERemoteUserFeaturesHCI(const MgmtEvent& e) noexcept {
+void BTAdapter::mgmtEvHCILERemoteUserFeaturesHCI(const MgmtEvent& e) {
     const MgmtEvtHCILERemoteFeatures &event = *static_cast<const MgmtEvtHCILERemoteFeatures *>(&e);
 
     BTDeviceRef device = findConnectedDevice(event.getAddress(), event.getAddressType());
@@ -2480,7 +2480,7 @@ void BTAdapter::mgmtEvNewIdentityResolvingKeyMgmt(const MgmtEvent& e) noexcept {
     }
 }
 
-void BTAdapter::mgmtEvDeviceFoundHCI(const MgmtEvent& e) noexcept {
+void BTAdapter::mgmtEvDeviceFoundHCI(const MgmtEvent& e) {
     // jau_COND_PRINT(debug_event, "BTAdapter:hci:DeviceFound(dev_id %u): %s", dev_id, e);
     const MgmtEvtDeviceFound &deviceFoundEvent = *static_cast<const MgmtEvtDeviceFound *>(&e);
 
@@ -2750,7 +2750,7 @@ void BTAdapter::hciSMPMsgCallback(const BDAddressAndType & addressAndType,
     device->hciSMPMsgCallback(device, msg, source);
 }
 
-void BTAdapter::sendDevicePairingState(const BTDeviceRef& device, const SMPPairingState state, const PairingMode mode, uint64_t timestamp) noexcept
+void BTAdapter::sendDevicePairingState(const BTDeviceRef& device, const SMPPairingState state, const PairingMode mode, uint64_t timestamp)
 {
     if( BTRole::Slave == getRole() ) {
         // PERIPHERAL_ADAPTER_MANAGES_SMP_KEYS

@@ -222,19 +222,19 @@ std::string SMPKeyBin::toString() const noexcept {
     return res;
 }
 
-std::string SMPKeyBin::getFileBasename() const noexcept {
-    std::string r("bd_"+localAddress.address.toString()+"_"+remoteAddress.address.toString()+std::to_string(number(remoteAddress.type))+".key");
+std::string SMPKeyBin::getFileBasename() const {
+    std::string r("bd_"+localAddress.address.toString()+"_"+remoteAddress.address.toString()+std::to_string(*(remoteAddress.type))+".key");
     auto it = std::remove( r.begin(), r.end(), ':');
     r.erase(it, r.end());
     return r;
 }
-std::string SMPKeyBin::getFileBasename(const BDAddressAndType& localAddress_, const BDAddressAndType& remoteAddress_) noexcept {
-    std::string r("bd_"+localAddress_.address.toString()+"_"+remoteAddress_.address.toString()+std::to_string(number(remoteAddress_.type))+".key");
+std::string SMPKeyBin::getFileBasename(const BDAddressAndType& localAddress_, const BDAddressAndType& remoteAddress_) {
+    std::string r("bd_"+localAddress_.address.toString()+"_"+remoteAddress_.address.toString()+std::to_string(*(remoteAddress_.type))+".key");
     auto it = std::remove( r.begin(), r.end(), ':');
     r.erase(it, r.end());
     return r;
 }
-std::string SMPKeyBin::getFilename(const std::string& path, const BTDevice& remoteDevice) noexcept {
+std::string SMPKeyBin::getFilename(const std::string& path, const BTDevice& remoteDevice) {
     return getFilename(path, remoteDevice.getAdapter().getAddressAndType(), remoteDevice.getAddressAndType());
 }
 
