@@ -1459,15 +1459,15 @@ std::shared_ptr<GattGenericAccessSvc> BTGattHandler::getGenericAccess(jau::darra
         	continue;
         }
         if( _DEVICE_NAME == *charDecl.value_type ) {
-            if( readCharacteristicValue(charDecl, value.resize(0)) ) {
+            if( readCharacteristicValue(charDecl, value.clear()) ) {
             	deviceName = GattNameToString(value); // mandatory
             }
         } else if( _APPEARANCE == *charDecl.value_type ) {
-            if( readCharacteristicValue(charDecl, value.resize(0)) && value.size() >= 2 ) {
+            if( readCharacteristicValue(charDecl, value.clear()) && value.size() >= 2 ) {
             	appearance = static_cast<AppearanceCat>(value.get_uint16(0)); // mandatory
             }
         } else if( _PERIPHERAL_PREFERRED_CONNECTION_PARAMETERS == *charDecl.value_type ) {
-            if( readCharacteristicValue(charDecl, value.resize(0)) ) {
+            if( readCharacteristicValue(charDecl, value.clear()) ) {
             	prefConnParam = GattPeriphalPreferredConnectionParameters::get(value); // optional
             }
         }
@@ -1503,7 +1503,7 @@ bool BTGattHandler::ping() noexcept {
                 continue;
             }
             if( _APPEARANCE == *charDecl.value_type ) {
-                if( readCharacteristicValue(charDecl, value.resize(0)) ) {
+                if( readCharacteristicValue(charDecl, value.clear()) ) {
                     return true; // unique success case
                 }
                 // read failure, might be disconnected
@@ -1545,39 +1545,39 @@ std::shared_ptr<GattDeviceInformationSvc> BTGattHandler::getDeviceInformation(ja
         }
         found = true;
         if( _SYSTEM_ID == *charDecl.value_type ) {
-            if( readCharacteristicValue(charDecl, systemID.resize(0)) ) {
+            if( readCharacteristicValue(charDecl, systemID.clear()) ) {
                 // nop
             }
         } else if( _REGULATORY_CERT_DATA_LIST == *charDecl.value_type ) {
-            if( readCharacteristicValue(charDecl, regulatoryCertDataList.resize(0)) ) {
+            if( readCharacteristicValue(charDecl, regulatoryCertDataList.clear()) ) {
                 // nop
             }
         } else if( _PNP_ID == *charDecl.value_type ) {
-            if( readCharacteristicValue(charDecl, value.resize(0)) ) {
+            if( readCharacteristicValue(charDecl, value.clear()) ) {
                 pnpID = GattPnP_ID::get(value);
             }
         } else if( _MODEL_NUMBER_STRING == *charDecl.value_type ) {
-            if( readCharacteristicValue(charDecl, value.resize(0)) ) {
+            if( readCharacteristicValue(charDecl, value.clear()) ) {
                 modelNumber = GattNameToString(value);
             }
         } else if( _SERIAL_NUMBER_STRING == *charDecl.value_type ) {
-            if( readCharacteristicValue(charDecl, value.resize(0)) ) {
+            if( readCharacteristicValue(charDecl, value.clear()) ) {
                 serialNumber = GattNameToString(value);
             }
         } else if( _FIRMWARE_REVISION_STRING == *charDecl.value_type ) {
-            if( readCharacteristicValue(charDecl, value.resize(0)) ) {
+            if( readCharacteristicValue(charDecl, value.clear()) ) {
                 firmwareRevision = GattNameToString(value);
             }
         } else if( _HARDWARE_REVISION_STRING == *charDecl.value_type ) {
-            if( readCharacteristicValue(charDecl, value.resize(0)) ) {
+            if( readCharacteristicValue(charDecl, value.clear()) ) {
                 hardwareRevision = GattNameToString(value);
             }
         } else if( _SOFTWARE_REVISION_STRING == *charDecl.value_type ) {
-            if( readCharacteristicValue(charDecl, value.resize(0)) ) {
+            if( readCharacteristicValue(charDecl, value.clear()) ) {
                 softwareRevision = GattNameToString(value);
             }
         } else if( _MANUFACTURER_NAME_STRING == *charDecl.value_type ) {
-            if( readCharacteristicValue(charDecl, value.resize(0)) ) {
+            if( readCharacteristicValue(charDecl, value.clear()) ) {
                 manufacturer = GattNameToString(value);
             }
         }
