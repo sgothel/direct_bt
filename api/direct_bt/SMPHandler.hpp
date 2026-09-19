@@ -186,7 +186,7 @@ namespace direct_bt {
 
             const std::string deviceString;
             std::recursive_mutex mtx_command;
-            jau::POctets rbuffer;
+            jau::AOctets<*Defaults::SMP_MTU_BUFFER_SZ> rbuffer;
 
             L2CAPClient l2cap;
             jau::sc_atomic_bool is_connected; // reflects state

@@ -793,8 +793,8 @@ namespace direct_bt {
             bool services_complete = false;
             uint32_t device_class = 0;
             AppearanceCat appearance = AppearanceCat::UNKNOWN;
-            jau::POctets hash;
-            jau::POctets randomizer;
+            jau::AOctets<16> hash;
+            jau::AOctets<16> randomizer;
             uint16_t did_source = 0;
             uint16_t did_vendor = 0;
             uint16_t did_product = 0;
@@ -815,7 +815,11 @@ namespace direct_bt {
                                uint8_t const * data, int offset, int const size) noexcept;
 
         public:
-            EInfoReport() noexcept : hash(16, 0, jau::lb_endian_t::little), randomizer(16, 0, jau::lb_endian_t::little) {}
+            EInfoReport() noexcept
+            : hash(jau::lb_endian_t::little), randomizer(jau::lb_endian_t::little) { // NOLINT(modernize-use-equals-default)
+                hash.bzero();
+                randomizer.bzero();
+            }
 
             EInfoReport(const EInfoReport&) = default;
             EInfoReport& operator=(const EInfoReport &o) = default;

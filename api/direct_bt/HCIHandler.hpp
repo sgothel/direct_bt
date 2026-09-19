@@ -240,7 +240,7 @@ namespace direct_bt {
             static MgmtEvent::Opcode translate(HCIEventType evt, HCIMetaEventType met) noexcept;
 
             const uint16_t dev_id;
-            jau::POctets rbuffer;
+            jau::AOctets<HCI_MAX_MTU> rbuffer;
             HCIComm comm;
             hci_ufilter filter_mask;
             std::atomic<uint64_t> metaev_filter_mask;

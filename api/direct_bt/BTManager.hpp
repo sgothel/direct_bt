@@ -225,7 +225,7 @@ namespace direct_bt {
 
             const MgmtEnv & env;
 
-            jau::POctets rbuffer;
+            jau::AOctets<ClientMaxMTU> rbuffer;
             HCIComm comm;
 
             jau::service_runner mgmt_reader_service;

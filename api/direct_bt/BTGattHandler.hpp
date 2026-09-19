@@ -453,7 +453,7 @@ namespace direct_bt {
 
             const std::string deviceString;
             mutable std::recursive_mutex mtx_command;
-            jau::POctets rbuffer;
+            jau::AOctets<*Defaults::MAX_ATT_MTU> rbuffer;
 
             jau::sc_atomic_bool is_connected; // reflects state
             jau::relaxed_atomic_bool has_ioerror;  // reflects state

@@ -372,7 +372,7 @@ fail:
 
 BTManager::BTManager() noexcept
 : env(MgmtEnv::get()),
-  rbuffer(ClientMaxMTU, jau::lb_endian_t::little), comm(HCI_DEV_NONE, HCI_CHANNEL_CONTROL),
+  rbuffer(jau::lb_endian_t::little), comm(HCI_DEV_NONE, HCI_CHANNEL_CONTROL),
   mgmt_reader_service("HCIHandler::reader", THREAD_SHUTDOWN_TIMEOUT_MS,
                       jau::bind_member(this, &BTManager::mgmtReaderWork),
                       jau::service_runner::Callback() /* init */,

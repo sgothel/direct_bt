@@ -694,7 +694,7 @@ std::unique_ptr<HCIEvent> HCIHandler::getNextCmdCompleteReply(HCICommand &req, H
 HCIHandler::HCIHandler(const uint16_t dev_id_, const BTMode btMode_) noexcept
 : env(HCIEnv::get()),
   dev_id(dev_id_),
-  rbuffer(HCI_MAX_MTU, jau::lb_endian_t::little),
+  rbuffer(jau::lb_endian_t::little),
   comm(dev_id_, HCI_CHANNEL_RAW),
   hci_reader_service("HCIHandler::reader", THREAD_SHUTDOWN_TIMEOUT_MS,
                      jau::bind_member(this, &HCIHandler::hciReaderWork),
