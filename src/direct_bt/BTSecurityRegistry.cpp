@@ -72,18 +72,23 @@ namespace direct_bt::BTSecurityRegistry {
         EUI48Sub addr1;
         std::string errmsg;
         Entry* sec = nullptr;
-        if( EUI48Sub::scanEUI48Sub(addrOrNameSub, addr1, errmsg) ) {
-            sec = getEqual(addr1, "");
-            if( nullptr == sec ) {
-                Entry& r = devicesSecDetails.emplace_back( addr1 );
-                sec = &r;
+        try {
+            if( EUI48Sub::scanEUI48Sub(addrOrNameSub, addr1, errmsg) ) {
+                sec = getEqual(addr1, "");
+                if( nullptr == sec ) {
+                    Entry& r = devicesSecDetails.emplace_back( addr1 );
+                    sec = &r;
+                }
+            } else {
+                sec = getEqual(addrOrNameSub);
+                if( nullptr == sec ) {
+                    Entry& r = devicesSecDetails.emplace_back( addrOrNameSub );
+                    sec = &r;
+                }
             }
-        } else {
-            sec = getEqual(addrOrNameSub);
-            if( nullptr == sec ) {
-                Entry& r = devicesSecDetails.emplace_back( addrOrNameSub );
-                sec = &r;
-            }
+        } catch (...) {
+            jau::fput_exception(stderr, std::current_exception(), E_FILE_LINE);
+            jau_ERR_PRINT3("Exception while registering EUI48Sub %s ", addr1);
         }
         return sec;
     }

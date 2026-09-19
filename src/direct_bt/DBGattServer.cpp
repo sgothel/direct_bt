@@ -40,7 +40,12 @@ bool DBGattDesc::setValue(const uint8_t* source, const jau::nsize_t source_len, 
             return false;
         }
         if( value.size() != dest_pos + source_len ) {
-            value.resize( dest_pos + source_len );
+            try {
+                value.resize( dest_pos + source_len );
+            } catch (...) {
+                jau::fput_exception(stderr, std::current_exception(), E_FILE_LINE);
+                return false;
+            }
         }
     } else {
         if( value.size() < dest_pos + source_len ) {
@@ -57,7 +62,12 @@ bool DBGattChar::setValue(const uint8_t* source, const jau::nsize_t source_len, 
             return false;
         }
         if( value.size() != dest_pos + source_len ) {
-            value.resize( dest_pos + source_len );
+            try {
+                value.resize( dest_pos + source_len );
+            } catch (...) {
+                jau::fput_exception(stderr, std::current_exception(), E_FILE_LINE);
+                return false;
+            }
         }
     } else {
         if( value.size() < dest_pos + source_len ) {

@@ -301,7 +301,7 @@ namespace direct_bt {
                         /** end point, exclusive */
                         uint16_t end;
 
-                        Section(uint16_t s, uint16_t e) : start(s), end(e) {}
+                        Section(uint16_t s, uint16_t e) noexcept : start(s), end(e) {}
 
                         std::string toString() { return "["+std::to_string(start)+".."+std::to_string(end-1)+"]"; }
                     };

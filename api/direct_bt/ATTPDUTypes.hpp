@@ -531,10 +531,10 @@ namespace direct_bt {
             }
 
             /** Transient memory, ownership belongs to caller object. */
-            AttPDUMsg(const Opcode opc, jau::TOctets& mem) noexcept
+            AttPDUMsg(const Opcode opc, jau::TOctets& mem) noexcept // NOLINT(bugprone-exception-escape): with check (min size 1) -> abort
             : pdu(mem), ts_creation(jau::getCurrentMilliseconds())
             {
-                pdu.put_uint8(0, number(opc)); // with check -> abort
+                pdu.put_uint8(0, number(opc)); // with check (min size 1) -> abort
             }
 
             AttPDUMsg(const AttPDUMsg &o) = delete;
@@ -755,7 +755,7 @@ namespace direct_bt {
             AttPDUUndefined(const uint8_t* source, const jau::nsize_t length)
             : AttPDUFixedMsg(Opcode::PDU_UNDEFINED)
             {
-                pdu.put_bytes(0, source, length); // w/ check   
+                pdu.put_bytes_nc(0, source, length);
                 checkOpcode(Opcode::PDU_UNDEFINED);
                 check_range();
             }
@@ -814,9 +814,9 @@ namespace direct_bt {
             AttErrorRsp(const ErrorCode error_code, const Opcode cause_opc, const uint16_t cause_handle) noexcept
             : AttPDUFixedMsg(Opcode::ERROR_RSP)
             {
-                pdu.put_uint8(1, AttPDUMsg::number(cause_opc));
-                pdu.put_uint16(2, cause_handle);
-                pdu.put_uint8(4, number(error_code));
+                pdu.put_uint8_nc(1, *cause_opc);
+                pdu.put_uint16_nc(2, cause_handle);
+                pdu.put_uint8_nc(4, *error_code);
                 // check_range(); OK
             }
 

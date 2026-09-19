@@ -583,59 +583,87 @@ std::shared_ptr<BTAdapter> BTManager::getAdapter(const uint16_t dev_id) const no
 }
 
 std::shared_ptr<BTAdapter> BTManager::addAdapter(const AdapterInfo& ai ) noexcept {
-    typename adapters_t::iterator it = adapters.begin(); // lock mutex and copy_store
-    for (; !it.is_end(); ++it) {
-        if ( (*it)->dev_id == ai.dev_id ) {
-            break;
+    try {
+        typename adapters_t::iterator it = adapters.begin(); // lock mutex and copy_store
+        for (; !it.is_end(); ++it) {
+            if ( (*it)->dev_id == ai.dev_id ) {
+                break;
+            }
         }
-    }
-    if( it.is_end() ) {
-        // new entry
-        std::shared_ptr<BTAdapter> adapter = BTAdapter::make_shared(BTManager::get(), ai);
-        it.push_back( adapter );
-        adapterIOCapability.push_back(BTManager::defaultIOCapability);
-        DBG_PRINT("BTManager::addAdapter: Adding new: %s", adapter->toString().c_str())
-        it.write_back();
-        return adapter;
-    } else {
-        // already existing
-        std::shared_ptr<BTAdapter> adapter = *it;
-        WARN_PRINT("BTManager::addAdapter: Already existing %s, overwriting %s", ai.toString().c_str(), adapter->toString().c_str())
-        adapter->adapterInfo = ai;
-        return adapter;
+        if( it.is_end() ) {
+            // new entry
+            std::shared_ptr<BTAdapter> adapter = BTAdapter::make_shared(BTManager::get(), ai);
+            it.push_back( adapter );
+            adapterIOCapability.push_back(BTManager::defaultIOCapability);
+            jau_DBG_PRINT("BTManager::addAdapter: Adding new: %s", adapter->toString());
+            it.write_back();
+            return adapter;
+        } else {
+            // already existing
+            std::shared_ptr<BTAdapter> adapter = *it;
+            jau_WARN_PRINT("BTManager::addAdapter: Already existing %s, overwriting %s", ai, adapter->toString())
+            adapter->adapterInfo = ai;
+            return adapter;
+        }
+    } catch (...) {
+        jau::fput_exception(stderr, std::current_exception(), E_FILE_LINE);
+        jau_ERR_PRINT3("Exception caught while processing %s", ai);
+        return nullptr;
     }
 }
 
 std::shared_ptr<BTAdapter> BTManager::removeAdapter(const uint16_t dev_id) noexcept {
-    typename adapters_t::iterator it = adapters.begin(); // lock mutex and copy_store
-    for(; !it.is_end(); ++it ) {
-        std::shared_ptr<BTAdapter> & ai = *it;
-        if( ai->dev_id == dev_id ) {
-            adapterIOCapability.erase( adapterIOCapability.cbegin() + it.dist_begin() );
-            std::shared_ptr<BTAdapter> res = ai; // copy
-            DBG_PRINT("BTManager::removeAdapter: Remove: %s", res->toString().c_str())
-            it.erase();
-            it.write_back();
-            return res;
+    try {
+        typename adapters_t::iterator it = adapters.begin(); // lock mutex and copy_store
+        for(; !it.is_end(); ++it ) {
+            std::shared_ptr<BTAdapter> & ai = *it;
+            if( ai->dev_id == dev_id ) {
+                try {
+                    adapterIOCapability.erase( adapterIOCapability.cbegin() + it.dist_begin() );
+                    std::shared_ptr<BTAdapter> res = ai; // copy
+                    jau_DBG_PRINT("BTManager::removeAdapter: Remove: dev %u -> %s", dev_id, res->toString());
+                    it.erase();
+                    it.write_back();
+                    return res;
+                } catch (...) {
+                    jau::fput_exception(stderr, std::current_exception(), E_FILE_LINE);
+                    jau_ERR_PRINT3("Exception caught while removing adapter: dev %u -> %s", dev_id, ai->toString());
+                    return nullptr;
+                }
+            }
         }
+        jau_DBG_PRINT("BTManager::removeAdapter: Not found: dev_id %d", dev_id)
+    } catch (...) {
+        jau::fput_exception(stderr, std::current_exception(), E_FILE_LINE);
+        jau_ERR_PRINT3("Exception caught while processing dev %u", dev_id);
     }
-    DBG_PRINT("BTManager::removeAdapter: Not found: dev_id %d", dev_id)
     return nullptr;
 }
 
 bool BTManager::removeAdapter(BTAdapter* adapter) noexcept {
-    typename adapters_t::iterator it = adapters.begin(); // lock mutex and copy_store
-    for(; !it.is_end(); ++it ) {
-        std::shared_ptr<BTAdapter> & ai = *it;
-        if( ai.get() == adapter ) {
-            adapterIOCapability.erase( adapterIOCapability.cbegin() + it.dist_begin() );
-            DBG_PRINT("BTManager::removeAdapter: Remove: %p -> %s", adapter, ai->toString().c_str())
-            it.erase();
-            it.write_back();
-            return true;
+    try {
+        typename adapters_t::iterator it = adapters.begin(); // lock mutex and copy_store
+        for(; !it.is_end(); ++it ) {
+            std::shared_ptr<BTAdapter> & ai = *it;
+            if( ai.get() == adapter ) {
+                try {
+                    adapterIOCapability.erase( adapterIOCapability.cbegin() + it.dist_begin() );
+                    jau_DBG_PRINT("BTManager::removeAdapter: Remove: %p -> %s", adapter, ai->toString());
+                    it.erase();
+                    it.write_back();
+                    return true;
+                } catch (...) {
+                    jau::fput_exception(stderr, std::current_exception(), E_FILE_LINE);
+                    jau_ERR_PRINT3("Exception caught while removing adapter: %p -> %s", adapter, ai->toString());
+                    return false;
+                }
+            }
         }
+        jau_DBG_PRINT("BTManager::removeAdapter: Not found: %p", adapter);
+    } catch (...) {
+        jau::fput_exception(stderr, std::current_exception(), E_FILE_LINE);
+        jau_ERR_PRINT3("Exception caught while processing %p %s", adapter, adapter->toString());
     }
-    DBG_PRINT("BTManager::removeAdapter: Not found: %p", adapter)
     return false;
 }
 
@@ -1086,14 +1114,19 @@ bool BTManager::removeDeviceFromWhitelist(const uint16_t dev_id, const BDAddress
         }
     }
 
-    // Actual removal
-    MgmtRemoveDeviceFromWhitelistCmd req(dev_id, addressAndType);
-    std::unique_ptr<MgmtEvent> res = sendWithReply(req);
-    if( nullptr != res && res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
-        const MgmtEvtCmdComplete &res1 = *static_cast<const MgmtEvtCmdComplete *>(res.get());
-        if( MgmtStatus::SUCCESS == res1.getStatus() ) {
-            return true;
+    try {
+        // Actual removal
+        MgmtRemoveDeviceFromWhitelistCmd req(dev_id, addressAndType);
+        std::unique_ptr<MgmtEvent> res = sendWithReply(req);
+        if( nullptr != res && res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
+            const MgmtEvtCmdComplete &res1 = *static_cast<const MgmtEvtCmdComplete *>(res.get());
+            if( MgmtStatus::SUCCESS == res1.getStatus() ) {
+                return true;
+            }
         }
+    } catch (...) {
+        jau::fput_exception(stderr, std::current_exception(), E_FILE_LINE);
+        jau_ERR_PRINT3("Exception caught while processing %d %s", dev_id, addressAndType);
     }
     return false;
 }
@@ -1157,9 +1190,6 @@ bool BTManager::addMgmtEventCallback(const int dev_id, const MgmtEvent::Opcode o
         jau_ERR_PRINT3("Exception caught while processing %d %s", dev_id, opc);
         return false;
     }
-    MgmtAdapterEventCallbackList &l = mgmtAdapterEventCallbackLists[static_cast<uint16_t>(opc)];
-    /* const bool added = */ l.push_back_unique(MgmtAdapterEventCallback(dev_id, opc, cb), _mgmtAdapterEventCallbackEqComp_ID_CB);
-    return true;
 }
 BTManager::size_type BTManager::removeMgmtEventCallback(const MgmtEvent::Opcode opc, const MgmtEventCallback &cb) noexcept {
     if( !isValidMgmtEventCallbackListsIndex(opc) ) {
@@ -1175,21 +1205,24 @@ BTManager::size_type BTManager::removeMgmtEventCallback(const MgmtEvent::Opcode 
         jau_ERR_PRINT3("Exception caught while processing %s", opc);
         return 0;
     }
-    MgmtAdapterEventCallbackList &l = mgmtAdapterEventCallbackLists[static_cast<uint16_t>(opc)];
-    return l.erase_matching( MgmtAdapterEventCallback( 0, MgmtEvent::Opcode::INVALID, cb ),
-                               true /* all_matching */, _mgmtAdapterEventCallbackEqComp_CB);
 }
 BTManager::size_type BTManager::removeMgmtEventCallback(const int dev_id) noexcept {
     if( 0 > dev_id ) {
         // skip dev_id -1 case, use clearAllMgmtEventCallbacks() here
         return 0;
     }
-    size_type count = 0;
-    for(auto & l : mgmtAdapterEventCallbackLists) {
-        count += l.erase_matching( MgmtAdapterEventCallback( dev_id, MgmtEvent::Opcode::INVALID, MgmtEventCallback() ),
-                                     true /* all_matching */, _mgmtAdapterEventCallbackEqComp_ID);
+    try {
+        size_type count = 0;
+        for(auto & l : mgmtAdapterEventCallbackLists) {
+            count += l.erase_matching( MgmtAdapterEventCallback( dev_id, MgmtEvent::Opcode::INVALID, MgmtEventCallback() ),
+                                         true /* all_matching */, _mgmtAdapterEventCallbackEqComp_ID);
+        }
+        return count;
+    } catch (...) {
+        jau::fput_exception(stderr, std::current_exception(), E_FILE_LINE);
+        jau_ERR_PRINT3("Exception caught while processing %d", dev_id);
+        return false;
     }
-    return count;
 }
 void BTManager::clearMgmtEventCallbacks(const MgmtEvent::Opcode opc) noexcept {
     if( !isValidMgmtEventCallbackListsIndex(opc) ) {
@@ -1212,11 +1245,19 @@ void BTManager::processAdapterAdded(std::unique_ptr<MgmtEvent> e) noexcept {
 
     if( nullptr != adapterInfo ) {
         std::shared_ptr<BTAdapter> adapter = addAdapter( *adapterInfo );
-        DBG_PRINT("BTManager::Adapter[%d] Added: Start %s, added %d", dev_id, adapter->toString().c_str());
+        if (!adapter) {
+            jau_ERR_PRINT3("BTManager::Adapter[%u] Added failed for %s", dev_id, adapterInfo->toString());
+            return;
+        }
+        jau_DBG_PRINT("BTManager::Adapter[%u] Added: Start %s", dev_id, adapter->toString());
         sendMgmtEvent(*e);
         jau_DBG_PRINT("BTManager::Adapter[%u] Added: User_ %s", dev_id, adapter->toString());
         jau::for_each_fidelity(mgmtChangedAdapterSetCallbackList, [&](ChangedAdapterSetCallback &cb) {
-           cb(true /* added */, adapter);
+            try {
+                cb(true /* added */, adapter);
+            } catch (...) {
+                jau::fput_exception(stderr, std::current_exception(), E_FILE_LINE);
+            }
         });
         jau_DBG_PRINT("BTManager::Adapter[%u] Added: End__ %s", dev_id, adapter->toString());
     } else {
@@ -1231,7 +1272,11 @@ void BTManager::processAdapterRemoved(std::unique_ptr<MgmtEvent> e) noexcept {
         sendMgmtEvent(*e);
         jau_DBG_PRINT("BTManager::Adapter[%u] Removed: User_: %s", dev_id, ai->toString());
         jau::for_each_fidelity(mgmtChangedAdapterSetCallbackList, [&](ChangedAdapterSetCallback &cb) {
-           cb(false /* added */, ai);
+            try {
+                cb(false /* added */, ai);
+            } catch (...) {
+                jau::fput_exception(stderr, std::current_exception(), E_FILE_LINE);
+            }
         });
         ai->close(); // issuing dtor on DBTAdapter
         jau_DBG_PRINT("BTManager::Adapter[%u] Removed: End__: %s", dev_id, ai->toString());

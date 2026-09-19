@@ -37,6 +37,7 @@
 #include "BTGattHandler.hpp"
 #include "BTTypes1.hpp"
 #include "HCIIoctl.hpp"
+#include "HCITypes.hpp"
 #include "MgmtTypes.hpp"
 #include "SMPHandler.hpp"
 #include "SMPKeyBin.hpp"

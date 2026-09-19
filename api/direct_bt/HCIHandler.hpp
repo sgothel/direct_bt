@@ -246,19 +246,19 @@ namespace direct_bt {
             std::atomic<uint32_t> metaev_filter_mask;
             std::atomic<uint64_t> opcbit_filter_mask;
 
-            inline bool filter_test_metaev(HCIMetaEventType mec) noexcept { return 0 != jau::test_bit_uint32(number(mec)-1, metaev_filter_mask); }
+            inline bool filter_test_metaev(HCIMetaEventType mec) noexcept { return 0 != jau::test_bit_uint64_nc(number(mec)-1, metaev_filter_mask); }
             inline void filter_put_metaevs(const uint32_t mask) noexcept { metaev_filter_mask=mask; }
 
-            constexpr static void filter_clear_metaevs(uint32_t &mask) noexcept { mask=0; }
-            constexpr static void filter_all_metaevs(uint32_t &mask) noexcept { mask=0xffffffffU; }
-            inline static void filter_set_metaev(HCIMetaEventType mec, uint32_t &mask) noexcept { jau::set_bit_uint32(number(mec)-1, mask); }
+            constexpr static void filter_clear_metaevs(uint64_t &mask) noexcept { mask=0; }
+            constexpr static void filter_all_metaevs(uint64_t &mask) noexcept { mask=0xffffffffffffffffUL; }
+            inline static void filter_set_metaev(HCIMetaEventType mec, uint64_t &mask) noexcept { jau::set_bit_uint64_nc(number(mec)-1, mask); }
 
-            inline bool filter_test_opcbit(HCIOpcodeBit opcbit) noexcept { return 0 != jau::test_bit_uint64(number(opcbit), opcbit_filter_mask); }
+            inline bool filter_test_opcbit(HCIOpcodeBit opcbit) noexcept { return 0 != jau::test_bit_uint64_nc(number(opcbit), opcbit_filter_mask); }
             inline void filter_put_opcbit(const uint64_t mask) noexcept { opcbit_filter_mask=mask; }
 
             constexpr static void filter_clear_opcbit(uint64_t &mask) noexcept { mask=0; }
             constexpr static void filter_all_opcbit(uint64_t &mask) noexcept { mask=0xffffffffffffffffUL; }
-            inline static void filter_set_opcbit(HCIOpcodeBit opcbit, uint64_t &mask) noexcept { jau::set_bit_uint64(number(opcbit), mask); }
+            inline static void filter_set_opcbit(HCIOpcodeBit opcbit, uint64_t &mask) noexcept { jau::set_bit_uint64_nc(number(opcbit), mask); }
 
             jau::service_runner hci_reader_service;
             jau::ringbuffer<std::unique_ptr<HCIEvent>, jau::nsize_t> hciEventRing;

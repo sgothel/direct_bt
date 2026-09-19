@@ -152,7 +152,13 @@ HCIHandler::HCIConnectionRef HCIHandler::removeTrackerConnection(const HCIConnec
     for (auto it = connectionList.begin(); it != end; ++it) {
         HCIConnectionRef e = *it;
         if ( *e == *conn ) {
-            connectionList.erase(it);
+            try {
+                connectionList.erase(it);
+            } catch (...) {
+                jau::fput_exception(stderr, std::current_exception(), E_FILE_LINE);
+                jau_ERR_PRINT3("Exception occurred while removing tracker connection %s for %s", conn->toString(), toString());
+                return nullptr;
+            }
             return e; // done
         }
     }
@@ -178,7 +184,13 @@ HCIHandler::HCIConnectionRef HCIHandler::removeHCIConnection(jau::darray<HCIConn
     for (auto it = list.begin(); it != end; ++it) {
         HCIConnectionRef e = *it;
         if ( e->getHandle() == handle ) {
-            list.erase(it);
+            try {
+                list.erase(it);
+            } catch (...) {
+                jau::fput_exception(stderr, std::current_exception(), E_FILE_LINE);
+                jau_ERR_PRINT3("Exception occurred while removing connection handle %#x for %s", handle, toString());
+                return nullptr;
+            }
             return e; // done
         }
     }
