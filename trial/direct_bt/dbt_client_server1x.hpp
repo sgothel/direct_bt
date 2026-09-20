@@ -30,6 +30,7 @@
 
 #include "dbt_server01.hpp"
 #include "dbt_client01.hpp"
+#include "jau/basic_types.hpp"
 
 using namespace direct_bt;
 
@@ -281,6 +282,11 @@ class DBTClientServer1x {
                     REQUIRE( PairingMode::NONE == lastCompletedDevicePairingMode );
                     REQUIRE( BTSecurityLevel::NONE == lastCompletedDeviceSecurityLevel );
                 }
+            }
+
+            // Wait until disconnected
+            while (lastCompletedDevice->getConnected()) {
+                jau::sleep_for(10_ms);
             }
 
             //
