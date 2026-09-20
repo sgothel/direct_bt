@@ -160,6 +160,7 @@ void BTDevice::clearData() noexcept {
         jau_ERR_PRINT("Device still connected: %s", toString());
         return;
     }
+    jau_DBG_PRINT("BTDevice::clearData: %s", toString());
     btRole = !adapter.getRole(); // update role
     // l2cap_att->close(); // already done
     // ts_last_discovery = 0; // leave
