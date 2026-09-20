@@ -421,6 +421,7 @@ namespace direct_bt {
             mutable std::mutex mtx_connectedDevices;
             mutable std::mutex mtx_pausingDiscoveryDevices;
             mutable std::mutex mtx_discovery;
+            mutable std::mutex mtx_discoveringEvt;
             mutable std::mutex mtx_sharedDevices; // final mutex of all BTDevice lifecycle
             mutable std::mutex mtx_keys;
             mutable jau::sc_atomic_bool sync_data;
@@ -551,7 +552,7 @@ namespace direct_bt {
 
             void updateDeviceDiscoveringState(const ScanType eventScanType, const bool eventEnabled) noexcept;
             void mgmtEvDeviceDiscoveringAny(const ScanType eventScanType, const bool eventEnabled, const uint64_t eventTimestamp,
-                                            const bool hciSourced) noexcept;
+                                            const EventSource source) noexcept;
 
             void mgmtEvPinCodeRequestMgmt(const MgmtEvent& e) noexcept;
             void mgmtEvUserConfirmRequestMgmt(const MgmtEvent& e) noexcept;

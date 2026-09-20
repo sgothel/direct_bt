@@ -74,6 +74,13 @@ namespace direct_bt {
     };
     JAU_MAKE_ENUM_STRING_DECL(LogLevel);
 
+    enum class EventSource : uint8_t {
+        hci,  //< HCI source
+        mgmt, //< MGMT source
+        dbt   //< Direct-BT source
+    };
+    JAU_MAKE_ENUM_STRING_DECL(EventSource);
+
     /**
      * Bluetooth roles from the perspective of the link layer (connection initiator).
      * @see [BTAdapter roles](@ref BTAdapterRoles).

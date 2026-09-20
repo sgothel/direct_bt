@@ -150,6 +150,7 @@ static inline const int8_t * const_uint8_to_const_int8_ptr(const uint8_t* p) noe
 
 namespace direct_bt { // from BTTypes0.hpp
     JAU_MAKE_ENUM_STRING_CODE(LogLevel, none, error, warning, info, debug, cond);
+    JAU_MAKE_ENUM_STRING_CODE(EventSource, hci, mgmt, dbt);
     JAU_MAKE_ENUM_STRING_CODE(BTRole, None, Master, Slave);
     JAU_MAKE_ENUM_STRING_CODE(GATTRole, None, Server, Client);
     JAU_MAKE_ENUM_STRING_CODE(BTMode, NONE, DUAL, BREDR);

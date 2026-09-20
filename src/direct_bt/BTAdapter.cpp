@@ -371,7 +371,7 @@ bool BTAdapter::enableListening(const bool enable) noexcept {
         hci.clearAllCallbacks();
 
         bool ok = true;
-        ok = mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::DISCOVERING, jau::bind_member(this, &BTAdapter::mgmtEvDeviceDiscoveringMgmt)) && ok;
+        // ok = mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::DISCOVERING, jau::bind_member(this, &BTAdapter::mgmtEvDeviceDiscoveringMgmt)) && ok;
         ok = mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::NEW_SETTINGS, jau::bind_member(this, &BTAdapter::mgmtEvNewSettingsMgmt)) && ok;
         ok = mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::LOCAL_NAME_CHANGED, jau::bind_member(this, &BTAdapter::mgmtEvLocalNameChangedMgmt)) && ok;
         ok = mgmt->addMgmtEventCallback(dev_id, MgmtEvent::Opcode::PIN_CODE_REQUEST, jau::bind_member(this, &BTAdapter::mgmtEvPinCodeRequestMgmt)) && ok;
@@ -1785,53 +1785,64 @@ void BTAdapter::mgmtEvMgmtAnyMgmt(const MgmtEvent& e) noexcept {
 }
 
 void BTAdapter::mgmtEvDeviceDiscoveringHCI(const MgmtEvent& e) noexcept {
+    // jau_INFO_PRINT("BTAdapter:hci:DeviceDiscovering: %s", e);
     const MgmtEvtDiscovering &event = *static_cast<const MgmtEvtDiscovering *>(&e);
-    mgmtEvDeviceDiscoveringAny(event.getScanType(), event.getEnabled(), event.getTimestamp(), true /* hciSourced */);
+    mgmtEvDeviceDiscoveringAny(event.getScanType(), event.getEnabled(), event.getTimestamp(), EventSource::hci);
 }
 
 void BTAdapter::mgmtEvDeviceDiscoveringMgmt(const MgmtEvent& e) noexcept {
+    // jau_INFO_PRINT("BTAdapter:mgmt:DeviceDiscovering: %s", e);
     const MgmtEvtDiscovering &event = *static_cast<const MgmtEvtDiscovering *>(&e);
-    mgmtEvDeviceDiscoveringAny(event.getScanType(), event.getEnabled(), event.getTimestamp(), false /* hciSourced */);
+    mgmtEvDeviceDiscoveringAny(event.getScanType(), event.getEnabled(), event.getTimestamp(), EventSource::mgmt);
 }
 
 void BTAdapter::updateDeviceDiscoveringState(const ScanType eventScanType, const bool eventEnabled) noexcept {
-    mgmtEvDeviceDiscoveringAny(eventScanType, eventEnabled, jau::getCurrentMilliseconds(), false /* hciSourced */);
+    mgmtEvDeviceDiscoveringAny(eventScanType, eventEnabled, jau::getCurrentMilliseconds(), EventSource::dbt);
 }
 
-void BTAdapter::mgmtEvDeviceDiscoveringAny(const ScanType eventScanType, const bool eventEnabled, const uint64_t eventTimestamp,
-                                           const bool hciSourced) noexcept {
-    const std::string_view srctkn = hciSourced ? "hci" : "mgmt";
+void BTAdapter::mgmtEvDeviceDiscoveringAny(const ScanType eventScanType_, const bool eventEnabled, const uint64_t eventTimestamp,
+                                           const EventSource source) noexcept {
+    const std::lock_guard<std::mutex> lock(mtx_discoveringEvt); // RAII-style acquire and relinquish via destructor
     ScanType currentNativeScanType = hci.getCurrentScanType();
+
+    ScanType eventScanType = eventScanType_;
+    if( EventSource::mgmt == source && ScanType::NONE == eventScanType) {
+        // Fix Kernel BlueZ MGMT bug, passing zero for Address_Type
+        eventScanType = currentNativeScanType;
+    }
 
     // FIXME: Respect BTAdapter::btMode, i.e. BTMode::BREDR, BTMode::LE or BTMode::DUAL to setup BREDR, LE or DUAL scanning!
     //
     // Also catches case where discovery changes w/o user interaction [start/stop]Discovery(..)
     // if sourced from mgmt channel (!hciSourced)
 
+    const ScanType locCurrentMetaScanType = currentMetaScanType;
     ScanType nextMetaScanType;
     if( eventEnabled ) {
         // enabled eventScanType
-        nextMetaScanType = changeScanType(currentMetaScanType, eventScanType, true);
+        nextMetaScanType = changeScanType(locCurrentMetaScanType, eventScanType, true);
     } else {
         // disabled eventScanType
         if( is_set(eventScanType, ScanType::LE) && DiscoveryPolicy::AUTO_OFF != discovery_policy ) {
             // Unchanged meta for disabled-LE && keep_le_scan_alive
-            nextMetaScanType = currentMetaScanType;
+            nextMetaScanType = locCurrentMetaScanType;
         } else {
-            nextMetaScanType = changeScanType(currentMetaScanType, eventScanType, false);
+            nextMetaScanType = changeScanType(locCurrentMetaScanType, eventScanType, false);
         }
     }
 
-    if( !hciSourced ) {
+    if( EventSource::hci != source ) {
         // update HCIHandler's currentNativeScanType from other source
         const ScanType nextNativeScanType = changeScanType(currentNativeScanType, eventScanType, eventEnabled);
-        jau_DBG_PRINT("BTAdapter:%s:DeviceDiscovering: dev_id %u, policy %s: scanType[native %s -> %s, meta %s -> %s])",
-            srctkn, dev_id, discovery_policy, currentNativeScanType, nextNativeScanType, currentMetaScanType, nextMetaScanType);
+        jau_DBG_PRINT("BTAdapter:%s:DeviceDiscovering: dev_id %u, policy %s: scanType[event[%s -> %s, enabled %s], native %s -> %s, meta %s -> %s])",
+            source, dev_id, discovery_policy, eventScanType_, eventScanType, eventEnabled,
+            currentNativeScanType, nextNativeScanType, locCurrentMetaScanType, nextMetaScanType);
         currentNativeScanType = nextNativeScanType;
         hci.setCurrentScanType(currentNativeScanType);
     } else {
-        jau_DBG_PRINT("BTAdapter:%s:DeviceDiscovering: dev_id %u, policy %s: scanType[native %s, meta %s -> %s])",
-            srctkn, dev_id, discovery_policy, currentNativeScanType, currentMetaScanType, nextMetaScanType);
+        jau_DBG_PRINT("BTAdapter:%s:DeviceDiscovering: dev_id %u, policy %s: scanType[event[%s, enabled %s], native %s, meta %s -> %s])",
+            source, dev_id, discovery_policy, eventScanType, eventEnabled,
+            currentNativeScanType, locCurrentMetaScanType, nextMetaScanType);
     }
     currentMetaScanType = nextMetaScanType;
     if( isDiscovering() ) {
@@ -1846,7 +1857,7 @@ void BTAdapter::mgmtEvDeviceDiscoveringAny(const ScanType eventScanType, const b
             p.listener->discoveringChanged(*this, currentMetaScanType, eventScanType, eventEnabled, discovery_policy, eventTimestamp);
         } catch (std::exception &except) {
             jau_ERR_PRINT("BTAdapter:%s:DeviceDiscovering-CBs %zu/%zu: %s of %s: Caught exception %s",
-                srctkn, i+1, statusListenerList.size(), p.listener->toString(), toString(), except.what());
+                source, i+1, statusListenerList.size(), p.listener->toString(), toString(), except.what());
         }
         i++;
     });
