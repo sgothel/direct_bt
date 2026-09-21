@@ -117,23 +117,23 @@ std::string AttReadBlobReq::valueString() const noexcept {
 }
 
 std::string AttReadNRsp::valueString() const noexcept {
-    return jau_format_string("size %zu, data %s", getPDUValueSize(), view.toString());
+    return jau_format_string("size %zu, data %s", getPDUValueSize(), view);
 }
 
 std::string AttWriteReq::valueString() const noexcept {
-    return jau_format_string("handle %#x, data %s", getHandle(), view.toString());
+    return jau_format_string("handle %#x, data %s", getHandle(), view);
 }
 
 std::string AttWriteCmd::valueString() const noexcept {
-    return jau_format_string("handle %#x, data %s", getHandle(), view.toString());
+    return jau_format_string("handle %#x, data %s", getHandle(), view);
 }
 
 std::string AttPrepWrite::valueString() const noexcept {
-    return jau_format_string("handle %#x, offset %u, data %s", getHandle(), getValueOffset(), view.toString());
+    return jau_format_string("handle %#x, offset %u, data %s", getHandle(), getValueOffset(), view);
 }
 
 std::string AttHandleValueRcv::valueString() const noexcept {
-    return jau_format_string("handle %#x, size %zu, data %s", getHandle(), getPDUValueSize(), view.toString());
+    return jau_format_string("handle %#x, size %zu, data %s", getHandle(), getPDUValueSize(), view);
 }
 
 std::string AttElementList::valueString() const noexcept {

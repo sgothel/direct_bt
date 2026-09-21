@@ -1240,7 +1240,7 @@ HCIStatusCode BTAdapter::startDiscovery(const DBGattServerRef& gattServerData_,
 
     if( _print_device_lists || jau::environment::get().verbose ) {
         jau_PLAIN_PRINT(true, "BTAdapter::startDiscovery: End.1: Result %s, policy %s -> %s, currentScanType[native %s, meta %s] ...\n- %s",
-            status, discovery_policy, policy, to_string(hci.getCurrentScanType()), currentMetaScanType, toString());
+            status, discovery_policy, policy, hci.getCurrentScanType(), currentMetaScanType, toString());
         printDeviceLists();
     }
 
@@ -1374,7 +1374,7 @@ exit:
     }
     if( _print_device_lists || jau::environment::get().verbose ) {
         jau_PLAIN_PRINT(true, "BTAdapter::stopDiscovery: End: Result %s, policy %s, currentScanType[native %s, meta %s], le_scan_temp_disabled %d ...\n- %s",
-            status, discovery_policy, to_string(hci.getCurrentScanType()), currentMetaScanType, le_scan_temp_disabled, toString());
+            status, discovery_policy, hci.getCurrentScanType(), currentMetaScanType, le_scan_temp_disabled, toString());
         printDeviceLists();
     }
 
@@ -2091,7 +2091,7 @@ void BTAdapter::mgmtEvDeviceConnectedHCI(const MgmtEvent& e) {
     }
 
     jau_DBG_PRINT("BTAdapter:hci:DeviceConnected(dev_id %u): state[role %s, new %d, discovered %d, unpair %d, has_keys %d], %s: %s",
-        dev_id, to_string(getRole()), new_connect, device_discovered, slave_unpair, has_smp_keys, e, ad_report);
+        dev_id, getRole(), new_connect, device_discovered, slave_unpair, has_smp_keys, e, ad_report);
 
     if( slave_unpair ) {
         /**
@@ -2676,7 +2676,7 @@ void BTAdapter::mgmtEvPinCodeRequestMgmt(const MgmtEvent& e) noexcept {
     BTDeviceRef device = findConnectedDevice(event.getAddress(), event.getAddressType());
     if( nullptr == device ) {
         jau_WORDY_PRINT("BTAdapter:hci:SMP: dev_id %u: Device not tracked: address[%s, %s], %s",
-            dev_id, event.getAddress(), to_string(event.getAddressType()), event);
+            dev_id, event.getAddress(), event.getAddressType(), event);
         return;
     }
     jau_DBG_PRINT("BTAdapter:mgmt:PinCodeRequest: %s", event);
@@ -2688,7 +2688,7 @@ void BTAdapter::mgmtEvAuthFailedMgmt(const MgmtEvent& e) noexcept {
     BTDeviceRef device = findConnectedDevice(event.getAddress(), event.getAddressType());
     if( nullptr == device ) {
         jau_WORDY_PRINT("BTAdapter:hci:SMP: dev_id %u: Device not tracked: address[%s, %s], %s",
-            dev_id, event.getAddress(), to_string(event.getAddressType()), event);
+            dev_id, event.getAddress(), event.getAddressType(), event);
         return;
     }
     const HCIStatusCode evtStatus = to_HCIStatusCode( event.getStatus() );
@@ -2700,7 +2700,7 @@ void BTAdapter::mgmtEvUserConfirmRequestMgmt(const MgmtEvent& e) noexcept {
     BTDeviceRef device = findConnectedDevice(event.getAddress(), event.getAddressType());
     if( nullptr == device ) {
         jau_WORDY_PRINT("BTAdapter:hci:SMP: dev_id %u: Device not tracked: address[%s, %s], %s",
-            dev_id, event.getAddress(), to_string(event.getAddressType()), event);
+            dev_id, event.getAddress(), event.getAddressType(), event);
         return;
     }
     // FIXME: Pass confirm_hint and value?
@@ -2713,7 +2713,7 @@ void BTAdapter::mgmtEvUserPasskeyRequestMgmt(const MgmtEvent& e) noexcept {
     BTDeviceRef device = findConnectedDevice(event.getAddress(), event.getAddressType());
     if( nullptr == device ) {
         jau_WORDY_PRINT("BTAdapter:hci:SMP: dev_id %u: Device not tracked: address[%s, %s], %s",
-            dev_id, event.getAddress(), to_string(event.getAddressType()), event);
+            dev_id, event.getAddress(), event.getAddressType(), event);
         return;
     }
     jau_DBG_PRINT("BTAdapter:mgmt:UserPasskeyRequest: %s", event);
@@ -2726,7 +2726,7 @@ void BTAdapter::mgmtEvPasskeyNotifyMgmt(const MgmtEvent& e) noexcept {
     BTDeviceRef device = findConnectedDevice(event.getAddress(), event.getAddressType());
     if( nullptr == device ) {
         jau_WORDY_PRINT("BTAdapter:hci:SMP: dev_id %u: Device not tracked: address[%s, %s], %s",
-            dev_id, event.getAddress(), to_string(event.getAddressType()), event);
+            dev_id, event.getAddress(), event.getAddressType(), event);
         return;
     }
     jau_DBG_PRINT("BTAdapter:mgmt:PasskeyNotify: %s", event);

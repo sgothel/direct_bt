@@ -122,7 +122,7 @@ void SMPHandler::smpReaderWork(jau::service_runner& sr) noexcept {
                 jau_WARN_PRINT("SMPHandler-IO RECV Drop (%zu oldest elements of %zu capacity, ring full)", dropCount, smpPDURing.capacity());
             }
             if( !smpPDURing.putBlocking( std::move(smpPDU), 0_s ) ) {
-                jau_ERR_PRINT2("smpPDURing put: %s", smpPDURing.toString());
+                jau_ERR_PRINT2("smpPDURing put: %s", smpPDURing);
                 sr.set_shall_stop();
                 return;
             }
@@ -264,15 +264,14 @@ void SMPHandler::send(const SMPPDUMsg & msg) {
     if( len != L2CAPClient::number(L2CAPClient::RWExitCode::INTERRUPTED) ) { // expected exits
         if( 0 > len ) {
             jau_ERR_PRINT("l2cap write: Error res %zd (%s); %s; %s -> disconnect: %s",
-                    len, L2CAPClient::getRWExitCodeString(len), getStateString(),
-                    msg.toString(), deviceString);
+                    len, L2CAPClient::getRWExitCodeString(len), getStateString(), msg, deviceString);
             has_ioerror = true;
             disconnect(true /* disconnect_device */, true /* ioerr_cause */); // state -> Disconnected
             throw BTException("SMPHandler::send: l2cap write: Error: req "+msg.toString()+" -> disconnect: "+deviceString, E_FILE_LINE);
         }
         if( static_cast<size_t>(len) != msg.pdu.size() ) {
             jau_ERR_PRINT("l2cap write: Error: Message size has %zd != exp %zu: %s -> disconnect: %s",
-                    len, msg.pdu.size(), msg.toString(), deviceString);
+                    len, msg.pdu.size(), msg, deviceString);
             has_ioerror = true;
             disconnect(true /* disconnect_device */, true /* ioerr_cause */); // state -> Disconnected
             throw BTException("SMPHandler::send: l2cap write: Error: Message size has "+std::to_string(len)+" != exp "+std::to_string(msg.pdu.size())
@@ -291,7 +290,7 @@ std::unique_ptr<const SMPPDUMsg> SMPHandler::sendWithReply(const SMPPDUMsg & msg
     std::unique_ptr<const SMPPDUMsg> res;
     if( !smpPDURing.getBlocking(res, timeout) || nullptr == res ) {
         errno = ETIMEDOUT;
-        jau_IRQ_PRINT("SMPHandler::sendWithReply: nullptr result (timeout %s): req %s to %s", timeout, msg.toString(), deviceString);
+        jau_IRQ_PRINT("SMPHandler::sendWithReply: nullptr result (timeout %s): req %s to %s", timeout, msg, deviceString);
         has_ioerror = true;
         disconnect(true /* disconnectDevice */, true /* ioErrorCause */);
         throw BTException("SMPHandler::sendWithReply: nullptr result (timeout "+timeout.toString()+"): req "+msg.toString()+" to "+deviceString, E_FILE_LINE);

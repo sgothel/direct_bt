@@ -395,9 +395,9 @@ bool BTGattHandler::replyAttPDUReq(std::unique_ptr<const AttPDUMsg> && pdu) noex
             [[fallthrough]];
         case AttPDUMsg::Opcode::SIGNED_WRITE_CMD: { // 18 + 64 + 128 = 210
             AttErrorRsp rsp(AttErrorRsp::ErrorCode::UNSUPPORTED_REQUEST, pdu->getOpcode(), 0);
-            jau_WARN_PRINT("GATT Req: Ignored: %s -> %s from %s", pdu->toString(), rsp.toString(), toString());
+            jau_WARN_PRINT("GATT Req: Ignored: %s -> %s from %s", pdu->toString(), rsp, toString());
             if( !send(rsp) ) {
-                jau_ERR_PRINT2("l2cap send: Error req %s; %s", rsp.toString(), toString());
+                jau_ERR_PRINT2("l2cap send: Error req %s; %s", rsp, toString());
                 return false;
             }
             return true;
@@ -405,9 +405,9 @@ bool BTGattHandler::replyAttPDUReq(std::unique_ptr<const AttPDUMsg> && pdu) noex
 
         default:
             AttErrorRsp rsp(AttErrorRsp::ErrorCode::FORBIDDEN_VALUE, pdu->getOpcode(), 0);
-            jau_ERR_PRINT("GATT Req: Unhandled: %s -> %s from %s", pdu->toString(), rsp.toString(), toString());
+            jau_ERR_PRINT("GATT Req: Unhandled: %s -> %s from %s", pdu->toString(), rsp, toString());
             if( !send(rsp) ) {
-                jau_ERR_PRINT2("l2cap send: Error req %s; %s", rsp.toString(), toString());
+                jau_ERR_PRINT2("l2cap send: Error req %s; %s", rsp, toString());
                 return false;
             }
             return true;
@@ -479,7 +479,7 @@ void BTGattHandler::l2capReaderWork(jau::service_runner& sr) noexcept {
             if( sendIndicationConfirmation ) {
                 AttHandleValueCfm cfm;
                 if( !send(cfm) ) {
-                    jau_ERR_PRINT2("Indication Confirmation: Error req %s; %s", cfm.toString(), toString());
+                    jau_ERR_PRINT2("Indication Confirmation: Error req %s; %s", cfm, toString());
                     sr.set_shall_stop();
                     has_ioerror = true;
                     return;
@@ -523,7 +523,7 @@ void BTGattHandler::l2capReaderWork(jau::service_runner& sr) noexcept {
         } else if( AttPDUMsg::OpcodeType::RESPONSE == opc_type ) {
             jau_COND_PRINT(env.DEBUG_DATA, "GATTHandler::reader: Ring: %s", attPDU->toString());
             if( !attPDURing.putBlocking( std::move(attPDU), 0_s ) ) {
-                jau_ERR_PRINT2("attPDURing put: %s", attPDURing.toString());
+                jau_ERR_PRINT2("attPDURing put: %s", attPDURing);
                 sr.set_shall_stop();
                 return;
             }
@@ -723,14 +723,14 @@ bool BTGattHandler::disconnect(const bool disconnect_device, const bool ioerr_ca
 bool BTGattHandler::send(const AttPDUMsg & msg) noexcept {
     if( !validateConnected() ) {
         if( !l2capReaderInterrupted() ) {
-            jau_ERR_PRINT("Invalid IO State: req %s to %s", msg.toString(), toString());
+            jau_ERR_PRINT("Invalid IO State: req %s to %s", msg, toString());
         }
         return false;
     }
     // [1 .. ATT_MTU-1] BT Core Spec v5.2: Vol 3, Part F 3.2.9 Long attribute values
     if( msg.pdu.size() > usedMTU ) {
         jau_ERR_PRINT("Msg PDU size %zu >= used MTU %u, req %s to $s",
-                msg.pdu.size(), usedMTU.load(), msg.toString(), toString());
+                msg.pdu.size(), usedMTU.load(), msg, toString());
         return false;
     }
 
@@ -743,7 +743,7 @@ bool BTGattHandler::send(const AttPDUMsg & msg) noexcept {
         } else {
             jau_ERR_PRINT("l2cap write: Error res %zd (%s); %s; %s -> disconnect: %s",
                     len, L2CAPClient::getRWExitCodeString(len), getStateString(),
-                    msg.toString(), toString());
+                    msg, toString());
             has_ioerror = true;
             disconnect(true /* disconnect_device */, true /* ioerr_cause */); // state -> Disconnected
         }
@@ -751,7 +751,7 @@ bool BTGattHandler::send(const AttPDUMsg & msg) noexcept {
     }
     if( static_cast<size_t>(len) != msg.pdu.size() ) {
         jau_ERR_PRINT("l2cap write: Error: Message size has %zd != exp %zu: %s -> disconnect: %s",
-                len, msg.pdu.size(), msg.toString(), toString());
+                len, msg.pdu.size(), msg, toString());
         has_ioerror = true;
         disconnect(true /* disconnect_device */, true /* ioerr_cause */); // state -> Disconnected
         return false;
@@ -768,7 +768,7 @@ std::unique_ptr<const AttPDUMsg> BTGattHandler::sendWithReply(const AttPDUMsg & 
     std::unique_ptr<const AttPDUMsg> res;
     if( !attPDURing.getBlocking(res, timeout) || nullptr == res ) {
         errno = ETIMEDOUT;
-        jau_ERR_PRINT("GATTHandler::sendWithReply: nullptr result (timeout %" PRIi64 " ms): req %s to %s", timeout.to_ms(), msg.toString(), toString());
+        jau_ERR_PRINT("GATTHandler::sendWithReply: nullptr result (timeout %" PRIi64 " ms): req %s to %s", timeout.to_ms(), msg, toString());
         has_ioerror = true;
         disconnect(true /* disconnect_device */, true /* ioerr_cause */);
         return nullptr;
@@ -808,12 +808,12 @@ uint16_t BTGattHandler::clientMTUExchange(const jau::fraction_i64& timeout) noex
     jau_PERF_TS_T0();
 
     uint16_t mtu = 0;
-    jau_DBG_PRINT("GATT MTU-REQ send: %s to %s", req.toString(), toString());
+    jau_DBG_PRINT("GATT MTU-REQ send: %s to %s", req, toString());
 
     std::unique_ptr<const AttPDUMsg> pdu = sendWithReply(req, timeout);
 
     if( nullptr == pdu ) {
-        jau_ERR_PRINT2("No reply; req %s from %s", req.toString(), toString());
+        jau_ERR_PRINT2("No reply; req %s from %s", req, toString());
     } else if( pdu->getOpcode() == AttPDUMsg::Opcode::EXCHANGE_MTU_RSP ) {
         const AttExchangeMTU * p = static_cast<const AttExchangeMTU*>(pdu.get());
         mtu = p->getMTUSize();
@@ -829,10 +829,10 @@ uint16_t BTGattHandler::clientMTUExchange(const jau::fraction_i64& timeout) noex
             mtu = number(Defaults::MIN_ATT_MTU); // OK by spec: Use default MTU
             jau_DBG_PRINT("GATT MTU handled error -> ATT_MTU %u, %s from %s", mtu, pdu->toString(), toString());
         } else {
-            jau_WORDY_PRINT("GATT MTU unexpected error %s; req %s from %s", pdu->toString(), req.toString(), toString());
+            jau_WORDY_PRINT("GATT MTU unexpected error %s; req %s from %s", pdu->toString(), req, toString());
         }
     } else {
-        jau_ERR_PRINT("GATT MTU unexpected reply %s; req %s from %s", pdu->toString(), req.toString(), toString());
+        jau_ERR_PRINT("GATT MTU unexpected reply %s; req %s from %s", pdu->toString(), req, toString());
     }
     jau_PERF_TS_TD("GATT exchangeMTU");
 
@@ -864,7 +864,7 @@ bool BTGattHandler::sendNotification(const uint16_t char_value_handle, const jau
     }
     const std::lock_guard<std::recursive_mutex> lock(mtx_command); // RAII-style acquire and relinquish via destructor
     AttHandleValueRcv data(true /* isNotify */, char_value_handle, value, usedMTU);
-    jau_COND_PRINT(env.DEBUG_DATA, "GATT SEND NTF: %s to %s", data.toString(), toString());
+    jau_COND_PRINT(env.DEBUG_DATA, "GATT SEND NTF: %s to %s", data, toString());
     return send(data);
 }
 
@@ -887,16 +887,16 @@ bool BTGattHandler::sendIndication(const uint16_t char_value_handle, const jau::
     AttHandleValueRcv req(false /* isNotify */, char_value_handle, value, usedMTU);
     std::unique_ptr<const AttPDUMsg> pdu = sendWithReply(req, write_cmd_reply_timeout);
     if( nullptr == pdu ) {
-        jau_ERR_PRINT2("No reply; req %s from %s", req.toString(), toString());
+        jau_ERR_PRINT2("No reply; req %s from %s", req, toString());
         return false;
     }
     if( pdu->getOpcode() == AttPDUMsg::Opcode::HANDLE_VALUE_CFM ) {
         jau_COND_PRINT(env.DEBUG_DATA, "GATT SENT IND: %s -> %s to/from %s",
-                req.toString(), pdu->toString(), toString());
+                req, pdu->toString(), toString());
         return true;
     } else {
         jau_WARN_PRINT("GATT SENT IND: Failed, no CFM reply: %s -> %s to/from %s",
-                req.toString(), pdu->toString(), toString());
+                req, pdu->toString(), toString());
         return false;
     }
 }
@@ -1021,11 +1021,11 @@ bool BTGattHandler::discoverPrimaryServices(const std::shared_ptr<BTGattHandler>
     result.clear();
     while(!done) {
         const AttReadByNTypeReq req(true /* group */, startHandle, 0xffff, groupType);
-        jau_COND_PRINT(env.DEBUG_DATA, "GATT PRIM SRV discover send: %s to %s", req.toString(), toString());
+        jau_COND_PRINT(env.DEBUG_DATA, "GATT PRIM SRV discover send: %s to %s", req, toString());
 
         std::unique_ptr<const AttPDUMsg> pdu = sendWithReply(req, read_cmd_reply_timeout);
         if( nullptr == pdu ) {
-            jau_ERR_PRINT2("No reply; req %s from %s", req.toString(), toString());
+            jau_ERR_PRINT2("No reply; req %s from %s", req, toString());
             return false;
         }
         jau_COND_PRINT(env.DEBUG_DATA, "GATT PRIM SRV discover recv: %s on %s", pdu->toString(), toString());
@@ -1060,7 +1060,7 @@ bool BTGattHandler::discoverPrimaryServices(const std::shared_ptr<BTGattHandler>
             done = true; // OK by spec: End of communication
         } else {
             jau_ERR_PRINT("GATT discoverPrimary unexpected reply %s, req %s from %s",
-                    pdu->toString(), req.toString(), toString());
+                    pdu->toString(), req, toString());
             done = true;
         }
     }
@@ -1089,11 +1089,11 @@ bool BTGattHandler::discoverCharacteristics(BTGattServiceRef & service) {
     service->characteristicList.clear();
     while(!done) {
         const AttReadByNTypeReq req(false /* group */, handle, service->end_handle, characteristicTypeReq);
-        jau_COND_PRINT(env.DEBUG_DATA, "GATT C discover send: %s to %s", req.toString(), toString());
+        jau_COND_PRINT(env.DEBUG_DATA, "GATT C discover send: %s to %s", req, toString());
 
         std::unique_ptr<const AttPDUMsg> pdu = sendWithReply(req, read_cmd_reply_timeout);
         if( nullptr == pdu ) {
-            jau_ERR_PRINT2("No reply; req %s from %s", req.toString(), toString());
+            jau_ERR_PRINT2("No reply; req %s from %s", req, toString());
             return false;
         }
         jau_COND_PRINT(env.DEBUG_DATA, "GATT C discover recv: %s from %s", pdu->toString(), toString());
@@ -1131,7 +1131,7 @@ bool BTGattHandler::discoverCharacteristics(BTGattServiceRef & service) {
             done = true; // OK by spec: End of communication
         } else {
             jau_ERR_PRINT("GATT discoverCharacteristics unexpected reply %s, req %s within service%s from %s",
-                    pdu->toString(), req.toString(), service->toString(), toString());
+                    pdu->toString(), req, service->toString(), toString());
             done = true;
         }
     }
@@ -1169,11 +1169,11 @@ bool BTGattHandler::discoverDescriptors(BTGattServiceRef & service) {
 
         while( !done && cd_handle_iter <= cd_handle_end ) {
             const AttFindInfoReq req(cd_handle_iter, cd_handle_end);
-            jau_COND_PRINT(env.DEBUG_DATA, "GATT CD discover send: %s", req.toString());
+            jau_COND_PRINT(env.DEBUG_DATA, "GATT CD discover send: %s", req);
 
             std::unique_ptr<const AttPDUMsg> pdu = sendWithReply(req, read_cmd_reply_timeout);
             if( nullptr == pdu ) {
-                jau_ERR_PRINT2("No reply; req %s from %s", req.toString(), toString());
+                jau_ERR_PRINT2("No reply; req %s from %s", req, toString());
                 return false;
             }
             jau_COND_PRINT(env.DEBUG_DATA, "GATT CD discover recv: %s from ", pdu->toString(), toString());
@@ -1200,7 +1200,7 @@ bool BTGattHandler::discoverDescriptors(BTGattServiceRef & service) {
                     }
                     if( !readDescriptorValue(*cd, 0) ) {
                         jau_WORDY_PRINT("GATT discoverDescriptors readDescriptorValue failed: req %s, descr%s within char%s on %s",
-                                   req.toString(), cd->toString(), charDecl->toString(), toString());
+                                   req, cd->toString(), charDecl->toString(), toString());
                         done = true;
                         break;
                     }
@@ -1222,7 +1222,7 @@ bool BTGattHandler::discoverDescriptors(BTGattServiceRef & service) {
                 done = true; // OK by spec: End of communication
             } else {
                 jau_ERR_PRINT("GATT discoverDescriptors unexpected reply %s; req %s within char%s from %s",
-                        pdu->toString(), req.toString(), charDecl->toString(), toString());
+                        pdu->toString(), req, charDecl->toString(), toString());
                 done = true;
             }
         }
@@ -1232,20 +1232,20 @@ bool BTGattHandler::discoverDescriptors(BTGattServiceRef & service) {
 }
 
 bool BTGattHandler::readDescriptorValue(BTGattDesc & desc, ssize_type expectedLength) {
-    jau_COND_PRINT(env.DEBUG_DATA, "GATTHandler::readDescriptorValue expLen %zu, desc %s", (size_t)expectedLength, desc.toString());
+    jau_COND_PRINT(env.DEBUG_DATA, "GATTHandler::readDescriptorValue expLen %zu, desc %s", (size_t)expectedLength, desc);
     const bool res = readValue(desc.handle, desc.value, expectedLength);
     if( !res ) {
         jau_WORDY_PRINT("GATT readDescriptorValue error on desc%s within char%s from %s",
-                   desc.toString(), desc.getGattCharChecked()->toString(), toString());
+                   desc, desc.getGattCharChecked()->toString(), toString());
     }
     return res;
 }
 
 bool BTGattHandler::readCharacteristicValue(const BTGattChar & decl, jau::POctets & resValue, ssize_type expectedLength) {
-    jau_COND_PRINT(env.DEBUG_DATA, "GATTHandler::readCharacteristicValue expLen %zu, decl %s", (size_t)expectedLength, decl.toString());
+    jau_COND_PRINT(env.DEBUG_DATA, "GATTHandler::readCharacteristicValue expLen %zu, decl %s", (size_t)expectedLength, decl);
     const bool res = readValue(decl.value_handle, resValue, expectedLength);
     if( !res ) {
-        jau_WORDY_PRINT("GATT readCharacteristicValue error on char%s from %s", decl.toString(), toString());
+        jau_WORDY_PRINT("GATT readCharacteristicValue error on char%s from %s", decl, toString());
     }
     return res;
 }
@@ -1273,10 +1273,10 @@ bool BTGattHandler::readValue(const uint16_t handle, jau::POctets & res, ssize_t
         const AttReadReq req0(handle);
         const AttReadBlobReq req1(handle, offset);
         const AttPDUMsg & req = ( 0 == offset ) ? static_cast<const AttPDUMsg &>(req0) : static_cast<const AttPDUMsg &>(req1);
-        jau_COND_PRINT(env.DEBUG_DATA, "GATT RV send: %s", req.toString());
+        jau_COND_PRINT(env.DEBUG_DATA, "GATT RV send: %s", req);
         pdu = sendWithReply(req, read_cmd_reply_timeout);
         if( nullptr == pdu ) {
-            jau_ERR_PRINT2("No reply; req %s from %s", req.toString(), toString());
+            jau_ERR_PRINT2("No reply; req %s from %s", req, toString());
             return false;
         }
 
@@ -1314,11 +1314,11 @@ bool BTGattHandler::readValue(const uint16_t handle, jau::POctets & res, ssize_t
             if( AttErrorRsp::ErrorCode::ATTRIBUTE_NOT_LONG == p->getErrorCode() ) {
                 done = true; // OK by spec: No more data - end of communication
             } else {
-                jau_WORDY_PRINT("GATT readValue unexpected error %s; req %s from %s", pdu->toString(), req.toString(), toString());
+                jau_WORDY_PRINT("GATT readValue unexpected error %s; req %s from %s", pdu->toString(), req, toString());
                 done = true;
             }
         } else {
-            jau_ERR_PRINT("GATT readValue unexpected reply %s; req %s from %s", pdu->toString(), req.toString(), toString());
+            jau_ERR_PRINT("GATT readValue unexpected reply %s; req %s from %s", pdu->toString(), req, toString());
             done = true;
         }
     }
@@ -1332,28 +1332,28 @@ bool BTGattHandler::writeDescriptorValue(const BTGattDesc & cd) {
     /* BT Core Spec v5.2: Vol 3, Part G GATT: 4.9.3 Write Characteristic Value */
     /* BT Core Spec v5.2: Vol 3, Part G GATT: 4.11 Characteristic Value Indication */
     /* BT Core Spec v5.2: Vol 3, Part G GATT: 4.12.3 Write Characteristic Descriptor */
-    jau_COND_PRINT(env.DEBUG_DATA, "GATTHandler::writeDesccriptorValue desc %s", cd.toString());
+    jau_COND_PRINT(env.DEBUG_DATA, "GATTHandler::writeDesccriptorValue desc %s", cd);
     const bool res = writeValue(cd.handle, cd.value, true);
     if( !res ) {
         jau_WORDY_PRINT("GATT writeDescriptorValue error on desc%s within char%s from %s",
-                   cd.toString(), cd.getGattCharChecked()->toString(), toString());
+                   cd, cd.getGattCharChecked()->toString(), toString());
     }
     return res;
 }
 
 bool BTGattHandler::writeCharacteristicValue(const BTGattChar & c, const jau::TROOctets & value) {
     /* BT Core Spec v5.2: Vol 3, Part G GATT: 4.9.3 Write Characteristic Value */
-    jau_COND_PRINT(env.DEBUG_DATA, "GATTHandler::writeCharacteristicValue desc %s, value %s", c.toString(), value.toString());
+    jau_COND_PRINT(env.DEBUG_DATA, "GATTHandler::writeCharacteristicValue desc %s, value %s", c, value);
     const bool res = writeValue(c.value_handle, value, true);
     if( !res ) {
-        jau_WORDY_PRINT("GATT writeCharacteristicValue error on char%s from %s", c.toString(), toString());
+        jau_WORDY_PRINT("GATT writeCharacteristicValue error on char%s from %s", c, toString());
     }
     return res;
 }
 
 bool BTGattHandler::writeCharacteristicValueNoResp(const BTGattChar & c, const jau::TROOctets & value) {
     /* BT Core Spec v5.2: Vol 3, Part G GATT: 4.9.1 Write Characteristic Value Without Response */
-    jau_COND_PRINT(env.DEBUG_DATA, "GATT writeCharacteristicValueNoResp decl %s, value %s", c.toString(), value.toString());
+    jau_COND_PRINT(env.DEBUG_DATA, "GATT writeCharacteristicValueNoResp decl %s, value %s", c, value);
     return writeValue(c.value_handle, value, false);
 }
 
@@ -1364,7 +1364,7 @@ bool BTGattHandler::writeValue(const uint16_t handle, const jau::TROOctets & val
     /* BT Core Spec v5.2: Vol 3, Part G GATT: 4.12.3 Write Characteristic Descriptor */
 
     if( value.size() <= 0 ) {
-        jau_WARN_PRINT("GATT writeValue size <= 0, no-op: %s", value.toString());
+        jau_WARN_PRINT("GATT writeValue size <= 0, no-op: %s", value);
         return false;
     }
     const std::lock_guard<std::recursive_mutex> lock(mtx_command); // RAII-style acquire and relinquish via destructor
@@ -1374,12 +1374,12 @@ bool BTGattHandler::writeValue(const uint16_t handle, const jau::TROOctets & val
 
     if( !withResponse ) {
         AttWriteCmd req(handle, value);
-        jau_COND_PRINT(env.DEBUG_DATA, "GATT WV send(resp %d): %s to %s", withResponse, req.toString(), toString());
+        jau_COND_PRINT(env.DEBUG_DATA, "GATT WV send(resp %d): %s to %s", withResponse, req, toString());
 
         const bool res = send( req );
         jau_PERF2_TS_TD("GATT writeValue (no-resp)");
         if( !res ) {
-            jau_ERR_PRINT2("Send failed; req %s from %s", req.toString(), toString());
+            jau_ERR_PRINT2("Send failed; req %s from %s", req, toString());
             return false;
         } else {
             return true;
@@ -1387,12 +1387,12 @@ bool BTGattHandler::writeValue(const uint16_t handle, const jau::TROOctets & val
     }
 
     AttWriteReq req(handle, value);
-    jau_COND_PRINT(env.DEBUG_DATA, "GATT WV send(resp %d): %s to %s", withResponse, req.toString(), toString());
+    jau_COND_PRINT(env.DEBUG_DATA, "GATT WV send(resp %d): %s to %s", withResponse, req, toString());
 
     bool res = false;
     std::unique_ptr<const AttPDUMsg> pdu = sendWithReply(req, write_cmd_reply_timeout);
     if( nullptr == pdu ) {
-        jau_ERR_PRINT2("No reply; req %s from %s", req.toString(), toString());
+        jau_ERR_PRINT2("No reply; req %s from %s", req, toString());
         return false;
     }
     jau_COND_PRINT(env.DEBUG_DATA, "GATT WV recv: %s from %s", pdu->toString(), toString());
@@ -1401,9 +1401,9 @@ bool BTGattHandler::writeValue(const uint16_t handle, const jau::TROOctets & val
         // OK
         res = true;
     } else if( pdu->getOpcode() == AttPDUMsg::Opcode::ERROR_RSP ) {
-        jau_WORDY_PRINT("GATT writeValue unexpected error %s; req %s from %s", pdu->toString(), req.toString(), toString());
+        jau_WORDY_PRINT("GATT writeValue unexpected error %s; req %s from %s", pdu->toString(), req, toString());
     } else {
-        jau_ERR_PRINT("GATT writeValue unexpected reply %s; req %s from %s", pdu->toString(), req.toString(), toString());
+        jau_ERR_PRINT("GATT writeValue unexpected reply %s; req %s from %s", pdu->toString(), req, toString());
     }
     jau_PERF2_TS_TD("GATT writeValue (with-resp)");
     return res;
@@ -1411,13 +1411,13 @@ bool BTGattHandler::writeValue(const uint16_t handle, const jau::TROOctets & val
 
 bool BTGattHandler::configNotificationIndication(BTGattDesc & cccd, const bool enableNotification, const bool enableIndication) {
     if( !cccd.isClientCharConfig() ) {
-        jau_ERR_PRINT("Not a ClientCharacteristicConfiguration: %s", cccd.toString());
+        jau_ERR_PRINT("Not a ClientCharacteristicConfiguration: %s", cccd);
         return false;
     }
     /* BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3.3 Client Characteristic Configuration */
     const uint16_t ccc_value = enableNotification | ( enableIndication << 1 );
     jau_COND_PRINT(env.DEBUG_DATA, "GATTHandler::configNotificationIndication decl %s, enableNotification %d, enableIndication %d",
-            cccd.toString(), enableNotification, enableIndication);
+            cccd, enableNotification, enableIndication);
     cccd.value.resize(2, 2);
     cccd.value.put_uint16_nc(0, ccc_value);
     return writeDescriptorValue(cccd);
@@ -1601,13 +1601,9 @@ std::shared_ptr<GattDeviceInformationSvc> BTGattHandler::getDeviceInformation(ja
 }
 
 std::string BTGattHandler::toString() const noexcept {
-    return "GattHndlr["+to_string(getRole())+", "+deviceString+
-           ", mode "+to_string(gattServerHandler->getMode())+
-           ", mtu "+std::to_string(usedMTU.load())+
-           ", listener[BTGatt "+std::to_string(gattCharListenerList.size())+
-           ", Native "+std::to_string(nativeGattCharListenerList.size())+
-           "], l2capWorker[running "+std::to_string(l2cap_reader_service.is_running())+
-           ", shallStop "+std::to_string(l2cap_reader_service.shall_stop())+
-           ", thread_id "+jau::toHexString((void*)l2cap_reader_service.thread_id())+ // NOLINT(performance-no-int-to-ptr)
-           "], "+getStateString()+"]";
+    return jau_format_string("GattHndlr[%s, %s, mode %s, mtu %u, listener[BTGatt %zu, Native %zu], l2capWorker[running %s, shallStop %s, tid %p], %s]",
+        getRole(), deviceString, gattServerHandler->getMode(), usedMTU, gattCharListenerList.size(), nativeGattCharListenerList.size(),
+        l2cap_reader_service.is_running(), l2cap_reader_service.shall_stop(),
+        (void*)l2cap_reader_service.thread_id(), // NOLINT(performance-no-int-to-ptr)
+        getStateString());
 }

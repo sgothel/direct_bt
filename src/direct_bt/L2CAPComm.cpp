@@ -152,7 +152,7 @@ L2CAPComm::L2CAPComm(const uint16_t adev_id_, BDAddressAndType localAddressAndTy
 bool L2CAPComm::setBTSecurityLevelImpl(const BTSecurityLevel sec_level, const BDAddressAndType& remoteAddressAndType) noexcept {
     if( BTSecurityLevel::NONE > sec_level ) {
         jau_DBG_PRINT("L2CAP::setBTSecurityLevel: sec_level %s not set: dev_id %u, dd %d, %s, psm %s, cid %s; %s",
-            to_string(sec_level), adev_id, socket_, remoteAddressAndType, psm, cid, getStateString());
+            sec_level, adev_id, socket_, remoteAddressAndType, psm, cid, getStateString());
         return false;
     }
 
@@ -167,21 +167,21 @@ bool L2CAPComm::setBTSecurityLevelImpl(const BTSecurityLevel sec_level, const BD
             result = ::setsockopt(socket_, SOL_BLUETOOTH, BT_SECURITY, &bt_sec, sizeof(bt_sec));
             if ( 0 == result ) {
                 jau_DBG_PRINT("L2CAP::setBTSecurityLevel: Success: sec_level %s -> %s: dev_id %u, dd %d, %s, psm %s, cid %s; %s",
-                    to_string(old_sec_level), to_string(sec_level), adev_id, socket_, remoteAddressAndType, psm, cid, getStateString());
+                    old_sec_level, sec_level, adev_id, socket_, remoteAddressAndType, psm, cid, getStateString());
                 return true;
             } else {
                 jau_ERR_PRINT("L2CAP::setBTSecurityLevel: Failed: sec_level %s -> %s: dev_id %u, dd %d, %s, psm %s, cid %s; %s",
-                    to_string(old_sec_level), to_string(sec_level), adev_id, socket_, remoteAddressAndType, psm, cid, getStateString());
+                    old_sec_level, sec_level, adev_id, socket_, remoteAddressAndType, psm, cid, getStateString());
                 return false;
             }
         } else {
             jau_DBG_PRINT("L2CAP::setBTSecurityLevel: Unchanged: sec_level %s -> %s: dev_id %u, dd %d, %s, psm %s, cid %s; %s",
-                to_string(old_sec_level), to_string(sec_level), adev_id, socket_, remoteAddressAndType, psm, cid, getStateString());
+                old_sec_level, sec_level, adev_id, socket_, remoteAddressAndType, psm, cid, getStateString());
             return true;
         }
     } else {
         jau_DBG_PRINT("L2CAP::setBTSecurityLevel: Not implemented: sec_level %s: dev_id %u, dd %d, %s, psm %s, cid %s; %s",
-            to_string(sec_level), adev_id, socket_, remoteAddressAndType, psm, cid, getStateString());
+            sec_level, adev_id, socket_, remoteAddressAndType, psm, cid, getStateString());
         return false;
     }
 }
@@ -199,18 +199,18 @@ BTSecurityLevel L2CAPComm::getBTSecurityLevelImpl(const BDAddressAndType& remote
             if( optlen == sizeof(bt_sec) ) {
                 sec_level = static_cast<BTSecurityLevel>(bt_sec.level);
                 jau_DBG_PRINT("L2CAP::getBTSecurityLevel: Success: sec_level %s: dev_id %u, dd %d, %s, psm %s, cid %s; %s",
-                    to_string(sec_level), adev_id, socket_, remoteAddressAndType, psm, cid, getStateString());
+                    sec_level, adev_id, socket_, remoteAddressAndType, psm, cid, getStateString());
             } else {
                 jau_ERR_PRINT("L2CAP::getBTSecurityLevel: Failed: sec_level %s, size %zu returned != %zu bt_sec: dev_id %u, dd %d, %s, psm %s, cid %s; %s",
-                    to_string(sec_level), optlen, sizeof(bt_sec), adev_id, socket_, remoteAddressAndType, psm, cid, getStateString());
+                    sec_level, optlen, sizeof(bt_sec), adev_id, socket_, remoteAddressAndType, psm, cid, getStateString());
             }
         } else {
             jau_ERR_PRINT("L2CAP::getBTSecurityLevel: Failed: sec_level %s, result %d: dev_id %u, dd %d, %s, psm %s, cid %s; %s",
-                to_string(sec_level), result, adev_id, socket_, remoteAddressAndType, psm, cid, getStateString());
+                sec_level, result, adev_id, socket_, remoteAddressAndType, psm, cid, getStateString());
         }
     } else {
         jau_DBG_PRINT("L2CAP::getBTSecurityLevel: Not implemented: sec_level %s: dev_id %u, dd %d, %s, psm %s, cid %s; %s",
-            to_string(sec_level), adev_id, socket_, remoteAddressAndType, psm, cid, getStateString());
+            sec_level, adev_id, socket_, remoteAddressAndType, psm, cid, getStateString());
     }
     return sec_level;
 }
@@ -240,7 +240,7 @@ bool L2CAPClient::open(const BTDevice& device, const BTSecurityLevel sec_level) 
     bool expOpen = false; // C++11, exp as value since C++20
     if( !is_open_.compare_exchange_strong(expOpen, true) ) {
         jau_DBG_PRINT("L2CAPClient::open(%s, %s): Already open: dev_id %u, dd %d, %s, psm %s, cid %s; %s",
-            device.getAddressAndType().toString(), to_string(sec_level), adev_id, socket_, remoteAddressAndType, psm, cid, getStateString());
+            device.getAddressAndType(), sec_level, adev_id, socket_, remoteAddressAndType, psm, cid, getStateString());
         return false;
     }
     const std::lock_guard<std::recursive_mutex> lock(mtx_write); // RAII-style acquire and relinquish via destructor
@@ -406,7 +406,7 @@ bool L2CAPClient::close_impl() noexcept {
 bool L2CAPClient::setBTSecurityLevel(const BTSecurityLevel sec_level) noexcept {
     if( !is_open_ ) {
         jau_DBG_PRINT("L2CAPClient::setBTSecurityLevel(%s): Not connected: dev_id %u, dd %d, %s, psm %s, cid %s; %s",
-            to_string(sec_level), adev_id, socket_, remoteAddressAndType, psm, cid, getStateString());
+            sec_level, adev_id, socket_, remoteAddressAndType, psm, cid, getStateString());
         return false;
     }
     const std::lock_guard<std::recursive_mutex> lock(mtx_write); // RAII-style acquire and relinquish via destructor
@@ -549,8 +549,7 @@ errout:
         // open and not intentionally interrupted
         if( err_res == number(RWExitCode::READ_TIMEOUT) ) {
             jau_DBG_PRINT("L2CAPClient::read: Read Timeout res %zd (%s), len %zd; dev_id %u, dd %d, %s, psm %s, cid %s; %s",
-                err_res, getRWExitCodeString(err_res), len, adev_id, socket_.load(), remoteAddressAndType.toString(),
-                to_string(psm), to_string(cid), getStateString());
+                err_res, getRWExitCodeString(err_res), len, adev_id, socket_, remoteAddressAndType, psm, cid, getStateString());
         } else { // actual error case
             has_ioerror = true;
             if( env.L2CAP_RESTART_COUNT_ON_ERROR < 0 ) {

@@ -114,7 +114,7 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
         void close_impl() noexcept {
             BTDeviceRef device = gh.getDeviceUnchecked();
             if( nullptr == device ) {
-                jau_ERR_PRINT("null device: %s", gh.toString());
+                jau_ERR_PRINT("null device: %s", gh);
             } else {
                 size_t i=0;
                 jau::for_each_fidelity(gattServerData->listener(), [&](DBGattServer::ListenerRef &l) {
@@ -122,8 +122,7 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
                         l->disconnected(device);
                     } catch (std::exception &e) {
                         jau_ERR_PRINT("%zu/%zu: %s: Caught exception %s",
-                                i+1, gattServerData->listener().size(),
-                                gh.toString(), e.what());
+                                i+1, gattServerData->listener().size(), gh, e.what());
                     }
                     i++;
                 });
@@ -371,7 +370,7 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
             gh.setUsedMTU( std::min(gh.getServerMTU(), clientMTU) );
             const AttExchangeMTU rsp(AttPDUMsg::ReqRespType::RESPONSE, gh.getUsedMTU());
             jau_COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: MTU recv: %u, %s  -> %u %s from %s",
-                    clientMTU, pdu->toString(), gh.getUsedMTU(), rsp.toString(), gh.toString());
+                    clientMTU, pdu->toString(), gh.getUsedMTU(), rsp, gh);
             if( nullptr != gattServerData ) {
                 BTDeviceRef device = gh.getDeviceUnchecked();
                 if( nullptr != device ) {
@@ -381,7 +380,7 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
                             l->mtuChanged(device, gh.getUsedMTU());
                         } catch (std::exception &e) {
                             jau_ERR_PRINT("%zu/%zu: %s: Caught exception %s",
-                                i+1, gattServerData->listener().size(), gh.toString(), e.what());
+                                i+1, gattServerData->listener().size(), gh, e.what());
                         }
                         i++;
                     });
@@ -424,7 +423,7 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
                         // new entry
                         writeDataQueueHandles.push_back(handle);
                     }
-                    jau_COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: WRITE.11: %s -> %s from %s", pdu->toString(), rsp.toString(), gh.toString());
+                    jau_COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: WRITE.11: %s -> %s from %s", pdu->toString(), rsp, gh);
                     return gh.send(rsp);
                 } catch (...) {
                     jau::fput_exception(stderr, std::current_exception(), E_FILE_LINE);
@@ -451,7 +450,7 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
                                     }
                                     AttErrorRsp err(res, pdu->getOpcode(), handle);
                                     jau_ERR_PRINT3("ReplyWrite: Apply: %s -> %s from %s (no response)",
-                                                   pdu->toString(), err.toString(), gh.toString());
+                                                   pdu->toString(), err, gh);
                                     return false;
                                 }
                             }
@@ -464,7 +463,7 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
                 writeDataQueue.clear();
                 writeDataQueueHandles.clear();
                 AttExeWriteRsp rsp;
-                jau_COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: WRITE.13: %s -> %s from %s", pdu->toString(), rsp.toString(), gh.toString());
+                jau_COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: WRITE.13: %s -> %s from %s", pdu->toString(), rsp, gh);
                 return gh.send(rsp);
             }
 
@@ -492,13 +491,12 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
                     return gh.sendError(res, pdu, handle, LogLevel::warning, "ReplyWrite: Apply");
                 }
                 AttErrorRsp err(res, pdu->getOpcode(), handle);
-                jau_ERR_PRINT3("ReplyWrite: Apply: %s -> %s from %s (no response)",
-                               pdu->toString(), err.toString(), gh.toString());
+                jau_ERR_PRINT3("ReplyWrite: Apply: %s -> %s from %s (no response)", pdu->toString(), err, gh);
                 return false;
             }
             if( withResp ) {
                 AttWriteRsp rsp;
-                jau_COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: WRITE.22: %s -> %s from %s", pdu->toString(), rsp.toString(), gh.toString());
+                jau_COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: WRITE.22: %s -> %s from %s", pdu->toString(), rsp, gh);
                 if( !gh.send(rsp) ) {
                     return false;
                 }
@@ -585,7 +583,7 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
                                     if( rsp.getPDUValueSize() > rspMaxSize ) {
                                         rsp.resize(gh.getUsedMTU()); // requires another READ_BLOB_REQ
                                     }
-                                    jau_COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: READ.3: %s -> %s from %s", pdu->toString(), rsp.toString(), gh.toString());
+                                    jau_COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: READ.3: %s -> %s from %s", pdu->toString(), rsp, gh);
                                     return gh.send(rsp);
                                 } catch (...) {
                                     jau::fput_exception(stderr, std::current_exception(), E_FILE_LINE);
@@ -599,14 +597,14 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
 #if SEND_ATTRIBUTE_NOT_LONG
                                         if( isBlobReq && d->getValue().size() <= rspMaxSize ) {
                                             AttErrorRsp err(AttErrorRsp::ErrorCode::ATTRIBUTE_NOT_LONG, pdu->getOpcode(), handle);
-                                            jau_COND_PRINT(env.DEBUG_DATA, "GATT-Req: READ.0: %s -> %s from %s", pdu->toString(), err.toString(), toString());
+                                            jau_COND_PRINT(env.DEBUG_DATA, "GATT-Req: READ.0: %s -> %s from %s", pdu->toString(), err, toString());
                                             gh.send(err);
                                             return;
                                         }
 #endif
                                         if( value_offset > c->getValue().size() ) {
                                             AttErrorRsp err(AttErrorRsp::ErrorCode::INVALID_OFFSET, pdu->getOpcode(), handle);
-                                            jau_COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: READ.1: %s -> %s from %s", pdu->toString(), err.toString(), gh.toString());
+                                            jau_COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: READ.1: %s -> %s from %s", pdu->toString(), err, gh);
                                             return gh.send(err);
                                         }
                                     }
@@ -625,7 +623,7 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
                                         });
                                         if( !allowed ) {
                                             AttErrorRsp err(AttErrorRsp::ErrorCode::NO_READ_PERM, pdu->getOpcode(), handle);
-                                            jau_COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: READ.4: %s -> %s from %s", pdu->toString(), err.toString(), gh.toString());
+                                            jau_COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: READ.4: %s -> %s from %s", pdu->toString(), err, gh);
                                             return gh.send(err);
                                         }
                                     }
@@ -634,7 +632,7 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
                                         if( rsp.getPDUValueSize() > rspMaxSize ) {
                                             rsp.resize(gh.getUsedMTU()); // requires another READ_BLOB_REQ
                                         }
-                                        jau_COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: READ.5: %s -> %s from %s", pdu->toString(), rsp.toString(), gh.toString());
+                                        jau_COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: READ.5: %s -> %s from %s", pdu->toString(), rsp, gh);
                                         return gh.send(rsp);
                                     } catch (...) {
                                         jau::fput_exception(stderr, std::current_exception(), E_FILE_LINE);
@@ -683,7 +681,7 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
                                 if( rspSize + size > rspMaxSize || rspElemSize != size ) {
                                     // send if rsp is full - or - element size changed
                                     rsp.setElementCount(rspCount);
-                                    jau_COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: INFO.2: %s -> %s from %s", pdu->toString(), rsp.toString(), gh.toString());
+                                    jau_COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: INFO.2: %s -> %s from %s", pdu->toString(), rsp, gh);
                                     return gh.send(rsp); // Client shall issue additional FIND_INFORMATION_REQ
                                 }
                                 rsp.setElementHandle(rspCount, d->getHandle());
@@ -696,7 +694,7 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
                 }
                 if( 0 < rspCount ) { // loop completed, elements added and all fitting in ATT_MTU
                     rsp.setElementCount(rspCount);
-                    jau_COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: INFO.3: %s -> %s from %s", pdu->toString(), rsp.toString(), gh.toString());
+                    jau_COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: INFO.3: %s -> %s from %s", pdu->toString(), rsp, gh);
                     return gh.send(rsp);
                 }
                 return gh.sendError(AttErrorRsp::ErrorCode::ATTRIBUTE_NOT_FOUND, pdu, start_handle, LogLevel::cond, "ReplyFindInfo");
@@ -754,14 +752,14 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
                                 rsp.setElementHandles(rspCount, s->getHandle(), s->getEndHandle());
                                 // rspSize += size;
                                 ++rspCount;
-                                jau_COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: TYPEVALUE.4: %s -> %s from %s", pdu->toString(), rsp.toString(), gh.toString());
+                                jau_COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: TYPEVALUE.4: %s -> %s from %s", pdu->toString(), rsp, gh);
                                 return gh.send(rsp); // done
                             }
                         }
                     }
                     if( 0 < rspCount ) { // loop completed, elements added and all fitting in ATT_MTU
                         rsp.setElementCount(rspCount);
-                        jau_COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: TYPEVALUE.5: %s -> %s from %s", pdu->toString(), rsp.toString(), gh.toString());
+                        jau_COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: TYPEVALUE.5: %s -> %s from %s", pdu->toString(), rsp, gh);
                         return gh.send(rsp);
                     }
                 } catch (const jau::ExceptionBase &e) {
@@ -836,7 +834,7 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
                                 if( rspSize + size > rspMaxSize || rspElemSize != size ) {
                                     // send if rsp is full - or - element size changed
                                     rsp.setElementCount(rspCount);
-                                    jau_COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: TYPE.2: %s -> %s from %s", pdu->toString(), rsp.toString(), gh.toString());
+                                    jau_COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: TYPE.2: %s -> %s from %s", pdu->toString(), rsp, gh);
                                     return gh.send(rsp); // Client shall issue additional READ_BY_TYPE_REQ
                                 }
                                 jau::nsize_t ePDUOffset = rsp.getElementPDUOffset(rspCount);
@@ -856,7 +854,7 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
                     }
                     if( 0 < rspCount ) { // loop completed, elements added and all fitting in ATT_MTU
                         rsp.setElementCount(rspCount);
-                        jau_COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: TYPE.3: %s -> %s from %s", pdu->toString(), rsp.toString(), gh.toString());
+                        jau_COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: TYPE.3: %s -> %s from %s", pdu->toString(), rsp, gh);
                         return gh.send(rsp);
                     }
                     return gh.sendError(AttErrorRsp::ErrorCode::ATTRIBUTE_NOT_FOUND, pdu, pdu->getStartHandle(), LogLevel::cond, "ReplyFindByType");
@@ -881,7 +879,7 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
                     AttReadByTypeRsp rsp(gh.getUsedMTU()); // maximum size
 
                     jau_COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: TYPE.6: Searching for %s, req %s from %s",
-                            req_attribute->toString(), pdu->toString(), gh.toString());
+                            req_attribute->toString(), pdu->toString(), gh);
                     for(DBGattServiceRef& s : gattServerData->getServices()) {
                         for(DBGattCharRef& c : s->getCharacteristics()) {
                             if( start_handle <= c->getHandle() && c->getHandle() <= end_handle && c->getValueType()->equivalent(*req_attribute) ) {
@@ -895,7 +893,7 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
                                 rsp.pdu.put_bytes(ePDUOffset, value.get_ptr(), value_size_max);
                                 (void)ePDUOffset;
                                 rsp.setElementCount(1);
-                                jau_COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: TYPE.6: %s -> %s from %s", pdu->toString(), rsp.toString(), gh.toString());
+                                jau_COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: TYPE.6: %s -> %s from %s", pdu->toString(), rsp, gh);
                                 return gh.send(rsp);
                             }
                         }
@@ -968,7 +966,7 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
                                  * always fits in minimum ATT_PDU 23
                                  */
                                 rsp.setElementCount(rspCount);
-                                jau_COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: GROUP_TYPE.3: %s -> %s from %s", pdu->toString(), rsp.toString(), gh.toString());
+                                jau_COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: GROUP_TYPE.3: %s -> %s from %s", pdu->toString(), rsp, gh);
                                 return gh.send(rsp); // Client shall issue additional READ_BY_TYPE_REQ
                             }
                             rsp.setElementStartHandle(rspCount, s->getHandle());
@@ -980,7 +978,7 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
                     }
                     if( 0 < rspCount ) { // loop completed, elements added and all fitting in ATT_MTU
                         rsp.setElementCount(rspCount);
-                        jau_COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: GROUP_TYPE.4: %s -> %s from %s", pdu->toString(), rsp.toString(), gh.toString());
+                        jau_COND_PRINT(gh.env.DEBUG_DATA, "GATT-Req: GROUP_TYPE.4: %s -> %s from %s", pdu->toString(), rsp, gh);
                         return gh.send(rsp);
                     }
                     return gh.sendError(AttErrorRsp::ErrorCode::ATTRIBUTE_NOT_FOUND, pdu, pdu->getStartHandle(), LogLevel::cond, "ReplyFindByGroupType");
@@ -1184,7 +1182,7 @@ class FwdGattServerHandler : public BTGattHandler::GattServerHandler {
                 } else {
                     // Actually an internal error, method should not have been called
                     AttErrorRsp err(AttErrorRsp::ErrorCode::UNSUPPORTED_REQUEST, pdu->getOpcode(), 0);
-                    jau_WARN_PRINT("GATT-Req: WRITE.20: %s -> %s from %s", pdu->toString(), err.toString(), gh.toString());
+                    jau_WARN_PRINT("GATT-Req: WRITE.20: %s -> %s from %s", pdu->toString(), err, gh);
                     fwd_gh->notifyNativeReplyReceived(err, clientSource);
                     {
                         fwd_gh->notifyNativeWriteResponse(err, err.getErrorCode(), clientSource);
