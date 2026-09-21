@@ -448,7 +448,6 @@ BTAdapter::BTAdapter(const BTAdapter::ctor_cookie& cc, BTManagerRef mgmt_, Adapt
   hci( dev_id ),
   currentMetaScanType( ScanType::NONE ),
   discovery_policy ( DiscoveryPolicy::AUTO_OFF ),
-  scan_filter_dup( true ),
   smp_watchdog(jau::format_string("adapter%u_smp_watchdog", dev_id), THREAD_SHUTDOWN_TIMEOUT_MS),
   l2cap_att_srv(dev_id, adapterInfo.addressAndType, L2CAP_PSM::UNDEFINED, L2CAP_CID::ATT),
   l2cap_service("BTAdapter::l2capServer", THREAD_SHUTDOWN_TIMEOUT_MS,
@@ -1193,8 +1192,6 @@ HCIStatusCode BTAdapter::startDiscovery(const DBGattServerRef& gattServerData_,
 
     removeDiscoveredDevices();
 
-    scan_filter_dup = filter_dup; // cache for background scan
-
     const ScanType currentNativeScanType = hci.getCurrentScanType();
 
     if( is_set(currentNativeScanType, ScanType::LE) ) {
@@ -1250,7 +1247,7 @@ HCIStatusCode BTAdapter::startDiscovery(const DBGattServerRef& gattServerData_,
 }
 
 void BTAdapter::discoveryServerWork(jau::service_runner& sr) noexcept {
-    static jau::nsize_t trial_count = 0;
+    static jau::nsize_t error_count = 0;
     bool retry = false;
 
     // FIXME: Respect BTAdapter::btMode, i.e. BTMode::BREDR, BTMode::LE or BTMode::DUAL to setup BREDR, LE or DUAL scanning!
@@ -1266,15 +1263,18 @@ void BTAdapter::discoveryServerWork(jau::service_runner& sr) noexcept {
                 0 == getDevicesPausingDiscoveryCount() ) // still required to start discovery ???
             {
                 // if le_enable_scan(..) is successful, it will issue 'mgmtEvDeviceDiscoveringHCI(..)' immediately, which updates currentMetaScanType.
-                jau_DBG_PRINT("BTAdapter::startDiscoveryBackground[%zu/%zu]: Policy %s, currentScanType[native %s, meta %s] ... %s",
-                    trial_count+1, MAX_BACKGROUND_DISCOVERY_RETRY, discovery_policy, currentNativeScanType, currentMetaScanType, toString());
-                const HCIStatusCode status = hci.le_enable_scan(true /* enable */, scan_filter_dup);
+                jau_DBG_PRINT("BTAdapter::discoveryServerWork[%zu/%zu]: Policy %s, currentScanType[native %s, meta %s] ... %s",
+                    error_count, MAX_BACKGROUND_DISCOVERY_RETRY, discovery_policy, currentNativeScanType, currentMetaScanType, toString());
+                const HCIStatusCode status = hci.le_restart_scan(); // reuse last scan params
                 if( HCIStatusCode::SUCCESS != status ) {
-                    jau_ERR_PRINT2("le_enable_scan failed[%zu/%zu]: %s - %s",
-                        trial_count+1, MAX_BACKGROUND_DISCOVERY_RETRY, status, toString());
-                    if( trial_count < MAX_BACKGROUND_DISCOVERY_RETRY ) {
-                        trial_count++;
+                    if( error_count < MAX_BACKGROUND_DISCOVERY_RETRY ) {
+                        jau_DBG_PRINT("BTAdapter::discoveryServerWork[%zu/%zu]: le_enable_scan failed: %s - %s",
+                            error_count, MAX_BACKGROUND_DISCOVERY_RETRY, status, toString());
+                        error_count++;
                         retry = true;
+                    } else {
+                        jau_ERR_PRINT2("le_enable_scan failed[%zu/%zu]: %s - %s",
+                            error_count, MAX_BACKGROUND_DISCOVERY_RETRY, status, toString());
                     }
                 }
                 checkDiscoveryState();
@@ -1285,7 +1285,7 @@ void BTAdapter::discoveryServerWork(jau::service_runner& sr) noexcept {
         }
     }
     if( !retry ) {
-        trial_count=0;
+        error_count=0;
         sr.set_shall_stop();
     }
 }

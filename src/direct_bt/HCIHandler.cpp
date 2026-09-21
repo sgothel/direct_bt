@@ -43,8 +43,10 @@
 #include "HCIComm.hpp"
 #include "HCIHandler.hpp"
 #include "DBTConst.hpp"
+#include "HCITypes.hpp"
 #include "jau/byte_util.hpp"
 #include "jau/cpp_lang_util.hpp"
+#include "jau/string_cfmt.hpp"
 
 extern "C" {
     #include <inttypes.h>
@@ -74,6 +76,18 @@ HCIEnv::HCIEnv() noexcept
 __pack( struct hci_rp_status {
     __u8    status;
 } );
+
+std::string HCIScanParam::toString(bool set_scan_param_only) const noexcept {
+    if (set_scan_param_only) {
+        return jau_format_string("active %d, mac-type %s, interval %.3f ms, window %.3f ms, filter %u",
+            m_le_scan_active, m_own_mac_type, 0.625f * (float)m_le_scan_interval, 0.625f * (float)m_le_scan_window, m_filter_policy);
+    } else {
+        return jau_format_string("mode %s, param[active %d, mac-type %s, interval %.3f ms, window %.3f ms, filter %u], filter-dup %s",
+            m_mode,
+            m_le_scan_active, m_own_mac_type, 0.625f * (float)m_le_scan_interval, 0.625f * (float)m_le_scan_window, m_filter_policy,
+            m_filter_dup);
+    }
+}
 
 HCIHandler::HCIConnectionRef HCIHandler::setResolvHCIConnectionAddr(jau::darray<HCIConnectionRef> &list,
                                                                     const BDAddressAndType& visibleAddressAndType,
@@ -705,7 +719,6 @@ HCIHandler::HCIHandler(const uint16_t dev_id_, const BTMode btMode_) noexcept
   sup_commands_set( false ),
   allowClose( comm.is_open() ),
   btMode(btMode_),
-  currentScanType(ScanType::NONE),
   advertisingEnabled(false)
 {
     zeroSupCommands();
@@ -992,10 +1005,9 @@ void HCIHandler::close() noexcept {
 }
 
 std::string HCIHandler::toString() const noexcept {
-    return "HCIHandler["+std::to_string(dev_id)+", BTMode "+to_string(btMode)+", open "+std::to_string(isOpen())+
-            ", adv "+std::to_string(advertisingEnabled)+", scan "+to_string(currentScanType)+
-            ", ext[init "+std::to_string(sup_commands_set)+", adv "+std::to_string(use_ext_adv())+", scan "+std::to_string(use_ext_scan())+", conn "+std::to_string(use_ext_conn())+
-            "], ring[entries "+std::to_string(hciEventRing.size())+"]]";
+    return jau_format_string("HCIHandler[%u, BTMode %s, open %s, adv %s, scan[%s], ext[init %s, adv %s, scan %s, conn %s], ring[entries %zu]]",
+        dev_id, btMode, isOpen(), advertisingEnabled, currentScanStatus, sup_commands_set, use_ext_adv(), use_ext_scan(),
+        use_ext_conn(), hciEventRing.size());
 }
 
 HCIStatusCode HCIHandler::startAdapter() {
@@ -1111,7 +1123,7 @@ bool HCIHandler::resetAllStates(const bool powered_on) noexcept {
     const std::lock_guard<std::recursive_mutex> lock(mtx_connectionList); // RAII-style acquire and relinquish via destructor
     connectionList.clear();
     disconnectCmdList.clear();
-    currentScanType = ScanType::NONE;
+    currentScanStatus = HCIScanParam();
     advertisingEnabled = false;
     zeroSupCommands();
     if( powered_on ) {
@@ -1172,21 +1184,21 @@ HCIStatusCode HCIHandler::getLocalVersion(HCILocalVersion &version) noexcept {
     }
 }
 
-HCIStatusCode HCIHandler::le_set_scan_param(const bool le_scan_active,
-                                            const HCILEOwnAddressType own_mac_type,
-                                            const uint16_t le_scan_interval, const uint16_t le_scan_window,
-                                            const uint8_t filter_policy) noexcept {
+HCIStatusCode HCIHandler::le_set_scan_param(HCIScanParam param) noexcept {
     if( !isOpen() ) {
         jau_ERR_PRINT("Not connected %s", toString());
         return HCIStatusCode::DISCONNECTED;
     }
-    if( is_set(currentScanType, ScanType::LE) ) {
-        jau_WARN_PRINT("Not allowed: LE Scan Enabled: %s - tried scan [interval %.3f ms, window %.3f ms]",
-                toString(), 0.625f * (float)le_scan_interval, 0.625f * (float)le_scan_window);
+    const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
+
+    HCIScanParam scanStatus = currentScanStatus;
+    const ScanType preScanType = scanStatus.mode();
+
+    if( is_set(preScanType, ScanType::LE) ) {
+        jau_WARN_PRINT("Not allowed: LE Scan Enabled: param[%s]", param.toString(true), toString());
         return HCIStatusCode::COMMAND_DISALLOWED;
     }
-    jau_DBG_PRINT("HCIHandler<%hu>::le_set_scan_param: scan [active %d, interval %.3f ms, window %.3f ms, filter %d] - %s",
-            dev_id, le_scan_active, 0.625f * (float)le_scan_interval, 0.625f * (float)le_scan_window, filter_policy, toString());
+    jau_DBG_PRINT("HCIHandler<%hu>::le_set_scan_param: param[%s] - %s", dev_id, param.toString(true), toString());
 
     try {
         HCIStatusCode status;
@@ -1200,13 +1212,13 @@ HCIStatusCode HCIHandler::le_set_scan_param(const bool le_scan_active,
             } __packed;
             HCIStructCommand<le_set_ext_scan_params> req0(HCIOpcode::LE_SET_EXT_SCAN_PARAMS);
             le_set_ext_scan_params * cp = req0.getWStruct();
-            cp->own_address_type = static_cast<uint8_t>(own_mac_type);
-            cp->filter_policy = filter_policy;
+            cp->own_address_type = static_cast<uint8_t>(param.own_mac_type());
+            cp->filter_policy = param.filter_policy();
             cp->scanning_phys = direct_bt::number(LE_PHYs::LE_1M); // Only scan on LE_1M for compatibility
 
-            cp->p1.type = le_scan_active ? LE_SCAN_ACTIVE : LE_SCAN_PASSIVE;
-            cp->p1.interval = jau::cpu_to_le(le_scan_interval);
-            cp->p1.window = jau::cpu_to_le(le_scan_window);
+            cp->p1.type = param.le_scan_active() ? LE_SCAN_ACTIVE : LE_SCAN_PASSIVE;
+            cp->p1.interval = jau::cpu_to_le(param.le_scan_interval());
+            cp->p1.window = jau::cpu_to_le(param.le_scan_window());
             // TODO: Support LE_1M + LE_CODED combo?
 
             const hci_rp_status * ev_status;
@@ -1214,20 +1226,24 @@ HCIStatusCode HCIHandler::le_set_scan_param(const bool le_scan_active,
         } else {
             HCIStructCommand<hci_cp_le_set_scan_param> req0(HCIOpcode::LE_SET_SCAN_PARAM);
             hci_cp_le_set_scan_param * cp = req0.getWStruct();
-            cp->type = le_scan_active ? LE_SCAN_ACTIVE : LE_SCAN_PASSIVE;
-            cp->interval = jau::cpu_to_le(le_scan_interval);
-            cp->window = jau::cpu_to_le(le_scan_window);
-            cp->own_address_type = static_cast<uint8_t>(own_mac_type);
-            cp->filter_policy = filter_policy;
+            cp->type = param.le_scan_active() ? LE_SCAN_ACTIVE : LE_SCAN_PASSIVE;
+            cp->interval = jau::cpu_to_le(param.le_scan_interval());
+            cp->window = jau::cpu_to_le(param.le_scan_window());
+            cp->own_address_type = static_cast<uint8_t>(param.own_mac_type());
+            cp->filter_policy = param.filter_policy();
 
             const hci_rp_status * ev_status;
             std::unique_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_status, &status);
         }
+        if (status == HCIStatusCode::SUCCESS) {
+            param.setMode(scanStatus.mode(), scanStatus.filter_dup());
+            currentScanStatus = param;
+        }
         return status;
     } catch (...) {
         jau::fput_exception(stderr, std::current_exception(), E_FILE_LINE);
-        jau_ERR_PRINT3("Exception caught while setting up scan for %hu [active %d, interval %.3f ms, window %.3f ms, filter %d] - %s",
-                dev_id, le_scan_active, 0.625f * (float)le_scan_interval, 0.625f * (float)le_scan_window, filter_policy, toString());
+        jau_ERR_PRINT3("Exception caught while setting up scan for %hu param[%s] - %s",
+                dev_id, param.toString(true), toString());
         return HCIStatusCode::INTERNAL_FAILURE;
     }
 }
@@ -1239,17 +1255,25 @@ HCIStatusCode HCIHandler::le_enable_scan(const bool enable, const bool filter_du
     }
     const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
 
-    if( enable && advertisingEnabled ) {
-        jau_WARN_PRINT("dev_id %u: Not allowed: Advertising is enabled %s", dev_id, toString());
-        return HCIStatusCode::COMMAND_DISALLOWED;
+    HCIScanParam scanStatus = currentScanStatus;
+    const ScanType preScanType = scanStatus.mode();
+    if (enable) {
+        if( advertisingEnabled ) {
+            jau_WARN_PRINT("dev_id %u: Not allowed: Advertising is enabled %s", dev_id, toString());
+            return HCIStatusCode::COMMAND_DISALLOWED;
+        }
+        if( is_set(preScanType, ScanType::LE) ) {
+            jau_WARN_PRINT("dev_id %u: Not allowed: LE Scan Enabled: %s", dev_id, toString());
+            return HCIStatusCode::COMMAND_DISALLOWED;
+        }
     }
-    ScanType nextScanType = changeScanType(currentScanType, ScanType::LE, enable);
+    ScanType nextScanType = changeScanType(preScanType, ScanType::LE, enable);
     jau_DBG_PRINT("HCIHandler<%hu>::le_enable_scan: enable %s -> %s, filter_dup %d - %s",
-            dev_id, to_string(currentScanType), to_string(nextScanType), filter_dup, toString());
+            dev_id, preScanType, nextScanType, filter_dup, toString());
 
     try {
         HCIStatusCode status;
-        if( currentScanType != nextScanType ) {
+        if( !enable || preScanType != nextScanType ) {
             if( use_ext_scan() ) {
                 HCIStructCommand<hci_cp_le_set_ext_scan_enable> req0(HCIOpcode::LE_SET_EXT_SCAN_ENABLE);
                 hci_cp_le_set_ext_scan_enable * cp = req0.getWStruct();
@@ -1270,11 +1294,12 @@ HCIStatusCode HCIHandler::le_enable_scan(const bool enable, const bool filter_du
         } else {
             status = HCIStatusCode::SUCCESS;
             jau_WARN_PRINT("dev_id %u: current %s == next %s, OK, skip command - %s",
-                    dev_id, to_string(currentScanType), to_string(nextScanType), toString());
+                    dev_id, preScanType, nextScanType, toString());
         }
 
         if( HCIStatusCode::SUCCESS == status ) {
-            currentScanType = nextScanType;
+            scanStatus.setMode(nextScanType, filter_dup);
+            currentScanStatus = scanStatus;
             const MgmtEvtDiscovering e(dev_id, ScanType::LE, enable);
             sendMgmtEvent( e );
         }
@@ -1286,11 +1311,7 @@ HCIStatusCode HCIHandler::le_enable_scan(const bool enable, const bool filter_du
     }
 }
 
-HCIStatusCode HCIHandler::le_start_scan(const bool filter_dup,
-                                        const bool le_scan_active,
-                                        const HCILEOwnAddressType own_mac_type,
-                                        const uint16_t le_scan_interval, const uint16_t le_scan_window,
-                                        const uint8_t filter_policy) noexcept {
+HCIStatusCode HCIHandler::le_start_scan(HCIScanParam param) noexcept {
     if( !isOpen() ) {
         jau_ERR_PRINT("Not connected %s", toString());
         return HCIStatusCode::DISCONNECTED;
@@ -1301,20 +1322,31 @@ HCIStatusCode HCIHandler::le_start_scan(const bool filter_dup,
         jau_WARN_PRINT("dev_id %u: Not allowed: Advertising is enabled %s", dev_id, toString());
         return HCIStatusCode::COMMAND_DISALLOWED;
     }
-    if( is_set(currentScanType, ScanType::LE) ) {
+    if( is_set(getCurrentScanType(), ScanType::LE) ) {
         jau_WARN_PRINT("dev_id %u: Not allowed: LE Scan Enabled: %s", dev_id, toString());
         return HCIStatusCode::COMMAND_DISALLOWED;
     }
-    HCIStatusCode status = le_set_scan_param(le_scan_active, own_mac_type, le_scan_interval, le_scan_window, filter_policy);
+    le_enable_scan(false); // On certain BT5 adapter, disabling seems to be required
+
+    HCIStatusCode status = le_set_scan_param(param);
     if( HCIStatusCode::SUCCESS != status ) {
-        jau_WARN_PRINT("dev_id %u: le_set_scan_param failed: %s - %s", dev_id, to_string(status), toString());
+        jau_WARN_PRINT("dev_id %u: le_set_scan_param failed: %s - %s", dev_id, status, toString());
         return status;
     }
-    status = le_enable_scan(true /* enable */, filter_dup);
+    status = le_enable_scan(true /* enable */, param.filter_dup());
     if( HCIStatusCode::SUCCESS != status ) {
-        jau_WARN_PRINT("dev_id %u: le_enable_scan failed: %s - %s", dev_id, to_string(status), toString());
+        jau_WARN_PRINT("dev_id %u: le_enable_scan failed: %s - %s", dev_id, status, toString());
     }
     return status;
+}
+
+HCIStatusCode HCIHandler::le_restart_scan() noexcept {
+    const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
+
+    jau_DBG_PRINT("HCIHandler<%hu>::le_restart_scan.0: %s", dev_id, toString());
+    const HCIStatusCode res = le_start_scan(currentScanStatus);
+    jau_DBG_PRINT("HCIHandler<%hu>::le_restart_scan.X: res %s, %s", dev_id, res, toString());
+    return res;
 }
 
 HCIStatusCode HCIHandler::le_create_conn(const EUI48 &peer_bdaddr,

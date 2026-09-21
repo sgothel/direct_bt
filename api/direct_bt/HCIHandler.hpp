@@ -166,6 +166,80 @@ namespace direct_bt {
     typedef jau::cow_darray<HCISMPMsgCallback> HCISMPMsgCallbackList;
 
     /**
+     * HCI Scan Parameter used to track and setup scanning w/ HCIHandler
+
+                  * @param le_scan_active true enables delivery of active scanning PDUs, otherwise no scanning PDUs shall be sent (default)
+             * @param own_mac_type HCILEOwnAddressType::PUBLIC (default) or random/private.
+             * @param le_scan_interval in units of 0.625ms, default value 24 for 15ms; Value range [4 .. 0x4000] for [2.5ms .. 10.24s]
+             * @param le_scan_window in units of 0.625ms, default value 24 for 15ms; Value range [4 .. 0x4000] for [2.5ms .. 10.24s]. Shall be <= le_scan_interval
+             * @param filter_policy 0x00 accepts all PDUs (default), 0x01 only of whitelisted, ...
+
+     * @see HCIHandler::le_set_scan_param()
+     * @see HCIHandler::le_start_scan()
+     * @see HCIHandler::le_restart_scan()
+     */
+    class HCIScanParam {
+      private:
+        ScanType m_mode;  /// <tracking current state
+        bool m_filter_dup; /// <le_start_scan parameter
+        bool m_le_scan_active; /// <le_set_scan_param parameter
+        HCILEOwnAddressType m_own_mac_type; /// <le_set_scan_param parameter
+        uint16_t m_le_scan_interval; /// <le_set_scan_param parameter
+        uint16_t m_le_scan_window; /// <le_set_scan_param parameter
+        uint8_t m_filter_policy; /// <le_set_scan_param parameter
+
+      public:
+        /**
+         * Constructor w/ provided default values
+         *
+         * @param mode ScanType mode, defaults to ScanType::NONE initially for setup
+         * @param filter_dup true to filter out duplicate AD PDUs (default), otherwise all will be reported.
+         * @param le_scan_active true enables delivery of active scanning PDUs like EIR w/ device name (default), otherwise no scanning PDUs shall be sent.
+         * @param own_mac_type HCILEOwnAddressType::PUBLIC (default) or random/private.
+         * @param le_scan_interval in units of 0.625ms, default value 24 for 15ms; Value range [4 .. 0x4000] for [2.5ms .. 10.24s]
+         * @param le_scan_window in units of 0.625ms, default value 24 for 15ms; Value range [4 .. 0x4000] for [2.5ms .. 10.24s]. Shall be <= le_scan_interval
+         * @param filter_policy 0x00 accepts all PDUs (default), 0x01 only of whitelisted, ...
+         */
+        HCIScanParam(ScanType mode = ScanType::NONE, bool filter_dup=true,
+                     bool le_scan_active=true,
+                     HCILEOwnAddressType own_mac_type=HCILEOwnAddressType::PUBLIC,
+                     uint16_t le_scan_interval=24, uint16_t le_scan_window=24,
+                     uint8_t filter_policy=0x00) noexcept
+        : m_mode(mode), m_filter_dup(filter_dup), m_le_scan_active(le_scan_active), m_own_mac_type(own_mac_type),
+          m_le_scan_interval(le_scan_interval), m_le_scan_window(le_scan_window),
+          m_filter_policy(filter_policy) {}
+
+        HCIScanParam(const HCIScanParam&) noexcept = default;
+        HCIScanParam& operator=(const HCIScanParam&) noexcept = default;
+
+        void setMode(ScanType v) noexcept { m_mode = v;}
+        void setMode(ScanType v, bool filter_dup) noexcept { m_mode = v; m_filter_dup = filter_dup; }
+        void setFilterDup(bool v) noexcept { m_filter_dup = v;}
+
+        /// Tracking current state
+        constexpr ScanType mode() const noexcept { return m_mode; }
+        /// A le_start_scan parameter
+        constexpr bool filter_dup() const noexcept { return m_filter_dup; }
+        /// A le_set_scan_param parameter
+        constexpr bool le_scan_active() const noexcept { return m_le_scan_active; }
+        /// A le_set_scan_param parameter
+        constexpr HCILEOwnAddressType own_mac_type() const noexcept { return m_own_mac_type; }
+        /// A le_set_scan_param parameter
+        constexpr uint16_t le_scan_interval() const noexcept { return m_le_scan_interval; }
+        /// A le_set_scan_param parameter
+        constexpr uint16_t le_scan_window() const noexcept { return m_le_scan_window; }
+        /// A le_set_scan_param parameter
+        constexpr uint8_t filter_policy() const noexcept { return m_filter_policy; }
+
+        /**
+         * Convert to string
+         * @param set_scan_param_only if true, convert the le_set_scan_param value only
+         */
+        std::string toString(bool set_scan_param_only) const noexcept;
+        inline std::string toString() const noexcept { return toString(false); }
+    };
+
+    /**
      * A thread safe singleton handler of the HCI control channel to one controller (BT adapter)
      * <p>
      * Implementation utilizes a lock free ringbuffer receiving data within its separate thread.
@@ -278,7 +352,7 @@ namespace direct_bt {
 
             jau::sc_atomic_bool allowClose;
             jau::ordered_atomic<BTMode, std::memory_order_seq_cst> btMode;
-            jau::ordered_atomic<ScanType, std::memory_order_seq_cst> currentScanType;
+            jau::ordered_atomic<HCIScanParam, std::memory_order_seq_cst> currentScanStatus;
             jau::sc_atomic_bool advertisingEnabled;
 
             HCIConnectionRefList_t connectionList;
@@ -429,8 +503,17 @@ namespace direct_bt {
                 return is_set(le_ll_feats, LE_Features::LE_Ext_Adv);
             }
 
-            ScanType getCurrentScanType() const noexcept { return currentScanType; }
-            void setCurrentScanType(const ScanType v) noexcept { currentScanType = v; }
+            ScanType getCurrentScanType() const noexcept {
+                return currentScanStatus.load().mode();
+            }
+            HCIScanParam getCurrentScanStatus() const noexcept {
+                return currentScanStatus;
+            }
+            void setCurrentScanType(const ScanType v) noexcept {
+                HCIScanParam s = currentScanStatus;
+                s.setMode(v);
+                currentScanStatus = s;
+            }
 
             /**
              * Advertising is enabled via le_start_adv() or le_enable_adv().
@@ -586,16 +669,9 @@ namespace direct_bt {
              * Should not be called while LE scanning is active, otherwise HCIStatusCode::COMMAND_DISALLOWED will be returned.
              * </p>
              *
-             * @param le_scan_active true enables delivery of active scanning PDUs, otherwise no scanning PDUs shall be sent (default)
-             * @param own_mac_type HCILEOwnAddressType::PUBLIC (default) or random/private.
-             * @param le_scan_interval in units of 0.625ms, default value 24 for 15ms; Value range [4 .. 0x4000] for [2.5ms .. 10.24s]
-             * @param le_scan_window in units of 0.625ms, default value 24 for 15ms; Value range [4 .. 0x4000] for [2.5ms .. 10.24s]. Shall be <= le_scan_interval
-             * @param filter_policy 0x00 accepts all PDUs (default), 0x01 only of whitelisted, ...
+             * @param param HCIScanParam used for scan parameter
              */
-            HCIStatusCode le_set_scan_param(const bool le_scan_active=false,
-                                            const HCILEOwnAddressType own_mac_type=HCILEOwnAddressType::PUBLIC,
-                                            const uint16_t le_scan_interval=24, const uint16_t le_scan_window=24,
-                                            const uint8_t filter_policy=0x00) noexcept;
+            HCIStatusCode le_set_scan_param(HCIScanParam param = HCIScanParam()) noexcept;
 
         public:
             /**
@@ -620,15 +696,25 @@ namespace direct_bt {
              * BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 7.8.65 LE Set Extended Scan Enable command (Bluetooth 5.0)
              * BT Core Spec v5.2: Vol 4, Part E HCI: 7.8.11 LE Set Scan Enable command
              * </pre>
-             * <p>
+             *
              * Scan parameters control advertising (AD) Protocol Data Unit (PDU) delivery behavior.
-             * </p>
-             * <p>
-             * Should not be called while LE scanning is active, otherwise HCIStatusCode::COMMAND_DISALLOWED will be returned.
-             * </p>
-             * <p>
+             *
+             * Should not be called while LE scanning is has been manually activated, otherwise the will be rejected via HCIStatusCode::COMMAND_DISALLOWED.<br>
+             * Manually LE scanning activation is detected if getCurrentScanType() contains ScanType::LE.<br>
+             * Nevertheless, implementation disables LE scanning via le_enable_scan(false) to overcome certain BT5 adapter issues
+             * before le_set_scan_param().
+             *
              * Method will report errors.
-             * </p>
+             *
+             * @param param HCIScanParam used for scan parameter and enabling
+             * @see le_read_local_features()
+             * @see le_set_scan_param()
+             * @see le_enable_scan()
+             */
+            HCIStatusCode le_start_scan(HCIScanParam param = HCIScanParam()) noexcept;
+
+            /**
+             * Start LE scanning, i.e. performs le_set_scan_param() and le_enable_scan() in one atomic operation.
              *
              * @param filter_dup true to filter out duplicate AD PDUs (default), otherwise all will be reported.
              * @param le_scan_active true enables delivery of active scanning PDUs like EIR w/ device name (default), otherwise no scanning PDUs shall be sent.
@@ -637,12 +723,29 @@ namespace direct_bt {
              * @param le_scan_window in units of 0.625ms, default value 24 for 15ms; Value range [4 .. 0x4000] for [2.5ms .. 10.24s]. Shall be <= le_scan_interval
              * @param filter_policy 0x00 accepts all PDUs (default), 0x01 only of whitelisted, ...
              * @see le_read_local_features()
+             * @see le_set_scan_param()
+             * @see le_enable_scan()
              */
-            HCIStatusCode le_start_scan(const bool filter_dup=true,
+            HCIStatusCode le_start_scan(const bool filter_dup,
                                         const bool le_scan_active=true,
                                         const HCILEOwnAddressType own_mac_type=HCILEOwnAddressType::PUBLIC,
                                         const uint16_t le_scan_interval=24, const uint16_t le_scan_window=24,
-                                        const uint8_t filter_policy=0x00) noexcept;
+                                        const uint8_t filter_policy=0x00) noexcept {
+                return le_start_scan(HCIScanParam(ScanType::NONE, filter_dup,
+                             le_scan_active, own_mac_type, le_scan_interval, le_scan_window, filter_policy));
+            }
+
+            /**
+             * Restarts LE scanning, i.e. performs le_start_scan()
+             * using the stored HCIScanParam parameter.
+             *
+             * @see getCurrentScanStatus()
+             * @see le_start_scan()
+             * @see le_set_scan_param()
+             * @see le_enable_scan()
+             * @see getCurrentScanStatus()
+             */
+            HCIStatusCode le_restart_scan() noexcept;
 
             /**
              * Establish a connection to the given LE peer.

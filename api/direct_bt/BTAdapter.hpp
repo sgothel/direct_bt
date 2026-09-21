@@ -366,8 +366,6 @@ namespace direct_bt {
             jau::ordered_atomic<ScanType, std::memory_order_relaxed> currentMetaScanType; // = ScanType::NONE
             jau::ordered_atomic<DiscoveryPolicy, std::memory_order_relaxed> discovery_policy; // = DiscoveryPolicy::PAUSE_CONNECTED_UNTIL_READY
 
-            jau::relaxed_atomic_bool scan_filter_dup; //  = true;
-
             SMPIOCapability  iocap_defaultval = SMPIOCapability::UNSET;
             const BTDevice* single_conn_device_ptr = nullptr;
             std::mutex mtx_single_conn_device;
