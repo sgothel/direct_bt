@@ -124,7 +124,7 @@ jbyteArray Java_jau_direct_1bt_DBTGattChar_readValueImpl(JNIEnv *env, jobject ob
 
         jau::POctets res(BTGattHandler::number(BTGattHandler::Defaults::MAX_ATT_MTU), 0, jau::lb_endian_t::little);
         if( !characteristic->readValue(res) ) {
-            jau_ERR_PRINT("Characteristic readValue failed: %s", characteristic->toString());
+            // Error already logged
             return env->NewByteArray((jsize)0);
         }
 
@@ -167,7 +167,7 @@ jboolean Java_jau_direct_1bt_DBTGattChar_writeValueImpl(JNIEnv *env, jobject obj
             res = characteristic->writeValueNoResp(value);
         }
         if( !res ) {
-            jau_ERR_PRINT("Characteristic writeValue(withResponse %d) failed: %s", withResponse, characteristic->toString());
+            // Error already logged
             return JNI_FALSE;
         }
         return JNI_TRUE;

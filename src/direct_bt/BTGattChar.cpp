@@ -144,15 +144,14 @@ bool BTGattChar::configNotificationIndication(const bool enableNotification, con
         return false;
     }
 
-    std::shared_ptr<BTDevice> device = getDeviceUnchecked();
-    std::shared_ptr<BTGattHandler> gatt = nullptr != device ? device->getGattHandler() : nullptr;
+    BTDeviceRef device = getDeviceUnchecked();
+    if( nullptr == device ) {
+        jau_DBG_WARN_PRINT("Characteristic's device null: %s", toShortString());
+        return false;
+    }
+    std::shared_ptr<BTGattHandler> gatt = device->getGattHandler();
     if( nullptr == gatt ) {
-        if( !enableNotification && !enableIndication ) {
-            // OK to have GATTHandler being shutdown @ disable
-            jau_DBG_PRINT("Characteristic's device GATTHandle not connected: %s", toShortString());
-        } else {
-            jau_ERR_PRINT("Characteristic's device GATTHandle not connected: %s", toShortString());
-        }
+        jau_WARN_PRINT("Characteristic's device GATTHandle not connected: %s", toShortString());
         return false;
     }
     const bool resEnableNotification = hasEnableNotification && enableNotification;
@@ -206,17 +205,17 @@ bool BTGattChar::disableIndicationNotification() noexcept {
 bool BTGattChar::addCharListener(const BTGattCharListenerRef& l) noexcept {
     BTDeviceRef device = getDeviceUnchecked();
     if( nullptr == device ) {
-        jau_ERR_PRINT("Characteristic's device null: %s", toShortString());
+        jau_WARN_PRINT("Characteristic's device null: %s", toShortString());
         return false;
     }
     BTGattServiceRef service = getServiceUnchecked();
     if( nullptr == service ) {
-        jau_ERR_PRINT("Characteristic's service null: %s", toShortString());
+        jau_WARN_PRINT("Characteristic's service null: %s", toShortString());
         return false;
     }
     BTGattCharRef characteristic = service->findGattChar(*this);
     if( nullptr == service ) {
-        jau_ERR_PRINT("Characteristic not in service: %s", toShortString());
+        jau_WARN_PRINT("Characteristic not in service: %s", toShortString());
         return false;
     }
     return device->addCharListener(l, characteristic);
@@ -232,7 +231,7 @@ bool BTGattChar::addCharListener(const BTGattCharListenerRef& l, bool enabledSta
 bool BTGattChar::removeCharListener(const BTGattCharListenerRef& l) noexcept {
     std::shared_ptr<BTDevice> device = getDeviceUnchecked();
     if( nullptr == device ) {
-        jau_ERR_PRINT("Characteristic's device null: %s", toShortString());
+        jau_DBG_WARN_PRINT("Characteristic's device null: %s", toShortString());
         return false;
     }
     return device->removeCharListener(l);
@@ -244,7 +243,7 @@ BTGattChar::size_type BTGattChar::removeAllAssociatedCharListener(bool shallDisa
     }
     std::shared_ptr<BTDevice> device = getDeviceUnchecked();
     if( nullptr == device ) {
-        jau_ERR_PRINT("Characteristic's device null: %s", toShortString());
+        jau_DBG_WARN_PRINT("Characteristic's device null: %s", toShortString());
         return 0;
     }
     return device->removeAllAssociatedCharListener(this);
@@ -253,12 +252,12 @@ BTGattChar::size_type BTGattChar::removeAllAssociatedCharListener(bool shallDisa
 bool BTGattChar::readValue(POctets & res, int expectedLength) noexcept {
     std::shared_ptr<BTDevice> device = getDeviceUnchecked();
     if( nullptr == device ) {
-        jau_ERR_PRINT("Characteristic's device null: %s", toShortString());
+        jau_DBG_WARN_PRINT("Characteristic's device null: %s", toShortString());
         return false;
     }
     std::shared_ptr<BTGattHandler> gatt = device->getGattHandler();
     if( nullptr == gatt ) {
-        jau_ERR_PRINT("Characteristic's device GATTHandle not connected: %s", toShortString());
+        jau_WARN_PRINT("Characteristic's device GATTHandle not connected: %s", toShortString());
         return false;
     }
     return gatt->readCharacteristicValue(*this, res, expectedLength);
@@ -269,12 +268,12 @@ bool BTGattChar::readValue(POctets & res, int expectedLength) noexcept {
 bool BTGattChar::writeValue(const TROOctets & value) noexcept {
     std::shared_ptr<BTDevice> device = getDeviceUnchecked();
     if( nullptr == device ) {
-        jau_ERR_PRINT("Characteristic's device null: %s", toShortString());
+        jau_DBG_WARN_PRINT("Characteristic's device null: %s", toShortString());
         return false;
     }
     std::shared_ptr<BTGattHandler> gatt = device->getGattHandler();
     if( nullptr == gatt ) {
-        jau_ERR_PRINT("Characteristic's device GATTHandle not connected: %s", toShortString());
+        jau_WARN_PRINT("Characteristic's device GATTHandle not connected: %s", toShortString());
         return false;
     }
     return gatt->writeCharacteristicValue(*this, value);
@@ -286,12 +285,12 @@ bool BTGattChar::writeValue(const TROOctets & value) noexcept {
 bool BTGattChar::writeValueNoResp(const TROOctets & value) noexcept {
     std::shared_ptr<BTDevice> device = getDeviceUnchecked();
     if( nullptr == device ) {
-        jau_ERR_PRINT("Characteristic's device null: %s", toShortString());
+        jau_DBG_WARN_PRINT("Characteristic's device null: %s", toShortString());
         return false;
     }
     std::shared_ptr<BTGattHandler> gatt = device->getGattHandler();
     if( nullptr == gatt ) {
-        jau_ERR_PRINT("Characteristic's device GATTHandle not connected: %s", toShortString());
+        jau_WARN_PRINT("Characteristic's device GATTHandle not connected: %s", toShortString());
         return false;
     }
     return gatt->writeCharacteristicValueNoResp(*this, value);
