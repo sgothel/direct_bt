@@ -27,11 +27,11 @@ Below you can find a few notes about [*Direct-BT* Origins](#direct_bt_origins).
 
 ### Current Development
 
-The `next-wip` secure & safe branch is under development
-and [Gothel Software](https://jausoft.com) seeks *contracting or funding*.
+Since tag `pre-v4.0.0` *secure & safe* properties have been enhanced while advancing `jaulib`
+and *BT5 interoperability* issues have been removed.
 
-Further enhancements across multiple OS like FreeBSD or Windows has been initially evaluated,
-but would also require professional collaboration and contracting.
+Enhancements can be implemented. Support for other OS like FreeBSD and Windows has been evaluated and is deemed feasible.
+Feel welcome to contact and contract [Gothel Software](https://jausoft.com) to further *Direct-BT*.
 
 ### Further Readings
 - S. Gothel, [*Direct-BT: BLE Programming with C++ & Java*](https://jausoft.com/Files/direct_bt/doc/direct_bt-jughh2022.pdf), Nov 2022, pdf slides
@@ -128,6 +128,8 @@ Release 3.2.4 is the last version conforming to C++17, see [Changes](CHANGES.md)
   - Intel AX201 (Internal, ID 8087:0026) *OK*
   - Asus BT-500 (USB-A, ID 0b05:190e, RTL8761BU) *OK on Debian12/Kernel 5.14)*
   - Realtek RTL8761BU *OK* (May need manual power-up, depending on firmware)
+
+All *trial* tests have been passed.
 
 Please check the [adapter list](doc/adapter/adapter.md) for more details.
 
@@ -544,7 +546,7 @@ Then you can open it via `File . Open Workspace from File...` menu item.
 
 ## Support & Sponsorship
 
-*Direct-BT* is the new implementation as provided by [Gothel Software](https://jausoft.com/) and [Zafena ICT](https://ict.zafena.se).
+*Direct-BT* is the new implementation as provided by [Gothel Software](https://jausoft.com/).
 
 If you like to utilize *Direct-BT* in a commercial setting,
 please contact [Gothel Software](https://jausoft.com/) to setup a potential support contract.
@@ -569,6 +571,7 @@ Please check the [Contribution](CONTRIBUTING.md) document for more details.
 ### Direct-BT Origins
 *Direct-BT* development started around April 2020,
 initially as an alternative *TinyB* Java-API implementation.
+and commissioned by [Zafena ICT](https://ict.zafena.se).
 
 The work was motivated due to strict
 performance, discovery- and connection timing requirements,
