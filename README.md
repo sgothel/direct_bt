@@ -273,14 +273,14 @@ systemctl mask bluetooth
 ### Build Dependencies
 - CMake >= 3.21 (2021-07-14)
 - C++ compiler
-  - gcc >= 11 (C++20), recommended >= 12.2.0
-  - clang >= 13 (C++20), recommended >= 18.1.6
+  - gcc >= 11, recommended >= 14.2.0
+  - clang >= 13, recommended >= 23.1.0
 - Optional for `lint` validation
-  - clang-tidy >= 18.1.6
+  - clang-tidy >= 19
 - Optional for `eclipse` and `vscodium` integration
-  - clangd >= 18.1.6
-  - clang-tools >= 18.1.6
-  - clang-format >= 18.1.6
+  - clangd >= 19
+  - clang-tools >= 19
+  - clang-format >= 19
 - Optional
   - libunwind8 >= 1.2.1
   - libcurl4 >= 7.74 (tested, lower may work)
@@ -295,7 +295,7 @@ Installing build dependencies for Debian >= 12 and Ubuntu >= 22:
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~{.sh}
 apt install git
 apt install build-essential g++ gcc libc-dev libpthread-stubs0-dev
-apt install clang-18 clang-tidy-18 clangd-18 clang-tools-18 clang-format-18
+apt install clang-23 clang-tidy-23 clangd-23 clang-tools-23 clang-format-23
 apt install libunwind8 libunwind-dev
 apt install openjdk-17-jdk openjdk-17-jre junit4
 apt install cmake cmake-extras extra-cmake-modules pkg-config
@@ -323,10 +323,11 @@ cd direct_bt
 Analog to [jaulib CMake build presets](https://jausoft.com/cgit/jaulib.git/about/README.md#cmake_presets_optional) ...
 
 Following debug presets are defined in `CMakePresets.json`
-- `debug`
+- **`debug`**
   - default generator
   - default compiler
   - C++20
+  - LTO for all targets disabled
   - debug enabled
   - disabled `clang-tidy`
   - java (if available)
@@ -337,39 +338,50 @@ Following debug presets are defined in `CMakePresets.json`
   - testing with sudo off
   - binary-dir `build/debug`
   - install-dir `dist/debug`
-- `debug-clang`
-  - inherits from `debug`
-  - compiler: `clang`
-  - enabled `clang-tidy`
-  - binary-dir `build/debug-clang`
-  - install-dir `dist/debug-clang`
-- `debug-gcc`
-  - inherits from `debug`
-  - compiler: `gcc`
-  - disabled `clang-tidy`
-  - binary-dir `build/debug-gcc`
-  - install-dir `dist/debug-gcc`
-- `release`
-  - inherits from `debug`
-  - debug disabled
-  - disabled `clang-tidy`
-  - libunwind disabled
-  - binary-dir `build/release`
-  - install-dir `dist/release`
-- `release-clang`
-  - compiler: `clang`
-  - enabled `clang-tidy`
-  - binary-dir `build/release-clang`
-  - install-dir `dist/release-clang`
-- `release-gcc`
-  - compiler: `gcc`
-  - disabled `clang-tidy`
-  - binary-dir `build/release-gcc`
-  - install-dir `dist/release-gcc`
-- **`default`**
-  - inherits from `debug-clang`
-  - binary-dir `build/default`
-  - install-dir `dist/default`
+  - **`debug-clang`**
+    - compiler: `clang`
+    - enabled `clang-tidy`
+    - binary-dir `build/debug-clang`
+    - install-dir `dist/debug-clang`
+    - **`default`**
+      - binary-dir `build/default`
+      - install-dir `dist/default`
+  - **`debug-gcc`**
+    - compiler: `gcc`
+    - disabled `clang-tidy`
+    - binary-dir `build/debug-gcc`
+    - install-dir `dist/debug-gcc`
+  - **`release`**
+    - LTO for all targets enabled
+    - debug disabled (strip libraries)
+    - disabled `clang-tidy`
+    - testing with sudo on
+    - binary-dir `build/release`
+    - install-dir `dist/release`
+    - **`release-clang`**
+      - compiler: `clang`
+      - enabled `clang-tidy`
+      - binary-dir `build/release-clang`
+      - install-dir `dist/release-clang`
+    - **`release-gcc`**
+      - compiler: `gcc`
+      - disabled `clang-tidy`
+      - binary-dir `build/release-gcc`
+      - install-dir `dist/release-gcc`
+  - **`perf-clang`**
+    - debug disabled
+    - no strip
+    - compiler: `clang`
+    - disabled `clang-tidy`
+    - binary-dir `build/perf-clang`
+    - install-dir `dist/perf-clang`
+  - **`perf-gcc`**
+    - debug disabled
+    - no strip
+    - compiler: `gcc`
+    - disabled `clang-tidy`
+    - binary-dir `build/perf-gcc`
+    - install-dir `dist/perf-gcc`
 
 All presets enable [full unit testing](README.md#unit_testing) including actual Bluetooth trials,
 i.e. require two adapter to pass.

@@ -6,6 +6,7 @@ Checks:  'clang-diagnostic-*, clang-analyzer-*,
           -bugprone-chained-comparison,
           -bugprone-reserved-identifier, -bugprone-easily-swappable-parameters, -bugprone-assignment-in-if-condition,
           -bugprone-misplaced-widening-cast, -bugprone-branch-clone,
+          -bugprone-signed-bitwise,
           -clang-diagnostic-unknown-warning-option,
           -clang-analyzer-security.insecureAPI.bzero,
           -clang-analyzer-optin.core.EnumCastOutOfRange,
@@ -13,19 +14,28 @@ Checks:  'clang-diagnostic-*, clang-analyzer-*,
           -modernize-avoid-c-arrays, -modernize-use-default-member-init, -modernize-return-braced-init-list,
           -modernize-avoid-bind, -modernize-use-transparent-functors, -modernize-use-constraints,
           -modernize-use-designated-initializers, -modernize-min-max-use-initializer-list, -modernize-type-traits,
-          -modernize-use-ranges,
+          -modernize-use-ranges, -modernize-avoid-c-style-cast,
           -performance-avoid-endl, -performance-enum-size,
           -misc-non-private-member-variables-in-classes, -misc-include-cleaner,
           -misc-const-correctness, -misc-unconventional-assign-operator, -misc-use-anonymous-namespace,
           -misc-misplaced-const, -misc-no-recursion, -misc-confusable-identifiers,
+          -misc-explicit-constructor, -misc-multiple-inheritance,
           -readability-redundant-declaration, -readability-redundant-inline-specifier, -readability-redundant-member-init,
-          -readability-redundant-access-specifiers'
+          -readability-redundant-access-specifiers,
+          -readability-redundant-lambda-parameter-list, -readability-redundant-nested-if, -readability-redundant-parentheses,
+          -readability-redundant-typename'
 
 CheckOptions:
+  - key:             bugprone-exception-escape.TreatFunctionsWithoutSpecificationAsThrowing
+    value:           'None'
+  - key:             bugprone-exception-escape.AssumedNonThrowingFunctions
+    value:           'openat64, clock_nanosleep'
   - key:             modernize-use-default-member-init.UseAssignment
     value:           'true'
   - key:             modernize-use-scoped-lock.WarnOnSingleLocks
     value:           'false'
+  - key:             bugprone-signed-bitwise.IgnorePositiveIntegerLiterals
+    value:           'true'
 
 WarningsAsErrors: '*'
 
