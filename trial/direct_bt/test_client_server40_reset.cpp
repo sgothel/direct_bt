@@ -40,7 +40,7 @@ using namespace direct_bt;
  * - security-level: NONE, ENC_ONLY freshly-paired and ENC_ONLY pre-paired
  * - reuse server-adapter for client-mode discovery (just toggle on/off)
  */
-class TestDBTClientServer40_Reset : public DBTClientServer1x {
+class TestDBTClientServer40_Reset : public DBTClientServer1x { // NOLINT(misc-use-internal-linkage)
     private:
         static constexpr const bool serverSC = true;
 

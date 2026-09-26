@@ -440,30 +440,30 @@ namespace direct_bt {
             }
 
             const DBGattDescRef getClientCharConfig() const noexcept {
-                if( 0 > clientCharConfigIndex ) {
+                if( 0 > clientCharConfigIndex || size_t(clientCharConfigIndex) >= descriptors.size() ) {
                     return nullptr;
                 }
-                return descriptors.at(static_cast<size_t>(clientCharConfigIndex)); // abort if out of bounds
+                return descriptors[size_t(clientCharConfigIndex)];
             }
 
             const DBGattDescRef getUserDescription() const noexcept {
-                if( 0 > userDescriptionIndex ) {
+                if( 0 > userDescriptionIndex || size_t(userDescriptionIndex) >= descriptors.size() ) {
                     return nullptr;
                 }
-                return descriptors.at(static_cast<size_t>(userDescriptionIndex)); // abort if out of bounds
+                return descriptors[size_t(userDescriptionIndex)];
             }
             DBGattDescRef getClientCharConfig() noexcept {
-                if( 0 > clientCharConfigIndex ) {
+                if( 0 > clientCharConfigIndex || size_t(clientCharConfigIndex) >= descriptors.size() ) {
                     return nullptr;
                 }
-                return descriptors.at(static_cast<size_t>(clientCharConfigIndex)); // abort if out of bounds
+                return descriptors[size_t(clientCharConfigIndex)];
             }
 
             DBGattDescRef getUserDescription() noexcept {
-                if( 0 > userDescriptionIndex ) {
+                if( 0 > userDescriptionIndex || size_t(userDescriptionIndex) >= descriptors.size() ) {
                     return nullptr;
                 }
-                return descriptors.at(static_cast<size_t>(userDescriptionIndex)); // abort if out of bounds
+                return descriptors[size_t(userDescriptionIndex)];
             }
 
             std::string toString() const noexcept override {

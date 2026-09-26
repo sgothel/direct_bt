@@ -1083,7 +1083,7 @@ namespace direct_bt {
                                          const uint8_t filter_policy=0x00,
                                          const bool filter_dup=true) noexcept;
         private:
-            HCIStatusCode stopDiscoveryImpl(const bool forceDiscoveringEvent, const bool temporary);
+            HCIStatusCode stopDiscoveryImpl(const bool forceDiscoveringEvent, const bool temporary) noexcept;
 
         public:
             /**
@@ -1096,7 +1096,7 @@ namespace direct_bt {
              * @see startDiscovery()
              * @see isDiscovering()
              */
-            HCIStatusCode stopDiscovery();
+            HCIStatusCode stopDiscovery() noexcept;
 
             /**
              * Return the current DiscoveryPolicy, set via startDiscovery().

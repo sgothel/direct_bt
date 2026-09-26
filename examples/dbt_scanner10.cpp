@@ -39,6 +39,7 @@
 #include <jau/darray.hpp>
 
 #include <direct_bt/DirectBT.hpp>
+#include "jau/string_util.hpp"
 
 extern "C" {
     #include <unistd.h>
@@ -131,9 +132,14 @@ static bool KEEP_CONNECTED = true;
 static bool GATT_PING_ENABLED = false;
 static bool REMOVE_DEVICE = true;
 
+// NOLINTBEGIN(bugprone-throwing-static-initialization): memory required
+
 // Default from dbt_peripheral00.cpp or DBTPeripheral00.java
 static std::unique_ptr<uuid_t> cmd_uuid = jau::uuid_t::create(std::string("d0ca6bf3-3d52-4760-98e5-fc5883e93712"));
 static std::unique_ptr<uuid_t> cmd_rsp_uuid = jau::uuid_t::create(std::string("d0ca6bf3-3d53-4760-98e5-fc5883e93712"));
+
+// NOLINTEND(bugprone-throwing-static-initialization): memory required
+
 static uint8_t cmd_arg = 0x44;
 
 static bool SHOW_UPDATE_EVENTS = false;
@@ -147,8 +153,8 @@ static void removeDevice(BTDeviceRef device);
 static void resetAdapter(BTAdapter *a, int mode);
 static bool startDiscovery(BTAdapter *a, const std::string& msg);
 
-class MyAdapterStatusListener : public AdapterStatusListener {
-
+class MyAdapterStatusListener : public AdapterStatusListener { // NOLINT(misc-use-internal-linkage)
+  public:
     void adapterSettingsChanged(BTAdapter &a, const AdapterSetting oldmask, const AdapterSetting newmask,
                                 const AdapterSetting changedmask, const uint64_t timestamp) override {
         const bool initialSetting = AdapterSetting::NONE == oldmask;
@@ -307,7 +313,7 @@ class MyAdapterStatusListener : public AdapterStatusListener {
 
 static const uuid16_t _TEMPERATURE_MEASUREMENT(GattCharacteristicType::TEMPERATURE_MEASUREMENT);
 
-class MyGATTEventListener : public BTGattCharListener {
+class MyGATTEventListener : public BTGattCharListener { // NOLINT(misc-use-internal-linkage)
   private:
     int i, j;
 
@@ -758,7 +764,7 @@ int main(int argc, char *argv[])
         } else if( !strcmp("-quiet", argv[i]) ) {
             QUIET = true;
         } else if( !strcmp("-discoveryPolicy", argv[i]) ) {
-            discoveryPolicy = to_DiscoveryPolicy(atoi(argv[++i]));
+            jau::fromIntString(number_ref(discoveryPolicy), argv[++i]);
         } else if( !strcmp("-scanPassive", argv[i]) ) {
             le_scan_active = false;
         } else if( !strcmp("-btmode", argv[i]) && argc > (i+1) ) {
@@ -773,29 +779,29 @@ int main(int argc, char *argv[])
         } else if( !strcmp("-passkey", argv[i]) && argc > (i+2) ) {
             const std::string addrOrNameSub(argv[++i]);
             BTSecurityRegistry::Entry* sec = BTSecurityRegistry::getOrCreate(addrOrNameSub);
-            sec->passkey = atoi(argv[++i]);
-            jau_fprintf(stderr, "Set passkey in %s\n", sec->toString());
+            const bool ok = jau::fromIntString(sec->passkey, argv[++i]).b;
+            jau_fprintf(stderr, "Set passkey (ok %s) in %s\n", ok, sec->toString());
         } else if( !strcmp("-seclevel", argv[i]) && argc > (i+2) ) {
             const std::string addrOrNameSub(argv[++i]);
             BTSecurityRegistry::Entry* sec = BTSecurityRegistry::getOrCreate(addrOrNameSub);
-            sec->sec_level = to_BTSecurityLevel(atoi(argv[++i]));
-            jau_fprintf(stderr, "Set sec_level in %s\n", sec->toString());
+            const bool ok = jau::fromIntString(number_ref(sec->sec_level), argv[++i]).b;
+            jau_fprintf(stderr, "Set sec_level (ok %s) in %s\n", ok, sec->toString());
         } else if( !strcmp("-iocap", argv[i]) && argc > (i+2) ) {
             const std::string addrOrNameSub(argv[++i]);
             BTSecurityRegistry::Entry* sec = BTSecurityRegistry::getOrCreate(addrOrNameSub);
-            sec->io_cap = to_SMPIOCapability(atoi(argv[++i]));
-            jau_fprintf(stderr, "Set io_cap in %s\n", sec->toString());
+            const bool ok = jau::fromIntString(number_ref(sec->io_cap), argv[++i]).b;
+            jau_fprintf(stderr, "Set io_cap (ok %s) in %s\n", ok, sec->toString());
         } else if( !strcmp("-secauto", argv[i]) && argc > (i+2) ) {
             const std::string addrOrNameSub(argv[++i]);
             BTSecurityRegistry::Entry* sec = BTSecurityRegistry::getOrCreate(addrOrNameSub);
-            sec->io_cap_auto = to_SMPIOCapability(atoi(argv[++i]));
-            jau_fprintf(stderr, "Set SEC AUTO security io_cap in %s\n", sec->toString());
+            const bool ok = jau::fromIntString(number_ref(sec->io_cap_auto), argv[++i]).b;
+            jau_fprintf(stderr, "Set SEC AUTO security io_cap (ok %s) in %s\n", ok, sec->toString());
         } else if( !strcmp("-cmd", argv[i]) && argc > (i+1) ) {
             cmd_uuid = jau::uuid_t::create((std::string)argv[++i]);
         } else if( !strcmp("-cmdrsp", argv[i]) && argc > (i+1) ) {
             cmd_rsp_uuid = jau::uuid_t::create((std::string)argv[++i]);
         } else if( !strcmp("-cmdarg", argv[i]) && argc > (i+1) ) {
-            cmd_arg = (uint8_t)atoi(argv[++i]);
+            jau::fromIntString(cmd_arg, argv[++i]);
         } else if( !strcmp("-disconnect", argv[i]) ) {
             KEEP_CONNECTED = false;
         } else if( !strcmp("-enableGATTPing", argv[i]) ) {
@@ -803,11 +809,13 @@ int main(int argc, char *argv[])
         } else if( !strcmp("-keepDevice", argv[i]) ) {
             REMOVE_DEVICE = false;
         } else if( !strcmp("-count", argv[i]) && argc > (i+1) ) {
-            MULTI_MEASUREMENTS = atoi(argv[++i]);
+            int v=MULTI_MEASUREMENTS;
+            jau::fromIntString(v, argv[++i]);
+            MULTI_MEASUREMENTS = v;
         } else if( !strcmp("-single", argv[i]) ) {
             MULTI_MEASUREMENTS = -1;
         } else if( !strcmp("-resetEachCon", argv[i]) && argc > (i+1) ) {
-            RESET_ADAPTER_EACH_CONN = atoi(argv[++i]);
+            jau::fromIntString(RESET_ADAPTER_EACH_CONN, argv[++i]);
         }
     }
     jau_fprintf_td(stderr, "pid %d\n", getpid());

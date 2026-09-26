@@ -34,8 +34,12 @@
 
 using namespace direct_bt;
 
+// NOLINTBEGIN(bugprone-throwing-static-initialization, misc-definitions-in-headers): memory required
+
 // Singleton test framework, alive until test program ends
 static BaseDBTClientServer& base_test_framework = BaseDBTClientServer::get();
+
+// NOLINTEND(bugprone-throwing-static-initialization, misc-definitions-in-headers): memory required
 
 /**
  * Testing a full Bluetooth server and client lifecycle of operations, requiring two BT adapter:

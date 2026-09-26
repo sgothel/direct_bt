@@ -92,6 +92,8 @@ static bool KEEP_CONNECTED = true;
 static bool GATT_PING_ENABLED = false;
 static bool REMOVE_DEVICE = true;
 
+// NOLINTBEGIN(misc-use-internal-linkage, bugprone-throwing-static-initialization)
+
 // Avalun's LabPad Comman + Event UUID
 static std::unique_ptr<uuid_t> cmd_req_uuid = jau::uuid_t::create(std::string("2c1b2472-4a5f-11e5-9595-0002a5d5c51b"));
 static std::unique_ptr<uuid_t> cmd_rsp_uuid = jau::uuid_t::create(std::string("2c1b2473-4a5f-11e5-9595-0002a5d5c51b"));
@@ -110,6 +112,8 @@ static const POctets resp_exp(  { 0x00 /* rsp-idx-0 */,
                                   0xf6, 0x64, 0x17,
                                   0x01 /* rsp-idx-1 */, 0xed }, lb_endian_t::little );
 
+// NOLINTEND(misc-use-internal-linkage, bugprone-throwing-static-initialization)
+
 static bool SHOW_UPDATE_EVENTS = false;
 static bool QUIET = false;
 
@@ -121,7 +125,7 @@ static void removeDevice(BTDeviceRef device);
 static void resetAdapter(BTAdapter *a, int mode);
 static bool startDiscovery(BTAdapter *a, const std::string& msg);
 
-static DBGattServerRef dbGattServer( new DBGattServer(
+static DBGattServerRef dbGattServer( new DBGattServer( // NOLINT(misc-use-internal-linkage, bugprone-throwing-static-initialization)
         /* services: */
         jau::make_darray( // DBGattService
           std::make_shared<DBGattService> ( true /* primary */,
@@ -166,8 +170,8 @@ static DBGattServerRef dbGattServer( new DBGattServer(
               ) )
         ) ) );
 
-class MyAdapterStatusListener : public AdapterStatusListener {
-
+class MyAdapterStatusListener : public AdapterStatusListener { // NOLINT(misc-use-internal-linkage)
+  public:
     void adapterSettingsChanged(BTAdapter &a, const AdapterSetting oldmask, const AdapterSetting newmask,
                                 const AdapterSetting changedmask, const uint64_t timestamp) override {
         const bool initialSetting = AdapterSetting::NONE == oldmask;
@@ -327,7 +331,7 @@ class MyAdapterStatusListener : public AdapterStatusListener {
 
 static const uuid16_t _TEMPERATURE_MEASUREMENT(GattCharacteristicType::TEMPERATURE_MEASUREMENT);
 
-class MyGATTEventListener : public BTGattCharListener {
+class MyGATTEventListener : public BTGattCharListener { // NOLINT(misc-use-internal-linkage)
   private:
     int i, j;
 
@@ -820,7 +824,7 @@ int main(int argc, char *argv[])
         } else if( !strcmp("-quiet", argv[i]) ) {
             QUIET = true;
         } else if( !strcmp("-discoveryPolicy", argv[i]) ) {
-            discoveryPolicy = to_DiscoveryPolicy(atoi(argv[++i]));
+            jau::fromIntString(number_ref(discoveryPolicy), argv[++i]);
         } else if( !strcmp("-scanPassive", argv[i]) ) {
             le_scan_active = false;
         } else if( !strcmp("-btmode", argv[i]) && argc > (i+1) ) {
@@ -829,8 +833,8 @@ int main(int argc, char *argv[])
             useAdapter = EUI48( std::string(argv[++i]) );
         } else if( !strcmp("-passkey", argv[i]) && argc > (i+1) ) {
             BTSecurityRegistry::Entry* sec = BTSecurityRegistry::getOrCreate(dev_name_prefix);
-            sec->passkey = atoi(argv[++i]);
-            jau_fprintf(stderr, "Set passkey in %s\n", sec->toString());
+            const bool ok = jau::fromIntString(sec->passkey, argv[++i]).b;
+            jau_fprintf(stderr, "Set passkey (ok %s) in %s\n", ok, sec->toString());
         }
     }
     jau_fprintf_td(stderr, "pid %d\n", getpid());

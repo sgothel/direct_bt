@@ -107,6 +107,12 @@ void SMPHandler::smpReaderWork(jau::service_runner& sr) noexcept {
     len = l2cap.read(rbuffer.get_wptr(), rbuffer.size());
     if( 0 < len ) {
         std::unique_ptr<const SMPPDUMsg> smpPDU = SMPPDUMsg::getSpecialized(rbuffer.get_ptr(), static_cast<jau::nsize_t>(len));
+        if (!smpPDU) {
+            jau_ERR_PRINT3("IO RECV SMPPDUMsg Drop %zd bytes: %s - %s", len,
+                    jau::toHexString(rbuffer.get_ptr(), len, jau::lb_endian_t::little), getStateString());
+            sr.set_shall_stop();
+            return;
+        }
         const SMPPDUMsg::Opcode opc = smpPDU->getOpcode();
 
         if( SMPPDUMsg::Opcode::SECURITY_REQUEST == opc ) {

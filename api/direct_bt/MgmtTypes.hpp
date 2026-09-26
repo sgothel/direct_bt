@@ -1375,8 +1375,6 @@ namespace direct_bt {
 
             ~MgmtEvent() noexcept override = default;
 
-            jau::nsize_t getTotalSize() const noexcept { return pdu.size(); }
-
             Opcode getOpcode() const noexcept { return static_cast<Opcode>( pdu.get_uint16_nc(0) ); }
 
             virtual jau::nsize_t getDataOffset() const noexcept { return MGMT_HEADER_SIZE; }

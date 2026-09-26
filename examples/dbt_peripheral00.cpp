@@ -60,13 +60,11 @@ using namespace jau;
  *   ~~~
  */
 
-static uint64_t timestamp_t0;
-
 static EUI48 useAdapter = EUI48::ALL_DEVICE;
 static BTMode btMode = BTMode::DUAL;
 static bool use_SC = true;
-static std::string adapter_name = "TestDev001_N";
-static std::string adapter_short_name = "TDev001N";
+static std::string adapter_name = "TestDev001_N"; // NOLINT(bugprone-throwing-static-initialization)
+static std::string adapter_short_name = "TDev001N"; // NOLINT(bugprone-throwing-static-initialization)
 static std::shared_ptr<BTAdapter> chosenAdapter = nullptr;
 static BTSecurityLevel adapter_sec_level = BTSecurityLevel::UNSET;
 static SMPIOCapability adapter_sec_io_cap = SMPIOCapability::UNSET;
@@ -96,14 +94,16 @@ static bool matches(const BTDeviceRef& device) {
     return nullptr != d ? (*d) == *device : false;
 }
 
+// NOLINTBEGIN(bugprone-throwing-static-initialization)
 static const jau::uuid128_t DataServiceUUID = jau::uuid128_t("d0ca6bf3-3d50-4760-98e5-fc5883e93712");
 static const jau::uuid128_t StaticDataUUID  = jau::uuid128_t("d0ca6bf3-3d51-4760-98e5-fc5883e93712");
 static const jau::uuid128_t CommandUUID     = jau::uuid128_t("d0ca6bf3-3d52-4760-98e5-fc5883e93712");
 static const jau::uuid128_t ResponseUUID    = jau::uuid128_t("d0ca6bf3-3d53-4760-98e5-fc5883e93712");
 static const jau::uuid128_t PulseDataUUID   = jau::uuid128_t("d0ca6bf3-3d54-4760-98e5-fc5883e93712");
+// NOLINTEND(bugprone-throwing-static-initialization)
 
 // DBGattServerRef dbGattServer = std::make_shared<DBGattServer>(
-static DBGattServerRef dbGattServer( new DBGattServer(
+static DBGattServerRef dbGattServer( new DBGattServer( // NOLINT(bugprone-throwing-static-initialization)
         /* services: */
         jau::make_darray( // DBGattService
           std::make_shared<DBGattService> ( true /* primary */,
@@ -179,8 +179,8 @@ static DBGattServerRef dbGattServer( new DBGattServer(
         ) ) );
 
 
-class MyAdapterStatusListener : public AdapterStatusListener {
-
+class MyAdapterStatusListener : public AdapterStatusListener { // NOLINT(misc-use-internal-linkage)
+  public:
     void adapterSettingsChanged(BTAdapter &a, const AdapterSetting oldmask, const AdapterSetting newmask,
                                 const AdapterSetting changedmask, const uint64_t timestamp) override {
         const bool initialSetting = AdapterSetting::NONE == oldmask;
@@ -328,7 +328,7 @@ class MyAdapterStatusListener : public AdapterStatusListener {
 
 };
 
-class MyGATTServerListener : public DBGattServer::Listener {
+class MyGATTServerListener : public DBGattServer::Listener { // NOLINT(misc-use-internal-linkage)
     private:
         jau::service_runner pulse_service;
 
@@ -357,7 +357,7 @@ class MyGATTServerListener : public DBGattServer::Listener {
             const std::string connectedDeviceStr = nullptr != connectedDevice_ ? connectedDevice_->toString() : "n/a";
             jau_fprintf_td(stderr, "****** Server GATT::PULSE Start %s\n", connectedDeviceStr);
         }
-        void pulse_worker(jau::service_runner& sr) noexcept {
+        void pulse_worker(jau::service_runner& sr) {
             BTDeviceRef connectedDevice_ = getDevice();
             if( nullptr != connectedDevice_ && connectedDevice_->getConnected() ) {
                 if( 0 != handlePulseDataNotify || 0 != handlePulseDataIndicate ) {
@@ -700,8 +700,6 @@ static void myChangedAdapterSetFunc(const bool added, std::shared_ptr<BTAdapter>
 static void test() {
     const std::shared_ptr<BTManager>& mngr = BTManager::get();
 
-    timestamp_t0 = getCurrentMilliseconds();
-
     jau_fprintf_td(stderr, "****** Test Start\n");
 
     std::shared_ptr<MyGATTServerListener> listener = std::make_shared<MyGATTServerListener>();
@@ -755,7 +753,9 @@ int main(int argc, char *argv[])
         } else if( !strcmp("-btmode", argv[i]) && argc > (i+1) ) {
             btMode = to_BTMode(argv[++i]);
         } else if( !strcmp("-use_sc", argv[i]) && argc > (i+1) ) {
-            use_SC = 0 != atoi(argv[++i]);
+            int v = 0;
+            jau::fromIntString(v, argv[++i]);
+            use_SC = 0 != v;
         } else if( !strcmp("-adapter", argv[i]) && argc > (i+1) ) {
             useAdapter = EUI48( std::string(argv[++i]) );
         } else if( !strcmp("-name", argv[i]) && argc > (i+1) ) {
@@ -763,11 +763,13 @@ int main(int argc, char *argv[])
         } else if( !strcmp("-short_name", argv[i]) && argc > (i+1) ) {
             adapter_short_name = std::string(argv[++i]);
         } else if( !strcmp("-mtu", argv[i]) && argc > (i+1) ) {
-            dbGattServer->setMaxAttMTU( atoi(argv[++i]) );
+            uint16_t v = 512+1;
+            jau::fromIntString(v, argv[++i]);
+            dbGattServer->setMaxAttMTU( v );
         } else if( !strcmp("-seclevel", argv[i]) && argc > (i+1) ) {
-            adapter_sec_level = to_BTSecurityLevel(atoi(argv[++i]));
+            jau::fromIntString(number_ref(adapter_sec_level), argv[++i]);
         } else if( !strcmp("-iocap", argv[i]) && argc > (i+1) ) {
-            adapter_sec_io_cap = to_SMPIOCapability(atoi(argv[++i]));
+            jau::fromIntString(number_ref(adapter_sec_io_cap), argv[++i]);
         } else if( !strcmp("-once", argv[i]) ) {
             RUN_ONLY_ONCE = true;
         }

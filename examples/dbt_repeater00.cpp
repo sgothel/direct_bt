@@ -97,8 +97,10 @@ static const uint8_t adv_chan_map=0x07;
 //
 static EUI48 adapterToClientAddr = EUI48::ALL_DEVICE;
 static bool adapterToClientUseSC = true;
-static std::string adapterToClientName = "repeater0";
-static std::string adapterToClientShortName = "repeater0";
+
+static std::string adapterToClientName = "repeater0"; // NOLINT(bugprone-throwing-static-initialization)
+static std::string adapterToClientShortName = "repeater0"; // NOLINT(bugprone-throwing-static-initialization)
+
 static uint16_t max_att_mtu_to_client = 512+1;
 static BTSecurityLevel adapterToClientSecLevel = BTSecurityLevel::UNSET;
 static BTAdapterRef adapterToClient = nullptr;
@@ -116,8 +118,8 @@ static bool QUIET = false;
 // To Server Settings (acting as client)
 //
 
-class AdapterToServerStatusListener : public AdapterStatusListener {
-
+class AdapterToServerStatusListener : public AdapterStatusListener { // NOLINT(misc-use-internal-linkage)
+  public:
     void adapterSettingsChanged(BTAdapter &a, const AdapterSetting oldmask, const AdapterSetting newmask,
                                 const AdapterSetting changedmask, const uint64_t timestamp) override {
         const bool initialSetting = AdapterSetting::NONE == oldmask;
@@ -269,7 +271,7 @@ class AdapterToServerStatusListener : public AdapterStatusListener {
 
 };
 
-class NativeGattToServerCharListener : public BTGattHandler::NativeGattCharListener {
+class NativeGattToServerCharListener : public BTGattHandler::NativeGattCharListener { // NOLINT(misc-use-internal-linkage)
   public:
 
     NativeGattToServerCharListener() = default;
@@ -567,8 +569,8 @@ static bool initAdapterToServer(std::shared_ptr<BTAdapter>& adapter) {
 // To Client Settings (acting as server)
 //
 
-class AdapterToClientStatusListener : public AdapterStatusListener {
-
+class AdapterToClientStatusListener : public AdapterStatusListener { // NOLINT(misc-use-internal-linkage)
+  public:
     void adapterSettingsChanged(BTAdapter &a, const AdapterSetting oldmask, const AdapterSetting newmask,
                                 const AdapterSetting changedmask, const uint64_t timestamp) override {
         const bool initialSetting = AdapterSetting::NONE == oldmask;
@@ -930,20 +932,22 @@ int main(int argc, char *argv[])
         } else if( !strcmp("-quiet", argv[i]) ) {
             QUIET = true;
         } else if( !strcmp("-discoveryPolicy", argv[i]) ) {
-            discoveryPolicy = to_DiscoveryPolicy(atoi(argv[++i]));
+            jau::fromIntString(number_ref(discoveryPolicy), argv[++i]);
         } else if( !strcmp("-btmode", argv[i]) && argc > (i+1) ) {
             btMode = to_BTMode(argv[++i]);
         } else if( !strcmp("-use_sc", argv[i]) && argc > (i+1) ) {
-            adapterToClientUseSC = 0 != atoi(argv[++i]);
+            int v = 0;
+            jau::fromIntString(v, argv[++i]);
+            adapterToClientUseSC = 0 != v;
         } else if( !strcmp("-adapterToClient", argv[i]) && argc > (i+1) ) {
             adapterToClientAddr = EUI48( std::string(argv[++i]) );
         } else if( !strcmp("-nameToClient", argv[i]) && argc > (i+1) ) {
             adapterToClientName = std::string(argv[++i]);
         } else if( !strcmp("-mtuToClient", argv[i]) && argc > (i+1) ) {
-            max_att_mtu_to_client = atoi(argv[++i]);
+            jau::fromIntString(max_att_mtu_to_client, argv[++i]);
         } else if( !strcmp("-seclevelToClient", argv[i]) && argc > (i+1) ) {
-            adapterToClientSecLevel = to_BTSecurityLevel(atoi(argv[++i]));
-            jau_fprintf(stderr, "Set sec_level 2 client %s\n", adapterToClientSecLevel);
+            bool ok = jau::fromIntString(number_ref(adapterToClientSecLevel), argv[++i]).b;
+            jau_fprintf(stderr, "Set sec_level 2 (ok %s) client %s\n", ok, adapterToClientSecLevel);
         } else if( !strcmp("-adapterToServer", argv[i]) && argc > (i+1) ) {
             adapterToServerAddr = EUI48( std::string(argv[++i]) );
         } else if( !strcmp("-server", argv[i]) && argc > (i+1) ) {
@@ -952,25 +956,25 @@ int main(int argc, char *argv[])
         } else if( !strcmp("-passkeyToServer", argv[i]) && argc > (i+2) ) {
             const std::string addrOrNameSub(argv[++i]);
             BTSecurityRegistry::Entry* sec = BTSecurityRegistry::getOrCreate(addrOrNameSub);
-            sec->passkey = atoi(argv[++i]);
-            jau_fprintf(stderr, "Set passkey to server in %s\n", sec->toString());
+            const bool ok = jau::fromIntString(sec->passkey, argv[++i]).b;
+            jau_fprintf(stderr, "Set passkey to server (ok %s) in %s\n", ok, sec->toString());
         } else if( !strcmp("-seclevelToServer", argv[i]) && argc > (i+2) ) {
             const std::string addrOrNameSub(argv[++i]);
             BTSecurityRegistry::Entry* sec = BTSecurityRegistry::getOrCreate(addrOrNameSub);
-            sec->sec_level = to_BTSecurityLevel(atoi(argv[++i]));
-            jau_fprintf(stderr, "Set sec_level to server in %s\n", sec->toString());
+            const bool ok = jau::fromIntString(number_ref(sec->sec_level), argv[++i]).b;
+            jau_fprintf(stderr, "Set sec_level to server (ok %s) in %s\n", ok, sec->toString());
         } else if( !strcmp("-iocapToServer", argv[i]) && argc > (i+2) ) {
             const std::string addrOrNameSub(argv[++i]);
             BTSecurityRegistry::Entry* sec = BTSecurityRegistry::getOrCreate(addrOrNameSub);
-            sec->io_cap = to_SMPIOCapability(atoi(argv[++i]));
-            jau_fprintf(stderr, "Set io_cap to server in %s\n", sec->toString());
+            const bool ok = jau::fromIntString(number_ref(sec->io_cap), argv[++i]).b;
+            jau_fprintf(stderr, "Set io_cap to server (ok %s) in %s\n", ok, sec->toString());
         } else if( !strcmp("-secautoToServer", argv[i]) && argc > (i+2) ) {
             const std::string addrOrNameSub(argv[++i]);
             BTSecurityRegistry::Entry* sec = BTSecurityRegistry::getOrCreate(addrOrNameSub);
-            sec->io_cap_auto = to_SMPIOCapability(atoi(argv[++i]));
-            jau_fprintf(stderr, "Set SEC AUTO security io_cap to server in %s\n", sec->toString());
+            const bool ok = jau::fromIntString(number_ref(sec->io_cap_auto), argv[++i]).b;
+            jau_fprintf(stderr, "Set SEC AUTO security io_cap to server (ok %s) in %s\n", ok, sec->toString());
         } else if( !strcmp("-count", argv[i]) && argc > (i+1) ) {
-            MAX_SERVED_CONNECTIONS = atoi(argv[++i]);
+            jau::fromIntString(MAX_SERVED_CONNECTIONS, argv[++i]);
         }
     }
     jau_fprintf_td(stderr, "pid %d\n", getpid());

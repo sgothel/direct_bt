@@ -297,7 +297,7 @@ std::string GattCharacteristicSpec::toString() const noexcept {
         if(0<i) {
             jau::append_string(res, ", ");
         }
-        jau::append_string(res, propertySpec.at(i).toString());
+        jau::append_string(res, propertySpec[i].toString());
     }
     jau::append_string(res, "], ");
     jau::append_string(res, clientConfig.toString());

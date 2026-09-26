@@ -36,9 +36,11 @@
 
 using namespace direct_bt;
 
+// NOLINTBEGIN(bugprone-throwing-static-initialization): memory required
 const std::shared_ptr<jau::uuid_t> BTGattDesc::TYPE_EXT_PROP( std::make_shared<jau::uuid16_t>(Type::CHARACTERISTIC_EXTENDED_PROPERTIES) );
 const std::shared_ptr<jau::uuid_t> BTGattDesc::TYPE_USER_DESC( std::make_shared<jau::uuid16_t>(Type::CHARACTERISTIC_USER_DESCRIPTION) );
 const std::shared_ptr<jau::uuid_t> BTGattDesc::TYPE_CCC_DESC( std::make_shared<jau::uuid16_t>(Type::CLIENT_CHARACTERISTIC_CONFIGURATION) );
+// NOLINTEND(bugprone-throwing-static-initialization): memory required
 
 std::shared_ptr<BTGattChar> BTGattDesc::getGattCharChecked() const {
     std::shared_ptr<BTGattChar> ref = wbr_char.lock();

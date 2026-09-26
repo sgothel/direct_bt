@@ -54,7 +54,7 @@ extern "C" {
 
 using namespace direct_bt;
 
-class NopGattServerHandler : public BTGattHandler::GattServerHandler {
+class NopGattServerHandler : public BTGattHandler::GattServerHandler { // NOLINT(misc-use-internal-linkage)
     private:
         void close_impl() noexcept {}
 
@@ -103,7 +103,7 @@ class NopGattServerHandler : public BTGattHandler::GattServerHandler {
         }
 };
 
-class DBGattServerHandler : public BTGattHandler::GattServerHandler {
+class DBGattServerHandler : public BTGattHandler::GattServerHandler { // NOLINT(misc-use-internal-linkage)
     private:
         BTGattHandler& gh;
         DBGattServerRef gattServerData;
@@ -994,7 +994,7 @@ class DBGattServerHandler : public BTGattHandler::GattServerHandler {
         }
 };
 
-class FwdGattServerHandler : public BTGattHandler::GattServerHandler {
+class FwdGattServerHandler : public BTGattHandler::GattServerHandler { // NOLINT(misc-use-internal-linkage)
     private:
         BTGattHandler& gh;
         BTDeviceRef fwdServer;

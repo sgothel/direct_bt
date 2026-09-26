@@ -57,6 +57,8 @@ namespace direct_bt {
         MASTER_IDENTIFICATION, IDENTITY_INFORMATION, IDENTITY_ADDRESS_INFORMATION, SIGNING_INFORMATION, SECURITY_REQUEST,
         PAIRING_PUBLIC_KEY, PAIRING_DHKEY_CHECK, PAIRING_KEYPRESS_NOTIFICATION);
 
+    JAU_MAKE_ENUM_STRING2_CODE(SMPPasskeyNotification::TypeCode, TypeCode,
+        PASSKEY_ENTRY_STARTED, PASSKEY_DIGIT_ENTERED, PASSKEY_DIGIT_ERASED, PASSKEY_CLEARED, PASSKEY_ENTRY_COMPLETED);
 }  // namespace direct_bt
 
 std::string SMPLongTermKey::toString() const noexcept { // hex-fmt aligned with btmon
@@ -136,7 +138,7 @@ std::string SMPPairDHKeyCheckMsg::valueString() const noexcept {
 
 std::string SMPPasskeyNotification::valueString() const noexcept {
     const TypeCode v = getTypeCode();
-    return jau_format_string("%#x:%s", v, getTypeCodeString(v));
+    return jau_format_string("%#x:%s", *v, v);
 }
 
 std::string SMPEncInfoMsg::valueString() const noexcept { // hex-fmt aligned with btmon
@@ -352,7 +354,7 @@ std::string SMPLinkKey::getTypeString(const KeyType type) noexcept { return to_s
 
 std::string SMPPDUMsg::getOpcodeString(const Opcode opc) noexcept { return to_string(opc); }
 
-std::string SMPPairFailedMsg::getReasonCodeString(const ReasonCode reasonCode) noexcept {
+std::string_view SMPPairFailedMsg::getReasonCodeString(const ReasonCode reasonCode) noexcept {
     switch(reasonCode) {
         case ReasonCode::UNDEFINED: return "Undefined";
         case ReasonCode::PASSKEY_ENTRY_FAILED: return "Passkey Entry Failed";
@@ -374,40 +376,28 @@ std::string SMPPairFailedMsg::getReasonCodeString(const ReasonCode reasonCode) n
     return "Reason reserved for future use";
 }
 
-#define TYPECODE_ENUM(X) \
-    X(PASSKEY_ENTRY_STARTED) \
-    X(PASSKEY_DIGIT_ENTERED) \
-    X(PASSKEY_DIGIT_ERASED) \
-    X(PASSKEY_CLEARED) \
-    X(PASSKEY_ENTRY_COMPLETED)
-
-#define CASE_TO_STRING_TYPECODE(V) case TypeCode::V: return #V;
-
-std::string SMPPasskeyNotification::getTypeCodeString(const TypeCode tc) noexcept {
-    switch(tc) {
-        TYPECODE_ENUM(CASE_TO_STRING_TYPECODE)
-        default: ; // fall through intended
-    }
-    return "Unknown TypeCode";
-}
-
 std::unique_ptr<const SMPPDUMsg> SMPPDUMsg::getSpecialized(const uint8_t * buffer, jau::nsize_t const buffer_size) noexcept {
     const SMPPDUMsg::Opcode opc = static_cast<SMPPDUMsg::Opcode>(*buffer);
-    switch( opc ) {
-        case Opcode::PAIRING_REQUEST:               return std::make_unique<SMPPairingMsg>(true /* request */, buffer, buffer_size);
-        case Opcode::PAIRING_RESPONSE:              return std::make_unique<SMPPairingMsg>(false /* request */, buffer, buffer_size);
-        case Opcode::PAIRING_CONFIRM:               return std::make_unique<SMPPairConfirmMsg>(buffer, buffer_size);
-        case Opcode::PAIRING_RANDOM:                return std::make_unique<SMPPairRandMsg>(buffer, buffer_size);
-        case Opcode::PAIRING_FAILED:                return std::make_unique<SMPPairFailedMsg>(buffer, buffer_size);
-        case Opcode::ENCRYPTION_INFORMATION:        return std::make_unique<SMPEncInfoMsg>(buffer, buffer_size);
-        case Opcode::MASTER_IDENTIFICATION:         return std::make_unique<SMPMasterIdentMsg>(buffer, buffer_size);
-        case Opcode::IDENTITY_INFORMATION:          return std::make_unique<SMPIdentInfoMsg>(buffer, buffer_size);
-        case Opcode::IDENTITY_ADDRESS_INFORMATION:  return std::make_unique<SMPIdentAddrInfoMsg>(buffer, buffer_size);
-        case Opcode::SIGNING_INFORMATION:           return std::make_unique<SMPSignInfoMsg>(buffer, buffer_size);
-        case Opcode::SECURITY_REQUEST:              return std::make_unique<SMPSecurityReqMsg>(buffer, buffer_size);
-        case Opcode::PAIRING_PUBLIC_KEY:            return std::make_unique<SMPPairPubKeyMsg>(buffer, buffer_size);
-        case Opcode::PAIRING_DHKEY_CHECK:           return std::make_unique<SMPPairDHKeyCheckMsg>(buffer, buffer_size);
-        case Opcode::PAIRING_KEYPRESS_NOTIFICATION: return std::make_unique<SMPPasskeyNotification>(buffer, buffer_size);
-        default:                                    return std::make_unique<SMPPDUMsg>(buffer, buffer_size);
+    try {
+        switch( opc ) {
+            case Opcode::PAIRING_REQUEST:               return std::make_unique<SMPPairingMsg>(true /* request */, buffer, buffer_size);
+            case Opcode::PAIRING_RESPONSE:              return std::make_unique<SMPPairingMsg>(false /* request */, buffer, buffer_size);
+            case Opcode::PAIRING_CONFIRM:               return std::make_unique<SMPPairConfirmMsg>(buffer, buffer_size);
+            case Opcode::PAIRING_RANDOM:                return std::make_unique<SMPPairRandMsg>(buffer, buffer_size);
+            case Opcode::PAIRING_FAILED:                return std::make_unique<SMPPairFailedMsg>(buffer, buffer_size);
+            case Opcode::ENCRYPTION_INFORMATION:        return std::make_unique<SMPEncInfoMsg>(buffer, buffer_size);
+            case Opcode::MASTER_IDENTIFICATION:         return std::make_unique<SMPMasterIdentMsg>(buffer, buffer_size);
+            case Opcode::IDENTITY_INFORMATION:          return std::make_unique<SMPIdentInfoMsg>(buffer, buffer_size);
+            case Opcode::IDENTITY_ADDRESS_INFORMATION:  return std::make_unique<SMPIdentAddrInfoMsg>(buffer, buffer_size);
+            case Opcode::SIGNING_INFORMATION:           return std::make_unique<SMPSignInfoMsg>(buffer, buffer_size);
+            case Opcode::SECURITY_REQUEST:              return std::make_unique<SMPSecurityReqMsg>(buffer, buffer_size);
+            case Opcode::PAIRING_PUBLIC_KEY:            return std::make_unique<SMPPairPubKeyMsg>(buffer, buffer_size);
+            case Opcode::PAIRING_DHKEY_CHECK:           return std::make_unique<SMPPairDHKeyCheckMsg>(buffer, buffer_size);
+            case Opcode::PAIRING_KEYPRESS_NOTIFICATION: return std::make_unique<SMPPasskeyNotification>(buffer, buffer_size);
+            default:                                    return std::make_unique<SMPPDUMsg>(buffer, buffer_size);
+        }
+    } catch (...) {
+        jau::fput_exception(stderr, std::current_exception(), E_FILE_LINE);
     }
+    return nullptr;
 }

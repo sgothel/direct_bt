@@ -217,10 +217,13 @@ EIRDataType BTDevice::update(EInfoReport const & data) {
     btRole = !adapter.getRole(); // update role
 
     // Update eir CoW style
-    std::shared_ptr<EInfoReport> eir_new( std::make_shared<EInfoReport>( *eir ) );
-    EIRDataType res0 = eir_new->set(data);
-    if( EIRDataType::NONE != res0 ) {
-        eir = eir_new;
+    EIRDataType res0;
+    {
+        std::shared_ptr<EInfoReport> eir_new( std::make_shared<EInfoReport>( *eir ) );
+        res0 = eir_new->set(data);
+        if( EIRDataType::NONE != res0 ) {
+            eir = std::move(eir_new);
+        }
     }
     if( EInfoReport::Source::AD_IND ==  data.getSource() ) {
         eir_ind = std::make_shared<EInfoReport>( data );
@@ -285,7 +288,7 @@ EIRDataType BTDevice::update(GattGenericAccessSvc const &data, const uint64_t ti
         mod = true;
     }
     if( mod ) {
-        eir = eir_new;
+        eir = std::move(eir_new);
     }
     return res;
 }
@@ -2525,9 +2528,14 @@ exit:
         // or in case the hci->disconnect() itself fails,
         // send the DISCONN_COMPLETE event directly.
         // SEND_EVENT: Perform off-thread to avoid potential deadlock w/ application callbacks (similar when sent from HCIHandler's reader-thread)
-        std::thread bg(&BTDevice::sendMgmtEvDeviceDisconnected, this, // @suppress("Invalid arguments")
-                       std::make_unique<MgmtEvtDeviceDisconnected>(adapter.dev_id, addressAndType, reason, hciConnHandle) );
-        bg.detach();
+        try {
+            std::thread bg(&BTDevice::sendMgmtEvDeviceDisconnected, this, // @suppress("Invalid arguments")
+                           std::make_unique<MgmtEvtDeviceDisconnected>(adapter.dev_id, addressAndType, reason, hciConnHandle) );
+            bg.detach();
+        } catch( ... ) {
+            jau::fput_exception(stderr, std::current_exception(), E_FILE_LINE);
+            jau_ERR_PRINT3("Exception caught while launching sendMgmtEvDeviceDisconnected thread for %s", toString());
+        }
         // adapter.mgmtEvDeviceDisconnectedHCI( std::unique_ptr<MgmtEvent>( new MgmtEvtDeviceDisconnected(adapter.dev_id, address, addressType, reason, hciConnHandle) ) );
     }
     jau_WORDY_PRINT("BTDevice::disconnect: End: status %s, handle 0x%X, isConnected %d/%d on %s",

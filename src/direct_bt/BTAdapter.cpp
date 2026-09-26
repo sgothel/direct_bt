@@ -1015,7 +1015,7 @@ bool BTAdapter::removeDeviceFromWhitelist(const BDAddressAndType & addressAndTyp
     return mgmt->removeDeviceFromWhitelist(dev_id, addressAndType);
 }
 
-BTAdapter::statusListenerList_t::equal_comparator BTAdapter::adapterStatusListenerRefEqComparator =
+BTAdapter::statusListenerList_t::equal_comparator BTAdapter::adapterStatusListenerRefEqComparator = // NOLINT(bugprone-throwing-static-initialization)
         [](const StatusListenerPair &a, const StatusListenerPair &b) noexcept -> bool { return *a.listener == *b.listener; };
 
 bool BTAdapter::addStatusListener(const AdapterStatusListenerRef& l) {
@@ -1290,13 +1290,13 @@ void BTAdapter::discoveryServerWork(jau::service_runner& sr) noexcept {
     }
 }
 
-HCIStatusCode BTAdapter::stopDiscovery() {
+HCIStatusCode BTAdapter::stopDiscovery() noexcept {
     clearDevicesPausingDiscovery();
 
     return stopDiscoveryImpl(false /* forceDiscoveringEvent */, false /* temporary */);
 }
 
-HCIStatusCode BTAdapter::stopDiscoveryImpl(const bool forceDiscoveringEvent, const bool temporary) {
+HCIStatusCode BTAdapter::stopDiscoveryImpl(const bool forceDiscoveringEvent, const bool temporary) noexcept {
     // We allow !isEnabled, to utilize method for adjusting discovery state and notifying listeners
     // FIXME: Respect BTAdapter::btMode, i.e. BTMode::BREDR, BTMode::LE or BTMode::DUAL to stop BREDR, LE or DUAL scanning!
 
@@ -1367,10 +1367,14 @@ exit:
         hci.setCurrentScanType( ScanType::NONE );
     }
     if( le_scan_temp_disabled || forceDiscoveringEvent || HCIStatusCode::SUCCESS != status ) {
-        // In case of discoveryTempDisabled, power-off, le_enable_scan failure
-        // or already closed HCIHandler, send the event directly.
-        const MgmtEvtDiscovering e(dev_id, ScanType::LE, false);
-        mgmtEvDeviceDiscoveringHCI( e );
+        try {
+            // In case of discoveryTempDisabled, power-off, le_enable_scan failure
+            // or already closed HCIHandler, send the event directly.
+            const MgmtEvtDiscovering e(dev_id, ScanType::LE, false);
+            mgmtEvDeviceDiscoveringHCI( e );
+        } catch (...) {
+            jau::fput_exception(stderr, std::current_exception(), E_FILE_LINE);
+        }        
     }
     if( _print_device_lists || jau::environment::get().verbose ) {
         jau_PLAIN_PRINT(true, "BTAdapter::stopDiscovery: End: Result %s, policy %s, currentScanType[native %s, meta %s], le_scan_temp_disabled %d ...\n- %s",

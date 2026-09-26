@@ -87,7 +87,7 @@ std::string direct_bt::to_string(const DBGattServer::Mode m) noexcept {
     return "Unknown mode";
 }
 
-static jau::cow_darray<DBGattServer::ListenerRef>::equal_comparator _listenerRefEqComparator =
+static jau::cow_darray<DBGattServer::ListenerRef>::equal_comparator _listenerRefEqComparator = // NOLINT(bugprone-throwing-static-initialization): memory required
         [](const DBGattServer::ListenerRef &a, const DBGattServer::ListenerRef &b) noexcept -> bool { return *a == *b; };
 
 bool DBGattServer::addListener(const ListenerRef& l) {

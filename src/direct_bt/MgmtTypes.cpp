@@ -35,6 +35,7 @@
 
 #include "MgmtTypes.hpp"
 #include "BTTypes1.hpp"
+#include "jau/cpp_lang_util.hpp"
 #include "jau/string_util.hpp"
 
 extern "C" {
@@ -169,7 +170,7 @@ std::string MgmtLoadLinkKeyCmd::valueString() const noexcept {
         if( 0 < i ) {
             jau::append_string(res, ", ");
         }
-        jau::append_string(res, getLinkKey(i).toString());
+        jau::do_noexcept([&]() { jau::append_string(res, getLinkKey(i).toString()); });
     }
     jau_append_string(res, "]], tsz %zu", getTotalSize());
     return res;
@@ -182,7 +183,7 @@ std::string MgmtLoadLongTermKeyCmd::valueString() const noexcept {
         if( 0 < i ) {
             jau::append_string(res, ", ");
         }
-        jau::append_string(res, getLongTermKey(i).toString());
+        jau::do_noexcept([&]() { jau::append_string(res, getLongTermKey(i).toString()); });
     }
     jau_append_string(res, "]], tsz %zu", getTotalSize());
     return res;
@@ -195,7 +196,7 @@ std::string MgmtIdentityResolveKeyCmd::valueString() const noexcept {
         if( 0 < i ) {
             jau::append_string(res, ", ");
         }
-        jau::append_string(res, getLongTermKey(i).toString());
+        jau::do_noexcept([&]() { jau::append_string(res, getLongTermKey(i).toString()); });
     }
     jau_append_string(res, "]], tsz %zu", getTotalSize());
     return res;
@@ -213,7 +214,7 @@ std::string MgmtLoadIdentityResolvingKeyCmd::valueString() const noexcept {
         if( 0 < i ) {
             jau::append_string(res, ", ");
         }
-        jau::append_string(res, getIdentityResolvingKey(i).toString());
+        jau::do_noexcept([&]() { jau::append_string(res, getIdentityResolvingKey(i).toString()); });
     }
     jau_append_string(res, "]], tsz %zu", getTotalSize());
     return res;
@@ -256,7 +257,7 @@ std::string MgmtLoadConnParamCmd::valueString() const noexcept {
         if( 0 < i ) {
             jau::append_string(res, ", ");
         }
-        jau::append_string(res, getConnParam(i).toString());
+        jau::do_noexcept([&]() { jau::append_string(res, getConnParam(i).toString()); });
     }
     jau_append_string(res, "]], tsz %zu", getTotalSize());
     return res;
@@ -278,7 +279,7 @@ std::string MgmtSetDefaultConnParamCmd::valueString() const noexcept {
         if( 0 < i ) {
             jau::append_string(res, ", ");
         }
-        jau::append_string(res, getDefaultParam(i).toString());
+        jau::do_noexcept([&]() { jau::append_string(res, getDefaultParam(i).toString()); });
     }
     jau_append_string(res, "]], tsz %zu", getTotalSize());
     return res;
@@ -534,71 +535,76 @@ std::vector<MgmtDefaultParam> MgmtReadDefaultSysParamCmd::getParams(const uint8_
 
 std::unique_ptr<MgmtEvent> MgmtEvent::getSpecialized(const uint8_t * buffer, jau::nsize_t const buffer_size) noexcept {
     const MgmtEvent::Opcode opc = MgmtEvent::getOpcode(buffer);
-    switch( opc ) {
-        case MgmtEvent::Opcode::CMD_COMPLETE: {
-            const MgmtCommand::Opcode cmdOpcode = MgmtEvtCmdComplete::getCmdOpcode(buffer);
+    try {
+        switch( opc ) {
+            case MgmtEvent::Opcode::CMD_COMPLETE: {
+                const MgmtCommand::Opcode cmdOpcode = MgmtEvtCmdComplete::getCmdOpcode(buffer);
 
-            if( buffer_size >= MgmtEvtAdapterInfo::getRequiredTotalSize() &&
-                MgmtCommand::Opcode::READ_INFO == cmdOpcode ) {
-                return std::make_unique<MgmtEvtAdapterInfo>(buffer, buffer_size);
-            } else if( buffer_size >= MgmtEvtPairDeviceComplete::getRequiredTotalSize() &&
-                       MgmtCommand::Opcode::PAIR_DEVICE == cmdOpcode ) {
-                return std::make_unique<MgmtEvtPairDeviceComplete>(buffer, buffer_size);
-            } else {
-                return std::make_unique<MgmtEvtCmdComplete>(buffer, buffer_size);
+                if( buffer_size >= MgmtEvtAdapterInfo::getRequiredTotalSize() &&
+                    MgmtCommand::Opcode::READ_INFO == cmdOpcode ) {
+                    return std::make_unique<MgmtEvtAdapterInfo>(buffer, buffer_size);
+                } else if( buffer_size >= MgmtEvtPairDeviceComplete::getRequiredTotalSize() &&
+                           MgmtCommand::Opcode::PAIR_DEVICE == cmdOpcode ) {
+                    return std::make_unique<MgmtEvtPairDeviceComplete>(buffer, buffer_size);
+                } else {
+                    return std::make_unique<MgmtEvtCmdComplete>(buffer, buffer_size);
+                }
             }
+            case MgmtEvent::Opcode::CMD_STATUS:
+                return std::make_unique<MgmtEvtCmdStatus>(buffer, buffer_size);
+            case MgmtEvent::Opcode::CONTROLLER_ERROR:
+                return std::make_unique<MgmtEvtControllerError>(buffer, buffer_size);
+            case MgmtEvent::Opcode::INDEX_ADDED:
+                return std::make_unique<MgmtEvent>(buffer, buffer_size, 0);
+            case MgmtEvent::Opcode::INDEX_REMOVED:
+                return std::make_unique<MgmtEvent>(buffer, buffer_size, 0);
+            case MgmtEvent::Opcode::NEW_SETTINGS:
+                return std::make_unique<MgmtEvtNewSettings>(buffer, buffer_size);
+            case MgmtEvent::Opcode::LOCAL_NAME_CHANGED:
+                return std::make_unique<MgmtEvtLocalNameChanged>(buffer, buffer_size);
+            case Opcode::NEW_LINK_KEY:
+                return std::make_unique<MgmtEvtNewLinkKey>(buffer, buffer_size);
+            case Opcode::NEW_LONG_TERM_KEY:
+                return std::make_unique<MgmtEvtNewLongTermKey>(buffer, buffer_size);
+            case MgmtEvent::Opcode::DEVICE_CONNECTED:
+                return std::make_unique<MgmtEvtDeviceConnected>(buffer, buffer_size);
+            case MgmtEvent::Opcode::DEVICE_DISCONNECTED:
+                return std::make_unique<MgmtEvtDeviceDisconnected>(buffer, buffer_size);
+            case MgmtEvent::Opcode::CONNECT_FAILED:
+                return std::make_unique<MgmtEvtDeviceConnectFailed>(buffer, buffer_size);
+            case MgmtEvent::Opcode::PIN_CODE_REQUEST:
+                return std::make_unique<MgmtEvtPinCodeRequest>(buffer, buffer_size);
+            case MgmtEvent::Opcode::USER_CONFIRM_REQUEST:
+                return std::make_unique<MgmtEvtUserConfirmRequest>(buffer, buffer_size);
+            case MgmtEvent::Opcode::USER_PASSKEY_REQUEST:
+                return std::make_unique<MgmtEvtUserPasskeyRequest>(buffer, buffer_size);
+            case MgmtEvent::Opcode::PASSKEY_NOTIFY:
+                return std::make_unique<MgmtEvtPasskeyNotify>(buffer, buffer_size);
+            case Opcode::AUTH_FAILED:
+                return std::make_unique<MgmtEvtAuthFailed>(buffer, buffer_size);
+            case MgmtEvent::Opcode::DEVICE_FOUND:
+                return std::make_unique<MgmtEvtDeviceFound>(buffer, buffer_size);
+            case MgmtEvent::Opcode::DISCOVERING:
+                return std::make_unique<MgmtEvtDiscovering>(buffer, buffer_size);
+            case MgmtEvent::Opcode::DEVICE_UNPAIRED:
+                return std::make_unique<MgmtEvtDeviceUnpaired>(buffer, buffer_size);
+            case Opcode::NEW_IRK:
+                return std::make_unique<MgmtEvtNewIdentityResolvingKey>(buffer, buffer_size);
+            case Opcode::NEW_CSRK:
+                return std::make_unique<MgmtEvtNewSignatureResolvingKey>(buffer, buffer_size);
+            case MgmtEvent::Opcode::DEVICE_WHITELIST_ADDED:
+                return std::make_unique<MgmtEvtDeviceWhitelistAdded>(buffer, buffer_size);
+            case MgmtEvent::Opcode::DEVICE_WHITELIST_REMOVED:
+                return std::make_unique<MgmtEvtDeviceWhitelistRemoved>(buffer, buffer_size);
+            case MgmtEvent::Opcode::NEW_CONN_PARAM:
+                return std::make_unique<MgmtEvtNewConnectionParam>(buffer, buffer_size);
+            default:
+                return std::make_unique<MgmtEvent>(buffer, buffer_size, 0);
         }
-        case MgmtEvent::Opcode::CMD_STATUS:
-            return std::make_unique<MgmtEvtCmdStatus>(buffer, buffer_size);
-        case MgmtEvent::Opcode::CONTROLLER_ERROR:
-            return std::make_unique<MgmtEvtControllerError>(buffer, buffer_size);
-        case MgmtEvent::Opcode::INDEX_ADDED:
-            return std::make_unique<MgmtEvent>(buffer, buffer_size, 0);
-        case MgmtEvent::Opcode::INDEX_REMOVED:
-            return std::make_unique<MgmtEvent>(buffer, buffer_size, 0);
-        case MgmtEvent::Opcode::NEW_SETTINGS:
-            return std::make_unique<MgmtEvtNewSettings>(buffer, buffer_size);
-        case MgmtEvent::Opcode::LOCAL_NAME_CHANGED:
-            return std::make_unique<MgmtEvtLocalNameChanged>(buffer, buffer_size);
-        case Opcode::NEW_LINK_KEY:
-            return std::make_unique<MgmtEvtNewLinkKey>(buffer, buffer_size);
-        case Opcode::NEW_LONG_TERM_KEY:
-            return std::make_unique<MgmtEvtNewLongTermKey>(buffer, buffer_size);
-        case MgmtEvent::Opcode::DEVICE_CONNECTED:
-            return std::make_unique<MgmtEvtDeviceConnected>(buffer, buffer_size);
-        case MgmtEvent::Opcode::DEVICE_DISCONNECTED:
-            return std::make_unique<MgmtEvtDeviceDisconnected>(buffer, buffer_size);
-        case MgmtEvent::Opcode::CONNECT_FAILED:
-            return std::make_unique<MgmtEvtDeviceConnectFailed>(buffer, buffer_size);
-        case MgmtEvent::Opcode::PIN_CODE_REQUEST:
-            return std::make_unique<MgmtEvtPinCodeRequest>(buffer, buffer_size);
-        case MgmtEvent::Opcode::USER_CONFIRM_REQUEST:
-            return std::make_unique<MgmtEvtUserConfirmRequest>(buffer, buffer_size);
-        case MgmtEvent::Opcode::USER_PASSKEY_REQUEST:
-            return std::make_unique<MgmtEvtUserPasskeyRequest>(buffer, buffer_size);
-        case MgmtEvent::Opcode::PASSKEY_NOTIFY:
-            return std::make_unique<MgmtEvtPasskeyNotify>(buffer, buffer_size);
-        case Opcode::AUTH_FAILED:
-            return std::make_unique<MgmtEvtAuthFailed>(buffer, buffer_size);
-        case MgmtEvent::Opcode::DEVICE_FOUND:
-            return std::make_unique<MgmtEvtDeviceFound>(buffer, buffer_size);
-        case MgmtEvent::Opcode::DISCOVERING:
-            return std::make_unique<MgmtEvtDiscovering>(buffer, buffer_size);
-        case MgmtEvent::Opcode::DEVICE_UNPAIRED:
-            return std::make_unique<MgmtEvtDeviceUnpaired>(buffer, buffer_size);
-        case Opcode::NEW_IRK:
-            return std::make_unique<MgmtEvtNewIdentityResolvingKey>(buffer, buffer_size);
-        case Opcode::NEW_CSRK:
-            return std::make_unique<MgmtEvtNewSignatureResolvingKey>(buffer, buffer_size);
-        case MgmtEvent::Opcode::DEVICE_WHITELIST_ADDED:
-            return std::make_unique<MgmtEvtDeviceWhitelistAdded>(buffer, buffer_size);
-        case MgmtEvent::Opcode::DEVICE_WHITELIST_REMOVED:
-            return std::make_unique<MgmtEvtDeviceWhitelistRemoved>(buffer, buffer_size);
-        case MgmtEvent::Opcode::NEW_CONN_PARAM:
-            return std::make_unique<MgmtEvtNewConnectionParam>(buffer, buffer_size);
-        default:
-            return std::make_unique<MgmtEvent>(buffer, buffer_size, 0);
+    } catch (...) {
+        jau::fput_exception(stderr, std::current_exception(), E_FILE_LINE);
     }
+    return nullptr;
 }
 
 // *************************************************
@@ -784,3 +790,4 @@ HCIStatusCode direct_bt::to_HCIStatusCode(const MgmtStatus mstatus) noexcept {
             return HCIStatusCode::UNKNOWN;
     }
 }
+

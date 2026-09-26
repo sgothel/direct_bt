@@ -35,8 +35,12 @@
 
 using namespace direct_bt;
 
+// NOLINTBEGIN(bugprone-throwing-static-initialization): memory required
+
 // Singleton test framework, alive until test program ends
 static BaseDBTClientServer& base_test_framework = BaseDBTClientServer::get( false /* btmanager_hold_and_close */ );
+
+// NOLINTEND(bugprone-throwing-static-initialization): memory required
 
 /**
  * Testing BTManager bring up:

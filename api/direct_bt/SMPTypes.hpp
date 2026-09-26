@@ -1217,7 +1217,7 @@ namespace direct_bt {
                 BREDR_PAIRING_IN_PROGRESS   = 0x0D,
                 CROSSXPORT_KEY_DERIGEN_NOT_ALLOWED = 0x0E
             };
-            static std::string getReasonCodeString(const ReasonCode reasonCode) noexcept;
+            static std::string_view getReasonCodeString(const ReasonCode reasonCode) noexcept;
 
             SMPPairFailedMsg(const uint8_t* source, const jau::nsize_t length)
             : SMPPDUMsg(source, length)
@@ -1393,7 +1393,6 @@ namespace direct_bt {
                 PASSKEY_CLEARED             = 0x03,
                 PASSKEY_ENTRY_COMPLETED     = 0x04
             };
-            static std::string getTypeCodeString(const TypeCode tc) noexcept;
 
             SMPPasskeyNotification(const uint8_t* source, const jau::nsize_t length)
             : SMPPDUMsg(source, length)
@@ -1424,6 +1423,7 @@ namespace direct_bt {
         protected:
             std::string valueString() const noexcept override;
     };
+    JAU_MAKE_ENUM_STRING2_DECL(SMPPasskeyNotification::TypeCode);
 
     /**
      * Vol 3, Part H: 3.6.2 Encryption Information message.

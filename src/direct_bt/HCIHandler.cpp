@@ -73,7 +73,7 @@ HCIEnv::HCIEnv() noexcept
 {
 }
 
-__pack( struct hci_rp_status {
+__pack( struct hci_rp_status { // NOLINT(misc-use-internal-linkage)
     __u8    status;
 } );
 
@@ -516,8 +516,8 @@ void HCIHandler::hciReaderWork(jau::service_runner& sr) noexcept {
         if( HCIPacketType::COMMAND == pc ) {
             std::unique_ptr<HCICommand> event = HCICommand::getSpecialized(rbuffer.get_ptr(), len2);
             if( nullptr == event ) {
-                // not a valid event ...
-                jau_ERR_PRINT("IO RECV CMD Drop (non-command) %s - %s",
+                // not a valid command ...
+                jau_ERR_PRINT3("IO RECV HCICommand Drop %zu bytes: %s - %s", len2,
                         jau::toHexString(rbuffer.get_ptr(), len2, jau::lb_endian_t::little), toString());
                 return;
             }
@@ -541,8 +541,8 @@ void HCIHandler::hciReaderWork(jau::service_runner& sr) noexcept {
         std::unique_ptr<HCIEvent> event = HCIEvent::getSpecialized(rbuffer.get_ptr(), len2);
         if( nullptr == event ) {
             // not a valid event ...
-            jau_ERR_PRINT("IO RECV EVT Drop (non-event) %s - %s",
-                    jau::toHexString(rbuffer.get_ptr(), len2, jau::lb_endian_t::little), toString());
+            jau_ERR_PRINT3("IO RECV HCIEvent Drop %zu bytes: %s - %s", len,
+                    jau::toHexString(rbuffer.get_ptr(), len, jau::lb_endian_t::little), toString());
             return;
         }
 
@@ -569,21 +569,31 @@ void HCIHandler::hciReaderWork(jau::service_runner& sr) noexcept {
             }
         } else if( event->isMetaEvent(HCIMetaEventType::LE_ADVERTISING_REPORT) ) {
             // issue callbacks for the translated AD events
-            jau::darray<std::unique_ptr<EInfoReport>> eirlist = EInfoReport::read_ad_reports(event->getParam(), event->getParamSize());
-            for(jau::nsize_t eircount = 0; eircount < eirlist.size(); ++eircount) {
-                const MgmtEvtDeviceFound e(dev_id, std::move( eirlist[eircount] ) );
-                jau_COND_PRINT(env.DEBUG_SCAN_AD_EIR, "HCIHandler<%hu>-IO RECV EVT (AD EIR) [%zu] %s",
-                        dev_id, eircount, e.getEIR()->toString());
-                sendMgmtEvent( e );
+            try {
+                jau::darray<std::unique_ptr<EInfoReport>> eirlist = EInfoReport::read_ad_reports(event->getParam(), event->getParamSize());
+                for(jau::nsize_t eircount = 0; eircount < eirlist.size(); ++eircount) {
+                    const MgmtEvtDeviceFound e(dev_id, std::move( eirlist[eircount] ) );
+                    jau_COND_PRINT(env.DEBUG_SCAN_AD_EIR, "HCIHandler<%hu>-IO RECV EVT (AD EIR) [%zu] %s",
+                            dev_id, eircount, e.getEIR()->toString());
+                    sendMgmtEvent( e );
+                }
+            } catch( ... ) {
+                jau::fput_exception(stderr, std::current_exception(), E_FILE_LINE);
+                jau_ERR_PRINT3("Exception caught while sending AD events, %s", toString());
             }
         } else if( event->isMetaEvent(HCIMetaEventType::LE_EXT_ADV_REPORT) ) {
             // issue callbacks for the translated EAD events
-            jau::darray<std::unique_ptr<EInfoReport>> eirlist = EInfoReport::read_ext_ad_reports(event->getParam(), event->getParamSize());
-            for(jau::nsize_t eircount = 0; eircount < eirlist.size(); ++eircount) {
-                const MgmtEvtDeviceFound e(dev_id, std::move( eirlist[eircount] ) );
-                jau_COND_PRINT(env.DEBUG_SCAN_AD_EIR, "HCIHandler<%hu>-IO RECV EVT (EAD EIR (ext)) [%zu] %s",
-                        dev_id, eircount, e.getEIR()->toString());
-                sendMgmtEvent( e );
+            try {
+                jau::darray<std::unique_ptr<EInfoReport>> eirlist = EInfoReport::read_ext_ad_reports(event->getParam(), event->getParamSize());
+                for(jau::nsize_t eircount = 0; eircount < eirlist.size(); ++eircount) {
+                    const MgmtEvtDeviceFound e(dev_id, std::move( eirlist[eircount] ) );
+                    jau_COND_PRINT(env.DEBUG_SCAN_AD_EIR, "HCIHandler<%hu>-IO RECV EVT (EAD EIR (ext)) [%zu] %s",
+                            dev_id, eircount, e.getEIR()->toString());
+                    sendMgmtEvent( e );
+                }
+            } catch( ... ) {
+                jau::fput_exception(stderr, std::current_exception(), E_FILE_LINE);
+                jau_ERR_PRINT3("Exception caught while sending EAD events, %s", toString());
             }
         } else {
             // issue a callback for the translated event

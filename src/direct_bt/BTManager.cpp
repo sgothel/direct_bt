@@ -91,6 +91,11 @@ void BTManager::mgmtReaderWork(jau::service_runner& sr) noexcept {
             return; // discard data
         }
         std::unique_ptr<MgmtEvent> event = MgmtEvent::getSpecialized(rbuffer.get_ptr(), len2);
+        if (!event) {
+            jau_ERR_PRINT3("IO RECV MgmtEvent Drop %zu bytes: %s - %s", len2,
+                    jau::toHexString(rbuffer.get_ptr(), len2, jau::lb_endian_t::little), toString());
+            return;
+        }
         const MgmtEvent::Opcode opc = event->getOpcode();
         if( MgmtEvent::Opcode::CMD_COMPLETE == opc || MgmtEvent::Opcode::CMD_STATUS == opc ) {
             jau_COND_PRINT(env.DEBUG_EVENT, "BTManager-IO RECV (CMD) %s", event->toString());

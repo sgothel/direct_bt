@@ -722,8 +722,7 @@ namespace direct_bt {
             : AttPDUHeap(size), AttPDUMsg(octets(), source, size)
             { }
 
-            /** Transient memory, ownership belongs to caller object. */
-            AttPDUHeapMsg(const Opcode opc, const jau::nsize_t size) noexcept
+            AttPDUHeapMsg(const Opcode opc, const jau::nsize_t size)
             : AttPDUHeap(size), AttPDUMsg(opc, octets())
             { }
 
@@ -801,7 +800,7 @@ namespace direct_bt {
             static constexpr uint8_t number(const ErrorCode rhs) noexcept {
                 return static_cast<uint8_t>(rhs);
             }
-            static std::string getErrorCodeString(const ErrorCode errorCode) noexcept;
+            static std::string_view getErrorCodeString(const ErrorCode errorCode) noexcept;
 
         public:
             AttErrorRsp(const uint8_t* source, const jau::nsize_t length)

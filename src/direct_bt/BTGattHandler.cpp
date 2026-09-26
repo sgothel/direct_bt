@@ -425,6 +425,13 @@ void BTGattHandler::l2capReaderWork(jau::service_runner& sr) noexcept {
     len = l2cap.read(rbuffer.get_wptr(), rbuffer.size());
     if( 0 < len ) {
         std::unique_ptr<const AttPDUMsg> attPDU = AttPDUMsg::getSpecialized(rbuffer.get_ptr(), static_cast<jau::nsize_t>(len));
+        if (!attPDU) {
+            // not a valid PDU ..
+            jau_ERR_PRINT3("IO RECV AttPDUMsg Drop %zd bytes, %s - %s", len,
+                    jau::toHexString(rbuffer.get_ptr(), len, jau::lb_endian_t::little), toString());
+            sr.set_shall_stop();
+            return;
+        }
         jau_COND_PRINT(env.DEBUG_DATA, "GATTHandler::reader: Got %s", attPDU->toString());
 
         const AttPDUMsg::Opcode opc = attPDU->getOpcode();

@@ -41,7 +41,7 @@ using namespace direct_bt;
  * Further, the server will issue a disconnect once only 300 ms after 1st MTU exchange,
  * disrupting the client's getGATTServices().
  */
-class TestDBTClientServer_i470 : public DBTClientServer1x {
+class TestDBTClientServer_i470 : public DBTClientServer1x { // NOLINT(misc-use-internal-linkage)
     public:
         void test_i470_a() {
             base_test_framework.setupTest( 10_s );

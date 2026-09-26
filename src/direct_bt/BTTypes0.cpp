@@ -133,8 +133,12 @@ std::string BDAddressAndType::getBLERandomAddressTypeString(const jau::io::net::
     return res;
 }
 
+// NOLINTBEGIN(bugprone-throwing-static-initialization): memory required
+
 const BDAddressAndType direct_bt::BDAddressAndType::ANY_BREDR_DEVICE(jau::io::net::EUI48::ANY_DEVICE, BDAddressType::BDADDR_BREDR);
 const BDAddressAndType direct_bt::BDAddressAndType::ANY_DEVICE(jau::io::net::EUI48::ANY_DEVICE, BDAddressType::BDADDR_UNDEFINED);
+
+// NOLINTEND(bugprone-throwing-static-initialization): memory required
 
 std::string BDAddressAndType::toString() const noexcept {
     return jau_format_string("[%s, %s%s]", address, type, getBLERandomAddressTypeString(address, type, ", "));

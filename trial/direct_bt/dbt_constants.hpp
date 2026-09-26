@@ -66,7 +66,7 @@ enum class ExpectedPairing {
     PREPAIRED
 };
 
-// NOLINTBEGIN(misc-definitions-in-headers)
+// NOLINTBEGIN(bugprone-throwing-static-initialization, misc-definitions-in-headers): memory required
 const jau::uuid128_t DBTConstants::DataServiceUUID = jau::uuid128_t("d0ca6bf3-3d50-4760-98e5-fc5883e93712");
 const jau::uuid128_t DBTConstants::StaticDataUUID  = jau::uuid128_t("d0ca6bf3-3d51-4760-98e5-fc5883e93712");
 const jau::uuid128_t DBTConstants::CommandUUID     = jau::uuid128_t("d0ca6bf3-3d52-4760-98e5-fc5883e93712");
@@ -75,6 +75,6 @@ const jau::uuid128_t DBTConstants::PulseDataUUID   = jau::uuid128_t("d0ca6bf3-3d
 
 const std::vector<uint8_t> DBTConstants::SuccessHandshakeCommandData = { 0xaa, 0xff, 0xff, 0xee };
 const std::vector<uint8_t> DBTConstants::FailHandshakeCommandData = { 0x00, 0xea, 0xea, 0xff };
-// NOLINTEND(misc-definitions-in-headers)
+// NOLINTEND(bugprone-throwing-static-initialization, misc-definitions-in-headers): memory required
 
 #endif /* DBT_CONSTANTS_HPP */

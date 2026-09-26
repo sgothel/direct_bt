@@ -184,10 +184,10 @@ namespace direct_bt {
              * retrieving the GATT database from the server.
              */
             BTGattDescRef getClientCharConfig() const noexcept {
-                if( 0 > clientCharConfigIndex ) {
+                if( 0 > clientCharConfigIndex || size_t(clientCharConfigIndex) >= descriptorList.size() ) {
                     return nullptr;
                 }
-                return descriptorList.at(static_cast<size_t>(clientCharConfigIndex)); // abort if out of bounds
+                return descriptorList[size_t(clientCharConfigIndex)];
             }
 
             /**
@@ -200,7 +200,7 @@ namespace direct_bt {
                 if (0 > userDescriptionIndex || size_t(userDescriptionIndex) >= descriptorList.size()) {
                     return nullptr;
                 }
-                return descriptorList[static_cast<size_t>(userDescriptionIndex)];
+                return descriptorList[size_t(userDescriptionIndex)];
             }
 
             /**

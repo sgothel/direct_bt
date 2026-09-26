@@ -122,20 +122,25 @@ std::unique_ptr<HCICommand> HCICommand::getSpecialized(const uint8_t * buffer, j
         return nullptr;
     }
 
-    const HCIOpcode oc = static_cast<HCIOpcode>( jau::get_uint16(buffer + 1, jau::lb_endian_t::little) );
-    switch( oc ) {
-        case HCIOpcode::DISCONNECT:
-            return std::make_unique<HCIDisconnectCmd>(buffer, buffer_size);
-        case HCIOpcode::LE_ENABLE_ENC:
-            return std::make_unique<HCILEEnableEncryptionCmd>(buffer, buffer_size);
-        case HCIOpcode::LE_LTK_REPLY_ACK:
-            return std::make_unique<HCILELTKReplyAckCmd>(buffer, buffer_size);
-        case HCIOpcode::LE_LTK_REPLY_REJ:
-            return std::make_unique<HCILELTKReplyRejCmd>(buffer, buffer_size);
-        default:
-            // No further specialization, use HCIStructCmdCompleteEvt template
-            return std::make_unique<HCICommand>(buffer, buffer_size, 0);
+    try {
+        const HCIOpcode oc = static_cast<HCIOpcode>( jau::get_uint16(buffer + 1, jau::lb_endian_t::little) );
+        switch( oc ) {
+            case HCIOpcode::DISCONNECT:
+                return std::make_unique<HCIDisconnectCmd>(buffer, buffer_size);
+            case HCIOpcode::LE_ENABLE_ENC:
+                return std::make_unique<HCILEEnableEncryptionCmd>(buffer, buffer_size);
+            case HCIOpcode::LE_LTK_REPLY_ACK:
+                return std::make_unique<HCILELTKReplyAckCmd>(buffer, buffer_size);
+            case HCIOpcode::LE_LTK_REPLY_REJ:
+                return std::make_unique<HCILELTKReplyRejCmd>(buffer, buffer_size);
+            default:
+                // No further specialization, use HCIStructCmdCompleteEvt template
+                return std::make_unique<HCICommand>(buffer, buffer_size, 0);
+        }
+    } catch (...) {
+        jau::fput_exception(stderr, std::current_exception(), E_FILE_LINE);
     }
+    return nullptr;
 }
 
 std::unique_ptr<HCIEvent> HCIEvent::getSpecialized(const uint8_t * buffer, jau::nsize_t const buffer_size) noexcept {
@@ -152,28 +157,33 @@ std::unique_ptr<HCIEvent> HCIEvent::getSpecialized(const uint8_t * buffer, jau::
         return nullptr;
     }
 
-    const HCIEventType ec = static_cast<HCIEventType>( jau::get_uint8(buffer + 1) );
-    switch( ec ) {
-        case HCIEventType::DISCONN_COMPLETE:
-            return std::make_unique<HCIDisconnectionCompleteEvent>(buffer, buffer_size);
-        case HCIEventType::CMD_COMPLETE:
-            return std::make_unique<HCICommandCompleteEvent>(buffer, buffer_size);
-        case HCIEventType::CMD_STATUS:
-            return std::make_unique<HCICommandStatusEvent>(buffer, buffer_size);
-        case HCIEventType::LE_META: {
-            const HCIMetaEventType mec = static_cast<HCIMetaEventType>( jau::get_uint8(buffer + number(HCIConstSizeT::EVENT_HDR_SIZE)) );
-            switch( mec ) {
-                case HCIMetaEventType::LE_LTK_REQUEST:
-                    return std::make_unique<HCILELTKReqEvent>(buffer, buffer_size);
-                default:
-                    // May use HCIStructCmdCompleteMetaEvt template based on HCIMetaEvent.
-                    return std::make_unique<HCIMetaEvent>(buffer, buffer_size, 1);
+    try {
+        const HCIEventType ec = static_cast<HCIEventType>( jau::get_uint8(buffer + 1) );
+        switch( ec ) {
+            case HCIEventType::DISCONN_COMPLETE:
+                return std::make_unique<HCIDisconnectionCompleteEvent>(buffer, buffer_size);
+            case HCIEventType::CMD_COMPLETE:
+                return std::make_unique<HCICommandCompleteEvent>(buffer, buffer_size);
+            case HCIEventType::CMD_STATUS:
+                return std::make_unique<HCICommandStatusEvent>(buffer, buffer_size);
+            case HCIEventType::LE_META: {
+                const HCIMetaEventType mec = static_cast<HCIMetaEventType>( jau::get_uint8(buffer + number(HCIConstSizeT::EVENT_HDR_SIZE)) );
+                switch( mec ) {
+                    case HCIMetaEventType::LE_LTK_REQUEST:
+                        return std::make_unique<HCILELTKReqEvent>(buffer, buffer_size);
+                    default:
+                        // May use HCIStructCmdCompleteMetaEvt template based on HCIMetaEvent.
+                        return std::make_unique<HCIMetaEvent>(buffer, buffer_size, 1);
+                }
             }
+            default:
+                // No further specialization, use HCIStructCmdCompleteEvt template
+                return std::make_unique<HCIEvent>(buffer, buffer_size, 0);
         }
-        default:
-            // No further specialization, use HCIStructCmdCompleteEvt template
-            return std::make_unique<HCIEvent>(buffer, buffer_size, 0);
+    } catch (...) {
+        jau::fput_exception(stderr, std::current_exception(), E_FILE_LINE);
     }
+    return nullptr;
 }
 
 std::string HCIPacket::toString() const noexcept {
@@ -296,10 +306,15 @@ std::unique_ptr<HCIACLData> HCIACLData::getSpecialized(const uint8_t * buffer, j
         }
         return nullptr;
     }
-    return std::make_unique<HCIACLData>(buffer, buffer_size);
+    try {
+        return std::make_unique<HCIACLData>(buffer, buffer_size);
+    } catch (...) {
+        jau::fput_exception(stderr, std::current_exception(), E_FILE_LINE);
+    }
+    return nullptr;
 }
 
-__pack ( struct l2cap_hdr {
+__pack ( struct l2cap_hdr { // NOLINT(misc-use-internal-linkage)
     uint16_t len;
     uint16_t cid;
 } );

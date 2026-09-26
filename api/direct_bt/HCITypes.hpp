@@ -565,7 +565,7 @@ namespace direct_bt {
 
             HCIPacketType getPacketType() noexcept { return static_cast<HCIPacketType>(pdu.get_uint8_nc(0)); }
 
-            std::string toString() const noexcept;
+            virtual std::string toString() const noexcept;
     };
     inline std::string to_string(const HCIPacket& p) noexcept { return p.toString(); }
 
@@ -995,7 +995,7 @@ namespace direct_bt {
 
             L2CapFrame getL2CapFrame(const uint8_t* & l2cap_data) const noexcept;
 
-            std::string toString() const noexcept;
+            std::string toString() const noexcept override;
             std::string toString(const L2CapFrame& l2cap, const uint8_t* l2cap_data) const noexcept;
     };
 

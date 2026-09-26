@@ -310,7 +310,7 @@ class DBTServer01 : public DBTServerTest {
                     const std::string connectedDeviceStr = nullptr != connectedDevice_ ? connectedDevice_->toString() : "n/a";
                     jau_fprintf_td(stderr, "****** Server GATT::PULSE Start %s\n", connectedDeviceStr);
                 }
-                void pulse_worker(jau::service_runner& sr) noexcept {
+                void pulse_worker(jau::service_runner& sr) {
                     BTDeviceRef connectedDevice_ = parent.getDevice();
                     if( nullptr != connectedDevice_ && connectedDevice_->getConnected() ) {
                         if( 0 != handlePulseDataNotify || 0 != handlePulseDataIndicate ) {
