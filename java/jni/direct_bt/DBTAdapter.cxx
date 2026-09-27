@@ -38,32 +38,32 @@
 using namespace direct_bt;
 using namespace jau::jni;
 
-static const std::string _adapterSettingsClassName("org/direct_bt/AdapterSettings");
-static const std::string _adapterSettingsClazzCtorArgs("(I)V");
-static const std::string _eirDataTypeSetClassName("org/direct_bt/EIRDataTypeSet");
-static const std::string _eirDataTypeSetClazzCtorArgs("(I)V");
-static const std::string _hciStatusCodeClassName("org/direct_bt/HCIStatusCode");
-static const std::string _hciStatusCodeClazzGetArgs("(B)Lorg/direct_bt/HCIStatusCode;");
-static const std::string _scanTypeClassName("org/direct_bt/ScanType");
-static const std::string _scanTypeClazzGetArgs("(B)Lorg/direct_bt/ScanType;");
-static const std::string _discoveryPolicyClassName("org/direct_bt/DiscoveryPolicy");
-static const std::string _discoveryPolicyClazzGetArgs("(B)Lorg/direct_bt/DiscoveryPolicy;");
-static const std::string _pairingModeClassName("org/direct_bt/PairingMode");
-static const std::string _pairingModeClazzGetArgs("(B)Lorg/direct_bt/PairingMode;");
-static const std::string _pairingStateClassName("org/direct_bt/SMPPairingState");
-static const std::string _pairingStateClazzGetArgs("(B)Lorg/direct_bt/SMPPairingState;");
-static const std::string _deviceClazzCtorArgs("(JLjau/direct_bt/DBTAdapter;[BBJLjava/lang/String;)V");
+static constexpr std::string_view _adapterSettingsClassName("org/direct_bt/AdapterSettings");
+static constexpr std::string_view _adapterSettingsClazzCtorArgs("(I)V");
+static constexpr std::string_view _eirDataTypeSetClassName("org/direct_bt/EIRDataTypeSet");
+static constexpr std::string_view _eirDataTypeSetClazzCtorArgs("(I)V");
+static constexpr std::string_view _hciStatusCodeClassName("org/direct_bt/HCIStatusCode");
+static constexpr std::string_view _hciStatusCodeClazzGetArgs("(B)Lorg/direct_bt/HCIStatusCode;");
+static constexpr std::string_view _scanTypeClassName("org/direct_bt/ScanType");
+static constexpr std::string_view _scanTypeClazzGetArgs("(B)Lorg/direct_bt/ScanType;");
+static constexpr std::string_view _discoveryPolicyClassName("org/direct_bt/DiscoveryPolicy");
+static constexpr std::string_view _discoveryPolicyClazzGetArgs("(B)Lorg/direct_bt/DiscoveryPolicy;");
+static constexpr std::string_view _pairingModeClassName("org/direct_bt/PairingMode");
+static constexpr std::string_view _pairingModeClazzGetArgs("(B)Lorg/direct_bt/PairingMode;");
+static constexpr std::string_view _pairingStateClassName("org/direct_bt/SMPPairingState");
+static constexpr std::string_view _pairingStateClazzGetArgs("(B)Lorg/direct_bt/SMPPairingState;");
+static constexpr std::string_view _deviceClazzCtorArgs("(JLjau/direct_bt/DBTAdapter;[BBJLjava/lang/String;)V");
 
-static const std::string _adapterSettingsChangedMethodArgs("(Lorg/direct_bt/BTAdapter;Lorg/direct_bt/AdapterSettings;Lorg/direct_bt/AdapterSettings;Lorg/direct_bt/AdapterSettings;J)V");
-static const std::string _discoveringChangedMethodArgs("(Lorg/direct_bt/BTAdapter;Lorg/direct_bt/ScanType;Lorg/direct_bt/ScanType;ZLorg/direct_bt/DiscoveryPolicy;J)V");
-static const std::string _deviceFoundMethodArgs("(Lorg/direct_bt/BTDevice;J)Z");
-static const std::string _deviceUpdatedMethodArgs("(Lorg/direct_bt/BTDevice;Lorg/direct_bt/EIRDataTypeSet;J)V");
-static const std::string _deviceConnectedMethodArgs("(Lorg/direct_bt/BTDevice;ZJ)V");
-static const std::string _devicePairingStateMethodArgs("(Lorg/direct_bt/BTDevice;Lorg/direct_bt/SMPPairingState;Lorg/direct_bt/PairingMode;J)V");
-static const std::string _deviceReadyMethodArgs("(Lorg/direct_bt/BTDevice;J)V");
-static const std::string _deviceDisconnectedMethodArgs("(Lorg/direct_bt/BTDevice;Lorg/direct_bt/HCIStatusCode;SJ)V");
+static constexpr std::string_view _adapterSettingsChangedMethodArgs("(Lorg/direct_bt/BTAdapter;Lorg/direct_bt/AdapterSettings;Lorg/direct_bt/AdapterSettings;Lorg/direct_bt/AdapterSettings;J)V");
+static constexpr std::string_view _discoveringChangedMethodArgs("(Lorg/direct_bt/BTAdapter;Lorg/direct_bt/ScanType;Lorg/direct_bt/ScanType;ZLorg/direct_bt/DiscoveryPolicy;J)V");
+static constexpr std::string_view _deviceFoundMethodArgs("(Lorg/direct_bt/BTDevice;J)Z");
+static constexpr std::string_view _deviceUpdatedMethodArgs("(Lorg/direct_bt/BTDevice;Lorg/direct_bt/EIRDataTypeSet;J)V");
+static constexpr std::string_view _deviceConnectedMethodArgs("(Lorg/direct_bt/BTDevice;ZJ)V");
+static constexpr std::string_view _devicePairingStateMethodArgs("(Lorg/direct_bt/BTDevice;Lorg/direct_bt/SMPPairingState;Lorg/direct_bt/PairingMode;J)V");
+static constexpr std::string_view _deviceReadyMethodArgs("(Lorg/direct_bt/BTDevice;J)V");
+static constexpr std::string_view _deviceDisconnectedMethodArgs("(Lorg/direct_bt/BTDevice;Lorg/direct_bt/HCIStatusCode;SJ)V");
 
-class JNIAdapterStatusListener : public AdapterStatusListener {
+class JNIAdapterStatusListener : public AdapterStatusListener { // NOLINT(misc-use-internal-linkage)
   private:
     /**
         public abstract class AdapterStatusListener {
@@ -129,59 +129,59 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
 
         // adapterSettingsClazzRef, adapterSettingsClazzCtor
         {
-            jclass adapterSettingsClazz = search_class(env, _adapterSettingsClassName.c_str());
+            jclass adapterSettingsClazz = search_class(env, _adapterSettingsClassName.data()); // NOLINT(bugprone-suspicious-stringview-data-usage): Safe (see above)
             adapterSettingsClazzRef = JNIGlobalRef(adapterSettingsClazz);
             env->DeleteLocalRef(adapterSettingsClazz);
         }
-        adapterSettingsClazzCtor = search_method(env, adapterSettingsClazzRef.getClass(), "<init>", _adapterSettingsClazzCtorArgs.c_str(), false);
+        adapterSettingsClazzCtor = search_method(env, adapterSettingsClazzRef.getClass(), "<init>", _adapterSettingsClazzCtorArgs.data(), false); // NOLINT(bugprone-suspicious-stringview-data-usage): Safe (see above)
 
         // eirDataTypeSetClazzRef, eirDataTypeSetClazzCtor
         {
-            jclass eirDataTypeSetClazz = search_class(env, _eirDataTypeSetClassName.c_str());
+            jclass eirDataTypeSetClazz = search_class(env, _eirDataTypeSetClassName.data()); // NOLINT(bugprone-suspicious-stringview-data-usage): Safe (see above)
             eirDataTypeSetClazzRef = JNIGlobalRef(eirDataTypeSetClazz);
             env->DeleteLocalRef(eirDataTypeSetClazz);
         }
-        eirDataTypeSetClazzCtor = search_method(env, eirDataTypeSetClazzRef.getClass(), "<init>", _eirDataTypeSetClazzCtorArgs.c_str(), false);
+        eirDataTypeSetClazzCtor = search_method(env, eirDataTypeSetClazzRef.getClass(), "<init>", _eirDataTypeSetClazzCtorArgs.data(), false); // NOLINT(bugprone-suspicious-stringview-data-usage): Safe (see above)
 
         // hciStatusCodeClazzRef, hciStatusCodeClazzGet
         {
-            jclass hciErrorCodeClazz = search_class(env, _hciStatusCodeClassName.c_str());
+            jclass hciErrorCodeClazz = search_class(env, _hciStatusCodeClassName.data()); // NOLINT(bugprone-suspicious-stringview-data-usage): Safe (see above)
             hciStatusCodeClazzRef = JNIGlobalRef(hciErrorCodeClazz);
             env->DeleteLocalRef(hciErrorCodeClazz);
         }
-        hciStatusCodeClazzGet = search_method(env, hciStatusCodeClazzRef.getClass(), "get", _hciStatusCodeClazzGetArgs.c_str(), true);
+        hciStatusCodeClazzGet = search_method(env, hciStatusCodeClazzRef.getClass(), "get", _hciStatusCodeClazzGetArgs.data(), true); // NOLINT(bugprone-suspicious-stringview-data-usage): Safe (see above)
 
         // scanTypeClazzRef, scanTypeClazzGet
         {
-            jclass scanTypeClazz = search_class(env, _scanTypeClassName.c_str());
+            jclass scanTypeClazz = search_class(env, _scanTypeClassName.data()); // NOLINT(bugprone-suspicious-stringview-data-usage): Safe (see above)
             scanTypeClazzRef = JNIGlobalRef(scanTypeClazz);
             env->DeleteLocalRef(scanTypeClazz);
         }
-        scanTypeClazzGet = search_method(env, scanTypeClazzRef.getClass(), "get", _scanTypeClazzGetArgs.c_str(), true);
+        scanTypeClazzGet = search_method(env, scanTypeClazzRef.getClass(), "get", _scanTypeClazzGetArgs.data(), true); // NOLINT(bugprone-suspicious-stringview-data-usage): Safe (see above)
 
         // discoveryPolicyClazzRef, discoveryPolicyClazzGet;
         {
-            jclass discoveryPolicyClazz = search_class(env, _discoveryPolicyClassName.c_str());
+            jclass discoveryPolicyClazz = search_class(env, _discoveryPolicyClassName.data()); // NOLINT(bugprone-suspicious-stringview-data-usage): Safe (see above)
             discoveryPolicyClazzRef = JNIGlobalRef(discoveryPolicyClazz);
             env->DeleteLocalRef(discoveryPolicyClazz);
         }
-        discoveryPolicyClazzGet = search_method(env, discoveryPolicyClazzRef.getClass(), "get", _discoveryPolicyClazzGetArgs.c_str(), true);
+        discoveryPolicyClazzGet = search_method(env, discoveryPolicyClazzRef.getClass(), "get", _discoveryPolicyClazzGetArgs.data(), true); // NOLINT(bugprone-suspicious-stringview-data-usage): Safe (see above)
 
         // pairingModeClazzRef, pairingModeClazzGet
         {
-            jclass pairingModeClazz = search_class(env, _pairingModeClassName.c_str());
+            jclass pairingModeClazz = search_class(env, _pairingModeClassName.data()); // NOLINT(bugprone-suspicious-stringview-data-usage): Safe (see above)
             pairingModeClazzRef = JNIGlobalRef(pairingModeClazz);
             env->DeleteLocalRef(pairingModeClazz);
         }
-        pairingModeClazzGet = search_method(env, pairingModeClazzRef.getClass(), "get", _pairingModeClazzGetArgs.c_str(), true);
+        pairingModeClazzGet = search_method(env, pairingModeClazzRef.getClass(), "get", _pairingModeClazzGetArgs.data(), true); // NOLINT(bugprone-suspicious-stringview-data-usage): Safe (see above)
 
         // pairingStateClazzRef, pairingStateClazzGet
         {
-            jclass pairingStateClazz = search_class(env, _pairingStateClassName.c_str());
+            jclass pairingStateClazz = search_class(env, _pairingStateClassName.data()); // NOLINT(bugprone-suspicious-stringview-data-usage): Safe (see above)
             pairingStateClazzRef = JNIGlobalRef(pairingStateClazz);
             env->DeleteLocalRef(pairingStateClazz);
         }
-        pairingStateClazzGet = search_method(env, pairingStateClazzRef.getClass(), "get", _pairingStateClazzGetArgs.c_str(), true);
+        pairingStateClazzGet = search_method(env, pairingStateClazzRef.getClass(), "get", _pairingStateClazzGetArgs.data(), true); // NOLINT(bugprone-suspicious-stringview-data-usage): Safe (see above)
 
         // deviceClazzRef, deviceClazzCtor
         {
@@ -189,20 +189,20 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
             deviceClazzRef = JNIGlobalRef(deviceClazz);
             env->DeleteLocalRef(deviceClazz);
         }
-        deviceClazzCtor = search_method(env, deviceClazzRef.getClass(), "<init>", _deviceClazzCtorArgs.c_str(), false);
+        deviceClazzCtor = search_method(env, deviceClazzRef.getClass(), "<init>", _deviceClazzCtorArgs.data(), false); // NOLINT(bugprone-suspicious-stringview-data-usage): Safe (see above)
 
         deviceClazzTSLastDiscoveryField = search_field(env, deviceClazzRef.getClass(), "ts_last_discovery", "J", false);
         deviceClazzTSLastUpdateField = search_field(env, deviceClazzRef.getClass(), "ts_last_update", "J", false);
         deviceClazzConnectionHandleField = search_field(env, deviceClazzRef.getClass(), "hciConnHandle", "S", false);
 
-        mAdapterSettingsChanged = search_method(env, listenerClazz, "adapterSettingsChanged", _adapterSettingsChangedMethodArgs.c_str(), false);
-        mDiscoveringChanged = search_method(env, listenerClazz, "discoveringChanged", _discoveringChangedMethodArgs.c_str(), false);
-        mDeviceFound = search_method(env, listenerClazz, "deviceFound", _deviceFoundMethodArgs.c_str(), false);
-        mDeviceUpdated = search_method(env, listenerClazz, "deviceUpdated", _deviceUpdatedMethodArgs.c_str(), false);
-        mDeviceConnected = search_method(env, listenerClazz, "deviceConnected", _deviceConnectedMethodArgs.c_str(), false);
-        mDevicePairingState = search_method(env, listenerClazz, "devicePairingState", _devicePairingStateMethodArgs.c_str(), false);
-        mDeviceReady = search_method(env, listenerClazz, "deviceReady", _deviceReadyMethodArgs.c_str(), false);
-        mDeviceDisconnected = search_method(env, listenerClazz, "deviceDisconnected", _deviceDisconnectedMethodArgs.c_str(), false);
+        mAdapterSettingsChanged = search_method(env, listenerClazz, "adapterSettingsChanged", _adapterSettingsChangedMethodArgs.data(), false); // NOLINT(bugprone-suspicious-stringview-data-usage): Safe (see above)
+        mDiscoveringChanged = search_method(env, listenerClazz, "discoveringChanged", _discoveringChangedMethodArgs.data(), false); // NOLINT(bugprone-suspicious-stringview-data-usage): Safe (see above)
+        mDeviceFound = search_method(env, listenerClazz, "deviceFound", _deviceFoundMethodArgs.data(), false); // NOLINT(bugprone-suspicious-stringview-data-usage): Safe (see above)
+        mDeviceUpdated = search_method(env, listenerClazz, "deviceUpdated", _deviceUpdatedMethodArgs.data(), false); // NOLINT(bugprone-suspicious-stringview-data-usage): Safe (see above)
+        mDeviceConnected = search_method(env, listenerClazz, "deviceConnected", _deviceConnectedMethodArgs.data(), false); // NOLINT(bugprone-suspicious-stringview-data-usage): Safe (see above)
+        mDevicePairingState = search_method(env, listenerClazz, "devicePairingState", _devicePairingStateMethodArgs.data(), false); // NOLINT(bugprone-suspicious-stringview-data-usage): Safe (see above)
+        mDeviceReady = search_method(env, listenerClazz, "deviceReady", _deviceReadyMethodArgs.data(), false); // NOLINT(bugprone-suspicious-stringview-data-usage): Safe (see above)
+        mDeviceDisconnected = search_method(env, listenerClazz, "deviceDisconnected", _deviceDisconnectedMethodArgs.data(), false); // NOLINT(bugprone-suspicious-stringview-data-usage): Safe (see above)
     }
 
     void adapterSettingsChanged(BTAdapter &a, const AdapterSetting oldmask, const AdapterSetting newmask,

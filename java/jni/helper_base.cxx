@@ -35,7 +35,7 @@ void direct_bt::jni::raise_java_exception(JNIEnv *env, const direct_bt::BTExcept
     env->ThrowNew(env->FindClass("org/direct_bt/BTException"), e.what());
 }
 
-static std::string _unknown_exception_type_msg("Unknown exception type");
+static constexpr std::string_view _unknown_exception_type_msg = "Unknown exception type";
 
 void direct_bt::jni::rethrow_and_raise_java_exception_impl(JNIEnv *env, const char* file, int line) {
     // std::exception_ptr e = std::current_exception();
@@ -78,6 +78,6 @@ void direct_bt::jni::rethrow_and_raise_java_exception_impl(JNIEnv *env, const ch
         env->ThrowNew(env->FindClass("java/lang/Error"), msg);
     } catch (...) {
         jau::jni::print_native_caught_exception_fwd2java(_unknown_exception_type_msg, file, line);
-        env->ThrowNew(env->FindClass("java/lang/Error"), _unknown_exception_type_msg.c_str());
+        env->ThrowNew(env->FindClass("java/lang/Error"), _unknown_exception_type_msg.data()); // NOLINT(bugprone-suspicious-stringview-data-usage): Safe (see above)
     }
 }

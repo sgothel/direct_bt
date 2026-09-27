@@ -61,7 +61,7 @@ jstring Java_jau_direct_1bt_DBTGattChar_toStringImpl(JNIEnv *env, jobject obj) {
     return nullptr;
 }
 
-static const std::string _descriptorClazzCtorArgs("(JLjau/direct_bt/DBTGattChar;Ljava/lang/String;S[B)V");
+static constexpr std::string_view _descriptorClazzCtorArgs("(JLjau/direct_bt/DBTGattChar;Ljava/lang/String;S[B)V");
 
 jobject Java_jau_direct_1bt_DBTGattChar_getDescriptorsImpl(JNIEnv *env, jobject obj) {
     try {
@@ -109,7 +109,7 @@ jobject Java_jau_direct_1bt_DBTGattChar_getDescriptorsImpl(JNIEnv *env, jobject 
                     return JavaGlobalObj::GetObject(jDescRef);
                 };
         return convert_vector_sharedptr_to_jarraylist<jau::darray<BTGattDescRef>, BTGattDesc>(
-                env, descriptorList, _descriptorClazzCtorArgs.c_str(), ctor_desc);
+                env, descriptorList, _descriptorClazzCtorArgs.data(), ctor_desc); // NOLINT(bugprone-suspicious-stringview-data-usage): Safe (see above)
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }

@@ -49,8 +49,8 @@ using namespace jau::jni;
 
 // package org.direct_bt;
 // public DBGattValue(final byte[] value, final int capacity, final boolean variable_length)
-static const std::string _dbGattValueClazzName("org/direct_bt/DBGattValue");
-static const std::string _dbGattValueClazzCtorArgs("([BIZ)V");
+static constexpr std::string_view _dbGattValueClazzName("org/direct_bt/DBGattValue");
+static constexpr std::string_view _dbGattValueClazzCtorArgs("([BIZ)V");
 
 static jobject _createDBGattValueFromDesc(JNIEnv *env_, jclass clazz, jmethodID clazz_ctor, const DBGattDescRef& valueHolder) {
     const jau::POctets& value = valueHolder->getValue();
@@ -89,8 +89,8 @@ static jobject _createDBGattValueFromChar(JNIEnv *env_, jclass clazz, jmethodID 
 jobject Java_org_direct_1bt_DBGattDesc_getValue(JNIEnv *env, jobject obj) {
     try {
         shared_ptr_ref<DBGattDesc> ref(env, obj); // hold until done
-        jclass clazz = search_class(env, _dbGattValueClazzName.c_str());
-        return convert_instance_to_jobject<DBGattDesc>(env, clazz, _dbGattValueClazzCtorArgs.c_str(), _createDBGattValueFromDesc, ref.shared_ptr());
+        jclass clazz = search_class(env, _dbGattValueClazzName.data()); // NOLINT(bugprone-suspicious-stringview-data-usage): Safe (see above)
+        return convert_instance_to_jobject<DBGattDesc>(env, clazz, _dbGattValueClazzCtorArgs.data(), _createDBGattValueFromDesc, ref.shared_ptr()); // NOLINT(bugprone-suspicious-stringview-data-usage): Safe (see above)
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
@@ -227,8 +227,8 @@ jstring Java_org_direct_1bt_DBGattDesc_toString(JNIEnv *env, jobject obj) {
 jobject Java_org_direct_1bt_DBGattChar_getValue(JNIEnv *env, jobject obj) {
     try {
         shared_ptr_ref<DBGattChar> ref(env, obj); // hold until done
-        jclass clazz = search_class(env, _dbGattValueClazzName.c_str());
-        return convert_instance_to_jobject<DBGattChar>(env, clazz, _dbGattValueClazzCtorArgs.c_str(), _createDBGattValueFromChar, ref.shared_ptr());
+        jclass clazz = search_class(env, _dbGattValueClazzName.data()); // NOLINT(bugprone-suspicious-stringview-data-usage): Safe (see above)
+        return convert_instance_to_jobject<DBGattChar>(env, clazz, _dbGattValueClazzCtorArgs.data(), _createDBGattValueFromChar, ref.shared_ptr()); // NOLINT(bugprone-suspicious-stringview-data-usage): Safe (see above)
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
@@ -605,7 +605,7 @@ jstring Java_org_direct_1bt_DBGattServer_toString(JNIEnv *env, jobject obj) {
  */
 
 
-class JNIDBGattServerListener : public DBGattServer::Listener {
+class JNIDBGattServerListener : public DBGattServer::Listener { // NOLINT(misc-use-internal-linkage)
     private:
         JavaGlobalObj listenerObjRef;
         jmethodID  mConnected = nullptr;

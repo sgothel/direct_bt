@@ -40,10 +40,10 @@
 using namespace direct_bt;
 using namespace jau::jni;
 
-static const std::string _notificationReceivedMethodArgs("(Lorg/direct_bt/BTGattChar;[BJ)V");
-static const std::string _indicationReceivedMethodArgs("(Lorg/direct_bt/BTGattChar;[BJZ)V");
+static constexpr std::string_view _notificationReceivedMethodArgs("(Lorg/direct_bt/BTGattChar;[BJ)V");
+static constexpr std::string_view _indicationReceivedMethodArgs("(Lorg/direct_bt/BTGattChar;[BJZ)V");
 
-class JNIGattCharListener : public BTGattCharListener {
+class JNIGattCharListener : public BTGattCharListener { // NOLINT(misc-use-internal-linkage)
   private:
     /**
         public abstract class BTGattCharListener {
@@ -73,10 +73,10 @@ class JNIGattCharListener : public BTGattCharListener {
             throw jau::InternalError("BTGattCharListener not found", E_FILE_LINE);
         }
 
-        mNotificationReceived = search_method(env, listenerClazz, "notificationReceived", _notificationReceivedMethodArgs.c_str(), false);
+        mNotificationReceived = search_method(env, listenerClazz, "notificationReceived", _notificationReceivedMethodArgs.data(), false); // NOLINT(bugprone-suspicious-stringview-data-usage): Safe (see above)
         java_exception_check_and_throw(env, E_FILE_LINE);
 
-        mIndicationReceived = search_method(env, listenerClazz, "indicationReceived", _indicationReceivedMethodArgs.c_str(), false);
+        mIndicationReceived = search_method(env, listenerClazz, "indicationReceived", _indicationReceivedMethodArgs.data(), false); // NOLINT(bugprone-suspicious-stringview-data-usage): Safe (see above)
         java_exception_check_and_throw(env, E_FILE_LINE);
     }
 
@@ -941,7 +941,7 @@ jbyte Java_jau_direct_1bt_DBTDevice_setPairingNumericComparisonImpl(JNIEnv *env,
 // getter
 //
 
-static const std::string _serviceClazzCtorArgs("(JLjau/direct_bt/DBTDevice;ZLjava/lang/String;SS)V");
+static constexpr std::string_view _serviceClazzCtorArgs("(JLjau/direct_bt/DBTDevice;ZLjava/lang/String;SS)V");
 
 jobject Java_jau_direct_1bt_DBTDevice_getGattServicesImpl(JNIEnv *env, jobject obj) {
     try {
@@ -984,7 +984,7 @@ jobject Java_jau_direct_1bt_DBTDevice_getGattServicesImpl(JNIEnv *env, jobject o
                     return JavaGlobalObj::GetObject(jServiceRef);
                 };
         return convert_vector_sharedptr_to_jarraylist<jau::darray<BTGattServiceRef>, BTGattService>(
-                env, services, _serviceClazzCtorArgs.c_str(), ctor_service);
+                env, services, _serviceClazzCtorArgs.data(), ctor_service); // NOLINT(bugprone-suspicious-stringview-data-usage): Safe (see above)
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }

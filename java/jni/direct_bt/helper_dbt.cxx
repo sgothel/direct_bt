@@ -33,8 +33,8 @@
 using namespace direct_bt;
 
 static std::string jStringEmpty;
-static std::string jAddressTypePublic("public");
-static std::string jAddressTypeRandom("random");
+static constexpr std::string_view jAddressTypePublic = "public";
+static constexpr std::string_view jAddressTypeRandom = "random";
 
 BDAddressType direct_bt::jni::fromJavaAdressTypeToBDAddressType(JNIEnv *env, jstring jAddressType) {
     if( nullptr != jAddressType ) {
@@ -51,9 +51,9 @@ BDAddressType direct_bt::jni::fromJavaAdressTypeToBDAddressType(JNIEnv *env, jst
 jstring direct_bt::jni::fromBDAddressTypeToJavaAddressType(JNIEnv *env, BDAddressType bdAddressType) {
     switch( bdAddressType ) {
         case BDAddressType::BDADDR_LE_PUBLIC:
-            return jau::jni::from_string_to_jstring(env, jAddressTypePublic);
+            return jau::jni::from_string_to_jstring(env, std::string(jAddressTypePublic));
         case BDAddressType::BDADDR_LE_RANDOM:
-            return jau::jni::from_string_to_jstring(env, jAddressTypeRandom);
+            return jau::jni::from_string_to_jstring(env, std::string(jAddressTypeRandom));
         case BDAddressType::BDADDR_BREDR:
             // fall through intended
         default:

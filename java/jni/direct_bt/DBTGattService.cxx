@@ -64,9 +64,9 @@ jstring Java_jau_direct_1bt_DBTGattService_toStringImpl(JNIEnv *env, jobject obj
 }
 
 
-static const std::string _characteristicClazzCtorArgs("(JLjau/direct_bt/DBTGattService;SLorg/direct_bt/GattCharPropertySet;Ljava/lang/String;SII)V");
-static const std::string _gattCharPropSetClassName("org/direct_bt/GattCharPropertySet");
-static const std::string _gattCharPropSetClazzCtorArgs("(B)V");
+static constexpr std::string_view _characteristicClazzCtorArgs("(JLjau/direct_bt/DBTGattService;SLorg/direct_bt/GattCharPropertySet;Ljava/lang/String;SII)V");
+static constexpr std::string_view _gattCharPropSetClassName("org/direct_bt/GattCharPropertySet");
+static constexpr std::string_view _gattCharPropSetClazzCtorArgs("(B)V");
 
 jobject Java_jau_direct_1bt_DBTGattService_getCharsImpl(JNIEnv *env, jobject obj) {
     try {
@@ -80,16 +80,16 @@ jobject Java_jau_direct_1bt_DBTGattService_getCharsImpl(JNIEnv *env, jobject obj
         jmethodID gattCharPropSetClazzCtor;
         // gattCharPropSetClazzRef, gattCharPropSetClazzCtor
         {
-            gattCharPropSetClazz = search_class(env, _gattCharPropSetClassName.c_str());
+            gattCharPropSetClazz = search_class(env, _gattCharPropSetClassName.data()); // NOLINT(bugprone-suspicious-stringview-data-usage): Safe (see above)
             java_exception_check_and_throw(env, E_FILE_LINE);
             if( nullptr == gattCharPropSetClazz ) {
-                throw jau::InternalError("BTDevice::java_class not found: "+_gattCharPropSetClassName, E_FILE_LINE);
+                throw jau::InternalError("BTDevice::java_class not found: "+std::string(_gattCharPropSetClassName), E_FILE_LINE);
             }
         }
-        gattCharPropSetClazzCtor = search_method(env, gattCharPropSetClazz, "<init>", _gattCharPropSetClazzCtorArgs.c_str(), false);
+        gattCharPropSetClazzCtor = search_method(env, gattCharPropSetClazz, "<init>", _gattCharPropSetClazzCtorArgs.data(), false); // NOLINT(bugprone-suspicious-stringview-data-usage): Safe (see above)
         java_exception_check_and_throw(env, E_FILE_LINE);
         if( nullptr == gattCharPropSetClazzCtor ) {
-            throw jau::InternalError("GattCharPropertySet ctor not found: "+_gattCharPropSetClassName+".<init>"+_gattCharPropSetClazzCtorArgs, E_FILE_LINE);
+            throw jau::InternalError("GattCharPropertySet ctor not found: "+std::string(_gattCharPropSetClassName)+".<init>"+std::string(_gattCharPropSetClazzCtorArgs), E_FILE_LINE);
         }
 
         /**
@@ -134,7 +134,7 @@ jobject Java_jau_direct_1bt_DBTGattService_getCharsImpl(JNIEnv *env, jobject obj
                     return JavaGlobalObj::GetObject(jCharRef);
                 };
         jobject jres = convert_vector_sharedptr_to_jarraylist<jau::darray<std::shared_ptr<BTGattChar>>, BTGattChar>(
-                env, characteristics, _characteristicClazzCtorArgs.c_str(), ctor_char);
+                env, characteristics, _characteristicClazzCtorArgs.data(), ctor_char); // NOLINT(bugprone-suspicious-stringview-data-usage): Safe (see above)
         env->DeleteLocalRef(gattCharPropSetClazz);
         return jres;
     } catch(...) {

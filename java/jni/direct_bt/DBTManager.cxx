@@ -23,6 +23,7 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#include <string_view>
 #include "jau_direct_bt_DBTManager.h"
 
 // #define VERBOSE_ON 1
@@ -38,12 +39,12 @@
 using namespace direct_bt;
 using namespace jau::jni;
 
-static const std::string _removeAdapterCBMethodName("removeAdapterCB");
-static const std::string _removeAdapterCBMethodArgs("(II)V");
-static const std::string _updatedAdapterCBMethodName("updatedAdapterCB");
-static const std::string _updatedAdapterCBMethodArgs("(II)V");
+static constexpr std::string_view _removeAdapterCBMethodName("removeAdapterCB");
+static constexpr std::string_view _removeAdapterCBMethodArgs("(II)V");
+static constexpr std::string_view _updatedAdapterCBMethodName("updatedAdapterCB");
+static constexpr std::string_view _updatedAdapterCBMethodArgs("(II)V");
 
-struct BooleanMgmtCBContext {
+struct BooleanMgmtCBContext { // NOLINT(misc-use-internal-linkage)
     MgmtEvent::Opcode opc;
     JNIGlobalRef jmgmtRef;
     jmethodID  mid;
@@ -67,7 +68,7 @@ struct BooleanMgmtCBContext {
 typedef std::shared_ptr<BooleanMgmtCBContext> BooleanMgmtCBContextRef;
 
 static void _addMgmtCBOnce(JNIEnv *env, BTManager & mgmt, const JNIGlobalRef& jmgmtRef, MgmtEvent::Opcode opc,
-                           const std::string &jmethodName, const std::string &jmethodArgs)
+                           std::string_view jmethodName, std::string_view jmethodArgs)
 {
     try {
         void(*nativeCallback)(BooleanMgmtCBContextRef&, const MgmtEvent&) =
@@ -94,10 +95,10 @@ static void _addMgmtCBOnce(JNIEnv *env, BTManager & mgmt, const JNIGlobalRef& jm
         if( nullptr == mgmtClazz ) {
             throw jau::InternalError("BTManager not found", E_FILE_LINE);
         }
-        jmethodID mid = search_method(env, mgmtClazz, jmethodName.c_str(), jmethodArgs.c_str(), false);
+        jmethodID mid = search_method(env, mgmtClazz, jmethodName.data(), jmethodArgs.data(), false); // NOLINT(bugprone-suspicious-stringview-data-usage): Safe (see above)
         java_exception_check_and_throw(env, E_FILE_LINE);
         if( nullptr == mid ) {
-            throw jau::InternalError("BTManager has no "+jmethodName+"."+jmethodArgs+" method, for "+mgmt.toString(), E_FILE_LINE);
+            throw jau::InternalError("BTManager has no "+std::string(jmethodName)+"."+std::string(jmethodArgs)+" method, for "+mgmt.toString(), E_FILE_LINE);
         }
 
         // move BooleanDeviceCBContextRef into jau::func::capval_target_t and operator== includes javaCallback comparison
@@ -149,7 +150,7 @@ void Java_jau_direct_1bt_DBTManager_dtorImpl(JNIEnv *env, jobject obj, jlong nat
     }
 }
 
-static const std::string _adapterClazzCtorArgs("(J[BBLjava/lang/String;I)V");
+static constexpr std::string_view _adapterClazzCtorArgs("(J[BBLjava/lang/String;I)V");
 static jobject _createJavaAdapter(JNIEnv *env_, jclass clazz, jmethodID clazz_ctor, const std::shared_ptr<BTAdapter>& adapter) {
     // prepare adapter ctor
     const EUI48 addr = adapter->getAddressAndType().address;
@@ -180,7 +181,7 @@ jobject Java_jau_direct_1bt_DBTManager_getAdapterListImpl(JNIEnv *env, jobject o
 
         jau::darray<std::shared_ptr<BTAdapter>> adapters = ref->getAdapters();
         return convert_vector_sharedptr_to_jarraylist<jau::darray<std::shared_ptr<BTAdapter>>, BTAdapter>(
-                env, adapters, _adapterClazzCtorArgs.c_str(), _createJavaAdapter);
+                env, adapters, _adapterClazzCtorArgs.data(), _createJavaAdapter); // NOLINT(bugprone-suspicious-stringview-data-usage): Safe (see above)
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
@@ -199,7 +200,7 @@ jobject Java_jau_direct_1bt_DBTManager_getAdapterImpl(JNIEnv *env, jobject obj, 
         }
         jau_DBG_PRINT("BTManager::getAdapterImpl: Adapter dev_id %d: %s", dev_id, adapter->toString());
 
-        return convert_instance_to_jobject<BTAdapter>(env, adapter,  _adapterClazzCtorArgs.c_str(), _createJavaAdapter);
+        return convert_instance_to_jobject<BTAdapter>(env, adapter,  _adapterClazzCtorArgs.data(), _createJavaAdapter); // NOLINT(bugprone-suspicious-stringview-data-usage): Safe (see above)
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
