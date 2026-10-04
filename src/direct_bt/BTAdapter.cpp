@@ -52,15 +52,9 @@ using namespace jau::fractions_i64_literals;
 
 constexpr static const bool _print_device_lists = false;
 
-std::string direct_bt::to_string(const DiscoveryPolicy v) noexcept {
-    switch(v) {
-        case DiscoveryPolicy::AUTO_OFF: return "AUTO_OFF";
-        case DiscoveryPolicy::PAUSE_CONNECTED_UNTIL_DISCONNECTED: return "PAUSE_CONNECTED_UNTIL_DISCONNECTED";
-        case DiscoveryPolicy::PAUSE_CONNECTED_UNTIL_READY: return "PAUSE_CONNECTED_UNTIL_READY";
-        case DiscoveryPolicy::PAUSE_CONNECTED_UNTIL_PAIRED: return "PAUSE_CONNECTED_UNTIL_PAIRED";
-        case DiscoveryPolicy::ALWAYS_ON: return "ALWAYS_ON";
-    }
-    return jau_format_string("Unknown DiscoveryPolicy %#x", *v);
+namespace direct_bt {
+    JAU_MAKE_ENUM_STRING_CODE(DiscoveryPolicy,
+        AUTO_OFF, PAUSE_CONNECTED_UNTIL_DISCONNECTED, PAUSE_CONNECTED_UNTIL_READY, PAUSE_CONNECTED_UNTIL_PAIRED, ALWAYS_ON);
 }
 
 BTDeviceRef BTAdapter::findDevice(HCIHandler& hci, device_list_t & devices, const EUI48 & address, const BDAddressType addressType) noexcept {
@@ -300,11 +294,11 @@ bool BTAdapter::updateDataFromHCI() noexcept {
 
     status = hci.le_set_addr_resolv_enable(true);
     if( HCIStatusCode::SUCCESS != status ) {
-        jau_INFO_PRINT("Adapter[%d]: ENABLE RESOLV LIST: %s", dev_id, status);
+        jau_DBG_PRINT("Adapter[%d]: ENABLE RESOLV LIST: %s", dev_id, status);
     }
     status = hci.le_clear_resolv_list();
     if( HCIStatusCode::SUCCESS != status ) {
-        jau_INFO_PRINT("Adapter[%d]: CLEAR RESOLV LIST: %s", dev_id, status);
+        jau_DBG_PRINT("Adapter[%d]: CLEAR RESOLV LIST: %s", dev_id, status);
     }
 
     jau_WORDY_PRINT("BTAdapter::updateDataFromHCI: Adapter[%d]: POWERED, %s - %s, hci_ext[scan %d, conn %d], features: %s",
@@ -973,9 +967,9 @@ HCIStatusCode BTAdapter::reset() noexcept {
                 connCount = getConnectedDeviceCount();
             }
             if( 0 < connCount ) {
-                jau_WARN_PRINT("%zu connections pending after %" PRIi64 " ms - %s", connCount, td.to_ms(), toString());
+                jau_WARN_PRINT("%zu connections pending after %i ms - %s", connCount, td.to_ms(), toString());
             } else {
-                jau_DBG_PRINT("BTAdapter::reset: pending connections resolved after %" PRIi64 " ms - %s", td.to_ms(), toString());
+                jau_DBG_PRINT("BTAdapter::reset: pending connections resolved after %i ms - %s", td.to_ms(), toString());
             }
         }
         if (HCIStatusCode::SUCCESS == res && DiscoveryPolicy::AUTO_OFF != previousDiscoveryPolicy) {

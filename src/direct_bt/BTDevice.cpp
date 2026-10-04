@@ -139,7 +139,7 @@ std::string BTDevice::toString(bool includeDiscoveredServices) const noexcept {
     if (visibleAddressAndType != addressAndType) {
         jau_append_string(out, "visible %s, ", visibleAddressAndType);
     }
-    jau_append_string(out, "name['%s'], age[total %'" PRIu64 ", ldisc %'" PRIu64 ", lup %'" PRIu64 "]ms, "
+    jau_append_string(out, "name['%s'], age[total %'u, ldisc %'u, lup %'u]ms, "
         "connected[%s/%s, handle %#x, phy[Tx %s, Rx %s], l2cap %s, sec[enc %s, lvl %s, io %s, auto %s, pairing %s, state %s, "
         "sc %s]], rssi %d, tx-power %d, ",
         name, (t0-ts_creation), (t0-ts_last_discovery), (t0-ts_last_update), // 4
@@ -499,7 +499,7 @@ HCIStatusCode BTDevice::connectLE(const uint16_t le_scan_interval, const uint16_
                     }
                     if( hci.env.HCI_COMMAND_COMPLETE_REPLY_TIMEOUT <= td_disconnect ) {
                         // timeout
-                        jau_ERR_PRINT("SEC AUTO.%d.4 Timeout Disconnect td_pairing %" PRIi64 " ms: %s",
+                        jau_ERR_PRINT("SEC AUTO.%d.4 Timeout Disconnect td_pairing %i ms: %s",
                                 smp_auto_count, td_disconnect.to_ms(), toString());
                         pairing_data.io_cap_auto = SMPIOCapability::UNSET;
                         statusConnect = HCIStatusCode::INTERNAL_TIMEOUT;
@@ -647,10 +647,10 @@ void BTDevice::processL2CAPSetup(std::shared_ptr<BTDevice> sthis) { // NOLINT(pe
                 std::unique_ptr<L2CAPClient> l2cap_att_new = adapter.get_l2cap_connection(sthis);
                 const uint64_t td = ( jau::environment::get().debug ) ? jau::getCurrentMilliseconds() - t0 : 0;
                 if( nullptr == l2cap_att_new ) {
-                    jau_DBG_PRINT("L2CAP-ACCEPT: New: BTDevice::processL2CAPSetup: dev_id %d, td %" PRIu64 "ms, NULL l2cap_att", adapter.dev_id, td);
+                    jau_DBG_PRINT("L2CAP-ACCEPT: New: BTDevice::processL2CAPSetup: dev_id %d, td %ums, NULL l2cap_att", adapter.dev_id, td);
                 } else {
                     l2cap_att = std::move(l2cap_att_new);
-                    jau_DBG_PRINT("L2CAP-ACCEPT: New: BTDevice::processL2CAPSetup: dev_id %d, td %" PRIu64 "ms, l2cap_att %s", adapter.dev_id, td, l2cap_att->toString());
+                    jau_DBG_PRINT("L2CAP-ACCEPT: New: BTDevice::processL2CAPSetup: dev_id %d, td %ums, l2cap_att %s", adapter.dev_id, td, l2cap_att->toString());
                     l2cap_open = true;
                 }
             } else {

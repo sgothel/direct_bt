@@ -93,16 +93,14 @@ namespace direct_bt {
         /** Always keep discovery enabled, i.e. re-enabled if automatically turned-off by HCI host OS as soon as possible. */
         ALWAYS_ON                    = 4
     };
-    constexpr uint8_t number(const DiscoveryPolicy rhs) noexcept {
-        return static_cast<uint8_t>(rhs);
-    }
+    JAU_MAKE_ENUM_STRING_DECL(DiscoveryPolicy);
+
     constexpr DiscoveryPolicy to_DiscoveryPolicy(const uint8_t v) noexcept {
         if( 1 <= v && v <= 4 ) {
             return static_cast<DiscoveryPolicy>(v);
         }
         return DiscoveryPolicy::AUTO_OFF;
     }
-    std::string to_string(const DiscoveryPolicy v) noexcept;
 
     /**
      * {@link BTAdapter} status listener for remote {@link BTDevice} discovery events: Added, updated and removed;
