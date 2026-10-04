@@ -130,7 +130,7 @@ public class DBTScanner10 {
             }
             PrintUtil.println(System.err, "Status Adapter:");
             PrintUtil.println(System.err, adapter.toString());
-            if( !initialSetting &&
+            if( !initialSetting &&  discoveryPolicy == DiscoveryPolicy.AUTO_OFF &&
                 changedmask.isSet(AdapterSettings.SettingType.POWERED) &&
                 newmask.isSet(AdapterSettings.SettingType.POWERED) )
             {

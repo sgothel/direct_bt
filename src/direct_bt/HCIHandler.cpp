@@ -39,6 +39,7 @@
 
 #include "BTIoctl.hpp"
 
+#include "BTTypes0.hpp"
 #include "HCIIoctl.hpp"
 #include "HCIComm.hpp"
 #include "HCIHandler.hpp"
@@ -729,6 +730,7 @@ HCIHandler::HCIHandler(const uint16_t dev_id_, const BTMode btMode_) noexcept
   sup_commands_set( false ),
   allowClose( comm.is_open() ),
   btMode(btMode_),
+  currentScanStatus(HCIScanParam()),
   advertisingEnabled(false)
 {
     zeroSupCommands();
@@ -1044,11 +1046,9 @@ HCIStatusCode HCIHandler::startAdapter() {
     #elif defined(__FreeBSD__)
         // #warning add implementation
         jau_ABORT("add implementation for FreeBSD");
-        return res; // unreachable
     #else
         #warning add implementation
         jau_ABORT("add implementation");
-        return res; // unreachable
     #endif
     if( HCIStatusCode::SUCCESS == res ) {
         res = resetAllStates(true) ? HCIStatusCode::SUCCESS : HCIStatusCode::FAILED;
@@ -1086,6 +1086,11 @@ HCIStatusCode HCIHandler::stopAdapter() {
     if( HCIStatusCode::SUCCESS == res ) {
         resetAllStates(false);
     }
+    {
+        // Update scan-mode (disabled), currentScanStatus is already reset
+        const MgmtEvtDiscovering e(dev_id, ScanType::LE, false);
+        sendMgmtEvent( e );
+    }
     jau_DBG_PRINT("HCIHandler<%hu>::stopAdapter.X: %s - %s", dev_id, res, toString());
     return res;
 }
@@ -1100,10 +1105,10 @@ HCIStatusCode HCIHandler::resetAdapter(const HCIHandler::PostShutdownFunc& user_
     bool user_abort = false;
 
     const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
-    jau_DBG_PRINT("HCIHandler<%hu>::resetAdapter.0: %s", dev_id, toString());
+    jau_DBG_PRINT("HCIHandler<%u>::resetAdapter.0: %s", dev_id, toString());
 
     #if defined(__linux__)
-        res = stopAdapter();
+        res = stopAdapter(); // sends scan disabled to listener
         if( HCIStatusCode::SUCCESS == res ) {
             if( nullptr != user_post_shutdown ) {
                 user_called = true;
@@ -1118,12 +1123,10 @@ HCIStatusCode HCIHandler::resetAdapter(const HCIHandler::PostShutdownFunc& user_
         // #warning add implementation
         (void)user_post_shutdown;
         jau_ABORT("add implementation for FreeBSD");
-        return res; // unreachable
     #else
         #warning add implementation
         (void)user_post_shutdown;
         jau_ABORT("add implementation");
-        return res; // unreachable
     #endif
     jau_DBG_PRINT("HCIHandler<%hu>::resetAdapter.X: %s user[called %d, abort %d] - %s", dev_id, res, user_called, user_abort, toString());
     return res;
@@ -1133,7 +1136,7 @@ bool HCIHandler::resetAllStates(const bool powered_on) noexcept {
     const std::lock_guard<std::recursive_mutex> lock(mtx_connectionList); // RAII-style acquire and relinquish via destructor
     connectionList.clear();
     disconnectCmdList.clear();
-    currentScanStatus = HCIScanParam();
+    setCurrentScanType(ScanType::NONE);
     advertisingEnabled = false;
     zeroSupCommands();
     if( powered_on ) {

@@ -134,7 +134,7 @@ class AdapterToServerStatusListener : public AdapterStatusListener { // NOLINT(m
         jau_fprintf_td(stderr, "%s\n", a);
         (void)timestamp;
 
-        if( !initialSetting &&
+        if( !initialSetting && discoveryPolicy == DiscoveryPolicy::AUTO_OFF &&
             isAdapterSettingBitSet(changedmask, AdapterSetting::POWERED) &&
             isAdapterSettingBitSet(newmask, AdapterSetting::POWERED) )
         {

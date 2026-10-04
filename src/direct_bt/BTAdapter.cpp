@@ -549,7 +549,7 @@ void BTAdapter::poweredOff(bool active, const std::string& msg) noexcept {
         }
     }
     if( !hci.isOpen() ) {
-        jau_INFO_PRINT("BTAdapter::poweredOff: HCI closed: active %d -> 0: %s", active, toString());
+        jau_DBG_PRINT("BTAdapter::poweredOff: HCI closed: active %d -> 0: %s", active, toString());
         active = false;
     } else if( active && !adapterInfo.isCurrentSettingBitSet(AdapterSetting::POWERED) ) {
         jau_DBG_PRINT("BTAdapter::poweredOff: !POWERED: active %d -> 0: %s", active, toString());
@@ -954,6 +954,12 @@ HCIStatusCode BTAdapter::reset() noexcept {
         return HCIStatusCode::UNSPECIFIED_ERROR;
     }
     jau_DBG_PRINT("BTAdapter::reset.0: %s", toString());
+
+    const DiscoveryPolicy previousDiscoveryPolicy = discovery_policy;
+
+    discovery_policy = DiscoveryPolicy::AUTO_OFF;
+    discovery_service.stop();
+
     HCIStatusCode res = hci.resetAdapter( [&]() noexcept -> HCIStatusCode {
         jau::nsize_t connCount = getConnectedDeviceCount();
         if( 0 < connCount ) {
@@ -971,6 +977,11 @@ HCIStatusCode BTAdapter::reset() noexcept {
             } else {
                 jau_DBG_PRINT("BTAdapter::reset: pending connections resolved after %" PRIi64 " ms - %s", td.to_ms(), toString());
             }
+        }
+        if (HCIStatusCode::SUCCESS == res && DiscoveryPolicy::AUTO_OFF != previousDiscoveryPolicy) {
+            discovery_policy = previousDiscoveryPolicy;
+            jau_DBG_PRINT("BTAdapter::reset.1: reset local discovery_policy - %s", toString());
+            // Waiting for POWERED ON -> discovery_service.start();
         }
         return HCIStatusCode::SUCCESS; // keep going
     });
@@ -1374,7 +1385,7 @@ exit:
             mgmtEvDeviceDiscoveringHCI( e );
         } catch (...) {
             jau::fput_exception(stderr, std::current_exception(), E_FILE_LINE);
-        }        
+        }
     }
     if( _print_device_lists || jau::environment::get().verbose ) {
         jau_PLAIN_PRINT(true, "BTAdapter::stopDiscovery: End: Result %s, policy %s, currentScanType[native %s, meta %s], le_scan_temp_disabled %d ...\n- %s",
@@ -1716,9 +1727,9 @@ std::string BTAdapter::toString(bool includeDiscoveredDevices) const noexcept {
         jau_append_string(out, " (%s)", visibleAddressAndType);
     }
 
-    jau_append_string(out, " '%s', curSettings%s, valid %s, adv %s, scanType[native %s, meta %s], open[mgmt, %s, hci %s], %s, %s]",
-        getName(), adapterInfo.getCurrentSettingMask(), isValid(), hci.isAdvertising(), hci.getCurrentScanType(),
-        currentMetaScanType, mgmt->isOpen(), hci.isOpen(), l2cap_att_srv, javaObjectToString());
+    jau_append_string(out, " '%s', curSettings%s, valid %s, adv %s, scanType[native %s, meta %s, %s], open[mgmt, %s, hci %s], %s, %s]",
+        getName(), adapterInfo.getCurrentSettingMask(), isValid(), hci.isAdvertising(),
+        hci.getCurrentScanType(), currentMetaScanType, discovery_policy, mgmt->isOpen(), hci.isOpen(), l2cap_att_srv, javaObjectToString());
 
     if( includeDiscoveredDevices ) {
         device_list_t devices = getDiscoveredDevices();
@@ -1904,6 +1915,10 @@ void BTAdapter::updateAdapterSettings(const bool off_thread, const AdapterSettin
         // Adapter has been powered on, ensure all hci states are reset.
         if( hci.resetAllStates(true) ) {
             updateDataFromHCI();
+            if (DiscoveryPolicy::AUTO_OFF != discovery_policy) {
+                jau_DBG_PRINT("BTAdapter::updateAdapterSettings(%s): start discovery_service - %s", changes, toString());
+                discovery_service.start();
+            }
         }
     }
     if( sendEvent && AdapterSetting::NONE != changes ) {
