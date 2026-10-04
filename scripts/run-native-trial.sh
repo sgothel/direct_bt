@@ -30,6 +30,7 @@ else
     exit 1
 fi
 
+tripleid="$os_name-$archabi"
 dist_dir="$rootdir/dist/${preset_name}-${tripleid}"
 build_dir="$rootdir/build/${preset_name}"
 echo dist_dir $dist_dir
