@@ -448,7 +448,7 @@ BTAdapter::BTAdapter(const BTAdapter::ctor_cookie& cc, BTManagerRef mgmt_, Adapt
   hci( dev_id ),
   currentMetaScanType( ScanType::NONE ),
   discovery_policy ( DiscoveryPolicy::AUTO_OFF ),
-  smp_watchdog(jau::format_string("adapter%u_smp_watchdog", dev_id), THREAD_SHUTDOWN_TIMEOUT_MS),
+  smp_watchdog(jau::cfmt::format("adapter%u_smp_watchdog", dev_id), THREAD_SHUTDOWN_TIMEOUT_MS),
   l2cap_att_srv(dev_id, adapterInfo.addressAndType, L2CAP_PSM::UNDEFINED, L2CAP_CID::ATT),
   l2cap_service("BTAdapter::l2capServer", THREAD_SHUTDOWN_TIMEOUT_MS,
                 jau::bind_member(this, &BTAdapter::l2capServerWork),
