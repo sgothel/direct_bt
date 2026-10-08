@@ -32,9 +32,11 @@ set( TARGETS_IDIOMATIC_EXAMPLES ${BASENAMES_IDIOMATIC_EXAMPLES} )
 #                           org.junit.runner.JUnitCore ${name})
 #endforeach()
 
-foreach(name ${TARGETS_IDIOMATIC_EXAMPLES})
-    add_test (NAME ${name} COMMAND sudo -E /sbin/capsh --caps=cap_net_raw,cap_net_admin+eip\ cap_setpcap,cap_setuid,cap_setgid+ep
-                           --keep=1 --user=$ENV{USER} --addamb=cap_net_raw,cap_net_admin+eip
-                           -- -c "ulimit -c unlimited; ${JAVA_RUNTIME} -cp ${JUNIT_JAR}:${direct_bt_jar_file}:${jaulib_base_jar_file}:${jaulib_test_jar_file}:${direct_bt_trial_jar_file} -Djava.library.path=${CMAKE_BINARY_DIR}/src/direct_bt:${CMAKE_BINARY_DIR}/java/jni/direct_bt org.junit.runner.JUnitCore ${name}")
-endforeach()
+if(RUN_TRIAL)
+    foreach(name ${TARGETS_IDIOMATIC_EXAMPLES})
+        add_test (NAME ${name} COMMAND sudo -E /sbin/capsh --caps=cap_net_raw,cap_net_admin+eip\ cap_setpcap,cap_setuid,cap_setgid+ep
+                               --keep=1 --user=$ENV{USER} --addamb=cap_net_raw,cap_net_admin+eip
+                               -- -c "ulimit -c unlimited; ${JAVA_RUNTIME} -cp ${JUNIT_JAR}:${direct_bt_jar_file}:${jaulib_base_jar_file}:${jaulib_test_jar_file}:${direct_bt_trial_jar_file} -Djava.library.path=${CMAKE_BINARY_DIR}/src/direct_bt:${CMAKE_BINARY_DIR}/java/jni/direct_bt org.junit.runner.JUnitCore ${name}")
+    endforeach()
+endif(RUN_TRIAL)
 

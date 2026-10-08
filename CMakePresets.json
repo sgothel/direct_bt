@@ -11,7 +11,8 @@
       "displayName": "Debug (cc, C++20, java)",
       "binaryDir": "${sourceDir}/build/debug",
       "cacheVariables": {
-        "CMAKE_CXX_STANDARD": "20",
+        "JAU_CMAKE_NO_PRESETS": "ON",
+        "CMAKE_CXX_STANDARD": "23",
         "DONT_USE_RTTI": "ON",
         "USE_LTO_FOR_ALL_TARGETS": "OFF",
         "CMAKE_BUILD_TYPE": "Debug",
@@ -23,6 +24,7 @@
         "BUILDEXAMPLES": "ON",
         "BUILD_TESTING": "ON",
         "BUILD_TRIAL": "ON",
+        "RUN_TRIAL": "ON",
         "TEST_WITH_SUDO": "OFF"
       }
     },
@@ -87,12 +89,35 @@
     },
     {
       "name": "default",
-      "inherits": "debug-clang",
-      "displayName": "Default (debug-clang)",
+      "inherits": "debug-gcc",
+      "displayName": "Default (debug-gcc)",
       "binaryDir": "${sourceDir}/build/default",
       "cacheVariables": {
-        "CMAKE_INSTALL_PREFIX": "${sourceDir}/dist/default",
-        "CMAKE_CXX_CLANG_TIDY": "clang-tidy;-p;${sourceDir}/build/default"
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/dist/default"
+      }
+    },
+    {
+      "name": "docker",
+      "displayName": "Docker (release-g++)",
+      "binaryDir": "${sourceDir}/build/docker",
+      "cacheVariables": {
+        "JAU_CMAKE_NO_PRESETS": "ON",
+        "CMAKE_CXX_STANDARD": "23",
+        "CMAKE_BUILD_TYPE": "Release",
+        "DONT_USE_RTTI": "ON",
+        "USE_LTO_FOR_ALL_TARGETS": "ON",
+        "CMAKE_C_COMPILER": "gcc",
+        "CMAKE_CXX_COMPILER": "g++",
+        "BUILDJAVA": "ON",
+        "USE_LIBCURL": "OFF",
+        "USE_LIBUNWIND": "ON",
+        "BUILDEXAMPLES": "ON",
+        "BUILD_TESTING": "ON",
+        "BUILD_TRIAL": "ON",
+        "RUN_TRIAL": "OFF",
+        "TEST_WITH_SUDO": "OFF",
+        "JAU_CMAKE_FIX_INSTALL_PREFIX": "ON",
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/dist/docker"
       }
     }
   ],
@@ -124,6 +149,10 @@
     {
       "name": "default",
       "configurePreset": "default"
+    },
+    {
+      "name": "docker",
+      "configurePreset": "docker"
     }
   ],
   "testPresets": [
@@ -166,6 +195,12 @@
     {
       "name": "default",
       "configurePreset": "default",
+      "output": {"outputOnFailure": true},
+      "execution": {"noTestsAction": "error", "stopOnFailure": true}
+    },
+    {
+      "name": "docker",
+      "configurePreset": "docker",
       "output": {"outputOnFailure": true},
       "execution": {"noTestsAction": "error", "stopOnFailure": true}
     }

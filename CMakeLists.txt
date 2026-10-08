@@ -16,6 +16,9 @@ find_package (Threads REQUIRED)
 # set(CMAKE_MESSAGE_LOG_LEVEL DEBUG)
 
 if (BUILD_TRIAL)
+    if(NOT DEFINED RUN_TRIAL)
+        set (RUN_TRIAL ON)
+    endif()
     set (BUILD_TESTING ON)
 endif(BUILD_TRIAL)
 

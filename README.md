@@ -55,7 +55,7 @@ to GATT indications and notifications.
 - *libdirect_bt.so* for the core C++ implementation.
 - *libjavadirect_bt.so* for the Java binding.
 
-*Direct-BT* is C++20 conform.
+*Direct-BT* is C++20 and C++23 conform.
 
 Some elaboration on the implementation details
 > The host-side of HCI, L2CAP etc is usually implemented within the OS, e.g. *Linux/BlueZ* Kernel.
@@ -107,9 +107,12 @@ Minimum language requirements
 
 See [supported platforms](PLATFORMS.md) for details.
 
-### C++ Minimum Requirements
-C++20 is the minimum requirement for releases > 3.2.4,
-see [jaulib C++ Minimum Requirements](https://jausoft.com/cgit/jaulib.git/about/README.md#cpp_min_req).
+<a name="cpp_req"></a>
+
+## C++ Requirements
+See [jaulib C++ Minimum Requirements](https://jausoft.com/cgit/jaulib.git/about/README.md#cpp_min_req).
+- C++20 is the minimum requirement for releases > 3.2.4.
+- C++23 is the default for relases > 4.2.0, while C++20 is still supported.
 
 Release 3.2.4 is the last version conforming to C++17, see [Changes](CHANGES.md).
 
@@ -326,13 +329,14 @@ Following debug presets are defined in `CMakePresets.json`
 - **`debug`**
   - default generator
   - default compiler
-  - C++20
+  - C++23
   - LTO for all targets disabled
   - debug enabled
   - disabled `clang-tidy`
   - java (if available)
   - libunwind enabled
   - no: libcurl
+  - examples on
   - testing on
   - testing with 2 bluetooth trial on
   - testing with sudo off
@@ -343,14 +347,14 @@ Following debug presets are defined in `CMakePresets.json`
     - enabled `clang-tidy`
     - binary-dir `build/debug-clang`
     - install-dir `dist/debug-clang`
-    - **`default`**
-      - binary-dir `build/default`
-      - install-dir `dist/default`
   - **`debug-gcc`**
     - compiler: `gcc`
     - disabled `clang-tidy`
     - binary-dir `build/debug-gcc`
     - install-dir `dist/debug-gcc`
+    - **`default`**
+      - binary-dir `build/default`
+      - install-dir `dist/default`
   - **`release`**
     - LTO for all targets enabled
     - debug disabled (strip libraries)
@@ -382,6 +386,24 @@ Following debug presets are defined in `CMakePresets.json`
     - disabled `clang-tidy`
     - binary-dir `build/perf-gcc`
     - install-dir `dist/perf-gcc`
+- **`docker`**
+  - default generator
+  - compiler: `gcc`
+  - disabled `clang-tidy`
+  - C++23
+  - LTO for all targets enabled
+  - debug disabled
+  - java enabled
+  - libunwind enabled
+  - no: libcurl
+  - examples on
+  - testing on
+  - testing with 2 bluetooth trial
+    - building on
+    - running off
+  - testing with sudo off
+  - binary-dir `build/docker`
+  - install-dir `dist/docker`
 
 All presets enable [full unit testing](README.md#unit_testing) including actual Bluetooth trials,
 i.e. require two adapter to pass.
@@ -474,19 +496,67 @@ supported via e.g. `scripts/build-preset.sh`.
 
 - `scripts/build-preset.sh` .. initial build incl. install and unit testing using [presets](README.md#cmake_presets_optional)
 - `scripts/rebuild-preset.sh` .. rebuild using [presets](README.md#cmake_presets_optional)
-- `scripts/build-preset-cross.sh` .. [cross-build](#cross-build) using [presets](README.md#cmake_presets_optional)
-- `scripts/rebuild-preset-cross.sh` .. [cross-build](#cross-build) using [presets](README.md#cmake_presets_optional)
+- `scripts/build-preset-cross.sh` .. [cross-build](#manual-cross) using [presets](README.md#cmake_presets_optional)
+- `scripts/rebuild-preset-cross.sh` .. [cross-build](#manual-cross) using [presets](README.md#cmake_presets_optional)
+- `scripts/build-docker-fatjar-multiarch.sh` .. [docker-cross-build](#docker-cross)
 - `scripts/test_java.sh` .. invoke a java unit test
 - `scripts/test_exe_template.sh` .. invoke the symlink'ed files to invoke native unit tests
 
-### Cross Build
-Also provided is a [cross-build script](https://jausoft.com/cgit/direct_bt.git/tree/scripts/build-preset-cross.sh)
+<a name="manual-cross"></a>
+
+### Cross-Build w/ own System-Image
+Also provided is a [cross-build script](scripts/build-preset-cross.sh)
 using chroot into a target system using [QEMU User space emulation](https://qemu-project.gitlab.io/qemu/user/main.html)
 and [Linux kernel binfmt_misc](https://wiki.debian.org/QemuUserEmulation)
 to run on other architectures than the host.
 
+See [Build Procedure](#build-procedure) for general overview.
+
 You may use [our pi-gen branch](https://jausoft.com/cgit/pi-gen.git/about/) to produce
 a Raspi-arm64, Raspi-armhf or PC-amd64 target image.
+
+<a name="docker-cross"></a>
+
+### Cross-Build w/ Docker
+
+Docker allows cross-platform builds via qemu `binfmt`
+w/o the hassle to maintain system images ourselves as [described above](#manual-cross).
+
+Find instructions to setup [a rootless Docker on Debian13](https://www.cybernatives.net/2026/02/27/2026-02-27_install-docker-debian-13-rootless-guide/),
+i.e. secure w/o `sudo` root access.
+For best security separation, consider using a dedicated `docker-dev` user to perform all docker related procedures
+within the `rootless docker` environment.
+
+To test the build configuration upfront, the cmake-preset `docker` can be used in a host build,
+using same cmake settings.
+
+Launch docker script:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+scripts/build-docker-fatjar-multiarch.sh [--rebuild] [--notesting] [--platforms "linux/amd64,linux/arm64/v8,linux/arm/v7"] [--out DIR]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Pass `--rebuild` to keep previous build artifacts, used in development
+- Pass `--notesting` to skip building and performing unit tests
+- Optionally pass one or a comma-separated set of platforms via `--platforms`
+
+The following steps kick-off a fresh Docker build
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~{.sh}
+# one-time: register qemu binfmt for foreign-arch containers
+docker run --privileged --rm tonistiigi/binfmt --install arm64,arm
+
+scripts/build-docker-fatjar-multiarch.sh
+java -jar build-docker/fatjar/direct_bt-fat.jar
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+It builds each architecture in a Debian container under that platform (docker + qemu) and merges the
+per-arch natives into a single fat jar at `build-docker/fatjar/jaulib-fat.jar`. This replaces the
+mounted-rootfs cross build in `scripts/build-preset-cross.sh`, which needs private disk images. Default
+architectures are `linux/amd64` + `linux/arm64/v8` + `linux/arm/v7`.
+
+Finally it performs a quick bring-up test w/ Java on the host platform,
+which should succeed if the host architecture was included in the `--platforms` list.
 
 
 ## Build Status

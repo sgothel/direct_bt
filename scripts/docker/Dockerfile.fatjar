@@ -1,0 +1,27 @@
+# Reproducible build environment for the Direct-BT fat jar.
+#
+# The image builds for whatever platform it is run under (`docker build --platform linux/amd64`,
+# `linux/arm64/v8`, `linux/arm/v7`), so the same Dockerfile produces the per-architecture native
+# libraries under natives/<os_and_arch>/. build-fatjar-multiarch.sh drives one build per platform and
+# merges the results into a single multi-arch fat jar.
+#
+# Debian bookworm matches the platform baseline in PLATFORMS.md.
+FROM debian:trixie-slim
+
+# Build dependencies per README.md ("Install on Debian or Ubuntu").
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        git ca-certificates \
+        build-essential g++ gcc libc-dev libpthread-stubs0-dev \
+        libunwind8 libunwind-dev \
+        openjdk-21-jdk junit4 \
+        cmake cmake-extras extra-cmake-modules pkg-config zip unzip \
+        locales time sudo \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen && locale-gen
+
+# The source tree (including the jaulib submodule) is bind-mounted at /src by the driver script; the
+# build writes into /src/build-docker/<os_and_arch> so host and container artifacts do not collide with
+# a native host build under build/.
+WORKDIR /src
+ENTRYPOINT ["/bin/bash", "/src/scripts/docker/build-fatjar-in-container.sh"]
