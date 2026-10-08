@@ -32,69 +32,43 @@ The following **platforms** are tested and hence supported
 - architectures
   - amd64 (validated, Generic)
 
+**Debian 13 Trixie (GNU/Linux)**
+- linux 6.12
+- glibc 2.41
+- compiler
+  - gcc 14.2.0
+  - clang 19.1.7
+  - openjdk 21
+- architectures
+  - amd64 (validated, Generic)
+
 **Debian 12 Bookworm (GNU/Linux)**
 - linux 5.19
 - glibc 2.35
 - compiler
   - gcc 12.2.0
-  - clang 14.0.6
+  - clang 16.0.6
   - openjdk 17
 - architectures
   - amd64 (validated, Generic)
 
-**Debian 11 Bullseye (GNU/Linux)**
-- *deprecated*
-- linux 5.10
-- glibc 2.31
+**Ubuntu 24.04 (GNU/Linux)**
+- linux 6 (?)
+- glibc 2.41 (?)
 - compiler
-  - gcc 10.2.1
-  - clang 11.0.1
-  - openjdk 17
+  - gcc 14 (13 is default)
+  - clang 19 (18 is default)
+  - openjdk 21
 - architectures
   - amd64 (validated, Generic)
-  - arm64 (validated, Raspberry Pi 3+ and 4)
-  - arm32 (validated, Raspberry Pi 3+ and 4)
-
-**Debian 10 Buster (GNU/Linux)**
-- *deprecated*
-- linux 4.19 (amd64), 5.10 (raspi)
-- glibc 2.28
-- compiler
-  - gcc 8.3.0
-  - openjdk 11
-- architectures
-  - amd64 (validated, Generic)
-  - arm64 (validated, Raspberry Pi 3+ and 4)
-  - arm32 (validated, Raspberry Pi 3+ and 4)
-- potential issues with *capsh*, see below.
 
 **Ubuntu 22.04 (GNU/Linux)**
 - linux 5.15
 - glibc 2.35
 - compiler
-  - gcc 11.2.0
-  - clang 14.0.0
+  - gcc 12 (11 is default)
+  - clang 19 (18 is default)
   - openjdk 17
 - architectures
   - amd64 (validated, Generic)
-
-**Ubuntu 20.04 (GNU/Linux)**
-- *deprecated*
-- linux 5.4
-- glibc 2.31
-- compiler
-  - gcc 9.4.0
-  - clang 10.0.0
-  - openjdk 17
-- architectures
-  - amd64 (validated, Generic)
-
-**Ubuntu 18.04 (GNU/Linux)**
-- *deprecated*
-- compiler
-  - gcc 8.3
-  - openjdk 11
-- architectures
-  - amd64 (validated, Generic)
-- potential issues with *capsh*, see below.
 
