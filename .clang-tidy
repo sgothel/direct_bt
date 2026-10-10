@@ -13,17 +13,17 @@ Checks:  'clang-diagnostic-*, clang-analyzer-*,
           -modernize-use-auto, -modernize-use-nodiscard, -modernize-use-using, -modernize-use-trailing-return-type,
           -modernize-avoid-c-arrays, -modernize-use-default-member-init, -modernize-return-braced-init-list,
           -modernize-avoid-bind, -modernize-use-transparent-functors, -modernize-use-constraints,
-          -modernize-use-designated-initializers, -modernize-min-max-use-initializer-list, -modernize-type-traits,
-          -modernize-use-ranges, -modernize-avoid-c-style-cast,
+          -modernize-min-max-use-initializer-list, -modernize-type-traits,
+          -modernize-avoid-c-style-cast, -modernize-use-std-print,
+          -modernize-use-designated-initializers, -modernize-use-ranges,
           -performance-avoid-endl, -performance-enum-size,
           -misc-non-private-member-variables-in-classes, -misc-include-cleaner,
           -misc-const-correctness, -misc-unconventional-assign-operator, -misc-use-anonymous-namespace,
           -misc-misplaced-const, -misc-no-recursion, -misc-confusable-identifiers,
           -misc-explicit-constructor, -misc-multiple-inheritance,
           -readability-redundant-declaration, -readability-redundant-inline-specifier, -readability-redundant-member-init,
-          -readability-redundant-access-specifiers,
-          -readability-redundant-lambda-parameter-list, -readability-redundant-nested-if, -readability-redundant-parentheses,
-          -readability-redundant-typename'
+          -readability-redundant-access-specifiers, -readability-redundant-lambda-parameter-list, -readability-redundant-nested-if,
+          -readability-redundant-parentheses, -readability-redundant-typename'
 
 CheckOptions:
   - key:             bugprone-exception-escape.TreatFunctionsWithoutSpecificationAsThrowing
