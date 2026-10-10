@@ -469,8 +469,7 @@ BTAdapter::~BTAdapter() noexcept {
         hci.clearAllCallbacks();
         return;
     }
-    // NOLINTNEXTLINE(clang-analyzer-optin.cplusplus.VirtualCall)
-    jau_DBG_PRINT("BTAdapter::dtor: ... %p %s", this, toString());
+    jau_DBG_PRINT("BTAdapter::dtor: ... %p %s", this, toString(false));
     close();
 
     mgmt->removeAdapter(this); // remove this instance from manager
@@ -486,7 +485,7 @@ void BTAdapter::close() noexcept {
         return;
     }
     // NOLINTNEXTLINE(clang-analyzer-optin.cplusplus.VirtualCall)
-    jau_DBG_PRINT("BTAdapter::close: ... %p %s", this, toString());
+    jau_DBG_PRINT("BTAdapter::close: ... %p %s", this, toString(false));
     discovery_policy = DiscoveryPolicy::AUTO_OFF;
 
     // mute all listener first
@@ -536,17 +535,17 @@ void BTAdapter::poweredOff(bool active, const std::string& msg) noexcept {
         jau_ERR_PRINT("BTAdapter invalid: dev_id %u, %p", dev_id, this);
         return;
     }
-    jau_DBG_PRINT("BTAdapter::poweredOff(active %d, %s).0: ... %p, %s", active, msg, this, toString());
+    jau_DBG_PRINT("BTAdapter::poweredOff(active %d, %s).0: ... %p, %s", active, msg, this, toString(false));
     if( jau::environment::get().debug ) {
         if( !active ) {
             jau::print_backtrace(true /* skip_anon_frames */, 4 /* max_frames */, 2 /* skip_frames: print_b*() + get_b*() */);
         }
     }
     if( !hci.isOpen() ) {
-        jau_DBG_PRINT("BTAdapter::poweredOff: HCI closed: active %d -> 0: %s", active, toString());
+        jau_DBG_PRINT("BTAdapter::poweredOff: HCI closed: active %d -> 0: %s", active, toString(false));
         active = false;
     } else if( active && !adapterInfo.isCurrentSettingBitSet(AdapterSetting::POWERED) ) {
-        jau_DBG_PRINT("BTAdapter::poweredOff: !POWERED: active %d -> 0: %s", active, toString());
+        jau_DBG_PRINT("BTAdapter::poweredOff: !POWERED: active %d -> 0: %s", active, toString(false));
         active = false;
     }
     discovery_policy = DiscoveryPolicy::PAUSE_CONNECTED_UNTIL_READY;
@@ -1449,7 +1448,7 @@ BTAdapter::size_type BTAdapter::removeDiscoveredDevices() {
         }
     }
     if( _print_device_lists || jau::environment::get().verbose ) {
-        jau_PLAIN_PRINT(true, "BTAdapter::removeDiscoveredDevices: End: %zu, %s", (size_t)res, toString());
+        jau_PLAIN_PRINT(true, "BTAdapter::removeDiscoveredDevices: End: %zu, %s", (size_t)res, toString(false));
         printDeviceLists();
     }
     return res;
@@ -1901,7 +1900,7 @@ void BTAdapter::updateAdapterSettings(const bool off_thread, const AdapterSettin
     old_settings = new_settings;
 
     jau_COND_PRINT(debug_event, "BTAdapter::updateAdapterSettings: %s -> %s, changes %s: %s, sendEvent %d, offThread %d",
-        old_settings_, new_settings, changes, toString(), sendEvent, off_thread ); // NOLINT(clang-analyzer-optin.cplusplus.VirtualCall)
+        old_settings_, new_settings, changes, toString(false), sendEvent, off_thread );
 
     updateDataFromAdapterInfo();
 
@@ -1910,7 +1909,7 @@ void BTAdapter::updateAdapterSettings(const bool off_thread, const AdapterSettin
         if( hci.resetAllStates(true) ) {
             updateDataFromHCI();
             if (DiscoveryPolicy::AUTO_OFF != discovery_policy) {
-                jau_DBG_PRINT("BTAdapter::updateAdapterSettings(%s): start discovery_service - %s", changes, toString());
+                jau_DBG_PRINT("BTAdapter::updateAdapterSettings(%s): start discovery_service - %s", changes, toString(false));
                 discovery_service.start();
             }
         }
