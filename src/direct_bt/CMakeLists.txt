@@ -28,6 +28,7 @@ set (direct_bt_LIB_SRCS
   ${PROJECT_SOURCE_DIR}/jaulib/src/os_support.cpp
   ${PROJECT_SOURCE_DIR}/jaulib/src/service_runner.cpp
   ${PROJECT_SOURCE_DIR}/jaulib/src/simple_timer.cpp
+  ${PROJECT_SOURCE_DIR}/jaulib/src/string_cfmt.cpp
   ${PROJECT_SOURCE_DIR}/jaulib/src/uuid.cpp
   ${PROJECT_SOURCE_DIR}/jaulib/src/unix/user_info.cpp
   ${PROJECT_SOURCE_DIR}/src/direct_bt/ieee11073/DataTypes.cpp
