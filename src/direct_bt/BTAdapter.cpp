@@ -941,6 +941,16 @@ bool BTAdapter::unlockConnectAny() noexcept {
     }
 }
 
+void BTAdapter::testIssueHardwareError(uint8_t errorCode) noexcept {
+    if( !hci.isOpen() ) {
+        jau_ERR_PRINT("HCI closed: %s, %s", jau::toHexString(this), toString());
+        return;
+    }
+    jau_DBG_PRINT("BTAdapter::testIssueHardwareError.0: %s", toString());
+    hci.testIssueHardwareError(errorCode);
+    jau_DBG_PRINT("BTAdapter::testIssueHardwareError.X: %s", toString());
+}
+
 HCIStatusCode BTAdapter::reset() noexcept {
     if( !isValid() ) {
         jau_ERR_PRINT("Adapter invalid: %s, %s", jau::toHexString(this), toString());

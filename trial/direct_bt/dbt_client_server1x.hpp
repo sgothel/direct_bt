@@ -64,13 +64,13 @@ class DBTClientServer1x {
     int client_power_down_count = 0;
     int client_power_up_count = 0;
     bool client_reset_at_ready = false;
-    bool server_reset_at_ready = false;
     bool client_reset_test = false;
-    bool server_reset_test = false;
+    bool client_hwerror_at_ready = false;
+    bool client_hwerror_test = false;
 
   public:
     void set_client_reset_at_ready(const bool v) noexcept { client_reset_at_ready = v; client_reset_test = v; }
-    void set_server_reset_at_ready(const bool v) noexcept { server_reset_at_ready = v; server_reset_test = v; }
+    void set_client_hwerror_at_ready(bool v) { client_hwerror_at_ready = v; client_hwerror_test = v; }
 
     void test8x_fullCycle(const std::string& suffix, const int protocolSessionCount, const bool server_client_order,
                           const bool serverSC, const BTSecurityLevel secLevelServer, const ExpectedPairing serverExpPairing,
@@ -156,7 +156,13 @@ class DBTClientServer1x {
             }
 
             void adapterHardwareError(BTAdapter &a, const uint8_t error_code, const uint32_t error_count, const uint64_t timestamp) override {
-                jau_fprintf_td(stderr, "****** Client HARDWARE-ERROR: Error-code %#2.2x, count %u: %s\n", error_code, error_count, a);
+                if (parent.client_hwerror_test) {
+                    jau_fprintf_td(stderr, "****** Client HARDWARE-ERROR: Error-code %#2.2x, count %u -> RESET: %s\n", error_code, error_count, a);
+                    std::thread bg(&BTAdapter::reset, &a);
+                    bg.detach();
+                } else {
+                    jau_fprintf_td(stderr, "****** Client HARDWARE-ERROR: Error-code %#2.2x, count %u: %s\n", error_code, error_count, a);
+                }
                 (void)timestamp;
             }
 
@@ -170,9 +176,15 @@ class DBTClientServer1x {
                 jau_fprintf_td(stderr, "XXXXXX Client Ready: %s\n", device->toString(true));
                 if( parent.client_reset_at_ready ) {
                     parent.client_reset_at_ready = false;
-                    jau_fprintf_td(stderr, "XXXXXX Client Reset.0: %s\n", device->toString(true));
+                    jau_fprintf_td(stderr, "ZZZZZZ Trigger Client Reset.0: %s\n", device->toString(true));
                     const HCIStatusCode rr = device->getAdapter().reset();
-                    jau_fprintf_td(stderr, "XXXXXX Client Reset.X: %s: %s\n", rr, device->toString(true));
+                    jau_fprintf_td(stderr, "ZZZZZZ Trigger Client Reset.X: %s: %s\n", rr, device->toString(true));
+                }
+                if( parent.client_hwerror_at_ready ) {
+                    parent.client_hwerror_at_ready = false;
+                    jau_fprintf_td(stderr, "ZZZZZZ Trigger Client HARDWARE-ERROR.0: %s\n", device->toString(true));
+                    device->getAdapter().testIssueHardwareError(0x42_u8);
+                    jau_fprintf_td(stderr, "ZZZZZZ Trigger Client HARDWARE-ERROR.X: %s\n", device->toString(true));
                 }
             }
 
@@ -242,7 +254,7 @@ class DBTClientServer1x {
                 REQUIRE( EIRDataType::NONE != lastCompletedDeviceEIR.getEIRDataMask() );
                 REQUIRE( false == lastCompletedDevice->getConnected() );
                 REQUIRE( ( protocolSessionCount * max_connections_per_session ) > server->getDisconnectCount() );
-                if( client_reset_test ) {
+                if( client_reset_test || client_hwerror_test ) {
                     REQUIRE( 1 == client_power_down_count );
                     REQUIRE( 1 == client_power_up_count );
                 } else {

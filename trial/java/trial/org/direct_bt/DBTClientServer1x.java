@@ -72,12 +72,12 @@ public abstract class DBTClientServer1x extends BaseDBTClientServer {
     int client_power_down_count = 0;
     int client_power_up_count = 0;
     boolean client_reset_at_ready = false;
-    boolean server_reset_at_ready = false;
     boolean client_reset_test = false;
-    boolean server_reset_test = false;
+    boolean client_hwerror_at_ready = false;
+    boolean client_hwerror_test = false;
 
     final void set_client_reset_at_ready(final boolean v) { client_reset_at_ready = v; client_reset_test = v; }
-    final void set_server_reset_at_ready(final boolean v) { server_reset_at_ready = v; server_reset_test = v; }
+    final void set_client_hwerror_at_ready(final boolean v) { client_hwerror_at_ready = v; client_hwerror_test = v; }
 
     final void test8x_fullCycle(final long timeout_value,
                                 final String suffix, final int protocolSessionCount, final boolean server_client_order,
@@ -162,7 +162,15 @@ public abstract class DBTClientServer1x extends BaseDBTClientServer {
 
             @Override
             public void adapterHardwareError(final BTAdapter adapter, final byte error_code, final int error_count, final long timestamp) {
-                PrintUtil.println(System.err, "XXXXXX Client HARDWARE-ERROR: Error-code 0x"+Integer.toHexString(error_code)+", count "+error_count+" on "+adapter);
+                if (client_hwerror_test) {
+                    PrintUtil.println(System.err, "XXXXXX Client HARDWARE-ERROR: Error-code 0x"+Integer.toHexString(error_code)+", count "+error_count+" -> RESET on "+adapter);
+                    final Thread t = new Thread( () -> {
+                        adapter.reset();
+                    });
+                    t.start();
+                } else {
+                    PrintUtil.println(System.err, "XXXXXX Client HARDWARE-ERROR: Error-code 0x"+Integer.toHexString(error_code)+", count "+error_count+" on "+adapter);
+                }
             }
 
             @Override
@@ -175,9 +183,15 @@ public abstract class DBTClientServer1x extends BaseDBTClientServer {
                     PrintUtil.println(System.err, "XXXXXX Client Ready: "+device);
                     if( client_reset_at_ready ) {
                         client_reset_at_ready = false;
-                        PrintUtil.fprintf_td(System.err, "XXXXXX Client Reset.0: %s\n", device.toString());
+                        PrintUtil.fprintf_td(System.err, "ZZZZZZ Trigger Client Reset.0: %s\n", device.toString());
                         final HCIStatusCode rr = device.getAdapter().reset();
-                        PrintUtil.fprintf_td(System.err, "XXXXXX Client Reset.X: %s: %s\n", rr.toString(), device.toString());
+                        PrintUtil.fprintf_td(System.err, "ZZZZZZ Trigger Client Reset.X: %s: %s\n", rr.toString(), device.toString());
+                    }
+                    if (client_hwerror_at_ready) {
+                        client_hwerror_at_ready = false;
+                        PrintUtil.fprintf_td(System.err, "ZZZZZZ Trigger Client HARDWARE-ERROR.0: %s\n", device.toString());
+                        device.getAdapter().testIssueHardwareError((byte)0x42);
+                        PrintUtil.fprintf_td(System.err, "ZZZZZZ Trigger Client HARDWARE-ERROR.X: %s\n", device.toString());
                     }
                 }
             }
@@ -241,7 +255,7 @@ public abstract class DBTClientServer1x extends BaseDBTClientServer {
                 Assert.assertNotNull(lastCompletedDeviceEIR);
                 Assert.assertFalse(lastCompletedDevice.getConnected());
                 Assert.assertTrue( ( 1 * max_connections_per_session ) > server.getDisconnectCount() );
-                if( client_reset_test ) {
+                if( client_reset_test || client_hwerror_test ) {
                     Assert.assertEquals( 1, client_power_down_count );
                     Assert.assertEquals( 1, client_power_up_count );
                 } else {

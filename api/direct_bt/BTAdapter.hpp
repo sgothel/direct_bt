@@ -954,6 +954,8 @@ namespace direct_bt {
              */
             uint32_t getHardwareErrorCount() const noexcept { return hw_error_count; }
 
+            void testIssueHardwareError(uint8_t errorCode) noexcept;
+
             /**
              * Reset the adapter.
              * <p>

@@ -335,6 +335,9 @@ public class DBTAdapter extends DBTObject implements BTAdapter
     public final native int getHardwareErrorCount();
 
     @Override
+    public final native void testIssueHardwareError(byte errorCode);
+
+    @Override
     public final HCIStatusCode reset() {
         return HCIStatusCode.get( resetImpl() );
     }

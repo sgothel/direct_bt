@@ -597,6 +597,8 @@ namespace direct_bt {
             HCIStatusCode resetHCI() noexcept;
 
         public:
+            void testIssueHardwareError(uint8_t errorCode) noexcept;
+
             HCIStatusCode getLocalVersion(HCILocalVersion &version) noexcept;
 
             /**

@@ -1077,7 +1077,7 @@ jobject Java_jau_direct_1bt_DBTAdapter_getLastHardwareError(JNIEnv *env, jobject
         shared_ptr_ref<BTAdapter> adapter(env, obj); // hold until done
         JavaAnonRef adapter_java = adapter->getJavaObject(); // hold until done!
         JavaGlobalObj::check(adapter_java, E_FILE_LINE);
-        
+
         jclass clazz = search_class(env, _hardwareErrorClazzName.data()); // NOLINT(bugprone-suspicious-stringview-data-usage): Safe (see above)
         return jau::jni::convert_instance_to_jobject<BTAdapter>(env, clazz, _hardwareErrorClazzCtorArgs.data(), _createHardwareErrorFromAdapter, adapter.shared_ptr()); // NOLINT(bugprone-suspicious-stringview-data-usage): Safe (see above)
 
@@ -1098,6 +1098,18 @@ jint Java_jau_direct_1bt_DBTAdapter_getHardwareErrorCount(JNIEnv *env, jobject o
         rethrow_and_raise_java_exception(env);
     }
     return 0;
+}
+
+void Java_jau_direct_1bt_DBTAdapter_testIssueHardwareError(JNIEnv *env, jobject obj, jbyte errorCode) {
+    try {
+        shared_ptr_ref<BTAdapter> adapter(env, obj); // hold until done
+        JavaAnonRef adapter_java = adapter->getJavaObject(); // hold until done!
+        JavaGlobalObj::check(adapter_java, E_FILE_LINE);
+
+        adapter->testIssueHardwareError((uint8_t)errorCode);
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
 }
 
 jbyte Java_jau_direct_1bt_DBTAdapter_resetImpl(JNIEnv *env, jobject obj) {

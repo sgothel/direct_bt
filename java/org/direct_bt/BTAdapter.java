@@ -734,6 +734,8 @@ public interface BTAdapter extends BTObject
      */
     int getHardwareErrorCount();
 
+    void testIssueHardwareError(byte errorCode);
+
     /**
      * Reset the adapter.
      * <p>

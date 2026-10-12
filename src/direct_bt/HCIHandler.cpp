@@ -1175,6 +1175,12 @@ HCIStatusCode HCIHandler::resetHCI() noexcept {
     }
 }
 
+void HCIHandler::testIssueHardwareError(uint8_t errorCode) noexcept {
+    std::unique_ptr<MgmtEvent> mevent = jau::make_unique_or_abort<MgmtEvtHCIHardwareError>(dev_id, errorCode);
+    jau_INFO_PRINT("HARDWARE_ERROR: test error-code 0x%2.2X - %s", errorCode, toString());
+    sendMgmtEvent( *mevent );
+}
+
 HCIStatusCode HCIHandler::getLocalVersion(HCILocalVersion &version) noexcept {
     if( !isOpen() ) {
         jau_ERR_PRINT("Not connected %s", toString());
