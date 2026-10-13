@@ -608,7 +608,7 @@ void BTDevice::notifyLEFeatures(const std::shared_ptr<BTDevice>& sthis, const LE
 
     le_features = features;
     if( addressAndType.isLEAddress() && ( !l2cap_att->is_open() || is_local_server ) ) {
-        std::thread bg(&BTDevice::processL2CAPSetup, this, sthis); // @suppress("Invalid arguments")
+        std::thread bg(&BTDevice::processL2CAPSetup, this, sthis);
         bg.detach();
     }
 }

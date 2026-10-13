@@ -164,7 +164,7 @@ bool BTAdapter::addDevicePausingDiscovery(const BTDeviceRef & device) {
         if constexpr ( SCAN_DISABLED_POST_CONNECT ) {
             updateDeviceDiscoveringState(ScanType::LE, false /* eventEnabled */);
         } else {
-            std::thread bg(&BTAdapter::stopDiscoveryImpl, this, false /* forceDiscoveringEvent */, true /* temporary */); // @suppress("Invalid arguments")
+            std::thread bg(&BTAdapter::stopDiscoveryImpl, this, false /* forceDiscoveringEvent */, true /* temporary */);
             bg.detach();
         }
         return true;
@@ -1937,7 +1937,7 @@ void BTAdapter::updateAdapterSettings(const bool off_thread, const AdapterSettin
     if( justPoweredOff ) {
         // Adapter has been powered off, close connections and cleanup off-thread.
         if( off_thread ) {
-            std::thread bg(&BTAdapter::poweredOff, this, false, "adapter_settings.0"); // @suppress("Invalid arguments")
+            std::thread bg(&BTAdapter::poweredOff, this, false, "adapter_settings.0");
             bg.detach();
         } else {
             poweredOff(false, "powered_off.1");
@@ -2284,7 +2284,7 @@ void BTAdapter::mgmtEvHCILERemoteUserFeaturesHCI(const MgmtEvent& e) {
                 if constexpr ( SCAN_DISABLED_POST_CONNECT ) {
                     updateDeviceDiscoveringState(ScanType::LE, false /* eventEnabled */);
                 } else {
-                    std::thread bg(&BTAdapter::stopDiscoveryImpl, this, false /* forceDiscoveringEvent */, true /* temporary */); // @suppress("Invalid arguments")
+                    std::thread bg(&BTAdapter::stopDiscoveryImpl, this, false /* forceDiscoveringEvent */, true /* temporary */);
                     bg.detach();
                 }
             } else if( DiscoveryPolicy::ALWAYS_ON == policy ) {
