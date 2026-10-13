@@ -957,15 +957,18 @@ HCIStatusCode BTAdapter::reset() noexcept {
     discovery_policy = DiscoveryPolicy::AUTO_OFF;
     discovery_service.stop();
     const bool was_healthy = hw_healthy;
+    bool powered_in_reset;
 
     HCIStatusCode res = hci.resetAdapter( [&]() noexcept -> HCIStatusCode {
         // Shall trigger poweredOff -> disconnectAllDevices
         jau::nsize_t connCount = getConnectedDeviceCount();
-        // Don't wait until disconnect in case of hw-failure
-        if( was_healthy && 0 < connCount ) {
+        powered_in_reset = isPowered();
+        jau_DBG_PRINT("BTAdapter::reset.1: powered-in-reset %s, was-healthy - %s", powered_in_reset, was_healthy, toString());
+        // Don't wait until disconnect in case of hw-failure or not powered-off
+        if( was_healthy && !powered_in_reset && 0 < connCount ) {
             const jau::fraction_i64 timeout = hci.env.HCI_COMMAND_COMPLETE_REPLY_TIMEOUT;
             const jau::fraction_i64 poll_period = hci.env.HCI_COMMAND_POLL_PERIOD;
-            jau_DBG_PRINT("BTAdapter::reset: %zu connections pending - %s", connCount, toString());
+            jau_DBG_PRINT("BTAdapter::reset.2: %zu connections pending - %s", connCount, toString());
             jau::fraction_i64 td = 0_s;
             while( timeout > td && 0 < connCount ) {
                 sleep_for( poll_period );
@@ -975,24 +978,29 @@ HCIStatusCode BTAdapter::reset() noexcept {
             if( 0 < connCount ) {
                 jau_WARN_PRINT("%zu connections pending after %i ms - %s", connCount, td.to_ms(), toString());
             } else {
-                jau_DBG_PRINT("BTAdapter::reset: pending connections resolved after %i ms - %s", td.to_ms(), toString());
+                jau_DBG_PRINT("BTAdapter::reset.3: pending connections resolved after %i ms - %s", td.to_ms(), toString());
             }
+        }
+        if (powered_in_reset) {
+            // Just in case poweredOff didn't get triggered, i.e. failed reset
+            jau_DBG_PRINT("BTAdapter::reset.4: powered -> disconnectAllDevices - %s", toString());
+            disconnectAllDevices(was_healthy ? HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION : HCIStatusCode::HARDWARE_FAILURE);
         }
         if (HCIStatusCode::SUCCESS == res && DiscoveryPolicy::AUTO_OFF != previousDiscoveryPolicy) {
             discovery_policy = previousDiscoveryPolicy;
-            jau_DBG_PRINT("BTAdapter::reset.1: reset local discovery_policy - %s", toString());
+            jau_DBG_PRINT("BTAdapter::reset.5: reset local discovery_policy - %s", toString());
             // Waiting for POWERED ON -> discovery_service.start();
         }
         return HCIStatusCode::SUCCESS; // keep going
     });
-    if (!was_healthy) {
-        // Just in case poweredOff didn't get triggered, i.e. failed reset
-        disconnectAllDevices(HCIStatusCode::HARDWARE_FAILURE);
-    }
     if( HCIStatusCode::SUCCESS == res ) {
         // Device-init path re-ran; a still-faulty controller clears this again on the next HARDWARE_ERROR.
         hw_healthy = true;
         last_hw_error = HardwareError{.timestamp=0, .error_code=0};
+    }
+    if (powered_in_reset) {
+        jau_DBG_PRINT("BTAdapter::reset.6: reset & start discovery_service - %s", toString());
+        discovery_service.start();
     }
     jau_DBG_PRINT("BTAdapter::reset.X: %s - %s", res, toString());
     return res;
@@ -2222,7 +2230,7 @@ void BTAdapter::mgmtEvHardwareErrorHCI(const MgmtEvent& e) noexcept {
     last_hw_error = HardwareError{.timestamp=event.getTimestamp(), .error_code=error_code};
     const uint32_t error_count = ++hw_error_count;
 
-    jau_ERR_PRINT("BTAdapter::hci:HardwareError(dev_id %u): error-code %#2.2x, count %u; controller non-functional until reset(true) - %s",
+    jau_INFO_PRINT("BTAdapter::hci:HardwareError(dev_id %u): error-code %#2.2x, count %u; controller non-functional until reset(true) - %s",
         dev_id, error_code, error_count, toString());
 
     size_t i=0;
