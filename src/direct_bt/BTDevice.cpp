@@ -2451,8 +2451,7 @@ HCIStatusCode BTDevice::setConnectedLE_PHY(const LE_PHYs Tx, const LE_PHYs Rx) n
 
 void BTDevice::notifyDisconnected() noexcept {
     // coming from disconnect callback, ensure cleaning up!
-    jau_DBG_PRINT("BTDevice::notifyDisconnected: handle %s -> zero, %s",
-              jau::toHexString(hciConnHandle), toString());
+    jau_DBG_PRINT("BTDevice::notifyDisconnected: handle %s -> zero, %s", jau::toHexString(hciConnHandle), toString());
     allowDisconnect = false;
     supervision_timeout = 0;
     isConnected = false;
@@ -2465,8 +2464,13 @@ void BTDevice::notifyDisconnected() noexcept {
     // clearData(); to be performed after notifying listener and if !isConnSecurityAutoEnabled()
 }
 
-void BTDevice::sendMgmtEvDeviceDisconnected(std::unique_ptr<MgmtEvent> evt) noexcept {
-    adapter.mgmtEvDeviceDisconnectedHCI(*evt);
+void BTDevice::sendDeviceDisconnected(HCIStatusCode hciReason, uint64_t timestamp) noexcept {
+    BTDeviceRef ref = getSharedInstance();
+    if (!ref) {
+        jau_ERR_PRINT("BTDevice::sendMgmtEvDeviceDisconnected: Null ref: %s", toString());
+    } else {
+        adapter.sendDeviceDisconnected(ref, hciReason, timestamp);
+    }
 }
 
 HCIStatusCode BTDevice::disconnect(const HCIStatusCode reason) noexcept {
@@ -2474,14 +2478,14 @@ HCIStatusCode BTDevice::disconnect(const HCIStatusCode reason) noexcept {
     bool expConn = true; // C++11, exp as value since C++20
     if( !allowDisconnect.compare_exchange_strong(expConn, false) ) {
         // Not connected or disconnect already in process.
-        jau_DBG_PRINT("BTDevice::disconnect: Not connected: isConnected %s/%s, reason 0x%X (%s), gattHandler %d, hciConnHandle %s",
-                allowDisconnect, isConnected, *reason, reason, (nullptr != gattHandler), jau::toHexString(hciConnHandle));
+        jau_DBG_PRINT("BTDevice::disconnect(reason 0x%X %s): Not connected: gattHandler %d, %s", *reason, reason, (nullptr != gattHandler), toString());
         return HCIStatusCode::CONNECTION_TERMINATED_BY_LOCAL_HOST;
     }
     if( !isConnected ) { // should not happen
         jau_WARN_PRINT("allowConnect true -> false, but !isConnected on %s", toString());
         return HCIStatusCode::SUCCESS;
     }
+    jau_DBG_PRINT("BTDevice::disconnect(reason 0x%X %s): Start: gattHandler %d, %s", *reason, reason, (nullptr != gattHandler), toString());
 
     // Disconnect GATT and SMP before device, keeping reversed initialization order intact if possible.
     // This outside mtx_connect, keeping same mutex lock order intact as well
@@ -2491,8 +2495,7 @@ HCIStatusCode BTDevice::disconnect(const HCIStatusCode reason) noexcept {
     // Lock to avoid other threads connecting while disconnecting
     const std::lock_guard<std::recursive_mutex> lock_conn(mtx_connect); // RAII-style acquire and relinquish via destructor
 
-    jau_WORDY_PRINT("BTDevice::disconnect: Start: isConnected %s/%s, reason 0x%X (%s), gattHandler %d, hciConnHandle %s",
-            allowDisconnect, isConnected, *reason, reason, (nullptr != gattHandler), jau::toHexString(hciConnHandle));
+    jau_DBG_PRINT("BTDevice::disconnect(reason 0x%X %s).1: gattHandler %d, %s", *reason, reason, (nullptr != gattHandler), toString());
 
     HCIHandler &hci = adapter.getHCI();
     HCIStatusCode res = HCIStatusCode::SUCCESS;
@@ -2529,17 +2532,14 @@ exit:
         // send the DISCONN_COMPLETE event directly.
         // SEND_EVENT: Perform off-thread to avoid potential deadlock w/ application callbacks (similar when sent from HCIHandler's reader-thread)
         try {
-            std::thread bg(&BTDevice::sendMgmtEvDeviceDisconnected, this, // @suppress("Invalid arguments")
-                           std::make_unique<MgmtEvtDeviceDisconnected>(adapter.dev_id, addressAndType, reason, hciConnHandle) );
+            std::thread bg(&BTDevice::sendDeviceDisconnected, this, reason, jau::getCurrentMilliseconds());
             bg.detach();
         } catch( ... ) {
             jau::fput_exception(stderr, std::current_exception(), E_FILE_LINE);
             jau_ERR_PRINT3("Exception caught while launching sendMgmtEvDeviceDisconnected thread for %s", toString());
         }
-        // adapter.mgmtEvDeviceDisconnectedHCI( std::unique_ptr<MgmtEvent>( new MgmtEvtDeviceDisconnected(adapter.dev_id, address, addressType, reason, hciConnHandle) ) );
     }
-    jau_WORDY_PRINT("BTDevice::disconnect: End: status %s, handle 0x%X, isConnected %d/%d on %s",
-            res, hciConnHandle, allowDisconnect, isConnected, toString());
+    jau_DBG_PRINT("BTDevice::disconnect(reason 0x%X %s): End: status %s, %s", *reason, reason, res, toString());
 
     return res;
 }

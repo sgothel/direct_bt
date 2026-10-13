@@ -492,7 +492,7 @@ namespace direct_bt {
             friend BTDevice::~BTDevice() noexcept;
 
             friend std::shared_ptr<ConnectionInfo> BTDevice::getConnectionInfo();
-            friend void BTDevice::sendMgmtEvDeviceDisconnected(std::unique_ptr<MgmtEvent> evt) noexcept;
+            friend void BTDevice::sendDeviceDisconnected(HCIStatusCode hciReason, uint64_t timestamp) noexcept;
             friend HCIStatusCode BTDevice::disconnect(const HCIStatusCode reason) noexcept;
             friend HCIStatusCode BTDevice::connectLE(uint16_t interval, uint16_t window,
                                                       uint16_t min_interval, uint16_t max_interval,
@@ -568,6 +568,7 @@ namespace direct_bt {
             void mgmtEvHCILERemoteUserFeaturesHCI(const MgmtEvent& e);
             void mgmtEvHCILEPhyUpdateCompleteHCI(const MgmtEvent& e) noexcept;
             void mgmtEvDeviceDisconnectedHCI(const MgmtEvent& e) noexcept;
+            void sendDeviceDisconnected(const BTDeviceRef &device, HCIStatusCode hciReason, uint64_t timestamp) noexcept;
 
             // Local BTRole::Slave
             void mgmtEvLELTKReqEventHCI(const MgmtEvent& e) noexcept;

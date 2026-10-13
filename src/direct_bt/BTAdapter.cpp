@@ -2321,6 +2321,66 @@ void BTAdapter::mgmtEvHCILEPhyUpdateCompleteHCI(const MgmtEvent& e) noexcept {
     }
 }
 
+void BTAdapter::sendDeviceDisconnected(const BTDeviceRef &device, HCIStatusCode hciReason, uint64_t timestamp) noexcept {
+    const uint16_t hciHandle = device->getConnectionHandle();
+    jau_DBG_PRINT("BTAdapter::hci:DeviceDisconnected(dev_id %u): handle %#x -> zero,\n    -> %s",
+        dev_id, hciHandle, device->toString());
+
+    unlockConnect(*device);
+    device->notifyDisconnected(); // -> unpair()
+    removeConnectedDevice(*device);
+    if( BTRole::Slave == btRole ) {
+        // Keep valid in LL master discovery mode (client).
+        gattServerData = nullptr;
+    }
+
+    if( !device->isConnSecurityAutoEnabled() ) {
+        size_t i=0;
+        jau::for_each_fidelity(statusListenerList, [&](StatusListenerPair &p) {
+            try {
+                if( p.match(device) ) {
+                    p.listener->deviceDisconnected(device, hciReason, hciHandle, timestamp);
+                }
+            } catch (std::exception &except) {
+                jau_ERR_PRINT("BTAdapter::hci:DeviceDisconnected-CBs %zu/%zu: %s of %s: Caught exception %s",
+                    i+1, statusListenerList.size(), p.listener->toString(), device->toString(), except.what());
+            }
+            i++;
+        });
+        device->clearData();
+        removeDiscoveredDevice(device->addressAndType); // ensure device will cause a deviceFound event after disconnect
+    }
+    if( BTRole::Slave == getRole() ) {
+        // PERIPHERAL_ADAPTER_MANAGES_SMP_KEYS
+        if( HCIStatusCode::AUTHENTICATION_FAILURE == hciReason ||
+            HCIStatusCode::PAIRING_WITH_UNIT_KEY_NOT_SUPPORTED == hciReason )
+        {
+            // Pairing failed on the remote client side
+            removeSMPKeyBin(device->getAddressAndType(), true /* remove_file */);
+        } else {
+            SMPKeyBinRef key = findSMPKeyBin(device->getAddressAndType());
+            if( nullptr != key ) {
+                HCIStatusCode res;
+                #if 0
+                    res = getManager().unpairDevice(dev_id, device->getAddressAndType(), true /* disconnect */);
+                    if( HCIStatusCode::SUCCESS != res && HCIStatusCode::NOT_PAIRED != res ) {
+                        jau_WARN_PRINT("(dev_id %u): Unpair device failed %s of %s",
+                                dev_id, res, device->getAddressAndType());
+                    }
+                    res = device->uploadKeys(*key, BTSecurityLevel::NONE);
+                #else
+                    res = device->uploadKeys(*key, BTSecurityLevel::NONE);
+                #endif
+                if( HCIStatusCode::SUCCESS != res ) {
+                    jau_WARN_PRINT("(dev_id %u): Upload SMPKeyBin failed %s, %s (removing file)", dev_id, res, key->toString());
+                    removeSMPKeyBin(device->getAddressAndType(), true /* remove_file */);
+                }
+            }
+        }
+    }
+    removeDevicePausingDiscovery(*device);
+}
+
 void BTAdapter::mgmtEvDeviceDisconnectedHCI(const MgmtEvent& e) noexcept {
     const MgmtEvtDeviceDisconnected &event = *static_cast<const MgmtEvtDeviceDisconnected *>(&e);
 
@@ -2331,62 +2391,7 @@ void BTAdapter::mgmtEvDeviceDisconnectedHCI(const MgmtEvent& e) noexcept {
                 dev_id, event, device->toString());
             return;
         }
-        jau_DBG_PRINT("BTAdapter::hci:DeviceDisconnected(dev_id %u): %s, handle %#x -> zero,\n    -> %s",
-            dev_id, event, event.getHCIHandle(), device->toString());
-
-        unlockConnect(*device);
-        device->notifyDisconnected(); // -> unpair()
-        removeConnectedDevice(*device);
-        if( BTRole::Slave == btRole ) {
-            // Keep valid in LL master discovery mode (client).
-            gattServerData = nullptr;
-        }
-
-        if( !device->isConnSecurityAutoEnabled() ) {
-            size_t i=0;
-            jau::for_each_fidelity(statusListenerList, [&](StatusListenerPair &p) {
-                try {
-                    if( p.match(device) ) {
-                        p.listener->deviceDisconnected(device, event.getHCIReason(), event.getHCIHandle(), event.getTimestamp());
-                    }
-                } catch (std::exception &except) {
-                    jau_ERR_PRINT("BTAdapter::hci:DeviceDisconnected-CBs %zu/%zu: %s of %s: Caught exception %s",
-                        i+1, statusListenerList.size(), p.listener->toString(), device->toString(), except.what());
-                }
-                i++;
-            });
-            device->clearData();
-            removeDiscoveredDevice(device->addressAndType); // ensure device will cause a deviceFound event after disconnect
-        }
-        if( BTRole::Slave == getRole() ) {
-            // PERIPHERAL_ADAPTER_MANAGES_SMP_KEYS
-            if( HCIStatusCode::AUTHENTICATION_FAILURE == event.getHCIReason() ||
-                HCIStatusCode::PAIRING_WITH_UNIT_KEY_NOT_SUPPORTED == event.getHCIReason() )
-            {
-                // Pairing failed on the remote client side
-                removeSMPKeyBin(device->getAddressAndType(), true /* remove_file */);
-            } else {
-                SMPKeyBinRef key = findSMPKeyBin(device->getAddressAndType());
-                if( nullptr != key ) {
-                    HCIStatusCode res;
-                    #if 0
-                        res = getManager().unpairDevice(dev_id, device->getAddressAndType(), true /* disconnect */);
-                        if( HCIStatusCode::SUCCESS != res && HCIStatusCode::NOT_PAIRED != res ) {
-                            jau_WARN_PRINT("(dev_id %u): Unpair device failed %s of %s",
-                                    dev_id, res, device->getAddressAndType());
-                        }
-                        res = device->uploadKeys(*key, BTSecurityLevel::NONE);
-                    #else
-                        res = device->uploadKeys(*key, BTSecurityLevel::NONE);
-                    #endif
-                    if( HCIStatusCode::SUCCESS != res ) {
-                        jau_WARN_PRINT("(dev_id %u): Upload SMPKeyBin failed %s, %s (removing file)", dev_id, res, key->toString());
-                        removeSMPKeyBin(device->getAddressAndType(), true /* remove_file */);
-                    }
-                }
-            }
-        }
-        removeDevicePausingDiscovery(*device);
+        sendDeviceDisconnected(device, event.getHCIReason(), event.getTimestamp());
     } else {
         jau_DBG_PRINT("BTAdapter::hci:DeviceDisconnected(dev_id %u): Device not connected: %s", dev_id, event);
         if( _print_device_lists || jau::environment::get().verbose ) {

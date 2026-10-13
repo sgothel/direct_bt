@@ -295,7 +295,7 @@ namespace direct_bt {
 
             void clearSMPStates(const bool connected) noexcept;
 
-            void sendMgmtEvDeviceDisconnected(std::unique_ptr<MgmtEvent> evt) noexcept;
+            void sendDeviceDisconnected(HCIStatusCode hciReason, uint64_t timestamp) noexcept;
 
         public:
             typedef jau::nsize_t size_type;
