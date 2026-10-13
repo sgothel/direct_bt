@@ -18,6 +18,7 @@ script_args="$@"
 sdir=`dirname $(readlink -f $0)`
 rootdir=`dirname $sdir`
 bname=`basename $0 .sh`
+test_basename=${bname}
 
 . $rootdir/jaulib/scripts/setup-machine-arch.sh "-quiet"
 
@@ -36,18 +37,17 @@ build_dir="$rootdir/build/${preset_name}"
 echo dist_dir $dist_dir
 echo build_dir $build_dir
 
-test_exe=${build_dir}/trial/direct_bt/test_client_server10_NoEnc
-if [ ! -z "$1" ] ; then
-    test_exe=$1
-    shift 1
-fi
-test_basename=`basename ${test_exe}`
-
 if [ "$1" = "-log" ] ; then
     logbasename=$2
     shift 2
 else
-    logbasename=$bname-${test_basename}-$os_name-$archabi
+    logbasename=${bname}-$os_name-$archabi
+fi
+
+test_exe=${build_dir}/trial/direct_bt/${test_basename}
+if [ ! -e $test_exe ] ; then
+    echo "Not existing $text_exe"
+    exit 1
 fi
 
 mkdir -p $rootdir/doc/test
@@ -83,8 +83,8 @@ do_test() {
     echo logfile $logfile
     echo valgrindlog $valgrindlogfile
     echo callgrindlog $callgrindoutfile
-    echo test_exe ${test_exe}
-    echo test_basename ${test_basename}
+    echo test_exe ${bname}
+    echo test_basename ${bname}
     echo direct_bt_debug ${direct_bt_debug}
 
     test_dir=`dirname $test_exe`

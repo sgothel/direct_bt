@@ -16,6 +16,7 @@ script_args="$@"
 sdir=`dirname $(readlink -f $0)`
 rootdir=`dirname $sdir`
 bname=`basename $0 .sh`
+test_basename=${bname}
 
 . $rootdir/jaulib/scripts/setup-machine-arch.sh "-quiet"
 
@@ -54,19 +55,18 @@ fi
 JAVA_EXE=${JAVA_HOME}/bin/java
 JAVA_CMD="${JAVA_EXE}"
 
-test_class=trial.org.direct_bt.TestDBTClientServer10_NoEnc
+test_class=trial.org.direct_bt.${test_basename}
 if [ ! -z "$1" ] ; then
     test_class=$1
     shift 1
 fi
-test_basename=`echo ${test_class} | sed 's/.*\.//g'`
 
 if [ "$1" = "-log" ] ; then
     logfile=$2
     shift 2
 else
     mkdir -p $rootdir/doc/test
-    logfile=$rootdir/doc/test/${bname}-${test_basename}-${os_name}-${archabi}.log
+    logfile=$rootdir/doc/test/${test_basename}-${os_name}-${archabi}.log
 fi
 rm -f $logfile
 logbasename=`basename ${logfile} .log`
